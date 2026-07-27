@@ -23,18 +23,23 @@ if (-not $AutoMerge -and $N -gt 1) {
     $N = 1
 }
 
-# Espera os checks DO COMMIT ATUAL do PR. `gh pr checks` nao serve: logo depois de um push
-# ele ainda responde com os runs do commit anterior, e um "verde" velho fez o merge da iter
-# 0013 ser recusado pela protecao de branch (que olha o commit certo). Consultar check-runs
-# pelo SHA elimina a janela - e um resultado vazio significa "ainda nao registrou", nao verde.
+# Espera o PR ficar mergeavel, perguntando ao GitHub em vez de deduzir dos runs. Duas
+# tentativas anteriores erraram: `gh pr checks` responde com os runs do commit ANTERIOR logo
+# apos um push (merge da 0013 recusado com BLOCKED), e olhar check-runs por SHA tambem falha
+# porque runs do mesmo SHA aparecem em ondas - na 0014 um segundo run de `check` registrou
+# depois que o primeiro ja tinha terminado, e a janela entre eles pareceu verde.
+# mergeStateStatus e a resposta autoritativa: CLEAN = a protecao de branch libera o merge.
 function Wait-Checks([string]$pr) {
-    $sha = (gh pr view $pr --json headRefOid --jq .headRefOid).Trim()
     foreach ($t in 1..40) {
-        $runs = gh api "repos/{owner}/{repo}/commits/$sha/check-runs" `
-            --jq '[.check_runs[] | "\(.status):\(.conclusion // "-")"] | join(" ")' 2>&1
-        if ($LASTEXITCODE -eq 0 -and $runs -and $runs -notmatch "queued|in_progress") {
-            if ($runs -match "failure|timed_out|cancelled") { return "falha" }
-            return "verde"
+        $st = (gh pr view $pr --json mergeStateStatus --jq .mergeStateStatus 2>&1)
+        if ($LASTEXITCODE -eq 0) {
+            switch -Regex ($st) {
+                'CLEAN|UNSTABLE' { return "verde" }
+                'DIRTY|BEHIND'   { return "falha" }
+            }
+            $runs = gh api "repos/{owner}/{repo}/commits/$((gh pr view $pr --json headRefOid --jq .headRefOid).Trim())/check-runs" `
+                --jq '[.check_runs[] | .conclusion // "-"] | join(" ")' 2>&1
+            if ($LASTEXITCODE -eq 0 -and $runs -match "failure|timed_out|cancelled") { return "falha" }
         }
         Start-Sleep 15
     }

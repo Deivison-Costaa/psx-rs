@@ -51,7 +51,7 @@ fn mult_64bits_hi_lo() {
     cpu.regs[9] = 0x0002_0000;
     bus.write32::<BusRead>(0, encode_special(MULT, 0, 9, 8));
     cpu.step(&mut bus);
-    assert_eq!(cpu.hi, 0x0002_0000);
+    assert_eq!(cpu.hi, 0x0000_2000);
     assert_eq!(cpu.lo, 0x0002_0000);
 }
 
@@ -186,7 +186,7 @@ fn mfhi_le_hi() {
     let mut cpu = Cpu::new();
     cpu.pc = 0;
     cpu.hi = 0xDEAD_BEEF;
-    bus.write32::<BusRead>(0, encode_special(MFHI, 0, 0, 8));
+    bus.write32::<BusRead>(0, encode_special(MFHI, 8, 0, 0));
     cpu.step(&mut bus);
     assert_eq!(cpu.regs[8], 0xDEAD_BEEF);
 }
@@ -197,7 +197,7 @@ fn mflo_le_lo() {
     let mut cpu = Cpu::new();
     cpu.pc = 0;
     cpu.lo = 0xCAFE_BABE;
-    bus.write32::<BusRead>(0, encode_special(MFLO, 0, 0, 8));
+    bus.write32::<BusRead>(0, encode_special(MFLO, 8, 0, 0));
     cpu.step(&mut bus);
     assert_eq!(cpu.regs[8], 0xCAFE_BABE);
 }
@@ -243,8 +243,8 @@ fn mult_e_depois_mflo_mfhi() {
     cpu.regs[8] = 0x0001_0000;
     cpu.regs[9] = 0x0002_0001;
     bus.write32::<BusRead>(0, encode_special(MULT, 0, 9, 8));
-    bus.write32::<BusRead>(4, encode_special(MFLO, 0, 0, 10));
-    bus.write32::<BusRead>(8, encode_special(MFHI, 0, 0, 11));
+    bus.write32::<BusRead>(4, encode_special(MFLO, 10, 0, 0));
+    bus.write32::<BusRead>(8, encode_special(MFHI, 11, 0, 0));
     cpu.step(&mut bus);
     cpu.step(&mut bus);
     cpu.step(&mut bus);

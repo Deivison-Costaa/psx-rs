@@ -4,6 +4,8 @@ use crate::bus::{Bus, BusRead};
 pub struct Cpu {
     pub regs: [u32; 32],
     pub pc: u32,
+    pub hi: u32,
+    pub lo: u32,
     load_delay: Option<(usize, u32)>,
     branch_target: Option<u32>,
 }
@@ -13,6 +15,8 @@ impl Cpu {
         Cpu {
             regs: [0u32; 32],
             pc: 0xBFC0_0000,
+            hi: 0,
+            lo: 0,
             load_delay: None,
             branch_target: None,
         }
@@ -190,12 +194,20 @@ impl Cpu {
                 let val = self.reg(rs) < self.reg(rt);
                 self.set_reg(rd, val as u32);
             }
-            0x08 => {
+             0x08 => {
                 self.jr(instr);
             }
             0x09 => {
                 self.jalr(instr);
             }
+            0x10 => self.mfhi(instr),
+            0x11 => self.mthi(instr),
+            0x12 => self.mflo(instr),
+            0x13 => self.mtlo(instr),
+            0x18 => self.mult(instr),
+            0x19 => self.multu(instr),
+            0x1A => self.div(instr),
+            0x1B => self.divu(instr),
             _ => unimplemented!("secondary opcode={:02X} nao implementado", secondary),
         }
     }
@@ -222,6 +234,75 @@ impl Cpu {
         let target = self.reg(rs);
         self.set_reg(rd, self.pc.wrapping_add(4));
         self.branch_target = Some(target);
+    }
+
+    fn mfhi(&mut self, instr: u32) {
+        let rd = ((instr >> 11) & 0x1F) as usize;
+        self.set_reg(rd, self.hi);
+    }
+
+    fn mthi(&mut self, instr: u32) {
+        let rs = ((instr >> 21) & 0x1F) as usize;
+        self.hi = self.reg(rs);
+    }
+
+    fn mflo(&mut self, instr: u32) {
+        let rd = ((instr >> 11) & 0x1F) as usize;
+        self.set_reg(rd, self.lo);
+    }
+
+    fn mtlo(&mut self, instr: u32) {
+        let rs = ((instr >> 21) & 0x1F) as usize;
+        self.lo = self.reg(rs);
+    }
+
+    fn mult(&mut self, instr: u32) {
+        let rs = ((instr >> 21) & 0x1F) as usize;
+        let rt = ((instr >> 16) & 0x1F) as usize;
+        let a = self.reg(rs) as i32 as i64;
+        let b = self.reg(rt) as i32 as i64;
+        let prod = a.wrapping_mul(b);
+        self.lo = prod as u32;
+        self.hi = (prod >> 32) as u32;
+    }
+
+    fn multu(&mut self, instr: u32) {
+        let rs = ((instr >> 21) & 0x1F) as usize;
+        let rt = ((instr >> 16) & 0x1F) as usize;
+        let prod = (self.reg(rs) as u64).wrapping_mul(self.reg(rt) as u64);
+        self.lo = prod as u32;
+        self.hi = (prod >> 32) as u32;
+    }
+
+    fn div(&mut self, instr: u32) {
+        let rs = ((instr >> 21) & 0x1F) as usize;
+        let rt = ((instr >> 16) & 0x1F) as usize;
+        let rs_val = self.reg(rs) as i32;
+        let rt_val = self.reg(rt) as i32;
+        if rt_val == 0 {
+            self.lo = if rs_val >= 0 { 0xFFFF_FFFF } else { 1 };
+            self.hi = self.reg(rs);
+        } else if rs_val == i32::MIN && rt_val == -1 {
+            self.lo = 0x8000_0000;
+            self.hi = 0;
+        } else {
+            self.lo = (rs_val / rt_val) as u32;
+            self.hi = (rs_val % rt_val) as u32;
+        }
+    }
+
+    fn divu(&mut self, instr: u32) {
+        let rs = ((instr >> 21) & 0x1F) as usize;
+        let rt = ((instr >> 16) & 0x1F) as usize;
+        let rs_val = self.reg(rs);
+        let rt_val = self.reg(rt);
+        if rt_val == 0 {
+            self.lo = 0xFFFF_FFFF;
+            self.hi = rs_val;
+        } else {
+            self.lo = rs_val / rt_val;
+            self.hi = rs_val % rt_val;
+        }
     }
 
     fn branch_taken(&mut self, offset: u32) {

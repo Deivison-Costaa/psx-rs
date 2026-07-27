@@ -17,9 +17,14 @@ git checkout main | Out-Null
 git pull --ff-only | Out-Null
 $headAntes = (git rev-parse --short HEAD).Trim()
 
+# Shim do npm no Windows: "opencode" resolve para opencode.ps1, que Start-Process nao
+# executa ("%1 nao e um aplicativo Win32 valido") - usar o opencode.cmd explicitamente.
+$oc = (Get-Command opencode.cmd -ErrorAction SilentlyContinue)?.Source
+if (-not $oc) { $oc = (Get-Command opencode).Source }
+
 $up = Test-Connection -TargetName localhost -TcpPort $Port -Quiet -TimeoutSeconds 2
 if (-not $up) {
-    Start-Process opencode -ArgumentList "serve", "--port", $Port -WindowStyle Hidden
+    Start-Process $oc -ArgumentList "serve", "--port", $Port -WindowStyle Hidden
     foreach ($i in 1..30) {
         if (Test-Connection -TargetName localhost -TcpPort $Port -Quiet -TimeoutSeconds 2) { break }
         Start-Sleep 1
@@ -38,7 +43,7 @@ $outFile = "logs/oc-iter-$stamp.json"
 $errFile = "logs/oc-iter-$stamp.err"
 
 $sw = [System.Diagnostics.Stopwatch]::StartNew()
-$p = Start-Process opencode -ArgumentList "run", "--attach", "http://localhost:$Port",
+$p = Start-Process $oc -ArgumentList "run", "--attach", "http://localhost:$Port",
     "-m", $Model, "--format", "json", "`"$prompt`"" -NoNewWindow -PassThru `
     -RedirectStandardOutput $outFile -RedirectStandardError $errFile
 $done = $p.WaitForExit($TimeoutMin * 60 * 1000)

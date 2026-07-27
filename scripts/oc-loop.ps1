@@ -23,11 +23,19 @@ if (-not $AutoMerge -and $N -gt 1) {
     $N = 1
 }
 
+# Espera os checks DO COMMIT ATUAL do PR. `gh pr checks` nao serve: logo depois de um push
+# ele ainda responde com os runs do commit anterior, e um "verde" velho fez o merge da iter
+# 0013 ser recusado pela protecao de branch (que olha o commit certo). Consultar check-runs
+# pelo SHA elimina a janela - e um resultado vazio significa "ainda nao registrou", nao verde.
 function Wait-Checks([string]$pr) {
+    $sha = (gh pr view $pr --json headRefOid --jq .headRefOid).Trim()
     foreach ($t in 1..40) {
-        $checks = gh pr checks $pr 2>&1
-        if ($LASTEXITCODE -eq 0 -and $checks -notmatch "pending") { return "verde" }
-        if ($checks -match "fail") { return "falha" }
+        $runs = gh api "repos/{owner}/{repo}/commits/$sha/check-runs" `
+            --jq '[.check_runs[] | "\(.status):\(.conclusion // "-")"] | join(" ")' 2>&1
+        if ($LASTEXITCODE -eq 0 -and $runs -and $runs -notmatch "queued|in_progress") {
+            if ($runs -match "failure|timed_out|cancelled") { return "falha" }
+            return "verde"
+        }
         Start-Sleep 15
     }
     return "timeout"

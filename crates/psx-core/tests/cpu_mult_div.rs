@@ -178,6 +178,39 @@ fn divu_por_zero() {
     assert_eq!(cpu.lo, 0xFFFF_FFFF);
 }
 
+#[test]
+fn divu_com_dividendo_de_bit_alto_e_sem_sinal() {
+    let mut bus = bus_with_bios_empty();
+    let mut cpu = Cpu::new();
+    cpu.pc = 0;
+    cpu.regs[8] = 0xFFFF_FFFF;
+    cpu.regs[9] = 2;
+    bus.write32::<BusRead>(0, encode_special(DIVU, 0, 9, 8));
+    cpu.step(&mut bus);
+    assert_eq!(
+        cpu.lo, 0x7FFF_FFFF,
+        "DIVU e sem sinal: 4294967295/2, nao (-1)/2 = 0"
+    );
+    assert_eq!(cpu.hi, 1);
+}
+
+#[test]
+fn divu_de_80000000_por_ffffffff_nao_e_o_caso_especial_do_div() {
+    let mut bus = bus_with_bios_empty();
+    let mut cpu = Cpu::new();
+    cpu.pc = 0;
+    cpu.regs[8] = 0x8000_0000;
+    cpu.regs[9] = 0xFFFF_FFFF;
+    bus.write32::<BusRead>(0, encode_special(DIVU, 0, 9, 8));
+    cpu.step(&mut bus);
+    assert_eq!(
+        cpu.lo, 0,
+        "sem sinal 0x80000000 < 0xFFFFFFFF: quociente 0. A linha 'div -80000000h/-1' da \
+         tabela de erros vale so para DIV com sinal"
+    );
+    assert_eq!(cpu.hi, 0x8000_0000);
+}
+
 // ===== MFHI / MFLO / MTHI / MTLO =====
 
 #[test]

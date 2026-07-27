@@ -73,6 +73,9 @@ deu certo é um log inútil. Atualize `STATUS.md`: última iteração (1 linha),
 (handoff denso: item, arquivo de spec + seções, arquivos-alvo, armadilha conhecida), placar,
 invariantes/notas novas (índice numerado, nunca renumere). Marque o checkbox do item no
 `ROADMAP.md` com `(iter NNNN)` — a 0009 esqueceu e o orquestrador teve que fechar depois.
+Se `logs/metrics-pending.csv` existir, mova suas linhas para o fim de `docs/metricas.csv`
+(mesmo formato, sem cabeçalho) e apague o pendente — são as métricas das execuções
+anteriores, appendadas pelo runner.
 
 ## Passo 9 — PR (sem merge)
 

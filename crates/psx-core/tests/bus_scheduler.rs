@@ -1,14 +1,18 @@
-use psx_core::bus::{Bus, BusRead, Ram, Bios};
-use psx_core::scheduler::{Scheduler, EventId, ScheduleKey};
+use psx_core::bus::{Bios, Bus, BusRead, Ram};
+use psx_core::scheduler::{EventId, ScheduleKey, Scheduler};
 
 const BIOS_OK_SIZE: usize = 0x80000;
 
 fn make_bios() -> Bios {
     let mut data = vec![0u8; BIOS_OK_SIZE];
-    data[0x0000] = 0x3C; data[0x0001] = 0x1F;
-    data[0x0004] = 0xAC; data[0x0005] = 0x81;
-    data[0x0008] = 0x34; data[0x0009] = 0x21;
-    data[0x000C] = 0x00; data[0x000D] = 0x80;
+    data[0x0000] = 0x3C;
+    data[0x0001] = 0x1F;
+    data[0x0004] = 0xAC;
+    data[0x0005] = 0x81;
+    data[0x0008] = 0x34;
+    data[0x0009] = 0x21;
+    data[0x000C] = 0x00;
+    data[0x000D] = 0x80;
     Bios::from_bytes(data).unwrap()
 }
 

@@ -333,3 +333,21 @@ fn sb_offset_negativo() {
     assert_eq!(written & 0xFF, 0x42, "SB com offset -8");
     assert_eq!(written >> 8, 0xFFFFFF, "SB: bytes altos intactos");
 }
+
+#[test]
+fn load_delay_vs_escrita_no_mesmo_registrador_comportamento_assumido() {
+    let mut bus = bus_with_bios_empty();
+    setup_test_patterns(&mut bus);
+    let mut cpu = Cpu::new();
+    cpu.pc = 0;
+    cpu.regs[8] = 0x1000;
+    bus.write32::<BusRead>(0, encode_load_store(0x23, 10, 8, 0x0000));
+    bus.write32::<BusRead>(4, encode_load_store(0x0D, 10, 0, 0x0005));
+    cpu.step(&mut bus);
+    cpu.step(&mut bus);
+    assert_eq!(
+        cpu.regs[10], 0xDEAD_BEEF,
+        "comportamento ASSUMIDO (nao verificado em hardware): o load vence a escrita \
+         do delay slot. Confirmar com Amidog psxtest_cpu no item 1.11 — ver nota 3 do STATUS"
+    );
+}

@@ -130,3 +130,24 @@ fn scheduler_evento_imediatamente() {
     let ev = sched.advance_to(0);
     assert!(ev == Some(CB_A), "evento no tick 0 deve disparar");
 }
+
+#[test]
+fn leitura_de_8_e_16_bits_da_bios_nao_cai_na_ram() {
+    let mut bios_bytes = vec![0u8; 0x80000];
+    bios_bytes[0] = 0xAA;
+    bios_bytes[1] = 0xBB;
+    let bios = Bios::from_bytes(bios_bytes).unwrap();
+    let mut bus = Bus::new(Ram::new(), bios);
+    bus.write8::<BusRead>(0x0000_0000, 0x11);
+    bus.write8::<BusRead>(0x0000_0001, 0x22);
+    assert_eq!(
+        bus.read8::<BusRead>(0xBFC0_0000),
+        0xAA,
+        "read8 em KSEG1 da BIOS deve vir da ROM, nao da RAM"
+    );
+    assert_eq!(
+        bus.read16::<BusRead>(0xBFC0_0000),
+        0xBBAA,
+        "read16 em KSEG1 da BIOS deve vir da ROM, nao da RAM"
+    );
+}

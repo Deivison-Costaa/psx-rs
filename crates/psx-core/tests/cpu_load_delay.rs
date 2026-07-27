@@ -119,7 +119,10 @@ fn lh_carrega_half_signed() {
     bus.write32::<BusRead>(4, nop());
     cpu.step(&mut bus);
     cpu.step(&mut bus);
-    assert_eq!(cpu.regs[10], 0xFFFF_BEEF, "LH: halfword 0xBEEF sign-extended");
+    assert_eq!(
+        cpu.regs[10], 0xFFFF_BEEF,
+        "LH: halfword 0xBEEF sign-extended"
+    );
 }
 
 #[test]
@@ -150,7 +153,10 @@ fn lhu_carrega_half_unsigned() {
     bus.write32::<BusRead>(4, nop());
     cpu.step(&mut bus);
     cpu.step(&mut bus);
-    assert_eq!(cpu.regs[10], 0x0000_8000, "LHU: halfword 0x8000 zero-extended");
+    assert_eq!(
+        cpu.regs[10], 0x0000_8000,
+        "LHU: halfword 0x8000 zero-extended"
+    );
 }
 
 // SB: store byte
@@ -315,7 +321,7 @@ fn lbu_com_offset_positivo() {
 #[test]
 fn sb_offset_negativo() {
     let mut bus = bus_with_bios_empty();
-    bus.write32::<BusRead>(0x2004, 0xFFFF_FFFF);
+    bus.write32::<BusRead>(0x2000, 0xFFFF_FFFF);
     let mut cpu = Cpu::new();
     cpu.pc = 0;
     cpu.regs[8] = 0x2008;

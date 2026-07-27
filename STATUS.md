@@ -5,22 +5,22 @@
 
 ## Última iteração concluída
 
-**0009** — carregamento de BIOS (ROADMAP 0.9): tipo `Bios` em `crates/psx-core/src/bus.rs`
-com validação de tamanho (exatos 512 KiB) e `read32` little-endian; 8 testes de integração
-em `bus_bios.rs`; flag `--bios <path>` no psx-cli com leitura do arquivo + SHA-256.
+**0010** — Scheduler de eventos + Bus (ROADMAP 1.1): struct `Scheduler` com fila ordenada por
+timestamp, `schedule(ticks, callback_id)`, `advance_to(ticks)`, `pending_events()`. Struct `Bus`
+com `Ram([u8; 0x200000])`, `Bios`, `read32<T>(addr)`/`write32<T>(addr, val)` com roteamento
+KUSEG/KSEG0/KSEG1 via `to_physical()`. 11 testes de integração em `bus_scheduler.rs`.
 
 ## Próxima tarefa
 
-**ROADMAP 1.1** — Scheduler de eventos + bus (KUSEG/KSEG0/KSEG1), RAM 2MB, BIOS ROM.
-Em `crates/psx-core/src/scheduler.rs`: struct `Scheduler` com fila de eventos ordenada por
-timestamp, `schedule(ticks, callback_id)`, `advance_to(ticks)`, `pending_events()`. Em
-`crates/psx-core/src/bus.rs`: struct `Bus` com `RAM([u8; 0x200000])`, `Bios`, e método
-`read32<T>(addr: u32) -> T`/`write32<T>(addr: u32, val: T)` que roteia entre KUSEG/KSEG0/KSEG1
-(pode ignorar mirrors por enquanto). Spec: `docs/reference/01-memory-map.md` — seções Memory
-Map + KUSEG/KSEG0/KSEG1 Memory Regions + Memory Mirrors. Teste:
-`psx-core/tests/bus_scheduler.rs` (roteamento KUSEG↔KSEG0↔KSEG1 para RAM, BIOS read32,
-eventos em ordem). Armadilha: KSEG1 lê físico limpo sem cache — por ora só máscara de addr
-(0x1FFFFF para RAM); escrever scheduler que não avança CPU em loop.
+**ROADMAP 1.2** — CPU R3000A: decode de instruções, ALU, load delay slot.
+Em `crates/psx-core/src/cpu.rs`: struct `Cpu` com registradores (32×u32 + PC + HI/LO),
+`step()` que busca instrução na `Bus`, decode e executa instruções base (ADDU, SUBU, AND,
+OR, XOR, NOR, SLL, SRL, SRA, LW, SW, ADDIU, ORI, ANDI, XORI, LUI, SLTI, SLTIU, BEQ,
+BNE, J, JAL, JR, BLTZ, BLEZ, BGTZ, BGEZ). Implementar load delay slot: instrução após LW
+lê o registrador destino antes da escrita. Spec: `docs/reference/02-cpu-specifications.md`
+— seções Instruction Overview + CPU Registers + Load Delay Slot + Instruction Set.
+Teste: `psx-core/tests/cpu_instructions.rs`. Armadilha: delay slot existe para loads E
+branches; testar LW seguido de uso imediato do registrador.
 
 ## Repositório
 
@@ -31,7 +31,7 @@ eventos em ordem). Armadilha: KSEG1 lê físico limpo sem cache — por ora só 
 
 ## Placar de testes
 
-Workspace: **19** testes (8 meta-testes + 8 bus_bios + 2 bios_flag + 1 version).
+Workspace: **33** testes (8 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 11 bus_scheduler + 3 psx-cli/desktop).
 
 ## Bloqueios
 

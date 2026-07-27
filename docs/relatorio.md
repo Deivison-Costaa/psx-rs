@@ -33,4 +33,4 @@ iteração vs Claude US$ 5–8. Comparar: custo total, custo por item entregue, 
 
 | Marco | Data | Premissa reconferida | Observações |
 |---|---|---|---|
-| M0 | | | |
+| M0 | 2026-07-27 | pendente (pergunta enviada ao usuário no fechamento) | 12 PRs, 19 testes, pipeline validado: 2 iterações DeepSeek (US$ 0,0094 + US$ 0,0145), revisão adversarial achou 5 defeitos reais (fmt fora de ordem, regressão sem-args, commit sem escopo pego pelo commit-lint, commit em inglês, checkbox não marcado); 3 falhas de infra registradas como dado (shim npm ×2, quoting) |

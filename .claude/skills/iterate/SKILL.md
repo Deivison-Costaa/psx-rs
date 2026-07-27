@@ -71,7 +71,8 @@ campos. **Erros de primeira tentativa** é o campo mais importante do projeto: o
 assumiu, o que a spec diz, como foi pego. Registrado não é vergonha — um log onde tudo sempre
 deu certo é um log inútil. Atualize `STATUS.md`: última iteração (1 linha), **Próxima tarefa**
 (handoff denso: item, arquivo de spec + seções, arquivos-alvo, armadilha conhecida), placar,
-invariantes/notas novas (índice numerado, nunca renumere).
+invariantes/notas novas (índice numerado, nunca renumere). Marque o checkbox do item no
+`ROADMAP.md` com `(iter NNNN)` — a 0009 esqueceu e o orquestrador teve que fechar depois.
 
 ## Passo 9 — PR (sem merge)
 

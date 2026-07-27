@@ -63,3 +63,24 @@ exatamente da familia que o gb-rs documentou como "armadilhas do gh/aspas":
 
 Regra operacional fixada: prompts para oc-iter passam em string single-quoted do PowerShell
 (escape de apostrofo = ''), e oc-iter chama o opencode.exe real, sem shims.
+
+## 2026-07-27 — fechamento do M0
+
+M0 completo no dia do bootstrap: 12 PRs mergeados, todos por merge commit com a trinca
+test/feat/docs visivel na main, protecao de branch valendo para admin (push direto recusado,
+GH006), CI verde em todos.
+
+Numeros do pipeline ate aqui (docs/metricas.csv): 11 execucoes do orquestrador (custo em
+assinatura, nao medido em dolar), 3 execucoes do trabalhador DeepSeek - 1 falha de infra
+(falha:sem-execucao, 365 ms) e 2 iteracoes completas: 0008b US$ 0,0094 (49 steps, 3 min) e
+0009 US$ 0,0145 (62 steps, 4 min). Ordem de grandeza confirmada: ~1 centavo por iteracao
+nesta fase (gb-rs pagava US$ 5-8 no modelo de fronteira).
+
+A revisao adversarial (papel novo, inexistente no gb-rs) achou defeito real em 2 de 2 PRs do
+trabalhador: fmt fora de ordem derrubando a CI, regressao de comportamento sem-args, commit
+sem escopo (pego pelo commit-lint - primeira captura real do guard), mensagem em ingles e
+checkbox do ROADMAP nao marcado (virou regra explicita no SKILL). Nenhum achado de logica de
+emulacao ainda - o codigo era trivial; o teste de fogo da revisao vem com delay slots (M1).
+
+Correcao de rumo de processo: itens 0.3-0.5 executados fora de ordem por dependencia
+(meta-testes exigem docs e CI); iteracao e cronologica, item e tematico.

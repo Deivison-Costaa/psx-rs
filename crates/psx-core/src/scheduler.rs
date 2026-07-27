@@ -36,7 +36,7 @@ impl Default for Scheduler {
 impl Scheduler {
     pub fn schedule(&mut self, key: ScheduleKey, id: EventId) {
         self.events.push((key, id));
-        self.events.sort_by(|a, b| a.0.tick.cmp(&b.0.tick));
+        self.events.sort_by_key(|a| a.0.tick);
     }
 
     pub fn advance_to(&mut self, ticks: u64) -> Option<EventId> {

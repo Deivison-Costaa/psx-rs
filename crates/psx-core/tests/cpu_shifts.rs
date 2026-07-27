@@ -185,7 +185,10 @@ fn sll_zero_zero_zero_e_nop() {
     bus.write32::<BusRead>(0, instr);
     cpu.step(&mut bus);
     assert_eq!(cpu.regs[0], 0, "SLL R0,R0,0 deve manter R0=0");
-    assert_eq!(cpu.regs[1], 0xDEAD_BEEF, "NOP nao afeta outros registradores");
+    assert_eq!(
+        cpu.regs[1], 0xDEAD_BEEF,
+        "NOP nao afeta outros registradores"
+    );
 }
 
 // R0 como destino nunca muda

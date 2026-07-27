@@ -37,7 +37,40 @@ Workspace: **67 → 75** testes (8 meta + 8 bus_bios + 2 bios_flag + 1 version +
 
 ## Revisão cruzada (orquestrador)
 
-<!-- Preenchido pelo Claude na revisão do PR -->
+**Os seis shifts estão corretos.** SRL é lógico e SRA é aritmético com a precedência certa
+(`(x as i32) >> n`, porque `as` liga mais forte que `>>`); as variantes V mascaram a
+quantidade com `& 0x1F`, e o teste usa `rs = 0x8000_0004` para provar que só os 5 bits
+baixos contam — mutação boa, dessas que pegam o erro de quem copia `shift = rs`. O NOP
+canônico (`sll $0,$0,0`) continua inócuo. Nenhum achado de emulação.
+
+Os dois achados são de teste, ambos corrigidos nesta branch:
+
+### Achado 1 — SEVERIDADE MÉDIA — teste declara que JR é opcode inválido
+
+`cpu_alu.rs:opcode_desconhecido_especial_panics` foi reapontado de secondary `0x00` para
+`0x08` porque 0x00 virou SLL nesta iteração. Mas **0x08 é JR** — instrução real, que chega
+no item 1.5 (`docs/reference/02-cpu.md`, tabela `Secondary opcode field`, linha 169:
+`08h=JR`). O teste passa hoje por acidente: JR ainda não existe. Quando o 1.5 o
+implementar, o teste falha, e o risco não é a falha — é alguém "consertar" apagando a
+asserção e o projeto perder a guarda de opcode desconhecido.
+
+Trocado por `0x3F`, que a mesma tabela marca `N/A` e que nunca vira instrução no R3000A.
+Escolher um slot reservado de verdade custa o mesmo e não expira.
+
+### Achado 2 — SEVERIDADE BAIXA — nome de teste contradiz o que o teste faz
+
+`sll_shift_32_vira_0` monta `sa = 0` e afirma `1 << 0 = 1`. Nada nele testa shift de 32 —
+que aliás não é codificável, já que `sa` tem 5 bits. Nome errado em teste é pior que
+comentário errado: é o que o próximo agente lê para decidir se o caso já está coberto.
+Renomeado para `sll_com_sa_zero_e_identidade`.
+
+### Achado 3 — SEVERIDADE BAIXA — na minha própria automação (iter 0011b)
+
+A remediação de checkbox do `oc-loop.ps1` casava `\(ROADMAP (\d+\.\d+)\)`, que não aceita
+item com sufixo de letra: para o título desta iteração, `(ROADMAP 1.3b)`, ela não casava e
+pulava a remediação silenciosamente. Falha segura (não marcou nada errado) e sem efeito
+aqui, porque o trabalhador marcou o checkbox sozinho — mas o ROADMAP prevê sufixos por
+convenção. Regex corrigida para `(\d+\.\d+[a-z]?)`.
 
 ## Decisões e notas
 

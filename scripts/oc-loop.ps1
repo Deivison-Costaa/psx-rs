@@ -51,7 +51,7 @@ foreach ($i in 1..$N) {
     git checkout $info.headRefName | Out-Null
     git pull --ff-only | Out-Null
 
-    $item = if ($info.title -match '\(ROADMAP (\d+\.\d+)\)') { $Matches[1] } else { "" }
+    $item = if ($info.title -match '\(ROADMAP (\d+\.\d+[a-z]?)\)') { $Matches[1] } else { "" }
     $iterN = if ($info.headRefName -match 'iter/(\d{4}[a-z]?)') { $Matches[1] } else { "" }
 
     # Remediacao 1: checkbox do item no ROADMAP (esquecido nas iters 0009, 0010 e 0011).

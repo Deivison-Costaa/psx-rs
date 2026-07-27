@@ -9,7 +9,8 @@
 (shift-reg, quantidade em `rs & 0x1F`). 14 testes em `cpu_shifts.rs`.
 Bateria de mutação: 3/3 pegos, 2/2 controles verdes.
 Erro de primeira tentativa: nenhum na implementação; teste `opcode_desconhecido_especial_panics`
-da ALU usava secondary=0x00 que agora é SLL válido — atualizado para secondary=0x08.
+da ALU usava secondary=0x00 que agora é SLL válido — a iteração trocou para 0x08, mas 0x08 é
+JR (chega no 1.5) e a revisão corrigiu para 0x3F, que é N/A permanente.
 Ver `docs/iterations/0013-cpu-shifts.md`.
 
 ## Próxima tarefa

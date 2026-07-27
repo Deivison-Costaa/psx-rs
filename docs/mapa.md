@@ -5,8 +5,8 @@
 
 | Módulo | Arquivo(s) | Responsabilidade | Entradas principais |
 |---|---|---|---|
-| bus | `crates/psx-core/src/bus.rs` | mapa de memória, RAM, BIOS, roteamento de leituras/escritas | (vazio — item 1.1) |
-| scheduler | `crates/psx-core/src/scheduler.rs` | fila de eventos por timestamp, relógio mestre | (vazio — item 1.1) |
+| bus | `crates/psx-core/src/bus.rs` | mapa de memória, RAM 2MB, BIOS, roteamento KUSEG/KSEG0/KSEG1 | `Bus`, `Ram`, `Bios`, `read32`, `write32`, `to_physical` |
+| scheduler | `crates/psx-core/src/scheduler.rs` | fila de eventos por timestamp, relógio mestre | `Scheduler`, `EventId`, `ScheduleKey`, `schedule`, `advance_to`, `pending_events` |
 | cpu | `crates/psx-core/src/cpu.rs` | R3000A: decode, ALU, delay slots, COP0 | (vazio — item 1.2) |
 | gte | `crates/psx-core/src/gte.rs` | COP2: ponto fixo, RTPS/MVMVA, saturação | (vazio — M5) |
 | gpu | `crates/psx-core/src/gpu.rs` | GP0/GP1, VRAM, rasterizador | (vazio — M2) |

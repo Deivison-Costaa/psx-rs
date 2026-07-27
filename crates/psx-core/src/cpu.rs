@@ -120,7 +120,7 @@ impl Cpu {
                 self.sh(instr, bus);
                 None
             }
-             0x2B => {
+            0x2B => {
                 self.sw(instr, bus);
                 None
             }

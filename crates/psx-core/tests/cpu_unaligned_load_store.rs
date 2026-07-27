@@ -141,7 +141,7 @@ fn lwr_offset_1_lower_24bits() {
     cpu.step(&mut bus);
     cpu.step(&mut bus);
     // offset 1: lower 24 bits from mem word → rt[23:0], rt[31:24] intact
-    assert_eq!(cpu.regs[10], 0xFF_BB_CCDD);
+    assert_eq!(cpu.regs[10], 0xFFBB_CCDD);
 }
 
 #[test]

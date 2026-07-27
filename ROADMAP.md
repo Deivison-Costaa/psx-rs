@@ -16,7 +16,7 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [x] 0.9 Carregamento de BIOS com validação de hash (1ª iteração do trabalhador) (iter 0009)
 
 ## M1 — CPU R3000A até o BIOS falar
-- [ ] 1.1 Scheduler de eventos + bus (KUSEG/KSEG0/KSEG1), RAM 2MB, BIOS ROM
+- [x] 1.1 Scheduler de eventos + bus (KUSEG/KSEG0/KSEG1), RAM 2MB, BIOS ROM (iter 0010)
 - [ ] 1.2 Fetch/decode + LUI/ORI/SW
 - [ ] 1.3 ALU: ADD/ADDU/SUB/AND/OR/XOR/NOR/shifts/SLT + imediatos
 - [ ] 1.4 Loads/stores + load delay slot

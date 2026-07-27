@@ -11,22 +11,30 @@ BLEZ, BGTZ, BLTZ, BGEZ, BLTZAL, BGEZAL + branch delay slot. 29 testes em
 Bateria de mutação: 6/6 pegos, 2/2 controles verdes.
 Erro de primeira tentativa: testes escritos com 1 step em vez de 2 (branch prepara, delay
 slot executa e redireciona no step seguinte) — corrigido na primeira execução.
-Nenhum erro de emulação.
+A revisão adversarial achou um pânico de overflow no link (JAL/JALR/BcondZ usavam `+ 4`
+em vez de `wrapping_add`) e corrigiu na branch; +2 testes.
 Ver `docs/iterations/0015-cpu-branch-delay.md`.
 
 ## Próxima tarefa
 
-**ROADMAP 2.1** — GPU: interface de barramento + registradores GP0/GP1. Implementar o
-mapeamento de I/O da GPU na faixa `0x1F80_1810..0x1F80_181C` (GP0, GP1, GPUSTAT, etc.),
-com respostas stub (zero) para leituras e captura de writes. A GPU precisa de uma struct
-`Gpu` com estado interno mínimo (GPUSTAT, modo de desenho, etc.), registrada no `Bus`.
-Spec: `docs/reference/03-gpu.md` — seção GPU I/O Ports (registradores, offsets e
-comportamento esperado de leitura/escrita). Arquivos-alvo: `crates/psx-core/src/gpu.rs`
-(criar), `crates/psx-core/src/bus.rs` (adicionar mapeamento GPU). Teste:
-`crates/psx-core/tests/gpu_io_ports.rs` (criar). Armadilha: GP0 é write-only (leitura
-retorna o último valor escrito em GP1, ou zero); GP1 é write-only (leitura retorna zero);
-GPUSTAT é read-only (escrita ignorada). O reset de GPU deve setar GPUSTAT para um valor
-conhecido (pelo menos bit 0 = ready to receive command).
+**ROADMAP 1.6** — MULT/MULTU/DIV/DIVU + HI/LO. (O handoff da 0015 apontava para a 2.1,
+pulando 1.6–1.12; corrigido na revisão. O M1 fecha antes de a GPU começar.)
+
+**Antes de escrever qualquer instrução nova, FATIE `crates/psx-core/src/cpu.rs`** — está
+com 440 das 500 linhas do teto de `file_size.rs`, e MULT/DIV não cabem. Sugestão: manter
+em `cpu.rs` a struct, `new`, `step`, `execute` e o dispatch; mover as famílias para
+`cpu/alu.rs`, `cpu/mem.rs`, `cpu/branch.rs` como `impl Cpu` (o módulo vira diretório
+`cpu/mod.rs`). Atualizar `docs/mapa.md` junto — é o refactor da iteração, commit
+`refactor(cpu):` antes do `feat`.
+
+Escopo do 1.6: MULT (SPECIAL 0x18), MULTU (0x19), DIV (0x1A), DIVU (0x1B), MFHI (0x10),
+MTHI (0x11), MFLO (0x12), MTLO (0x13); registradores `hi`/`lo` na struct `Cpu`.
+Spec: `docs/reference/02-cpu.md`, seção **Multiply/divide** (índice: L329) — leia SÓ ela.
+Armadilhas que a seção documenta e a intuição erra: DIV por zero e o overflow de
+`0x80000000 / -1` **não excetuam**, devolvem valores específicos tabelados; MULT/MULTU
+produzem 64 bits divididos entre HI e LO. Os "stalls" da linha do ROADMAP são custo em
+ciclos — só serão observáveis quando o scheduler cobrar ciclos da CPU; registre a decisão
+no doc da iteração se deixar como dívida. Teste: `crates/psx-core/tests/cpu_mult_div.rs`.
 
 ## Repositório
 
@@ -37,7 +45,7 @@ conhecido (pelo menos bit 0 = ready to receive command).
 
 ## Placar de testes
 
-Workspace: **127** testes (8 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 29 cpu_branch_delay + 0 psx-cli/desktop).
+Workspace: **129** testes (8 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 31 cpu_branch_delay). As 2 últimas linhas vieram da revisão da 0015.
 
 ## Bloqueios
 
@@ -70,3 +78,17 @@ Workspace: **127** testes (8 meta-testes + 8 bus_bios + 2 bios_flag + 1 version 
    hoje e nomeia a dúvida, para que uma futura mudança seja deliberada. Ponto de
    resolução: Amidog `psxtest_cpu` no item 1.11 — se ele reprovar, inverter a ordem em
    `Cpu::step` (commitar o load antes de executar, escrevendo num banco de saída).
+4. **BcondZ com `rt` fora da tabela: comportamento ASSUMIDO (resolve no item 1.11).** O
+   opcode 01h só tem `rt`=00h/01h/10h/11h tabelados em `02-cpu.md § Opcode/Parameter
+   Encoding`; a spec local não diz o que `rt`=02h..0Fh/12h..1Fh fazem. Assumimos **no-op
+   silencioso** (nem desvia nem linka). O teste
+   `bcondz_rt_fora_da_tabela_comportamento_assumido` fixa isso e diz na asserção que é
+   suposição. Se o Amidog `psxtest_cpu` reprovar, o critério a testar primeiro é o de
+   hardware conhecido: bit16 sozinho decide BLTZ/BGEZ e o link ocorre quando os bits
+   20..17 valem 1000b — o que faria `rt`=02h agir como BLTZ.
+5. **Dívida do bit BD / delay slot para o item 1.8.** `Cpu` sinaliza desvio pendente com
+   `branch_target: Option<u32>`, consumido em `step` ANTES de executar a instrução. Isso
+   basta para o desvio, mas apaga a informação "a instrução atual está num delay slot",
+   que o 1.8 precisa para setar `CAUSE.BD` e apontar `EPC` para o branch (e não para o
+   delay slot) — a própria spec cita o caso em `§ JALR cautions`. Quem fizer o 1.8 tem de
+   guardar esse flag junto com o endereço do branch, não deduzi-lo depois.

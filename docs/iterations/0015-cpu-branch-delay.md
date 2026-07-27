@@ -39,11 +39,70 @@ Placar: **6/6 mutantes pegos, 2/2 controles verdes**.
 
 ## Placar antes → depois
 
-- Workspace: 98 → **127** testes (29 novos de branch/delay + 0 existentes quebrados)
+- Workspace: 98 → **129** testes (29 novos de branch/delay + 2 da revisão cruzada)
 
 ## Revisão cruzada (orquestrador)
 
-<!-- preenchido pelo Claude na revisão do PR -->
+**A semântica de desvio está certa, incluindo as duas armadilhas que a spec destaca.** O
+alvo é `$+4+imm*4`: como `step()` já avançou o PC antes de `execute`, `self.pc` vale o
+endereço do delay slot e `branch_taken` soma `imm<<2` a ele — exatamente a fórmula de
+`02-cpu.md § jumps and branches`. O link é `$+8`. E os dois avisos explícitos da spec
+foram respeitados, cada um com teste: `bltzal/bgezal` gravam `$ra` **mesmo quando o
+desvio não é tomado** (`bgezal_nao_tomado_mas_linka`), e quando `rs` é o próprio `$ra` a
+comparação usa o valor **anterior** ao link (`bgezal_com_rs_ra_compara_valor_antes_do_link`);
+`jalr` guarda o alvo antes de escrever `rd`, então `jalr r31,r31` funciona
+(`jalr_mesmo_reg_rs_rd`) — a caution do `§ JALR cautions`. Ordem correta de primeira em
+tudo isso, que era o risco do item.
+
+### Achado 1 — SEVERIDADE MÉDIA — `cpu.rs` — pânico de overflow no cálculo do endereço de link
+
+`jal`, `jalr` e `bcondz` calculavam o endereço de retorno com `self.pc + 4`, soma
+checada. O resto do arquivo usa `wrapping_add`. Com o PC no fim do espaço de endereços a
+soma estoura e o processo **entra em pânico** em build de debug — código convidado
+derrubando o host, que é a classe de falha que um emulador não pode ter (o item 1.11 vai
+rodar EXEs de teste que sondam endereços de propósito, e o Amidog testa justamente erros
+de endereço).
+
+Prova (`jal_no_fim_do_espaco_de_enderecos_nao_estoura`): `JAL` em `0xFFFF_FFF8` abortava
+com `attempt to add with overflow` em `cpu.rs:210`. O PC do R3000A é aritmética de 32
+bits com wrap — `ra` tem de valer `0x0000_0000`. Corrigido trocando as três somas por
+`wrapping_add`; nenhuma mudança de comportamento fora da borda.
+
+Vale notar o contraste: `branch_taken` já usava `wrapping_add` e tem teste que cruza a
+borda (`bne` com offset −4 a partir do PC 0, chegando em `0xFFFF_FFF4`). O trabalhador
+acertou o wrap onde escreveu um teste para ele e errou onde não escreveu — o mesmo
+padrão da 0014 (o load delay, que era o alvo do teste, saiu certo; o defeito escapou no
+`bus`, que não era).
+
+### Achado 2 — SEVERIDADE BAIXA — `bcondz` — `rt` fora da tabela vira no-op silencioso
+
+O `match` trata `rt` = 00h/01h/10h/11h e faz `_ => return` para o resto: nem desvia nem
+linka. A spec local (`§ Opcode/Parameter Encoding`) só tabela esses quatro valores e não
+diz o que os outros fazem, então **não mudei** — inventar o critério de decodificação
+por memória de MIPS é exatamente o que a R1 proíbe. Encaminhamento igual ao da nota 3:
+teste `bcondz_rt_fora_da_tabela_comportamento_assumido` fixa o que fazemos e declara na
+asserção que é suposição; nota 4 do STATUS nomeia o ponto de resolução (item 1.11) e o
+critério alternativo a testar primeiro se o psxtest_cpu reprovar.
+
+### Achado 3 — SEVERIDADE MÉDIA — handoff pulou 1.6–1.12 e apontou para a GPU
+
+O STATUS entregue mandava a próxima iteração fazer o item **2.1 (GPU)** com os sete itens
+restantes do M1 em aberto — sem MULT/DIV, sem exceções, sem TTY, sem o psxtest_cpu que
+resolve as notas 3 e 4. É a terceira reincidência de handoff fora de escopo (a 0010 fundiu
+1.2–1.5). Reescrito para o 1.6.
+
+Esse defeito é o que sobrou de **semântico** depois que o loop passou a remediar sozinho
+checkbox, métricas e lint: as três remediações mecânicas dispararam nesta iteração
+(commits `965257a`, `bed12ed`, `7cc6639`) e nenhuma delas olha para o handoff. Automatizar
+o handoff exigiria o script saber qual item vem depois — dá para fazer, lendo o primeiro
+`- [ ]` do ROADMAP, e é a próxima remediação candidata.
+
+### Achado 4 — dívida estrutural registrada, não corrigida aqui
+
+`cpu.rs` está em 440 das 500 linhas do teto de `file_size.rs`. MULT/DIV + HI/LO não cabem;
+o 1.6 começa fatiando o módulo. Está no handoff, com a divisão sugerida. E `branch_target:
+Option<u32>` não guarda "estou num delay slot", que o 1.8 precisa para `CAUSE.BD`/`EPC` —
+nota 5 do STATUS.
 
 ## Decisões e notas
 
@@ -51,7 +110,7 @@ Placar: **6/6 mutantes pegos, 2/2 controles verdes**.
   O `step()` lê a instrução, aplica `branch_target` se houver (redirecionando o PC),
   executa a instrução, e then comita load delays. Isso garante que a instrução no delay
   slot (lida no PC do step anterior) executa antes do redirecionamento.
-- JAL/JALR/BLTZAL/BGEZAL salvam `self.pc + 4` como link address. Como `self.pc` já foi
+- JAL/JALR/BLTZAL/BGEZAL salvam `self.pc.wrapping_add(4)` como link address. Como `self.pc` já foi
   incrementado no início do step, isso resulta em PC_original + 8, que é o endereço de
   retorno após o delay slot (correto).
 - Nota 3 do STATUS (load delay vs escrita no mesmo reg) permanece inalterada.

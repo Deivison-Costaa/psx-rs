@@ -6,8 +6,8 @@
 ## Última iteração concluída
 
 **0015** — Branches/jumps + branch delay slot (ROADMAP 1.5): J, JAL, JR, JALR, BEQ, BNE,
-BLEZ, BGTZ, BLTZ, BGEZ, BLTZAL, BGEZAL + branch delay slot. 29 testes em
-`cpu_branch_delay.rs`.
+BLEZ, BGTZ, BLTZ, BGEZ, BLTZAL, BGEZAL + branch delay slot. 31 testes, hoje em
+`cpu_jumps.rs` e `cpu_branches.rs`.
 Bateria de mutação: 6/6 pegos, 2/2 controles verdes.
 Erro de primeira tentativa: testes escritos com 1 step em vez de 2 (branch prepara, delay
 slot executa e redireciona no step seguinte) — corrigido na primeira execução.
@@ -20,14 +20,12 @@ Ver `docs/iterations/0015-cpu-branch-delay.md`.
 **ROADMAP 1.6** — MULT/MULTU/DIV/DIVU + HI/LO. (O handoff da 0015 apontava para a 2.1,
 pulando 1.6–1.12; corrigido na revisão. O M1 fecha antes de a GPU começar.)
 
-**Antes de escrever qualquer instrução nova, fatie `crates/psx-core/src/cpu.rs`.** Está em
-440 linhas e o R3000A ainda deve dobrar de tamanho (MULT/DIV, LWL/LWR, COP0). O motivo é a
-R8, não estética: um `cpu.rs` monolítico obriga toda iteração futura a pagar o arquivo
-inteiro em contexto. Manter em `cpu/mod.rs` a struct, `new`, `step`, `execute` e o
-dispatch; mover as famílias para `cpu/alu.rs`, `cpu/mem.rs`, `cpu/branch.rs` como
-`impl Cpu`. Atualizar `docs/mapa.md` junto — é o refactor da iteração, commit
-`refactor(cpu):` antes do `feat`. Se algum corte ficar artificial, deixe o arquivo maior e
-registre o porquê no doc: coesão vale mais que o número.
+`cpu.rs` está em 440 linhas e **não precisa ser fatiado** — o teto de 500 linhas vale só
+para arquivos de teste (regra corrigida na iter 0015b). Fatie `src/` quando a coesão pedir,
+nunca por contagem. O que precisa caber no teto é o **teste**: se `cpu_mult_div.rs` passar
+de 500 linhas, quebre em dois arquivos (ex. `cpu_mult.rs` e `cpu_div.rs`) e registre em
+`docs/mapa.md`. Encoders de opcode e bus de teste já existem em
+`crates/psx-core/tests/support/asm.rs` — use, não recrie.
 
 Escopo do 1.6: MULT (SPECIAL 0x18), MULTU (0x19), DIV (0x1A), DIVU (0x1B), MFHI (0x10),
 MTHI (0x11), MFLO (0x12), MTLO (0x13); registradores `hi`/`lo` na struct `Cpu`.
@@ -47,7 +45,7 @@ no doc da iteração se deixar como dívida. Teste: `crates/psx-core/tests/cpu_m
 
 ## Placar de testes
 
-Workspace: **129** testes (8 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 31 cpu_branch_delay). As 2 últimas linhas vieram da revisão da 0015.
+Workspace: **129** testes (8 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_jumps + 7 cpu_branches).
 
 ## Bloqueios
 

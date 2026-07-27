@@ -104,3 +104,32 @@ regime a partir do M1:
 
 Risco aceito e registrado: um erro de logica pode compor por algumas iteracoes ate a revisao
 de marco; mitigacao real sao os testes de hardware (Amidog no 1.11) e a bateria de mutacao.
+
+## 2026-07-27 — regra de tamanho estava invertida (iter 0015b)
+
+O `file_size.rs`, escrito por mim no M0, reprovava **arquivo fonte** com mais de 500 linhas
+e ignorava `tests/`. Ao ler o handoff da 0015 — que mandava fatiar o `cpu.rs` "porque o teto
+manda" — o usuário corrigiu a premissa: a regra dele sempre foi a de **comentários** (≤5%,
+reprova em 10%); o tamanho de arquivo fonte, "se fizer sentido, não tem problema", e o teto
+"pros testes é uma boa, pros arquivos reais, não".
+
+A correção não é cosmética, é o oposto do que estava valendo, e o motivo original ficava
+melhor servido pela regra dele: no gb-rs quem comia contexto eram os testes (41% por turno),
+não o `mcycle.rs`. O teto agora varre `crates/*/tests/`, e `src/` não tem teto — cortar
+módulo por contagem de linha produz fronteira artificial, que é pior de ler que um arquivo
+longo e coeso.
+
+Efeito imediato: `cpu_branch_delay.rs` estava em 494 linhas, seis do limite. Virou
+`cpu_jumps.rs` (113) e `cpu_branches.rs` (367), com os encoders de opcode extraídos para
+`tests/support/asm.rs` — que é também o que a R8 pede, já que um item futuro sobre desvios
+passa a pagar 113 ou 367 linhas de contexto, não 494.
+
+Bateria de mutação do meta-teste: arquivo de teste plantado com 600 linhas → reprovado;
+controles: fonte plantada com 900 linhas → verde (comportamento novo desejado), e
+`comment_density.rs` intacto. 1/1 pego, 2/2 controles.
+
+Registro honesto de onde o erro nasceu: o plano do M0 derivou "teto de 500 linhas por
+arquivo fonte" do diagnóstico do gb-rs sem confirmar com o usuário, e a regra sobreviveu
+15 iterações sem ser questionada porque nenhum arquivo tinha chegado perto do limite. Só
+apareceu quando o `cpu.rs` chegou a 440 e o handoff começou a exigir refactor por causa
+dela.

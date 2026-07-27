@@ -5,24 +5,24 @@
 
 ## Última iteração concluída
 
-**0010** — Scheduler de eventos + Bus (ROADMAP 1.1): struct `Scheduler` com fila ordenada por
-timestamp, `schedule(ticks, callback_id)`, `advance_to(ticks)`, `pending_events()`. Struct `Bus`
-com `Ram([u8; 0x200000])`, `Bios`, `read32<T>(addr)`/`write32<T>(addr, val)` com roteamento
-KUSEG/KSEG0/KSEG1 via `to_physical()`. 11 testes de integração em `bus_scheduler.rs`.
+**0011** — Fetch/decode + LUI/ORI/SW (ROADMAP 1.2): struct `Cpu` com regs (32×u32, R0
+imutável, PC=0xBFC00000), `step(&mut Bus)` que busca instr via `read32`, decodifica pelo
+primary opcode (bits 26..31) e executa LUI (imm<<16), ORI (rs|imm, zero-extended) e SW
+([rs+imm]=rt, offset SINALIZADO). Opcode desconhecido: `unimplemented!`. 8 testes em
+`cpu_fetch_decode.rs` — a revisão adversarial achou o offset de SW zero-extended (alta) e
+somou o teste do offset negativo; ver "Revisão cruzada" em `docs/iterations/0011-*.md`.
 
 ## Próxima tarefa
 
-**ROADMAP 1.2** — Fetch/decode + LUI/ORI/SW, e SÓ isso (R4: ALU é 1.3, loads/delay é 1.4,
-branches é 1.5 — NÃO implemente agora). Em `crates/psx-core/src/cpu.rs`: struct `Cpu` com
-regs (32×u32, R0 sempre 0, + PC iniciando em 0xBFC00000), `step(&mut Bus)` que busca a
-instrução via `read32`, decodifica (primary opcode bits 26..31, secondary bits 0..5) e
-executa APENAS LUI, ORI e SW — as três primeiras instruções que o BIOS executa. Opcode
-desconhecido: `unimplemented` explícito por enquanto (exceções são 1.8). Spec:
-`docs/reference/02-cpu.md` — seções `L19 CPU Registers`, `L74 CPU Opcode Encoding`,
-`L305 logical instructions` (LUI/ORI), `L219 Store instructions` (SW).
-Teste: `psx-core/tests/cpu_fetch_decode.rs` (golden values da spec; verificar R0
-imutável e SW escrevendo na RAM via bus). Armadilha: ORI é zero-extended, não
-sign-extended; LUI zera os 16 bits baixos.
+**ROADMAP 1.3** — ALU: ADD/ADDU/SUB/SUBU/AND/OR/XOR/NOR/SLT/SLTU + imediatos
+(ADDI/ADDIU/ANDI/ORI/XORI/SLTI/SLTIU). Em `crates/psx-core/src/cpu.rs`: estender o match
+de primary opcode para `00h=SPECIAL` (secondary opcode bits 0..5) e `00xxx=alu-imm`.
+Spec: `docs/reference/02-cpu.md` — seções `L285 arithmetic instructions`, `L297 comparison`,
+`L305 logical instructions`, `L99 Opcode/Parameter Encoding` (tabela alu-imm em linha 200,
+SPECIAL em linha 192). Teste: `crates/psx-core/tests/cpu_alu.rs`. Armadilha: ADDI/ADDIU
+sign-extendem o immediate (16→32 bits); SLTI/SLTIU também; ANDI/ORI/XORI zero-extension;
+ADD/ADDU trap vs. no-trap — por enquanto implemente ADDU e ignore overflow (ADDU é o que
+o BIOS realmente usa). SPECIAL (primary=0x00) requer decodificar o secondary opcode.
 
 ## Repositório
 
@@ -33,7 +33,7 @@ sign-extended; LUI zera os 16 bits baixos.
 
 ## Placar de testes
 
-Workspace: **33** testes (8 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 11 bus_scheduler + 3 psx-cli/desktop).
+Workspace: **41** testes (8 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 11 bus_scheduler + 8 cpu_fetch_decode + 3 psx-cli/desktop).
 
 ## Bloqueios
 
@@ -41,7 +41,11 @@ Workspace: **33** testes (8 meta-testes + 8 bus_bios + 2 bios_flag + 1 version +
 
 ## Invariantes
 
-(nenhuma ainda — nascem com o código; índice com âncoras quando existirem)
+1. **Imediato de endereçamento é SINALIZADO.** Todo load/store (`lw/sw/lb/lh/...`) e todo
+   `addi/addiu/slti/sltiu` sign-extendem o campo de 16 bits: `(instr & 0xFFFF) as u16 as
+   i16 as u32`. Só a família lógica (`andi/ori/xori`) zero-extende. Violado na iter 0011
+   (SW), pego na revisão adversarial; qualquer item novo que leia um imediato reconfere
+   esta linha antes de escolher a extensão.
 
 ## Notas
 

@@ -5,16 +5,16 @@
 
 ## Última iteração concluída
 
-**0003** — docs de gestão (ROADMAP 0.5): CLAUDE.md, STATUS, ROADMAP, TEMPLATE, mapa,
-orquestracao, relatorio, review, README, BOOTSTRAP.
+**0005** — meta-testes de processo (ROADMAP 0.3): 8 testes guardando R3/R6/R7/R8, tetos de
+STATUS/ROADMAP, CI sem condicional e frescor de métricas. Bateria 7/7.
 
 ## Próxima tarefa
 
-**ROADMAP 0.4** — CI (`.github/workflows/ci.yml`): job `check` (fmt → clippy `-D warnings` →
-`cargo test --all`, sem condicionais nos passos) e job `commit-lint` (título do PR
-`iter NNNN: ... (ROADMAP X.Y)`; prefixos `test|feat|fix|refactor|docs|chore(escopo):` nos
-commits). Depois de verde na main, ativar proteção de branch (PR obrigatório, checks
-`check`+`commit-lint`, enforce admins). Executor: orquestrador.
+**ROADMAP 0.6** — `scripts/fetch-reference-docs.ps1`: baixar capítulos do psx-spx
+(repo `psx-spx/psx-spx.github.io`, commit pinado) para `docs/reference/NN-slug.md` com
+cabeçalho de índice de seções (título § → âncora) gerado pelo script, e `docs/reference/README.md`
+com procedência (SHA, data, licença). Capítulos: memory map, CPU, GPU, DMA, timers, CDROM,
+GTE, SPU, MDEC, controllers/memcards, interrupts. Executor: orquestrador.
 
 ## Repositório
 
@@ -25,8 +25,8 @@ commits). Depois de verde na main, ativar proteção de branch (PR obrigatório,
 
 ## Placar de testes
 
-Workspace: 0 testes (esqueleto). EXEs de teste e scoreboard chegam nos itens 0.7 e 1.11;
-ainda não existe emulador.
+Workspace: 8 testes (todos meta-testes de processo). EXEs de teste e scoreboard chegam nos
+itens 0.7 e 1.11; ainda não existe emulador.
 
 ## Bloqueios
 

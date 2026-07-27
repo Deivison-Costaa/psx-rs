@@ -35,3 +35,16 @@ Scoreboard: N/A.
 - Nenhuma dependência nova (usa `std::env::args()` diretamente).
 - `env!("CARGO_PKG_VERSION")` é resolvido em compile-time, sem custo em runtime.
 - Código mínimo proposital (R4): apenas `--version`, sem parsing geral de args.
+
+## Revisão cruzada (orquestrador)
+
+SEVERIDADE: média / ARQUIVO: crates/psx-cli/tests/version.rs / O QUE ESTAVA: fmt rodado
+DEPOIS do commit docs, formatação pendente fora do commit — check da CI falhou no PR
+(passo 7 do protocolo executado fora de ordem). COMO FOI CORRIGIDO: commit de fix do
+orquestrador na branch do PR.
+
+SEVERIDADE: baixa / ARQUIVO: crates/psx-cli/src/main.rs / O QUE ESTAVA: sem argumentos o
+binário passou a imprimir nada (antes imprimia a versão) — regressão de comportamento não
+pedida pela task. CORRIGIDO: sem args volta a imprimir a versão.
+
+Bateria de mutação conferida: as 3 mutações e o controle batem com o teste do diff — genuína.

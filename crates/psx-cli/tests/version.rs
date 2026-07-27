@@ -14,5 +14,8 @@ fn version_flag_prints_name_and_version() {
         "deve começar com 'psx-cli '; got: {stdout:?}"
     );
     let stderr = String::from_utf8_lossy(&output.stderr);
-    assert!(stderr.is_empty(), "stderr deve estar vazio; got: {stderr:?}");
+    assert!(
+        stderr.is_empty(),
+        "stderr deve estar vazio; got: {stderr:?}"
+    );
 }

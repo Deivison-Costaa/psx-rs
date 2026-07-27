@@ -46,14 +46,18 @@ impl Bus {
         Bus { ram, bios }
     }
 
+    fn ram_offset(&self, addr: u32) -> usize {
+        let phys = Self::to_physical(addr);
+        (phys & 0x1F_FF_FF) as usize
+    }
+
     pub fn read32<Op: MemoryOp>(&self, addr: u32) -> u32 {
-        // STUB: wrong — always reads from RAM base
         let phys = Self::to_physical(addr);
         if (0x1FC0_0000..0x1FC0_0000 + 0x80000).contains(&phys) {
             let offset = (phys - 0x1FC0_0000) as usize;
             return self.bios.read32(offset);
         }
-        let idx = (phys & 0x1F_FF_FF) as usize;
+        let idx = self.ram_offset(addr);
         u32::from_le_bytes([
             self.ram.data[idx],
             self.ram.data[idx + 1],
@@ -63,13 +67,40 @@ impl Bus {
     }
 
     pub fn write32<Op: MemoryOp>(&mut self, addr: u32, val: u32) {
-        let phys = Self::to_physical(addr);
-        let idx = (phys & 0x1F_FF_FF) as usize;
+        let idx = self.ram_offset(addr);
         let bytes = val.to_le_bytes();
         self.ram.data[idx] = bytes[0];
         self.ram.data[idx + 1] = bytes[1];
         self.ram.data[idx + 2] = bytes[2];
         self.ram.data[idx + 3] = bytes[3];
+    }
+
+    fn read_byte(&self, addr: u32) -> u8 {
+        let phys = Self::to_physical(addr);
+        if (0x1FC0_0000..0x1FC0_0000 + 0x80000).contains(&phys) {
+            return self.bios.raw()[(phys - 0x1FC0_0000) as usize];
+        }
+        self.ram.data[self.ram_offset(addr)]
+    }
+
+    pub fn read8<Op: MemoryOp>(&self, addr: u32) -> u8 {
+        self.read_byte(addr)
+    }
+
+    pub fn read16<Op: MemoryOp>(&self, addr: u32) -> u16 {
+        u16::from_le_bytes([self.read_byte(addr), self.read_byte(addr.wrapping_add(1))])
+    }
+
+    pub fn write8<Op: MemoryOp>(&mut self, addr: u32, val: u8) {
+        let idx = self.ram_offset(addr);
+        self.ram.data[idx] = val;
+    }
+
+    pub fn write16<Op: MemoryOp>(&mut self, addr: u32, val: u16) {
+        let idx = self.ram_offset(addr);
+        let bytes = val.to_le_bytes();
+        self.ram.data[idx] = bytes[0];
+        self.ram.data[idx + 1] = bytes[1];
     }
 
     fn to_physical(addr: u32) -> u32 {

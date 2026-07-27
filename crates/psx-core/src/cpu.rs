@@ -4,6 +4,7 @@ use crate::bus::{Bus, BusRead};
 pub struct Cpu {
     pub regs: [u32; 32],
     pub pc: u32,
+    load_delay: Option<(usize, u32)>,
 }
 
 impl Cpu {
@@ -11,24 +12,80 @@ impl Cpu {
         Cpu {
             regs: [0u32; 32],
             pc: 0xBFC0_0000,
+            load_delay: None,
         }
     }
 
     pub fn step(&mut self, bus: &mut Bus) {
         let instr = bus.read32::<BusRead>(self.pc);
         self.pc = self.pc.wrapping_add(4);
+        let new_load = self.execute(instr, bus);
+        if let Some((reg, val)) = self.load_delay.take() {
+            self.set_reg(reg, val);
+        }
+        if let Some((reg, val)) = new_load {
+            if reg != 0 {
+                self.load_delay = Some((reg, val));
+            }
+        }
+    }
+
+    fn execute(&mut self, instr: u32, bus: &mut Bus) -> Option<(usize, u32)> {
         let primary = instr >> 26;
         match primary {
-            0x00 => self.special(instr),
-            0x08 => self.addi(instr),
-            0x09 => self.addiu(instr),
-            0x0A => self.slti(instr),
-            0x0B => self.sltiu(instr),
-            0x0C => self.andi(instr),
-            0x0D => self.ori(instr),
-            0x0E => self.xori(instr),
-            0x0F => self.lui(instr),
-            0x2B => self.sw(instr, bus),
+            0x00 => {
+                self.special(instr);
+                None
+            }
+            0x08 => {
+                self.addi(instr);
+                None
+            }
+            0x09 => {
+                self.addiu(instr);
+                None
+            }
+            0x0A => {
+                self.slti(instr);
+                None
+            }
+            0x0B => {
+                self.sltiu(instr);
+                None
+            }
+            0x0C => {
+                self.andi(instr);
+                None
+            }
+            0x0D => {
+                self.ori(instr);
+                None
+            }
+            0x0E => {
+                self.xori(instr);
+                None
+            }
+            0x0F => {
+                self.lui(instr);
+                None
+            }
+            0x20 => Some(self.lb(instr, bus)),
+            0x21 => Some(self.lh(instr, bus)),
+            0x23 => Some(self.lw(instr, bus)),
+            0x24 => Some(self.lbu(instr, bus)),
+            0x25 => Some(self.lhu(instr, bus)),
+            0x28 => {
+                self.sb(instr, bus);
+                None
+            }
+            0x29 => {
+                self.sh(instr, bus);
+                None
+            }
+            0x2B => {
+                self.sw(instr, bus);
+                None
+            }
             _ => unimplemented!("opcode primary={:02X} nao implementado", primary),
         }
     }
@@ -176,6 +233,69 @@ impl Cpu {
         let addr = self.reg(rs).wrapping_add(imm);
         let val = self.reg(rt);
         bus.write32::<BusRead>(addr, val);
+    }
+
+    fn lb(&self, instr: u32, bus: &Bus) -> (usize, u32) {
+        let rt = ((instr >> 16) & 0x1F) as usize;
+        let rs = ((instr >> 21) & 0x1F) as usize;
+        let imm = Self::sign_extend_imm(instr);
+        let addr = self.reg(rs).wrapping_add(imm);
+        let val = bus.read8::<BusRead>(addr) as i8 as u32;
+        (rt, val)
+    }
+
+    fn lbu(&self, instr: u32, bus: &Bus) -> (usize, u32) {
+        let rt = ((instr >> 16) & 0x1F) as usize;
+        let rs = ((instr >> 21) & 0x1F) as usize;
+        let imm = Self::sign_extend_imm(instr);
+        let addr = self.reg(rs).wrapping_add(imm);
+        let val = bus.read8::<BusRead>(addr) as u32;
+        (rt, val)
+    }
+
+    fn lh(&self, instr: u32, bus: &Bus) -> (usize, u32) {
+        let rt = ((instr >> 16) & 0x1F) as usize;
+        let rs = ((instr >> 21) & 0x1F) as usize;
+        let imm = Self::sign_extend_imm(instr);
+        let addr = self.reg(rs).wrapping_add(imm);
+        let val = bus.read16::<BusRead>(addr) as i16 as u32;
+        (rt, val)
+    }
+
+    fn lhu(&self, instr: u32, bus: &Bus) -> (usize, u32) {
+        let rt = ((instr >> 16) & 0x1F) as usize;
+        let rs = ((instr >> 21) & 0x1F) as usize;
+        let imm = Self::sign_extend_imm(instr);
+        let addr = self.reg(rs).wrapping_add(imm);
+        let val = bus.read16::<BusRead>(addr) as u32;
+        (rt, val)
+    }
+
+    fn lw(&self, instr: u32, bus: &Bus) -> (usize, u32) {
+        let rt = ((instr >> 16) & 0x1F) as usize;
+        let rs = ((instr >> 21) & 0x1F) as usize;
+        let imm = Self::sign_extend_imm(instr);
+        let addr = self.reg(rs).wrapping_add(imm);
+        let val = bus.read32::<BusRead>(addr);
+        (rt, val)
+    }
+
+    fn sb(&mut self, instr: u32, bus: &mut Bus) {
+        let rt = ((instr >> 16) & 0x1F) as usize;
+        let rs = ((instr >> 21) & 0x1F) as usize;
+        let imm = Self::sign_extend_imm(instr);
+        let addr = self.reg(rs).wrapping_add(imm);
+        let val = self.reg(rt) as u8;
+        bus.write8::<BusRead>(addr, val);
+    }
+
+    fn sh(&mut self, instr: u32, bus: &mut Bus) {
+        let rt = ((instr >> 16) & 0x1F) as usize;
+        let rs = ((instr >> 21) & 0x1F) as usize;
+        let imm = Self::sign_extend_imm(instr);
+        let addr = self.reg(rs).wrapping_add(imm);
+        let val = self.reg(rt) as u16;
+        bus.write16::<BusRead>(addr, val);
     }
 
     fn reg(&self, idx: usize) -> u32 {

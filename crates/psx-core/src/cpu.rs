@@ -120,8 +120,18 @@ impl Cpu {
                 self.sh(instr, bus);
                 None
             }
-            0x2B => {
+             0x2B => {
                 self.sw(instr, bus);
+                None
+            }
+            0x22 => Some(self.lwl(instr, bus)),
+            0x26 => Some(self.lwr(instr, bus)),
+            0x2A => {
+                self.swl(instr, bus);
+                None
+            }
+            0x2E => {
+                self.swr(instr, bus);
                 None
             }
             _ => unimplemented!("opcode primary={:02X} nao implementado", primary),
@@ -503,6 +513,82 @@ impl Cpu {
         let addr = self.reg(rs).wrapping_add(imm);
         let val = self.reg(rt) as u16;
         bus.write16::<BusRead>(addr, val);
+    }
+
+    fn lwl(&self, instr: u32, bus: &Bus) -> (usize, u32) {
+        let rt = ((instr >> 16) & 0x1F) as usize;
+        let rs = ((instr >> 21) & 0x1F) as usize;
+        let imm = Self::sign_extend_imm(instr);
+        let addr = self.reg(rs).wrapping_add(imm);
+        let aligned = addr & !3;
+        let offset = (addr & 3) as usize;
+        let mem_word = bus.read32::<BusRead>(aligned);
+        let old = self.reg(rt);
+        let merged = match offset {
+            0 => (old & 0x00FF_FFFF) | (mem_word & 0xFF00_0000),
+            1 => (old & 0x0000_FFFF) | (mem_word & 0xFFFF_0000),
+            2 => (old & 0x0000_00FF) | (mem_word & 0xFFFF_FF00),
+            3 => mem_word,
+            _ => unreachable!(),
+        };
+        (rt, merged)
+    }
+
+    fn lwr(&self, instr: u32, bus: &Bus) -> (usize, u32) {
+        let rt = ((instr >> 16) & 0x1F) as usize;
+        let rs = ((instr >> 21) & 0x1F) as usize;
+        let imm = Self::sign_extend_imm(instr);
+        let addr = self.reg(rs).wrapping_add(imm);
+        let aligned = addr & !3;
+        let offset = (addr & 3) as usize;
+        let mem_word = bus.read32::<BusRead>(aligned);
+        let old = self.reg(rt);
+        let merged = match offset {
+            0 => mem_word,
+            1 => (old & 0xFF00_0000) | (mem_word & 0x00FF_FFFF),
+            2 => (old & 0xFFFF_0000) | (mem_word & 0x0000_FFFF),
+            3 => (old & 0xFFFF_FF00) | (mem_word & 0x0000_00FF),
+            _ => unreachable!(),
+        };
+        (rt, merged)
+    }
+
+    fn swl(&mut self, instr: u32, bus: &mut Bus) {
+        let rt = ((instr >> 16) & 0x1F) as usize;
+        let rs = ((instr >> 21) & 0x1F) as usize;
+        let imm = Self::sign_extend_imm(instr);
+        let addr = self.reg(rs).wrapping_add(imm);
+        let aligned = addr & !3;
+        let offset = (addr & 3) as usize;
+        let rt_val = self.reg(rt);
+        let old_mem = bus.read32::<BusRead>(aligned);
+        let merged = match offset {
+            0 => (old_mem & 0x00FF_FFFF) | (rt_val & 0xFF00_0000),
+            1 => (old_mem & 0x0000_FFFF) | (rt_val & 0xFFFF_0000),
+            2 => (old_mem & 0x0000_00FF) | (rt_val & 0xFFFF_FF00),
+            3 => rt_val,
+            _ => unreachable!(),
+        };
+        bus.write32::<BusRead>(aligned, merged);
+    }
+
+    fn swr(&mut self, instr: u32, bus: &mut Bus) {
+        let rt = ((instr >> 16) & 0x1F) as usize;
+        let rs = ((instr >> 21) & 0x1F) as usize;
+        let imm = Self::sign_extend_imm(instr);
+        let addr = self.reg(rs).wrapping_add(imm);
+        let aligned = addr & !3;
+        let offset = (addr & 3) as usize;
+        let rt_val = self.reg(rt);
+        let old_mem = bus.read32::<BusRead>(aligned);
+        let merged = match offset {
+            0 => rt_val,
+            1 => (old_mem & 0xFF00_0000) | (rt_val & 0x00FF_FFFF),
+            2 => (old_mem & 0xFFFF_0000) | (rt_val & 0x0000_FFFF),
+            3 => (old_mem & 0xFFFF_FF00) | (rt_val & 0x0000_00FF),
+            _ => unreachable!(),
+        };
+        bus.write32::<BusRead>(aligned, merged);
     }
 
     fn reg(&self, idx: usize) -> u32 {

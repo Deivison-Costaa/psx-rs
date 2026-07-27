@@ -20,12 +20,14 @@ Ver `docs/iterations/0015-cpu-branch-delay.md`.
 **ROADMAP 1.6** — MULT/MULTU/DIV/DIVU + HI/LO. (O handoff da 0015 apontava para a 2.1,
 pulando 1.6–1.12; corrigido na revisão. O M1 fecha antes de a GPU começar.)
 
-**Antes de escrever qualquer instrução nova, FATIE `crates/psx-core/src/cpu.rs`** — está
-com 440 das 500 linhas do teto de `file_size.rs`, e MULT/DIV não cabem. Sugestão: manter
-em `cpu.rs` a struct, `new`, `step`, `execute` e o dispatch; mover as famílias para
-`cpu/alu.rs`, `cpu/mem.rs`, `cpu/branch.rs` como `impl Cpu` (o módulo vira diretório
-`cpu/mod.rs`). Atualizar `docs/mapa.md` junto — é o refactor da iteração, commit
-`refactor(cpu):` antes do `feat`.
+**Antes de escrever qualquer instrução nova, fatie `crates/psx-core/src/cpu.rs`.** Está em
+440 linhas e o R3000A ainda deve dobrar de tamanho (MULT/DIV, LWL/LWR, COP0). O motivo é a
+R8, não estética: um `cpu.rs` monolítico obriga toda iteração futura a pagar o arquivo
+inteiro em contexto. Manter em `cpu/mod.rs` a struct, `new`, `step`, `execute` e o
+dispatch; mover as famílias para `cpu/alu.rs`, `cpu/mem.rs`, `cpu/branch.rs` como
+`impl Cpu`. Atualizar `docs/mapa.md` junto — é o refactor da iteração, commit
+`refactor(cpu):` antes do `feat`. Se algum corte ficar artificial, deixe o arquivo maior e
+registre o porquê no doc: coesão vale mais que o número.
 
 Escopo do 1.6: MULT (SPECIAL 0x18), MULTU (0x19), DIV (0x1A), DIVU (0x1B), MFHI (0x10),
 MTHI (0x11), MFLO (0x12), MTLO (0x13); registradores `hi`/`lo` na struct `Cpu`.

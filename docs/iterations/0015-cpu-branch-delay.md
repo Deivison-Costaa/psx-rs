@@ -99,10 +99,11 @@ o handoff exigiria o script saber qual item vem depois — dá para fazer, lendo
 
 ### Achado 4 — dívida estrutural registrada, não corrigida aqui
 
-`cpu.rs` está em 440 das 500 linhas do teto de `file_size.rs`. MULT/DIV + HI/LO não cabem;
-o 1.6 começa fatiando o módulo. Está no handoff, com a divisão sugerida. E `branch_target:
-Option<u32>` não guarda "estou num delay slot", que o 1.8 precisa para `CAUSE.BD`/`EPC` —
-nota 5 do STATUS.
+`cpu.rs` está em 440 linhas e a CPU ainda deve dobrar (MULT/DIV, LWL/LWR, COP0). O 1.6
+começa fatiando o módulo — pela R8, para que iterações futuras não paguem o arquivo
+inteiro em contexto, e não para satisfazer o número: o handoff diz explicitamente que um
+corte artificial é pior que um arquivo grande. E `branch_target: Option<u32>` não guarda
+"estou num delay slot", que o 1.8 precisa para `CAUSE.BD`/`EPC` — nota 5 do STATUS.
 
 ## Decisões e notas
 

@@ -36,7 +36,13 @@ fn bios_from_bytes_ok() {
 fn bios_from_bytes_muito_curto() {
     let curto = vec![0u8; 0x40000];
     let err = Bios::from_bytes(curto).unwrap_err();
-    assert!(matches!(err, BiosError::WrongSize { got: 0x40000, expected: BIOS_OK_SIZE }));
+    assert!(matches!(
+        err,
+        BiosError::WrongSize {
+            got: 0x40000,
+            expected: BIOS_OK_SIZE
+        }
+    ));
 }
 
 #[test]
@@ -50,7 +56,13 @@ fn bios_from_bytes_vazio() {
 fn bios_from_bytes_muito_longo() {
     let longo = vec![0u8; 0x100000];
     let err = Bios::from_bytes(longo).unwrap_err();
-    assert!(matches!(err, BiosError::WrongSize { got: 0x100000, expected: BIOS_OK_SIZE }));
+    assert!(matches!(
+        err,
+        BiosError::WrongSize {
+            got: 0x100000,
+            expected: BIOS_OK_SIZE
+        }
+    ));
 }
 
 #[test]
@@ -76,7 +88,12 @@ fn bios_read32_primeiro_word() {
     let data_clone = data.clone();
     let bios = Bios::from_bytes(data).unwrap();
     let word = bios.read32(0x0000);
-    let expected = u32::from_le_bytes([data_clone[0x0000], data_clone[0x0001], data_clone[0x0002], data_clone[0x0003]]);
+    let expected = u32::from_le_bytes([
+        data_clone[0x0000],
+        data_clone[0x0001],
+        data_clone[0x0002],
+        data_clone[0x0003],
+    ]);
     assert_eq!(word, expected);
 }
 

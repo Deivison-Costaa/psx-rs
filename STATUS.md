@@ -36,7 +36,7 @@ instrução (delay slot) é executada, e SÓ ENTÃO o PC é redirecionado.
 
 ## Placar de testes
 
-Workspace: **95** testes (8 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 11 bus_scheduler + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + **18 cpu_load_delay** + 3 psx-cli/desktop).
+Workspace: **98** testes (8 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 3 psx-cli/desktop). As duas últimas linhas vieram da revisão da 0014.
 
 ## Bloqueios
 
@@ -59,3 +59,13 @@ Workspace: **95** testes (8 meta-testes + 8 bus_bios + 2 bios_flag + 1 version +
    deixar `rt` intacto no overflow. `ADD` (secondary 0x20) e `SUB` (0x22) nem existem no
    match: dão `unimplemented!`. Quando o 1.8 trouxer o mecanismo de exceção, os três
    entram juntos. Autorizado no handoff da 0012, mas é dívida, não comportamento correto.
+3. **Load delay × escrita no mesmo registrador: comportamento ASSUMIDO, não verificado
+   (resolve no item 1.11).** Quando a instrução do delay slot escreve o registrador
+   destino do load (`lw r10,..` seguido de `ori r10,..`), a nossa implementação faz o
+   **load vencer**. A spec local não decide: `02-cpu.md § Caution - Load Delay` só diz que
+   o registrador "não é atualizado até o próximo opcode ter completado", o que fala de
+   leitura, não de precedência de escrita. Não mudamos sem evidência (R1). O teste
+   `load_delay_vs_escrita_no_mesmo_registrador_comportamento_assumido` fixa o que fazemos
+   hoje e nomeia a dúvida, para que uma futura mudança seja deliberada. Ponto de
+   resolução: Amidog `psxtest_cpu` no item 1.11 — se ele reprovar, inverter a ordem em
+   `Cpu::step` (commitar o load antes de executar, escrevendo num banco de saída).

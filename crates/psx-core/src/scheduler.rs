@@ -1,1 +1,50 @@
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct EventId(pub u32);
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ScheduleKey {
+    pub tick: u64,
+}
+
+impl ScheduleKey {
+    pub fn new(tick: u64) -> Self {
+        ScheduleKey { tick }
+    }
+}
+
+#[derive(Debug)]
+pub struct Scheduler {
+    events: Vec<(ScheduleKey, EventId)>,
+    current_tick: u64,
+}
+
+impl Scheduler {
+    pub fn new() -> Self {
+        Scheduler {
+            events: Vec::new(),
+            current_tick: 0,
+        }
+    }
+
+    pub fn schedule(&mut self, key: ScheduleKey, id: EventId) {
+        self.events.push((key, id));
+        self.events
+            .sort_by(|a, b| a.0.tick.cmp(&b.0.tick));
+    }
+
+    pub fn advance_to(&mut self, ticks: u64) -> Option<EventId> {
+        self.current_tick = ticks;
+        if self.events.is_empty() {
+            return None;
+        }
+        let next_tick = self.events[0].0.tick;
+        if next_tick > self.current_tick {
+            return None;
+        }
+        Some(self.events.remove(0).1)
+    }
+
+    pub fn pending_events(&self) -> &[(ScheduleKey, EventId)] {
+        &self.events
+    }
+}

@@ -1,3 +1,81 @@
+#[derive(Debug, Clone)]
+pub struct Ram {
+    data: Vec<u8>,
+}
+
+impl Ram {
+    pub fn new() -> Self {
+        Ram {
+            data: vec![0u8; 0x200_000],
+        }
+    }
+}
+
+pub struct BusRead;
+pub struct BusWrite;
+
+pub trait MemoryOp {
+    const READ: bool;
+    const WRITE: bool;
+}
+
+impl MemoryOp for BusRead {
+    const READ: bool = true;
+    const WRITE: bool = false;
+}
+
+impl MemoryOp for BusWrite {
+    const READ: bool = false;
+    const WRITE: bool = true;
+}
+
+#[derive(Debug)]
+pub struct Bus {
+    ram: Ram,
+    bios: Bios,
+}
+
+impl Bus {
+    pub fn new(ram: Ram, bios: Bios) -> Self {
+        Bus { ram, bios }
+    }
+
+    pub fn read32<Op: MemoryOp>(&self, addr: u32) -> u32 {
+        // STUB: wrong — always reads from RAM base
+        let phys = Self::to_physical(addr);
+        if phys >= 0x1F_C0_0000 && phys < 0x1F_C0_0000 + 0x80000 {
+            let offset = (phys - 0x1F_C0_0000) as usize;
+            return self.bios.read32(offset);
+        }
+        let idx = (phys & 0x1F_FF_FF) as usize;
+        u32::from_le_bytes([
+            self.ram.data[idx],
+            self.ram.data[idx + 1],
+            self.ram.data[idx + 2],
+            self.ram.data[idx + 3],
+        ])
+    }
+
+    pub fn write32<Op: MemoryOp>(&mut self, addr: u32, val: u32) {
+        let phys = Self::to_physical(addr);
+        let idx = (phys & 0x1F_FF_FF) as usize;
+        let bytes = val.to_le_bytes();
+        self.ram.data[idx] = bytes[0];
+        self.ram.data[idx + 1] = bytes[1];
+        self.ram.data[idx + 2] = bytes[2];
+        self.ram.data[idx + 3] = bytes[3];
+    }
+
+    fn to_physical(addr: u32) -> u32 {
+        match addr >> 29 {
+            0b010 => addr & 0x1F_FF_FFFF,  // KUSEG: 0x0000_0000..0x1FFF_FFFF
+            0b100 => addr & 0x1F_FF_FFFF,  // KSEG0: 0x8000_0000..0x9FFF_FFFF
+            0b101 => addr & 0x1F_FF_FFFF,  // KSEG1: 0xA000_0000..0xBFFF_FFFF
+            _ => addr,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct Bios {
     data: Vec<u8>,

@@ -83,7 +83,11 @@ $iter = Get-ChildItem docs/iterations -Filter "*.md" |
     ForEach-Object { $Matches[1] } | Sort-Object | Select-Object -Last 1
 $headDepois = (git rev-parse --short HEAD).Trim()
 
-Add-Content docs/metricas.csv `
+# Vai para um pendente NAO rastreado (logs/ e gitignored): escrever direto no metricas.csv
+# sujaria a arvore e conflitaria com o pull do modo auto-merge. O worker incorpora as linhas
+# pendentes no commit docs(iter) da iteracao seguinte (SKILL passo 8); lag maximo 1 garantido
+# por metrics_freshness.rs.
+Add-Content logs/metrics-pending.csv `
     "$ts,$iter,$resultado,$costV,$tinV,$toutV,$steps,$($sw.ElapsedMilliseconds),$headAntes,$headDepois,$Model,trabalhador"
 Write-Host "[oc-iter] $resultado iter=$iter custo=$costV tokens=$tinV/$toutV steps=$steps $([int]($sw.Elapsed.TotalMinutes))min -> $outFile"
 Write-Host "[oc-iter] proximo passo do ORQUESTRADOR: revisar o PR (docs/prompts/review.md), commitar a linha de metricas na branch do PR e mergear."

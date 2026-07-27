@@ -84,3 +84,23 @@ emulacao ainda - o codigo era trivial; o teste de fogo da revisao vem com delay 
 
 Correcao de rumo de processo: itens 0.3-0.5 executados fora de ordem por dependencia
 (meta-testes exigem docs e CI); iteracao e cronologica, item e tematico.
+
+## 2026-07-27 — decisao do usuario na checagem de premissa: revisao em lote
+
+Premissa do projeto confirmada no fechamento do M0. Mudanca de cadencia decidida pelo
+usuario: revisar cada PR do trabalhador custa caro no orquestrador (modelo de fronteira,
+assinatura) enquanto o trabalhador custa ~US$ 0,01 - a economia inverteu o gargalo. Novo
+regime a partir do M1:
+
+- Trabalhador roda em lote: oc-loop -AutoMerge (merge com checks verdes, sem revisao previa).
+- Guards sempre ativos por PR: CI (fmt/clippy/teste), meta-testes de processo, commit-lint,
+  bateria de mutacao exigida pelo SKILL.
+- Revisao adversarial do orquestrador passa a ser POR MARCO, em lote, sobre o diff acumulado;
+  achados viram iteracoes de fix (sufixo letra). O campo "Revisao cruzada" dos docs de
+  iteracao e preenchido nessa revisao de lote.
+- Metricas: runner grava em logs/metrics-pending.csv (nao rastreado) e o worker incorpora no
+  commit docs da iteracao seguinte - mantem arvore limpa entre iteracoes do loop e o lag <= 1
+  do metrics_freshness.
+
+Risco aceito e registrado: um erro de logica pode compor por algumas iteracoes ate a revisao
+de marco; mitigacao real sao os testes de hardware (Amidog no 1.11) e a bateria de mutacao.

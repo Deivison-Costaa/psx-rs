@@ -1,0 +1,100 @@
+---
+name: iterate
+description: Executa exatamente UMA iteração do psx-rs (um item do ROADMAP) sob TDD, bateria de mutação e PR padronizado. Fonte única do protocolo — vale para qualquer modelo (DeepSeek trabalhador ou outro).
+---
+
+# Protocolo de iteração (fonte única)
+
+Regras de fundo em `CLAUDE.md` (R1–R8). Este arquivo é o ÚNICO lugar onde o protocolo mora;
+se algo aqui conflitar com outro doc, este ganha e o outro deve ser corrigido.
+
+## Passo 0 — Contexto mínimo
+
+Leia `STATUS.md` inteiro (é curto). A seção **Próxima tarefa** define o item e as seções de
+spec. Abra no `ROADMAP.md` SÓ a linha do item. Não leia mais nada "de graça" (R8) — nem
+`tests/` inteiro, nem specs inteiras, nem iterações antigas.
+
+## Passo 1 — Bloqueios
+
+Se houver caixa `**BLOQUEADO por X**` no STATUS cujo X já fechou, reavalie-a antes de pegar
+item novo (no gb-rs um item ficou pronto uma hora e três iterações passaram ao lado).
+
+## Passo 2 — Branch
+
+`git checkout main && git pull --ff-only && git checkout -b iter/NNNN-slug`
+(NNNN = número da iteração, sequencial ao último doc em `docs/iterations/`; slug curto em
+minúsculas). Árvore precisa estar limpa antes.
+
+## Passo 3 — Spec primeiro (R1)
+
+Abra o arquivo de `docs/reference/` apontado pelo handoff, leia o **índice de seções** no
+topo e pule DIRETO à(s) seção(ões) do item (offsets relativos à marca `CORPO:`). Se a spec
+necessária não estiver em docs/reference, rode `scripts/fetch-reference-docs.ps1` com o
+capítulo adicionado, commite (`chore(scripts)` + `docs(reference)`) e prossiga.
+
+## Passo 4 — Teste que falha (R5)
+
+Um arquivo de integração por item em `crates/psx-core/tests/`, nome `modulo_slug.rs`
+espelhando o item (ex.: `cpu_load_delay.rs` ↔ 1.4). Valores esperados vêm DA SPEC (golden
+values), nunca do output da implementação. Rode, veja falhar (vermelho por afirmação, não
+por erro de compilação de API inexistente — crie os stubs mínimos que compilam).
+Commit: `test(escopo): resumo`.
+
+## Passo 5 — Implementação mínima
+
+Só o necessário para o teste passar. Sem generalizar, sem "aproveitar que estou aqui" (R4).
+Arquivo passando de 500 linhas: fatie e atualize `docs/mapa.md` no mesmo commit.
+Commit: `feat(escopo): resumo` (ou `fix`/`refactor`).
+
+## Passo 6 — Bateria de mutação (obrigatória)
+
+Verde não prova que o teste mede: mutante que sobrevive é teste que não olha.
+
+1. Liste as maneiras plausíveis de errar este item (sinal trocado, offset, delay slot
+   ignorado, saturação ausente, flag errada...).
+2. Aplique **uma de cada vez** no fonte; o teste TEM que falhar; reverta.
+3. Some **controles**: 1–2 mutações que NÃO deveriam quebrar (renomear local, reordenar
+   funções); o teste TEM que passar; reverta.
+4. Registre o placar `N/N pegos, M/M controles verdes` com a lista das mutações no doc da
+   iteração. Mutante sobrevivente = volte ao passo 4 e fortaleça o teste.
+
+## Passo 7 — Verificação completa
+
+`cargo fmt --all` → `cargo fmt --all -- --check` → `cargo clippy --all-targets -- -D warnings`
+→ `cargo test --all`. Quando o runner existir (item 1.11+): `scripts/scoreboard.ps1` e anote
+o placar. Nada de prosseguir com amarelo.
+
+## Passo 8 — Documentar
+
+Copie `docs/iterations/TEMPLATE.md` para `docs/iterations/NNNN-slug.md` e preencha TODOS os
+campos. **Erros de primeira tentativa** é o campo mais importante do projeto: o que você
+assumiu, o que a spec diz, como foi pego. Registrado não é vergonha — um log onde tudo sempre
+deu certo é um log inútil. Atualize `STATUS.md`: última iteração (1 linha), **Próxima tarefa**
+(handoff denso: item, arquivo de spec + seções, arquivos-alvo, armadilha conhecida), placar,
+invariantes/notas novas (índice numerado, nunca renumere).
+
+## Passo 9 — PR (sem merge)
+
+```
+git add <docs> ; git commit -m 'docs(iter): NNNN — resumo'
+git push -u origin iter/NNNN-slug
+gh pr create --title 'iter NNNN: resumo (ROADMAP X.Y)' --body '<template preenchido>'
+```
+
+Armadilhas conhecidas do `gh` (todas já causaram defeito real):
+- Título/corpo SEMPRE entre aspas simples — aspas duplas comem `$` e parênteses
+  (commit permanente `CALL cc,u16 (    )` no gb-rs).
+- Nunca `--fill`.
+- O corpo segue `.github/PULL_REQUEST_TEMPLATE.md` (checkboxes + placar da bateria).
+- `gh pr checks` sai com erro antes de os runs registrarem: espere em loop com retry.
+
+**NÃO faça merge.** O merge é do orquestrador, após revisão adversarial. Abriu o PR → passo 10.
+
+## Passo 10 — Falhou 3× o mesmo passo?
+
+Não insista. Registre em **Bloqueios** do STATUS (o que travou, o que foi tentado), marque o
+PR como draft (`gh pr ready --undo`), e pare. Decisão sobe para o orquestrador/humano.
+
+## Passo 11 — FIM
+
+Uma iteração = um item = um PR aberto. Não comece o próximo item "já que está aqui" (R4).

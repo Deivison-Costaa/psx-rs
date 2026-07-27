@@ -5,27 +5,28 @@
 
 ## Última iteração concluída
 
-**0014** — Loads/stores + load delay (ROADMAP 1.4): LB/LBU/LH/LHU/LW (loads), SB/SH (stores),
-mais o load delay slot. 18 testes em `cpu_load_delay.rs`.
-Bateria de mutação: 6/6 pegos, 3/3 controles verdes.
-Erro de primeira tentativa: teste `sb_offset_negativo` com endereço de setup errado (0x2004
-em vez de 0x2000) — corrigido na primeira execução. Nenhum erro de emulação.
-Ver `docs/iterations/0014-cpu-load-store-delay.md`.
+**0015** — Branches/jumps + branch delay slot (ROADMAP 1.5): J, JAL, JR, JALR, BEQ, BNE,
+BLEZ, BGTZ, BLTZ, BGEZ, BLTZAL, BGEZAL + branch delay slot. 29 testes em
+`cpu_branch_delay.rs`.
+Bateria de mutação: 6/6 pegos, 2/2 controles verdes.
+Erro de primeira tentativa: testes escritos com 1 step em vez de 2 (branch prepara, delay
+slot executa e redireciona no step seguinte) — corrigido na primeira execução.
+Nenhum erro de emulação.
+Ver `docs/iterations/0015-cpu-branch-delay.md`.
 
 ## Próxima tarefa
 
-**ROADMAP 1.5** — Branches/jumps + branch delay slot. Implementar J, JAL, JR, JALR
-(branches), BEQ, BNE, BLEZ, BGTZ (branches condicionais), BLTZ/BGEZ/BLTZAL/BGEZAL
-(BcondZ). O **branch delay slot**: a instrução imediatamente após o branch SEMPRE executa
-(seja o branch tomado ou não). Spec: `docs/reference/02-cpu.md` — seções `L379 CPU Jump
-Opcodes` (jumps and branches L380, JALR cautions L400). Teste:
-`crates/psx-core/tests/cpu_branch_delay.rs` (criar). Armadilha: JALR pode usar o mesmo
-reg para rs e rd — o rs original (target address) é lido antes de rd ser escrito com
-`pc+8`. BcondZ codifica o subtipo em rt (0=BLTZ, 1=BGEZ, 16=BLTZAL, 17=BGEZAL).
-Atenção: J/JAL target tem que preservar os 4 bits mais altos do PC; branches
-condicionais usam offset de 16 bits sign-extendido * 4. O branch delay slot já executa
-antes do desvio — na nossa CPU instruction-stepped, após executar o branch, a próxima
-instrução (delay slot) é executada, e SÓ ENTÃO o PC é redirecionado.
+**ROADMAP 2.1** — GPU: interface de barramento + registradores GP0/GP1. Implementar o
+mapeamento de I/O da GPU na faixa `0x1F80_1810..0x1F80_181C` (GP0, GP1, GPUSTAT, etc.),
+com respostas stub (zero) para leituras e captura de writes. A GPU precisa de uma struct
+`Gpu` com estado interno mínimo (GPUSTAT, modo de desenho, etc.), registrada no `Bus`.
+Spec: `docs/reference/03-gpu.md` — seção GPU I/O Ports (registradores, offsets e
+comportamento esperado de leitura/escrita). Arquivos-alvo: `crates/psx-core/src/gpu.rs`
+(criar), `crates/psx-core/src/bus.rs` (adicionar mapeamento GPU). Teste:
+`crates/psx-core/tests/gpu_io_ports.rs` (criar). Armadilha: GP0 é write-only (leitura
+retorna o último valor escrito em GP1, ou zero); GP1 é write-only (leitura retorna zero);
+GPUSTAT é read-only (escrita ignorada). O reset de GPU deve setar GPUSTAT para um valor
+conhecido (pelo menos bit 0 = ready to receive command).
 
 ## Repositório
 
@@ -36,7 +37,7 @@ instrução (delay slot) é executada, e SÓ ENTÃO o PC é redirecionado.
 
 ## Placar de testes
 
-Workspace: **98** testes (8 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 3 psx-cli/desktop). As duas últimas linhas vieram da revisão da 0014.
+Workspace: **127** testes (8 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 29 cpu_branch_delay + 0 psx-cli/desktop).
 
 ## Bloqueios
 

@@ -5,16 +5,16 @@
 
 ## Última iteração concluída
 
-**0005** — meta-testes de processo (ROADMAP 0.3): 8 testes guardando R3/R6/R7/R8, tetos de
-STATUS/ROADMAP, CI sem condicional e frescor de métricas. Bateria 7/7.
+**0006** — psx-spx fatiado (ROADMAP 0.6): 15 capítulos em `docs/reference/NN-*.md`, commit
+pinado `035c765`, índice de seções no topo de cada arquivo.
 
 ## Próxima tarefa
 
-**ROADMAP 0.6** — `scripts/fetch-reference-docs.ps1`: baixar capítulos do psx-spx
-(repo `psx-spx/psx-spx.github.io`, commit pinado) para `docs/reference/NN-slug.md` com
-cabeçalho de índice de seções (título § → âncora) gerado pelo script, e `docs/reference/README.md`
-com procedência (SHA, data, licença). Capítulos: memory map, CPU, GPU, DMA, timers, CDROM,
-GTE, SPU, MDEC, controllers/memcards, interrupts. Executor: orquestrador.
+**ROADMAP 0.7** — `scripts/fetch-test-exes.ps1`: baixar EXEs de teste para `tests/exes/`
+(gitignored) com procedência: releases do `JaCzekanski/ps1-tests` (zip com EXEs por suíte) e
+Amidog `psxtest_cpu`/`psxtest_gte`. `scripts/scoreboard.ps1` esqueleto: varre `tests/exes/`,
+gera CSV `suite,exe,status,ciclos` (por ora tudo `sem-runner` — o runner real chega no item
+1.11). Executor: orquestrador.
 
 ## Repositório
 

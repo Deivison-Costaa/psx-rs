@@ -10,7 +10,7 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [x] 0.3 Meta-testes de processo (7) (iter 0005)
 - [x] 0.4 CI check + commit-lint + proteção de branch (iter 0004)
 - [x] 0.5 Docs de gestão (iter 0003)
-- [ ] 0.6 psx-spx fatiado em docs/reference com índice de seções
+- [x] 0.6 psx-spx fatiado em docs/reference com índice de seções (iter 0006)
 - [ ] 0.7 fetch de EXEs de teste + scoreboard esqueleto
 - [ ] 0.8 Orquestração opencode/DeepSeek + smoke test de ponta a ponta
 - [ ] 0.9 Carregamento de BIOS com validação de hash (1ª iteração do trabalhador)

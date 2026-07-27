@@ -55,6 +55,8 @@ foreach ($i in 1..$N) {
     $iterN = if ($info.headRefName -match 'iter/(\d{4}[a-z]?)') { $Matches[1] } else { "" }
 
     # Remediacao 1: checkbox do item no ROADMAP (esquecido nas iters 0009, 0010 e 0011).
+    # CUIDADO (achado da revisao da 0012): isso confia no titulo do PR, nao na entrega - a
+    # 1.3 foi marcada sem os shifts. Conferir completude do item e do revisor, sempre.
     if ($item) {
         $alvo = "^- \[ \] " + [regex]::Escape($item) + " "
         $linhas = Get-Content ROADMAP.md

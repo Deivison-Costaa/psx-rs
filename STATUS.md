@@ -5,24 +5,33 @@
 
 ## Última iteração concluída
 
-**0011** — Fetch/decode + LUI/ORI/SW (ROADMAP 1.2): struct `Cpu` com regs (32×u32, R0
-imutável, PC=0xBFC00000), `step(&mut Bus)` que busca instr via `read32`, decodifica pelo
-primary opcode (bits 26..31) e executa LUI (imm<<16), ORI (rs|imm, zero-extended) e SW
-([rs+imm]=rt, offset SINALIZADO). Opcode desconhecido: `unimplemented!`. 8 testes em
-`cpu_fetch_decode.rs` — a revisão adversarial achou o offset de SW zero-extended (alta) e
-somou o teste do offset negativo; ver "Revisão cruzada" em `docs/iterations/0011-*.md`.
+**0012** — ALU completa (ROADMAP 1.3): SPECIAL (primary=0x00) com secondary opcode para
+ADDU/SUBU/AND/OR/XOR/NOR/SLT/SLTU; alu-imm para ADDI/ADDIU/ANDI/ORI/XORI/SLTI/SLTIU. 26
+testes em `cpu_alu.rs`. Bateria de mutação: 6/6 pegos, 2/2 controles verdes.
+Erro de primeira tentativa: campo rs/rt trocado no helper de encode (API-Rust); expectativa
+errada de SLTIU com imm alto (flags). Ver `docs/iterations/0012-cpu-alu.md`.
 
 ## Próxima tarefa
 
-**ROADMAP 1.3** — ALU: ADD/ADDU/SUB/SUBU/AND/OR/XOR/NOR/SLT/SLTU + imediatos
-(ADDI/ADDIU/ANDI/ORI/XORI/SLTI/SLTIU). Em `crates/psx-core/src/cpu.rs`: estender o match
-de primary opcode para `00h=SPECIAL` (secondary opcode bits 0..5) e `00xxx=alu-imm`.
-Spec: `docs/reference/02-cpu.md` — seções `L285 arithmetic instructions`, `L297 comparison`,
-`L305 logical instructions`, `L99 Opcode/Parameter Encoding` (tabela alu-imm em linha 200,
-SPECIAL em linha 192). Teste: `crates/psx-core/tests/cpu_alu.rs`. Armadilha: ADDI/ADDIU
-sign-extendem o immediate (16→32 bits); SLTI/SLTIU também; ANDI/ORI/XORI zero-extension;
-ADD/ADDU trap vs. no-trap — por enquanto implemente ADDU e ignore overflow (ADDU é o que
-o BIOS realmente usa). SPECIAL (primary=0x00) requer decodificar o secondary opcode.
+**ROADMAP 1.3b** — Shifts, e SÓ isso (a 0012 entregou o resto da ALU; loads são 1.4).
+Em `crates/psx-core/src/cpu.rs`, adicionar ao `special()`: SLL (secondary 0x00),
+SRL (0x02), SRA (0x03) — quantidade de shift no campo `sa` (bits 6..10) — e as variantes
+por registrador SLLV (0x04), SRLV (0x06), SRAV (0x07), que usam `rs & 0x1F`.
+Spec: `docs/reference/02-cpu.md` — seção `shifting instructions` (linha 316).
+Teste: `crates/psx-core/tests/cpu_shifts.rs`. Armadilhas: SRA é aritmético (propaga o bit
+de sinal — use `as i32 >> n`), SRL é lógico; nas variantes V a quantidade vem de `rs`
+mascarada com 0x1F (shift de 32 não existe); `sll $0,$0,0` é o NOP canônico e precisa
+continuar não fazendo nada.
+
+Depois dela, **ROADMAP 1.4** — Loads/stores + load delay slot. Expandir `step()` para LB/LBU/LH/LHU/LW
+(loads) e SB/SH (stores). Implementar o **load delay slot**: o resultado de um load SÓ fica
+disponível uma instrução depois; ler o register destino no ciclo imediatamente seguinte
+retorna o valor anterior. Spec: `docs/reference/02-cpu.md` — seções `L156 Load/Store Opcodes`
+(load instructions linha 157, store instructions linha 299), `L171 Caution - Load Delay`,
+`L180 Load Timing`, `L201 Load Shadow`. Teste: `crates/psx-core/tests/cpu_load_delay.rs`.
+Armadilha: o load delay é um fenômeno do pipeline real; na nossa CPU instruction-stepped
+precisamos marcar o registrador como "locked" e adiar a escrita. Atenção: o próprio store
+não tem delay — o write-queue esconde. R0 locked nunca deve afetar nada.
 
 ## Repositório
 
@@ -33,7 +42,7 @@ o BIOS realmente usa). SPECIAL (primary=0x00) requer decodificar o secondary opc
 
 ## Placar de testes
 
-Workspace: **41** testes (8 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 11 bus_scheduler + 8 cpu_fetch_decode + 3 psx-cli/desktop).
+Workspace: **67** testes (8 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 11 bus_scheduler + 8 cpu_fetch_decode + 26 cpu_alu + 3 psx-cli/desktop).
 
 ## Bloqueios
 
@@ -51,3 +60,8 @@ Workspace: **41** testes (8 meta-testes + 8 bus_bios + 2 bios_flag + 1 version +
 
 1. BIOS local: `bios/SCPH1001.BIN` (MD5 924E392ED05558FFDB115408C263DCCF), gitignored,
    validada na iter 0009 (item 0.9). Nunca commitar.
+2. **Dívida de overflow trap (fecha no item 1.8).** `ADDI` está implementado sem trap,
+   idêntico a `ADDIU` — a spec (02-cpu.md, `arithmetic instructions`) manda excetuar e
+   deixar `rt` intacto no overflow. `ADD` (secondary 0x20) e `SUB` (0x22) nem existem no
+   match: dão `unimplemented!`. Quando o 1.8 trouxer o mecanismo de exceção, os três
+   entram juntos. Autorizado no handoff da 0012, mas é dívida, não comportamento correto.

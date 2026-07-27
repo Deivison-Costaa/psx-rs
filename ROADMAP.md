@@ -18,7 +18,8 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 ## M1 — CPU R3000A até o BIOS falar
 - [x] 1.1 Scheduler de eventos + bus (KUSEG/KSEG0/KSEG1), RAM 2MB, BIOS ROM (iter 0010)
 - [x] 1.2 Fetch/decode + LUI/ORI/SW (iter 0011)
-- [ ] 1.3 ALU: ADD/ADDU/SUB/AND/OR/XOR/NOR/shifts/SLT + imediatos
+- [x] 1.3 ALU: ADDU/SUBU/AND/OR/XOR/NOR/SLT/SLTU + imediatos (iter 0012)
+- [ ] 1.3b Shifts SLL/SRL/SRA/SLLV/SRLV/SRAV (fatiado de 1.3 na revisão da 0012)
 - [ ] 1.4 Loads/stores + load delay slot
 - [ ] 1.5 Branches/jumps + branch delay slot
 - [ ] 1.6 MULT/MULTU/DIV/DIVU + HI/LO com stalls

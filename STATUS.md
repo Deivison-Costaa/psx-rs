@@ -5,36 +5,33 @@
 
 ## Última iteração concluída
 
-**0016** — MULT/MULTU/DIV/DIVU + HI/LO (ROADMAP 1.6): MULT (SPECIAL 0x18), MULTU (0x19),
-DIV (0x1A), DIVU (0x1B), MFHI (0x10), MTHI (0x11), MFLO (0x12), MTLO (0x13) + campos
-`hi`/`lo` na struct `Cpu`. 20 testes em `cpu_mult_div.rs`.
-Bateria de mutação: 7/7 pegos, 2/2 controles verdes.
-Erro de primeira tentativa: (1) `u32 as i64` zero-extende em vez de sign-extender para
-MULT (corrigido com `as i32 as i64`); (2) testes de MFHI/MFLO usavam `rs` em vez de `rd`
-no encode; (3) expectativa de `mult_64bits_hi_lo` calculada errada.
-A revisão adversarial achou a CI vermelha por lint que o clippy local (desatualizado) não
-conhece e um buraco de cobertura — DIVU implementado com sinal passava nos 18 testes; +2
-testes. Ver `docs/iterations/0016-cpu-mult-div.md`.
+**0017** — LWL/LWR/SWL/SWR (ROADMAP 1.7): LWL primary 0x22, LWR 0x26, SWL 0x2A, SWR 0x2E.
+18 testes em `cpu_unaligned_load_store.rs`. Bateria de mutação: 5/5 pegos, 2/2 controles verdes.
+Erro de primeira tentativa: (1) teste SWL com valor de rt igual ao byte correspondente na
+memória mascarava o merge; corrigido com rt=0xDEAD_BEEF em memória 0xAABB_CCDD; (2) teste
+LWL+LWR no mesmo rt (par clássico) falhava por causa do load delay — o LWR lia o valor
+antigo de rt em vez do recém-carregado pelo LWL; trocado para rts diferentes. Ver
+`docs/iterations/0017-cpu-unaligned-load-store.md`.
 
 ## Próxima tarefa
 
-**ROADMAP 1.7** — LWL/LWR/SWL/SWR (unaligned load/store). Spec: `docs/reference/02-cpu.md`,
-seções **Unaligned Load/Store** e **Unaligned Load/Store (Details)** (índice: L235, L257).
-Leia as duas — a primeira define os opcodes, a segunda detalha a fragmentação por alinhamento.
+**ROADMAP 1.8** — COP0: SR/CAUSE/EPC, exceções, RFE. Spec: `docs/reference/02-cpu.md`,
+seções **Exception Handling** (índice: L462) e **System Control (COP0)** (índice: L426).
+Leia ambas — a primeira define os registradores COP0 (SR, CAUSE, EPC), a segunda o fluxo
+de exceção e o RFE. Armadilhas: (a) `CAUSE.BD` (bit 31) precisa ser setado quando a
+instrução que causou a exceção está num delay slot; (b) o fluxo de exceção precisa ler o
+PC da instrução causadora, não o PC incrementado; (c) a dívida de overflow trap do ADDI
+(fechar junto, nota 2 do STATUS); (d) a dívida do bit BD (nota 5). Atenção: este item
+fecha 3 dívidas ao mesmo tempo. Candidato natural a fatiar `cpu.rs` — COP0 ganha módulo
+próprio em `src/cpu/cop0.rs` se exceder coesão do arquivo único.
 
-Armadilhas: LWL/LWR **não** zero- nem sign-extendem — os bytes não transferidos do
-registrador ficam intactos (merge com o valor atual do rt). O mesmo vale para SWL/SWR com
-a memória. O endereço define qual fragmento de 8/16/24/32 bits é transferido (tabelado na
-spec). Teste: `crates/psx-core/tests/cpu_unaligned_load_store.rs`.
+Teste: `crates/psx-core/tests/cpu_exceptions.rs`.
 
-`cpu_mult_div.rs` tem 283 linhas — dentro do teto de 500. `cpu.rs` passou de 500 linhas e
-**continua inteiro**: o orquestrador respondeu a dúvida levantada na 0016 — o teto vale só
-para teste, e fatiar por contagem seria pior que um arquivo coeso. O corte virá quando a
-coesão pedir (candidato natural: COP0/exceções em módulo próprio, no 1.8).
+`cpu.rs` tem ~620 linhas — dentro da tolerância (sem teto), mas o orquestrador autorizou
+corte quando a coesão pedir. COP0 é o candidato certo: se o módulo `cop0` ficar >100
+linhas, extraia para `src/cpu/` com `mod cop0;` em `cpu.rs`.
 
-**Antes de rodar o clippy, sincronize o toolchain**: `rustup update stable`. A CI usa
-`dtolnay/rust-toolchain@stable` (sempre a última), e um stable local atrasado deixa passar
-lints novos — foi assim que a 0016 abriu PR com a CI vermelha.
+`cpu_unaligned_load_store.rs` tem 259 linhas — dentro do teto de 500.
 
 ## Repositório
 
@@ -45,7 +42,7 @@ lints novos — foi assim que a 0016 abriu PR com a CI vermelha.
 
 ## Placar de testes
 
-Workspace: **149** testes (8 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div).
+Workspace: **167** testes (8 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 18 cpu_unaligned_load_store).
 
 ## Bloqueios
 

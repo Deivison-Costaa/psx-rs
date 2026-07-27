@@ -88,6 +88,9 @@ Armadilhas conhecidas do `gh` (todas já causaram defeito real):
 - O corpo segue `.github/PULL_REQUEST_TEMPLATE.md` (checkboxes + placar da bateria).
 - `gh pr checks` sai com erro antes de os runs registrarem: espere em loop com retry.
 
+Antes do push: `git status` tem que estar LIMPO — fmt rodado depois do commit deixa formatação
+pendente fora do PR e derruba o check da CI (aconteceu na 0008b; o passo 7 vem antes do 9).
+
 **NÃO faça merge.** O merge é do orquestrador, após revisão adversarial. Abriu o PR → passo 10.
 
 ## Passo 10 — Falhou 3× o mesmo passo?

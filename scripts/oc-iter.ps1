@@ -65,19 +65,21 @@ if ($resultado -eq "ok" -and (Get-Item $outFile).Length -lt 1000) {
     $resultado = "falha:sem-execucao"
 }
 
-# Parser calibrado no smoke test (iter 0008b) sobre o JSON real do opencode 1.18.3:
-# ultimo objeto "tokens" acumulado e ultimo "cost"; steps = eventos step_finish.
+# Parser calibrado no smoke test 0008b sobre o JSON real do opencode 1.18.3: cada evento
+# step_finish traz "cost" e "tokens"{input,output} DAQUELE step - os totais sao a SOMA.
+# ("input" exclui cache read; steps conta so o evento "step_finish", nao o part "step-finish".)
 $raw = if (Test-Path $outFile) { Get-Content $outFile -Raw } else { "" }
-$steps = ([regex]::Matches($raw, '"type"\s*:\s*"step[._-]?finish"')).Count
-$cost = [regex]::Matches($raw, '"cost"\s*:\s*([0-9.eE+-]+)') | Select-Object -Last 1
-$tin = [regex]::Matches($raw, '"input"\s*:\s*(\d+)') | Select-Object -Last 1
-$tout = [regex]::Matches($raw, '"output"\s*:\s*(\d+)') | Select-Object -Last 1
-$costV = if ($cost) { $cost.Groups[1].Value } else { "" }
-$tinV = if ($tin) { $tin.Groups[1].Value } else { "" }
-$toutV = if ($tout) { $tout.Groups[1].Value } else { "" }
+$steps = ([regex]::Matches($raw, '"type":"step_finish"')).Count
+$costV = ([regex]::Matches($raw, '"cost":([0-9.eE+-]+)') |
+    ForEach-Object { [double]$_.Groups[1].Value } | Measure-Object -Sum).Sum
+$costV = if ($costV) { [Math]::Round($costV, 4) } else { "" }
+$tinV = ([regex]::Matches($raw, '"input":(\d+)') |
+    ForEach-Object { [long]$_.Groups[1].Value } | Measure-Object -Sum).Sum
+$toutV = ([regex]::Matches($raw, '"output":(\d+)') |
+    ForEach-Object { [long]$_.Groups[1].Value } | Measure-Object -Sum).Sum
 
 $iter = Get-ChildItem docs/iterations -Filter "*.md" |
-    Where-Object { $_.Name -match '^(\d{4})' } |
+    Where-Object { $_.Name -match '^(\d{4}[a-z]?)' } |
     ForEach-Object { $Matches[1] } | Sort-Object | Select-Object -Last 1
 $headDepois = (git rev-parse --short HEAD).Trim()
 

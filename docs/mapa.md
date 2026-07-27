@@ -23,5 +23,11 @@
 ## Testes
 
 Um arquivo de integração por item, nome começando pelo módulo e espelhando o item
-(`cpu_load_delay.rs` ↔ 1.4). Suporte compartilhado em `crates/psx-core/tests/support/mod.rs`.
+(`cpu_load_delay.rs` ↔ 1.4). O item 1.5 rendeu dois (`cpu_jumps.rs` e `cpu_branches.rs`):
+quando um item passa das 500 linhas de teste, ele vira mais de um arquivo — o teto de
+`file_size.rs` vale aqui, não em `src/`.
+
+Suporte compartilhado em `crates/psx-core/tests/support/`: `mod.rs` (raiz do repo, varredura
+de fontes e de testes, usado pelos meta-testes) e `asm.rs` (montagem de opcodes e bus com
+BIOS vazia, usado pelos testes de CPU).
 Meta-testes de processo: `crates/psx-core/tests/{purity,comment_density,file_size,status_size,roadmap_size,ci_workflow,metrics_freshness}.rs`.

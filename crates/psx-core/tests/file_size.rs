@@ -5,11 +5,11 @@ use std::fs;
 const MAX_LINES: usize = 500;
 
 #[test]
-fn fontes_ate_quinhentas_linhas() {
+fn testes_ate_quinhentas_linhas() {
     let mut violations = Vec::new();
-    for path in support::rust_source_files() {
+    for path in support::rust_test_files() {
         let lines = fs::read_to_string(&path)
-            .expect("lendo fonte")
+            .expect("lendo teste")
             .lines()
             .count();
         if lines > MAX_LINES {
@@ -18,9 +18,10 @@ fn fontes_ate_quinhentas_linhas() {
     }
     assert!(
         violations.is_empty(),
-        "R8: arquivo fonte com mais de {MAX_LINES} linhas obriga o agente a pagar o arquivo \
-         inteiro em contexto a cada iteração que o toca (no gb-rs, mcycle.rs chegou a 1.656 \
-         linhas e testes eram 41% do contexto por turno). Fatie em submódulos e atualize \
-         docs/mapa.md: {violations:#?}"
+        "R8: o teto de {MAX_LINES} linhas vale para ARQUIVO DE TESTE, não para fonte. O \
+         agente lê o teste do item inteiro a cada iteração que o toca, e no gb-rs os testes \
+         chegaram a 41% do contexto por turno. Um arquivo de teste por item do ROADMAP, não \
+         um por subsistema: fatie e registre em docs/mapa.md. Fonte grande é decisão de \
+         coesão, não de contagem, e não é reprovada aqui: {violations:#?}"
     );
 }

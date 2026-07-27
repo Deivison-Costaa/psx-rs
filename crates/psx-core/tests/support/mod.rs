@@ -1,5 +1,7 @@
 #![allow(dead_code)]
 
+pub mod asm;
+
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -12,12 +14,20 @@ pub fn repo_root() -> PathBuf {
 }
 
 pub fn rust_source_files() -> Vec<PathBuf> {
+    rust_files_in("src")
+}
+
+pub fn rust_test_files() -> Vec<PathBuf> {
+    rust_files_in("tests")
+}
+
+fn rust_files_in(subdir: &str) -> Vec<PathBuf> {
     let crates = repo_root().join("crates");
     let mut files = Vec::new();
     for entry in fs::read_dir(&crates).expect("lendo crates/") {
-        let src = entry.expect("entrada de crates/").path().join("src");
-        if src.is_dir() {
-            collect_rs(&src, &mut files);
+        let dir = entry.expect("entrada de crates/").path().join(subdir);
+        if dir.is_dir() {
+            collect_rs(&dir, &mut files);
         }
     }
     files.sort();

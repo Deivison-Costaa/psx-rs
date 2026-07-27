@@ -7,8 +7,8 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 ## M0 — Infra e processo
 - [x] 0.1 Repo público, merge-commit-only, template de PR (iter 0001)
 - [x] 0.2 Workspace 3 crates + esqueleto de módulos (iter 0002)
-- [ ] 0.3 Meta-testes de processo (7)
-- [ ] 0.4 CI check + commit-lint + proteção de branch
+- [x] 0.3 Meta-testes de processo (7) (iter 0005)
+- [x] 0.4 CI check + commit-lint + proteção de branch (iter 0004)
 - [x] 0.5 Docs de gestão (iter 0003)
 - [ ] 0.6 psx-spx fatiado em docs/reference com índice de seções
 - [ ] 0.7 fetch de EXEs de teste + scoreboard esqueleto

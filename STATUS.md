@@ -5,20 +5,22 @@
 
 ## Última iteração concluída
 
-**0008b** — psx-cli --version (ROADMAP 0.8b): flag `--version` no psx-cli sem dependências
-novas; teste de integração invocando o binário.
+**0009** — carregamento de BIOS (ROADMAP 0.9): tipo `Bios` em `crates/psx-core/src/bus.rs`
+com validação de tamanho (exatos 512 KiB) e `read32` little-endian; 8 testes de integração
+em `bus_bios.rs`; flag `--bios <path>` no psx-cli com leitura do arquivo + SHA-256.
 
 ## Próxima tarefa
 
-**ROADMAP 0.9** — carregamento de BIOS. Em `crates/psx-core/src/bus.rs`: tipo `Bios` com
-`Bios::from_bytes(Vec<u8>) -> Result<Bios, BiosError>` exigindo exatamente 512 KiB
-(0x80000), acesso `read32(offset)` little-endian; R3: o core recebe bytes, NUNCA lê arquivo.
-Em `crates/psx-cli`: flag `--bios <path>` lê o arquivo, repassa ao core e imprime tamanho +
-SHA-256 (I/O mora no CLI). Spec: `docs/reference/01-memory-map.md` (BIOS em
-KSEG1 0xBFC00000, região de 512 KiB) — leia o índice e vá direto à seção Memory Map.
-Teste: `psx-core/tests/bus_bios.rs` (512 KiB ok; 256 KiB e vazio → erro; read32 de offsets
-conhecidos de um blob sintético). Armadilha: não validar hash no core (BIOS varia por
-região/versão — validação de identidade é do CLI/app, não do hardware).
+**ROADMAP 1.1** — Scheduler de eventos + bus (KUSEG/KSEG0/KSEG1), RAM 2MB, BIOS ROM.
+Em `crates/psx-core/src/scheduler.rs`: struct `Scheduler` com fila de eventos ordenada por
+timestamp, `schedule(ticks, callback_id)`, `advance_to(ticks)`, `pending_events()`. Em
+`crates/psx-core/src/bus.rs`: struct `Bus` com `RAM([u8; 0x200000])`, `Bios`, e método
+`read32<T>(addr: u32) -> T`/`write32<T>(addr: u32, val: T)` que roteia entre KUSEG/KSEG0/KSEG1
+(pode ignorar mirrors por enquanto). Spec: `docs/reference/01-memory-map.md` — seções Memory
+Map + KUSEG/KSEG0/KSEG1 Memory Regions + Memory Mirrors. Teste:
+`psx-core/tests/bus_scheduler.rs` (roteamento KUSEG↔KSEG0↔KSEG1 para RAM, BIOS read32,
+eventos em ordem). Armadilha: KSEG1 lê físico limpo sem cache — por ora só máscara de addr
+(0x1FFFFF para RAM); escrever scheduler que não avança CPU em loop.
 
 ## Repositório
 
@@ -29,8 +31,7 @@ região/versão — validação de identidade é do CLI/app, não do hardware).
 
 ## Placar de testes
 
-Workspace: 9 testes (8 meta-testes de processo + 1 psx-cli version). EXEs de teste e
-scoreboard chegam nos itens 0.7 e 1.11; ainda não existe emulador.
+Workspace: **19** testes (8 meta-testes + 8 bus_bios + 2 bios_flag + 1 version).
 
 ## Bloqueios
 

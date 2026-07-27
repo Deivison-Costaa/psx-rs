@@ -186,7 +186,7 @@ impl Cpu {
                 let val = (self.reg(rs) as i32) < (self.reg(rt) as i32);
                 self.set_reg(rd, val as u32);
             }
-             0x2B => {
+            0x2B => {
                 let val = self.reg(rs) < self.reg(rt);
                 self.set_reg(rd, val as u32);
             }

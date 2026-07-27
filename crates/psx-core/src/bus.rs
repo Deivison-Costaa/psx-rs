@@ -35,6 +35,10 @@ impl Bios {
         self.data.len()
     }
 
+    pub fn raw(&self) -> &[u8] {
+        &self.data
+    }
+
     pub fn read32(&self, offset: usize) -> u32 {
         u32::from_le_bytes([
             self.data[offset],

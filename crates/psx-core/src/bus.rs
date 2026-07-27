@@ -75,14 +75,20 @@ impl Bus {
         self.ram.data[idx + 3] = bytes[3];
     }
 
+    fn read_byte(&self, addr: u32) -> u8 {
+        let phys = Self::to_physical(addr);
+        if (0x1FC0_0000..0x1FC0_0000 + 0x80000).contains(&phys) {
+            return self.bios.raw()[(phys - 0x1FC0_0000) as usize];
+        }
+        self.ram.data[self.ram_offset(addr)]
+    }
+
     pub fn read8<Op: MemoryOp>(&self, addr: u32) -> u8 {
-        let idx = self.ram_offset(addr);
-        self.ram.data[idx]
+        self.read_byte(addr)
     }
 
     pub fn read16<Op: MemoryOp>(&self, addr: u32) -> u16 {
-        let idx = self.ram_offset(addr);
-        u16::from_le_bytes([self.ram.data[idx], self.ram.data[idx + 1]])
+        u16::from_le_bytes([self.read_byte(addr), self.read_byte(addr.wrapping_add(1))])
     }
 
     pub fn write8<Op: MemoryOp>(&mut self, addr: u32, val: u8) {

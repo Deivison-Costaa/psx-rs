@@ -5,25 +5,27 @@
 
 ## Última iteração concluída
 
-**0013** — Shifts (ROADMAP 1.3b): SLL/SRL/SRA (shift-imm, campo `sa`) e SLLV/SRLV/SRAV
-(shift-reg, quantidade em `rs & 0x1F`). 14 testes em `cpu_shifts.rs`.
-Bateria de mutação: 3/3 pegos, 2/2 controles verdes.
-Erro de primeira tentativa: nenhum na implementação; teste `opcode_desconhecido_especial_panics`
-da ALU usava secondary=0x00 que agora é SLL válido — a iteração trocou para 0x08, mas 0x08 é
-JR (chega no 1.5) e a revisão corrigiu para 0x3F, que é N/A permanente.
-Ver `docs/iterations/0013-cpu-shifts.md`.
+**0014** — Loads/stores + load delay (ROADMAP 1.4): LB/LBU/LH/LHU/LW (loads), SB/SH (stores),
+mais o load delay slot. 18 testes em `cpu_load_delay.rs`.
+Bateria de mutação: 6/6 pegos, 3/3 controles verdes.
+Erro de primeira tentativa: teste `sb_offset_negativo` com endereço de setup errado (0x2004
+em vez de 0x2000) — corrigido na primeira execução. Nenhum erro de emulação.
+Ver `docs/iterations/0014-cpu-load-store-delay.md`.
 
 ## Próxima tarefa
 
-**ROADMAP 1.4** — Loads/stores + load delay slot. Expandir `step()` para LB/LBU/LH/LHU/LW
-(loads) e SB/SH (stores). Implementar o **load delay slot**: o resultado de um load SÓ fica
-disponível uma instrução depois; ler o register destino no ciclo imediatamente seguinte
-retorna o valor anterior. Spec: `docs/reference/02-cpu.md` — seções `L156 Load/Store Opcodes`
-(load instructions linha 157, store instructions linha 299), `L171 Caution - Load Delay`,
-`L180 Load Timing`, `L201 Load Shadow`. Teste: `crates/psx-core/tests/cpu_load_delay.rs`.
-Armadilha: o load delay é um fenômeno do pipeline real; na nossa CPU instruction-stepped
-precisamos marcar o registrador como "locked" e adiar a escrita. Atenção: o próprio store
-não tem delay — o write-queue esconde. R0 locked nunca deve afetar nada.
+**ROADMAP 1.5** — Branches/jumps + branch delay slot. Implementar J, JAL, JR, JALR
+(branches), BEQ, BNE, BLEZ, BGTZ (branches condicionais), BLTZ/BGEZ/BLTZAL/BGEZAL
+(BcondZ). O **branch delay slot**: a instrução imediatamente após o branch SEMPRE executa
+(seja o branch tomado ou não). Spec: `docs/reference/02-cpu.md` — seções `L379 CPU Jump
+Opcodes` (jumps and branches L380, JALR cautions L400). Teste:
+`crates/psx-core/tests/cpu_branch_delay.rs` (criar). Armadilha: JALR pode usar o mesmo
+reg para rs e rd — o rs original (target address) é lido antes de rd ser escrito com
+`pc+8`. BcondZ codifica o subtipo em rt (0=BLTZ, 1=BGEZ, 16=BLTZAL, 17=BGEZAL).
+Atenção: J/JAL target tem que preservar os 4 bits mais altos do PC; branches
+condicionais usam offset de 16 bits sign-extendido * 4. O branch delay slot já executa
+antes do desvio — na nossa CPU instruction-stepped, após executar o branch, a próxima
+instrução (delay slot) é executada, e SÓ ENTÃO o PC é redirecionado.
 
 ## Repositório
 
@@ -34,7 +36,7 @@ não tem delay — o write-queue esconde. R0 locked nunca deve afetar nada.
 
 ## Placar de testes
 
-Workspace: **75** testes (8 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 11 bus_scheduler + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 3 psx-cli/desktop).
+Workspace: **95** testes (8 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 11 bus_scheduler + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + **18 cpu_load_delay** + 3 psx-cli/desktop).
 
 ## Bloqueios
 

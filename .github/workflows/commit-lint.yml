@@ -1,0 +1,29 @@
+# Workflow separado do ci.yml para não precisar de condicionais: só existe em pull_request.
+name: commit-lint
+
+on:
+  pull_request:
+
+jobs:
+  commit-lint:
+    name: commit-lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: valida título do PR e prefixos dos commits
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -e
+          echo "$PR_TITLE" | grep -Eq '^iter [0-9]{4}[a-z]?: .+ \(ROADMAP [0-9]+\.[0-9]+[a-z]?\)$' \
+            || { echo "::error::Título de PR inválido: '$PR_TITLE'. Formato: iter NNNN: resumo (ROADMAP X.Y)"; exit 1; }
+          bad=0
+          while IFS= read -r subj; do
+            echo "$subj" | grep -Eq '^(test|feat|fix|refactor|docs|chore)\([a-z0-9-]+\): .+' \
+              || { echo "::error::Commit fora do padrão '(test|feat|fix|refactor|docs|chore)(escopo): resumo': $subj"; bad=1; }
+          done < <(git log --format=%s --no-merges "$BASE_SHA..$HEAD_SHA")
+          exit $bad

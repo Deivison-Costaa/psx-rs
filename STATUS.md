@@ -12,15 +12,17 @@ KUSEG/KSEG0/KSEG1 via `to_physical()`. 11 testes de integração em `bus_schedul
 
 ## Próxima tarefa
 
-**ROADMAP 1.2** — CPU R3000A: decode de instruções, ALU, load delay slot.
-Em `crates/psx-core/src/cpu.rs`: struct `Cpu` com registradores (32×u32 + PC + HI/LO),
-`step()` que busca instrução na `Bus`, decode e executa instruções base (ADDU, SUBU, AND,
-OR, XOR, NOR, SLL, SRL, SRA, LW, SW, ADDIU, ORI, ANDI, XORI, LUI, SLTI, SLTIU, BEQ,
-BNE, J, JAL, JR, BLTZ, BLEZ, BGTZ, BGEZ). Implementar load delay slot: instrução após LW
-lê o registrador destino antes da escrita. Spec: `docs/reference/02-cpu-specifications.md`
-— seções Instruction Overview + CPU Registers + Load Delay Slot + Instruction Set.
-Teste: `psx-core/tests/cpu_instructions.rs`. Armadilha: delay slot existe para loads E
-branches; testar LW seguido de uso imediato do registrador.
+**ROADMAP 1.2** — Fetch/decode + LUI/ORI/SW, e SÓ isso (R4: ALU é 1.3, loads/delay é 1.4,
+branches é 1.5 — NÃO implemente agora). Em `crates/psx-core/src/cpu.rs`: struct `Cpu` com
+regs (32×u32, R0 sempre 0, + PC iniciando em 0xBFC00000), `step(&mut Bus)` que busca a
+instrução via `read32`, decodifica (primary opcode bits 26..31, secondary bits 0..5) e
+executa APENAS LUI, ORI e SW — as três primeiras instruções que o BIOS executa. Opcode
+desconhecido: `unimplemented` explícito por enquanto (exceções são 1.8). Spec:
+`docs/reference/02-cpu.md` — seções `L19 CPU Registers`, `L74 CPU Opcode Encoding`,
+`L305 logical instructions` (LUI/ORI), `L219 Store instructions` (SW).
+Teste: `psx-core/tests/cpu_fetch_decode.rs` (golden values da spec; verificar R0
+imutável e SW escrevendo na RAM via bus). Armadilha: ORI é zero-extended, não
+sign-extended; LUI zera os 16 bits baixos.
 
 ## Repositório
 

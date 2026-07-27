@@ -5,8 +5,8 @@
 
 ## Última iteração concluída
 
-**0008** — orquestração (ROADMAP 0.8): SKILL.md fonte única (12 passos, bateria de mutação
-inclusa, trabalhador NÃO mergeia), oc-iter.ps1 (métricas automáticas), oc-loop.ps1.
+**0008b** — psx-cli --version (ROADMAP 0.8b): flag `--version` no psx-cli sem dependências
+novas; teste de integração invocando o binário.
 
 ## Próxima tarefa
 
@@ -29,8 +29,8 @@ região/versão — validação de identidade é do CLI/app, não do hardware).
 
 ## Placar de testes
 
-Workspace: 8 testes (todos meta-testes de processo). EXEs de teste e scoreboard chegam nos
-itens 0.7 e 1.11; ainda não existe emulador.
+Workspace: 9 testes (8 meta-testes de processo + 1 psx-cli version). EXEs de teste e
+scoreboard chegam nos itens 0.7 e 1.11; ainda não existe emulador.
 
 ## Bloqueios
 

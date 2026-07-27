@@ -8,7 +8,9 @@
 **0011** — Fetch/decode + LUI/ORI/SW (ROADMAP 1.2): struct `Cpu` com regs (32×u32, R0
 imutável, PC=0xBFC00000), `step(&mut Bus)` que busca instr via `read32`, decodifica pelo
 primary opcode (bits 26..31) e executa LUI (imm<<16), ORI (rs|imm, zero-extended) e SW
-([rs+imm]=rt). Opcode desconhecido: `unimplemented!`. 7 testes em `cpu_fetch_decode.rs`.
+([rs+imm]=rt, offset SINALIZADO). Opcode desconhecido: `unimplemented!`. 8 testes em
+`cpu_fetch_decode.rs` — a revisão adversarial achou o offset de SW zero-extended (alta) e
+somou o teste do offset negativo; ver "Revisão cruzada" em `docs/iterations/0011-*.md`.
 
 ## Próxima tarefa
 
@@ -31,7 +33,7 @@ o BIOS realmente usa). SPECIAL (primary=0x00) requer decodificar o secondary opc
 
 ## Placar de testes
 
-Workspace: **37** testes (8 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 11 bus_scheduler + 7 cpu_fetch_decode + 3 psx-cli/desktop).
+Workspace: **41** testes (8 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 11 bus_scheduler + 8 cpu_fetch_decode + 3 psx-cli/desktop).
 
 ## Bloqueios
 
@@ -39,7 +41,11 @@ Workspace: **37** testes (8 meta-testes + 8 bus_bios + 2 bios_flag + 1 version +
 
 ## Invariantes
 
-(nenhuma ainda — nascem com o código; índice com âncoras quando existirem)
+1. **Imediato de endereçamento é SINALIZADO.** Todo load/store (`lw/sw/lb/lh/...`) e todo
+   `addi/addiu/slti/sltiu` sign-extendem o campo de 16 bits: `(instr & 0xFFFF) as u16 as
+   i16 as u32`. Só a família lógica (`andi/ori/xori`) zero-extende. Violado na iter 0011
+   (SW), pego na revisão adversarial; qualquer item novo que leia um imediato reconfere
+   esta linha antes de escolher a extensão.
 
 ## Notas
 

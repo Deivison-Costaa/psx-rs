@@ -11,3 +11,6 @@ ts,iter,resultado,custo_usd,tokens_in,tokens_out,steps,duracao_ms,head_antes,hea
 2026-07-27T18:19:00-03:00,0008b,ok,0.0094,26483,9040,49,196000,011a40d,aa507ff,deepseek/deepseek-chat,trabalhador
 2026-07-27T19:00:00-03:00,0009,ok,,,,,,22b1cc0,b05730d,deepseek/deepseek-chat,trabalhador
 2026-07-27T18:25:27-03:00,0009,ok,0.0145,37130,13480,62,247959,66c79c8,5938316,deepseek/deepseek-chat,trabalhador
+2026-07-27T18:43:54-03:00,0010,ok,0.0164,31898,20134,62,291676,44f2ca4,624c9b2,deepseek/deepseek-chat,trabalhador
+2026-07-27T19:20:00-03:00,0010b,ok,,,,,,c80d3b5,ea9a316,claude-orquestrador,orquestrador
+2026-07-27T18:55:43-03:00,0011,ok,0.0197,43149,20324,57,429190,ea9a316,1c354bb,deepseek/deepseek-chat,trabalhador

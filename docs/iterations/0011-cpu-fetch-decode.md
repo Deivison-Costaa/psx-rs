@@ -36,11 +36,55 @@
 
 ## Placar antes → depois
 
-Workspace: **33 → 37** testes (7 novos de cpu_fetch_decode).
+Workspace: **33 → 41** testes (8 de cpu_fetch_decode: 7 do trabalhador + 1 da revisão).
 
 ## Revisão cruzada (orquestrador)
 
-<!-- Preenchido pelo Claude na revisão do PR -->
+**1 defeito de alta severidade + 1 desvio de protocolo. Corrigidos nesta branch antes do merge.**
+
+### Achado 1 — SEVERIDADE ALTA — `cpu.rs:sw()` — offset zero-extended
+
+Escrito: `let imm = instr & 0xFFFF; let addr = self.reg(rs).wrapping_add(imm);`
+
+O deslocamento de 16 bits das instruções de load/store do MIPS é **sinalizado**, não
+zero-extended. `docs/reference/02-cpu.md` L303 (`sw rt,imm(rs)  [imm+rs]=rt`) usa o mesmo
+campo imediato que L370-371 declara explicitamente na faixa `(-8000h..+7FFFh)` para
+`addi`/`addiu`, e L547 confirma que `la` (cálculo de endereço) é alias de `lui`+`addiu` —
+o imediato de endereçamento é o mesmo objeto sinalizado nos três casos.
+
+Consequência: todo acesso com deslocamento negativo escreve no lugar errado. Prova
+(`sw_offset_negativo_e_sign_extended`): `sw $t0,-4($t1)` com `$t1=0x200` escrevia em
+`0x101FC` (0x200 + 0xFFFC) em vez de `0x1FC` — o teste falhou com `left: 0`. Isso é comum
+no código real do PS1: prólogo/epílogo de função e acesso a dados via `$gp` usam offsets
+dos dois sinais o tempo todo, então o BIOS quebraria assim que o 1.4 ligasse os loads.
+
+Por que a bateria de mutação do trabalhador não pegou: as 7 mutações declaradas são
+honestas e todas reproduzíveis, mas nenhuma testa o **sinal** do imediato de endereço — a
+mutação 3 (`wrapping_sub`) foi pega só porque o único teste de SW usava `rs=0` com offset
+positivo. É a lição do passo 6 do SKILL aplicada a si mesma: o conjunto de mutações herda
+o ponto cego do conjunto de testes. Registro como categoria **endereçamento**.
+
+Correção: `let imm = (instr & 0xFFFF) as u16 as i16 as u32;` (só em SW — ORI segue
+zero-extended, o que o teste `ori_sign_extend_mutation_catcher` do trabalhador já
+protegia corretamente).
+
+### Achado 2 — SEVERIDADE MÉDIA — passo 8 do SKILL não executado
+
+`logs/metrics-pending.csv` (3 linhas: 0010, 0010b, 0011) não foi incorporado ao
+`docs/metricas.csv`. O meta-teste `metrics_freshness.rs` reprovou (14 docs × 12 linhas) —
+a guarda funcionou como projetada. Incorporado nesta branch.
+
+### Falso positivo do revisor (registrado por honestidade)
+
+Meu primeiro achado foi "o teste `ori_sign_extend_mutation_catcher` citado no doc não
+existe no diff" — era leitura truncada de `git show`; o teste existe (linha 47) e é válido.
+Verificar antes de acusar vale para o revisor também.
+
+### Sem achado em
+
+Zero-extension do ORI (correta por L392), `imm << 16` do LUI sem overflow, guarda de R0 em
+`set_reg`, PC inicial 0xBFC00000, e o `unimplemented!()` para opcode desconhecido — este
+último é dívida explícita autorizada pelo handoff (exceções são o item 1.8).
 
 ## Decisões e notas
 

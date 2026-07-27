@@ -194,7 +194,7 @@ impl Cpu {
                 let val = self.reg(rs) < self.reg(rt);
                 self.set_reg(rd, val as u32);
             }
-             0x08 => {
+            0x08 => {
                 self.jr(instr);
             }
             0x09 => {

@@ -21,7 +21,7 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [x] 1.3 ALU: ADDU/SUBU/AND/OR/XOR/NOR/SLT/SLTU + imediatos (iter 0012)
 - [x] 1.3b Shifts SLL/SRL/SRA/SLLV/SRLV/SRAV (fatiado de 1.3 na revisão da 0012) (iter 0013)
 - [x] 1.4 Loads/stores + load delay slot (iter 0014)
-- [ ] 1.5 Branches/jumps + branch delay slot
+- [x] 1.5 Branches/jumps + branch delay slot (iter 0015)
 - [ ] 1.6 MULT/MULTU/DIV/DIVU + HI/LO com stalls
 - [ ] 1.7 LWL/LWR/SWL/SWR
 - [ ] 1.8 COP0: SR/CAUSE/EPC, exceções, RFE

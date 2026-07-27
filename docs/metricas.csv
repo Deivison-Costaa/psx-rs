@@ -21,3 +21,6 @@ ts,iter,resultado,custo_usd,tokens_in,tokens_out,steps,duracao_ms,head_antes,hea
 2026-07-27T20:25:00-03:00,0013b,ok,,,,,,2a8c8ad,28a0044,claude-orquestrador,orquestrador
 2026-07-27T20:35:00-03:00,0013c,ok,,,,,,28a0044,ea38d6f,claude-orquestrador,orquestrador
 2026-07-27T19:35:32-03:00,0014,ok,0.0402,74272,23176,79,585166,ea38d6f,b714327,deepseek/deepseek-reasoner,trabalhador
+2026-07-27T20:55:00-03:00,0014b,ok,,,,,,ea38d6f,e49f16e,claude-orquestrador,orquestrador
+2026-07-27T21:10:00-03:00,0014c,ok,,,,,,e49f16e,0e84821,claude-orquestrador,orquestrador
+2026-07-27T19:54:49-03:00,0015,ok,0.0324,59186,34766,78,413258,0e84821,d995afb,deepseek/deepseek-chat,trabalhador

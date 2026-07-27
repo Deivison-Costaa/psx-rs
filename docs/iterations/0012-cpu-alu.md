@@ -41,10 +41,47 @@ Placar: **6/6** mutantes pegos, **2/2** controles verdes.
 
 ## Revisão cruzada (orquestrador)
 
-<!-- Preenchido pelo Claude na revisão do PR -->
+**Nenhum erro de hardware no código entregue.** As 15 instruções implementadas conferem com
+a spec, inclusive as duas armadilhas de sinal: SLTI compara com sinal, e SLTIU
+sign-extende o imediato e SÓ ENTÃO compara sem sinal (o teste com `imm=0x8000` prova
+que `0 < 0xFFFF_8000` dá 1 — é o caso que quase todo emulador iniciante erra). A bateria
+de mutação é honesta: as 6 mutações existem, são plausíveis e cada uma cita o teste que a
+pega. O `sign_extend_imm` extraído já nasceu obedecendo a invariante 1 do STATUS, criada
+na revisão anterior — a correção da 0011 se propagou como pretendido.
+
+Os dois achados são de **cobertura e registro**, não de emulação:
+
+### Achado 1 — SEVERIDADE MÉDIA — item 1.3 marcado como concluído sem os shifts
+
+O texto do item 1.3 no ROADMAP incluía `shifts`. Não há SLL (secondary 0x00), SRL (0x02),
+SRA (0x03) nem as variantes por registrador SLLV/SRLV/SRAV (0x04/0x06/0x07) no `special()`
+— caem todas no `unimplemented!`. A causa primária é minha: o handoff que escrevi no STATUS
+da 0011 enumerou as instruções do item e **esqueceu os shifts**, e o trabalhador seguiu o
+handoff (comportamento correto — o handoff é a fonte da tarefa).
+
+O agravante é de processo: a auto-remediação de checkbox que entrou na iter 0011b marcou
+1.3 como concluído porque **confia no título do PR**, que dizia `(ROADMAP 1.3)`. Automação
+mecânica não sabe se o item foi cumprido — ela só corrige a omissão de marcar. Conferir
+completude do item continua sendo trabalho do revisor, e este PR é a prova de que isso
+não é formalidade.
+
+Correção: item `1.3b` criado no ROADMAP com os seis opcodes, e o handoff da próxima tarefa
+reapontado para ele (era 1.4). O 1.3 fica marcado com o texto do que de fato entregou.
+
+### Achado 2 — SEVERIDADE BAIXA — nota de decisão contradiz o código
+
+A nota 1 de "Decisões" afirmava que ADD/SUB foram implementados como ADDU/SUBU. Não foram:
+não existem no match e dão `unimplemented!`. Quem ficou silenciosamente sem trap de
+overflow foi o **ADDI**, que é idêntico ao ADDIU. A assimetria é ruim (ADD grita, ADDI
+mente), mas fechá-la agora exigiria o mecanismo de exceção, que é o item 1.8 — então a
+dívida virou a nota 2 do STATUS, com os três opcodes nomeados, em vez de ficar só numa
+frase de doc que ninguém relê. Nota corrigida no lugar.
 
 ## Decisões e notas
 
-1. ADD/SUB (com overflow trap) implementados como ADDU/SUBU por enquanto, conforme instrução do handoff: o BIOS usa ADDU.
+1. ~~ADD/SUB (com overflow trap) implementados como ADDU/SUBU por enquanto~~ — **corrigido
+   na revisão: isso não é o que o código faz.** ADD (0x20) e SUB (0x22) não estão no match
+   e dão `unimplemented!`; quem ficou sem trap foi o ADDI. Dívida registrada na nota 2 do
+   STATUS para fechar no item 1.8.
 2. `sign_extend_imm` extraída como função auxiliar, reusada por addiu, addi, slti, sltiu e sw.
 3. SPECIAL primário (0x00) decodifica pelo secondary opcode. Para já, a implementação cobre os 8 opcodes do item (ADDU, SUBU, AND, OR, XOR, NOR, SLT, SLTU); os demais dão `unimplemented!`.

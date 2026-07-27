@@ -13,7 +13,17 @@ errada de SLTIU com imm alto (flags). Ver `docs/iterations/0012-cpu-alu.md`.
 
 ## Próxima tarefa
 
-**ROADMAP 1.4** — Loads/stores + load delay slot. Expandir `step()` para LB/LBU/LH/LHU/LW
+**ROADMAP 1.3b** — Shifts, e SÓ isso (a 0012 entregou o resto da ALU; loads são 1.4).
+Em `crates/psx-core/src/cpu.rs`, adicionar ao `special()`: SLL (secondary 0x00),
+SRL (0x02), SRA (0x03) — quantidade de shift no campo `sa` (bits 6..10) — e as variantes
+por registrador SLLV (0x04), SRLV (0x06), SRAV (0x07), que usam `rs & 0x1F`.
+Spec: `docs/reference/02-cpu.md` — seção `shifting instructions` (linha 316).
+Teste: `crates/psx-core/tests/cpu_shifts.rs`. Armadilhas: SRA é aritmético (propaga o bit
+de sinal — use `as i32 >> n`), SRL é lógico; nas variantes V a quantidade vem de `rs`
+mascarada com 0x1F (shift de 32 não existe); `sll $0,$0,0` é o NOP canônico e precisa
+continuar não fazendo nada.
+
+Depois dela, **ROADMAP 1.4** — Loads/stores + load delay slot. Expandir `step()` para LB/LBU/LH/LHU/LW
 (loads) e SB/SH (stores). Implementar o **load delay slot**: o resultado de um load SÓ fica
 disponível uma instrução depois; ler o register destino no ciclo imediatamente seguinte
 retorna o valor anterior. Spec: `docs/reference/02-cpu.md` — seções `L156 Load/Store Opcodes`
@@ -50,3 +60,8 @@ Workspace: **67** testes (8 meta-testes + 8 bus_bios + 2 bios_flag + 1 version +
 
 1. BIOS local: `bios/SCPH1001.BIN` (MD5 924E392ED05558FFDB115408C263DCCF), gitignored,
    validada na iter 0009 (item 0.9). Nunca commitar.
+2. **Dívida de overflow trap (fecha no item 1.8).** `ADDI` está implementado sem trap,
+   idêntico a `ADDIU` — a spec (02-cpu.md, `arithmetic instructions`) manda excetuar e
+   deixar `rt` intacto no overflow. `ADD` (secondary 0x20) e `SUB` (0x22) nem existem no
+   match: dão `unimplemented!`. Quando o 1.8 trouxer o mecanismo de exceção, os três
+   entram juntos. Autorizado no handoff da 0012, mas é dívida, não comportamento correto.

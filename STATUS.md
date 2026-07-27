@@ -5,16 +5,18 @@
 
 ## Última iteração concluída
 
-**0006** — psx-spx fatiado (ROADMAP 0.6): 15 capítulos em `docs/reference/NN-*.md`, commit
-pinado `035c765`, índice de seções no topo de cada arquivo.
+**0007** — EXEs de teste (ROADMAP 0.7): 51 EXEs em `tests/exes/` (ps1-tests build-158 +
+Amidog cpu/gte), scoreboard esqueleto 0/51 `sem-runner`.
 
 ## Próxima tarefa
 
-**ROADMAP 0.7** — `scripts/fetch-test-exes.ps1`: baixar EXEs de teste para `tests/exes/`
-(gitignored) com procedência: releases do `JaCzekanski/ps1-tests` (zip com EXEs por suíte) e
-Amidog `psxtest_cpu`/`psxtest_gte`. `scripts/scoreboard.ps1` esqueleto: varre `tests/exes/`,
-gera CSV `suite,exe,status,ciclos` (por ora tudo `sem-runner` — o runner real chega no item
-1.11). Executor: orquestrador.
+**ROADMAP 0.8** — orquestração: `.claude/skills/iterate/SKILL.md` (protocolo de 12 passos,
+FONTE ÚNICA — bateria de mutação DENTRO do skill), `scripts/oc-iter.ps1` (dispara
+`opencode run -m deepseek/deepseek-chat` via `opencode serve`+`--attach` por causa do bug de
+sessão headless no Windows, issue opencode#28407; extrai custo/tokens/steps do JSON e appenda
+`docs/metricas.csv`), `scripts/oc-loop.ps1 -N` com guardas (árvore limpa, roadmap não vazio).
+Smoke test: 1 task trivial de ponta a ponta (branch→commits→PR→checks→merge→métrica).
+Executor: orquestrador.
 
 ## Repositório
 

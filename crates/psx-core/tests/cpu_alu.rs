@@ -9,11 +9,11 @@ fn bus_with_bios_empty() -> Bus {
 }
 
 fn encode_special(secondary: u32, rd: u32, rt: u32, rs: u32) -> u32 {
-    (0x00 << 26) | (rs << 21) | (rt << 16) | (rd << 11) | secondary
+    (rs << 21) | (rt << 16) | (rd << 11) | secondary
 }
 
 fn encode_alu_imm(primary: u32, rt: u32, rs: u32, imm: u16) -> u32 {
-    (primary << 26) | (rs << 16) | (rt << 21) | (imm as u32)
+    (primary << 26) | (rs << 21) | (rt << 16) | (imm as u32)
 }
 
 // SPECIAL: ADDU rd,rs,rt (secondary=0x21)
@@ -40,7 +40,10 @@ fn addu_saturacao_32bits() {
     let instr = encode_special(0x21, 10, 9, 8);
     bus.write32::<BusRead>(0, instr);
     cpu.step(&mut bus);
-    assert_eq!(cpu.regs[10], 0x0000_0000, "ADDU: wraparound 0xFFFF_FFFF+1=0");
+    assert_eq!(
+        cpu.regs[10], 0x0000_0000,
+        "ADDU: wraparound 0xFFFF_FFFF+1=0"
+    );
 }
 
 #[test]
@@ -150,8 +153,7 @@ fn nor_nao_e_or() {
     bus.write32::<BusRead>(0, instr);
     cpu.step(&mut bus);
     assert_eq!(
-        cpu.regs[10],
-        0xF000_F000,
+        cpu.regs[10], 0xF000_F000,
         "NOR: ~(0x0F0F0F0F OR 0x00FF00FF) = 0xF000_F000"
     );
 }
@@ -245,8 +247,7 @@ fn addiu_sign_extends_imm() {
     bus.write32::<BusRead>(0, instr);
     cpu.step(&mut bus);
     assert_eq!(
-        cpu.regs[10],
-        0xFFFF_8000,
+        cpu.regs[10], 0xFFFF_8000,
         "ADDIU com 0x8000: sign-extend -> 0xFFFF_8000 + 0 = 0xFFFF_8000"
     );
 }
@@ -274,8 +275,7 @@ fn addi_sign_extends_imm() {
     bus.write32::<BusRead>(0, instr);
     cpu.step(&mut bus);
     assert_eq!(
-        cpu.regs[10],
-        0xFFFF_8000,
+        cpu.regs[10], 0xFFFF_8000,
         "ADDI com 0x8000: sign-extend -> 0xFFFF_8000"
     );
 }
@@ -351,8 +351,8 @@ fn sltiu_rs_menor_imm_unsigned() {
     bus.write32::<BusRead>(0, instr);
     cpu.step(&mut bus);
     assert_eq!(
-        cpu.regs[10], 0,
-        "SLTIU: 0 < 0xFFFF_8000 unsigned -> 0 (because imm sign-extends to 0xFFFF_8000)"
+        cpu.regs[10], 1,
+        "SLTIU: 0 < 0xFFFF_8000 unsigned -> 1 (imm sign-extends to 0xFFFF_8000)"
     );
 }
 
@@ -365,10 +365,7 @@ fn sltiu_imm_alto_comparacao_unsigned() {
     let instr = encode_alu_imm(0x0B, 10, 8, 0x0003);
     bus.write32::<BusRead>(0, instr);
     cpu.step(&mut bus);
-    assert_eq!(
-        cpu.regs[10], 0,
-        "SLTIU: 5 < 3 unsigned -> 0"
-    );
+    assert_eq!(cpu.regs[10], 0, "SLTIU: 5 < 3 unsigned -> 0");
 }
 
 #[test]

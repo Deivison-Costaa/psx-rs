@@ -71,10 +71,7 @@ impl Cpu {
                 let val = self.reg(rs) < self.reg(rt);
                 self.set_reg(rd, val as u32);
             }
-            _ => unimplemented!(
-                "secondary opcode={:02X} nao implementado",
-                secondary
-            ),
+            _ => unimplemented!("secondary opcode={:02X} nao implementado", secondary),
         }
     }
 

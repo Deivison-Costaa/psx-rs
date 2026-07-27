@@ -1,0 +1,13 @@
+# Segredos e material com copyright — nunca versionar
+.env
+/bios/
+
+# Artefatos de build
+/target/
+
+# Baixados por script (scripts/fetch-*.ps1)
+/tests/exes/
+/.cache/
+
+# Saída de execuções da orquestração (métricas curadas ficam em docs/metricas.csv)
+/logs/

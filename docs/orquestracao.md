@@ -47,3 +47,19 @@ usuário após o histórico squashado do gb-rs; proteção de branch entra junto
 check inexistente bloquearia os primeiros PRs). Iterações 0003–0005 executam os itens
 0.5→0.4→0.3 nessa ordem (dependência: meta-testes exigem docs e CI existentes) — primeira
 evidência de que iteração (cronológica) ≠ item (temático).
+
+## 2026-07-27 — o smoke test pagou por si em uma hora
+
+O 0008b falhou duas vezes antes de o modelo sequer ser chamado, e as duas falhas eram
+exatamente da familia que o gb-rs documentou como "armadilhas do gh/aspas":
+
+1. Shim npm: `Start-Process opencode` nao executa o .ps1 do npm; e o .cmd degrada aspas —
+   um `--version` citado dentro do prompt virou flag do CLI, que imprimiu a versao e saiu
+   com codigo 0. "ok" de exit code nao e "ok" de execucao (agora ha guarda: JSON < 1 KB =
+   falha:sem-execucao).
+2. Quoting do proprio orquestrador: `\"` (habito bash) nao escapa aspas em PowerShell; o
+   argumento quebrou e fragmentos do prompt vazaram para outros parametros, corrompendo uma
+   linha do metricas.csv (corrigida em 0008d, preservando a falha como dado).
+
+Regra operacional fixada: prompts para oc-iter passam em string single-quoted do PowerShell
+(escape de apostrofo = ''), e oc-iter chama o opencode.exe real, sem shims.

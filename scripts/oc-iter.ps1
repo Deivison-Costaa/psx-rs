@@ -17,10 +17,14 @@ git checkout main | Out-Null
 git pull --ff-only | Out-Null
 $headAntes = (git rev-parse --short HEAD).Trim()
 
-# Shim do npm no Windows: "opencode" resolve para opencode.ps1, que Start-Process nao
-# executa ("%1 nao e um aplicativo Win32 valido") - usar o opencode.cmd explicitamente.
-$oc = (Get-Command opencode.cmd -ErrorAction SilentlyContinue)?.Source
-if (-not $oc) { $oc = (Get-Command opencode).Source }
+# Duas armadilhas do npm no Windows (smoke tests 0008b/1 e /2): o shim opencode.ps1 nao roda
+# via Start-Process, e o shim .cmd degrada aspas — um "--version" DENTRO do prompt virou
+# flag e o run imprimiu a versao e saiu com 0. Usar o .exe real, sem camada cmd.
+$shim = (Get-Command opencode -ErrorAction SilentlyContinue)?.Source
+$oc = if ($shim) {
+    Join-Path (Split-Path $shim) "node_modules\opencode-ai\bin\opencode.exe"
+} else { $null }
+if (-not ($oc -and (Test-Path $oc))) { Write-Error "opencode.exe nao encontrado (npm i -g opencode-ai)" }
 
 $up = Test-Connection -TargetName localhost -TcpPort $Port -Quiet -TimeoutSeconds 2
 if (-not $up) {
@@ -56,6 +60,10 @@ if (-not $done) {
     $resultado = "ok"
 }
 $sw.Stop()
+# Exit 0 nao basta: no smoke 0008b/2 o CLI imprimiu a versao e saiu com 0 sem rodar nada.
+if ($resultado -eq "ok" -and (Get-Item $outFile).Length -lt 1000) {
+    $resultado = "falha:sem-execucao"
+}
 
 # Parser calibrado no smoke test (iter 0008b) sobre o JSON real do opencode 1.18.3:
 # ultimo objeto "tokens" acumulado e ultimo "cost"; steps = eventos step_finish.

@@ -373,7 +373,7 @@ fn opcode_desconhecido_especial_panics() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
     cpu.pc = 0;
-    let instr = encode_special(0x08, 0, 0, 0);
+    let instr = encode_special(0x3F, 0, 0, 0);
     bus.write32::<BusRead>(0, instr);
     let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         cpu.step(&mut bus);

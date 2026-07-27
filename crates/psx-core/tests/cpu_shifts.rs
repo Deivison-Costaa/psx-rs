@@ -30,7 +30,7 @@ fn sll_basico() {
 }
 
 #[test]
-fn sll_shift_32_vira_0() {
+fn sll_com_sa_zero_e_identidade() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
     cpu.pc = 0;

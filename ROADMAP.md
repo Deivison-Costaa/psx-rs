@@ -23,7 +23,7 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [x] 1.4 Loads/stores + load delay slot (iter 0014)
 - [x] 1.5 Branches/jumps + branch delay slot (iter 0015)
 - [x] 1.6 MULT/MULTU/DIV/DIVU + HI/LO com stalls (iter 0016)
-- [ ] 1.7 LWL/LWR/SWL/SWR
+- [x] 1.7 LWL/LWR/SWL/SWR (iter 0017)
 - [ ] 1.8 COP0: SR/CAUSE/EPC, exceções, RFE
 - [ ] 1.9 Cache isolation + scratchpad + memory control stubs
 - [ ] 1.10 Hook de TTY (A0h/B0h) → BIOS imprimindo no console

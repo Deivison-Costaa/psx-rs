@@ -5,18 +5,20 @@
 
 ## Última iteração concluída
 
-**0007** — EXEs de teste (ROADMAP 0.7): 51 EXEs em `tests/exes/` (ps1-tests build-158 +
-Amidog cpu/gte), scoreboard esqueleto 0/51 `sem-runner`.
+**0008** — orquestração (ROADMAP 0.8): SKILL.md fonte única (12 passos, bateria de mutação
+inclusa, trabalhador NÃO mergeia), oc-iter.ps1 (métricas automáticas), oc-loop.ps1.
 
 ## Próxima tarefa
 
-**ROADMAP 0.8** — orquestração: `.claude/skills/iterate/SKILL.md` (protocolo de 12 passos,
-FONTE ÚNICA — bateria de mutação DENTRO do skill), `scripts/oc-iter.ps1` (dispara
-`opencode run -m deepseek/deepseek-chat` via `opencode serve`+`--attach` por causa do bug de
-sessão headless no Windows, issue opencode#28407; extrai custo/tokens/steps do JSON e appenda
-`docs/metricas.csv`), `scripts/oc-loop.ps1 -N` com guardas (árvore limpa, roadmap não vazio).
-Smoke test: 1 task trivial de ponta a ponta (branch→commits→PR→checks→merge→métrica).
-Executor: orquestrador.
+**ROADMAP 0.9** — carregamento de BIOS. Em `crates/psx-core/src/bus.rs`: tipo `Bios` com
+`Bios::from_bytes(Vec<u8>) -> Result<Bios, BiosError>` exigindo exatamente 512 KiB
+(0x80000), acesso `read32(offset)` little-endian; R3: o core recebe bytes, NUNCA lê arquivo.
+Em `crates/psx-cli`: flag `--bios <path>` lê o arquivo, repassa ao core e imprime tamanho +
+SHA-256 (I/O mora no CLI). Spec: `docs/reference/01-memory-map.md` (BIOS em
+KSEG1 0xBFC00000, região de 512 KiB) — leia o índice e vá direto à seção Memory Map.
+Teste: `psx-core/tests/bus_bios.rs` (512 KiB ok; 256 KiB e vazio → erro; read32 de offsets
+conhecidos de um blob sintético). Armadilha: não validar hash no core (BIOS varia por
+região/versão — validação de identidade é do CLI/app, não do hardware).
 
 ## Repositório
 

@@ -12,7 +12,7 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [x] 0.5 Docs de gestão (iter 0003)
 - [x] 0.6 psx-spx fatiado em docs/reference com índice de seções (iter 0006)
 - [x] 0.7 fetch de EXEs de teste + scoreboard esqueleto (iter 0007)
-- [ ] 0.8 Orquestração opencode/DeepSeek + smoke test de ponta a ponta
+- [x] 0.8 Orquestração opencode/DeepSeek + smoke test de ponta a ponta (iter 0008/0008b)
 - [ ] 0.9 Carregamento de BIOS com validação de hash (1ª iteração do trabalhador)
 
 ## M1 — CPU R3000A até o BIOS falar

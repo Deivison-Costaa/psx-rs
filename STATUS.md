@@ -5,25 +5,17 @@
 
 ## Última iteração concluída
 
-**0012** — ALU completa (ROADMAP 1.3): SPECIAL (primary=0x00) com secondary opcode para
-ADDU/SUBU/AND/OR/XOR/NOR/SLT/SLTU; alu-imm para ADDI/ADDIU/ANDI/ORI/XORI/SLTI/SLTIU. 26
-testes em `cpu_alu.rs`. Bateria de mutação: 6/6 pegos, 2/2 controles verdes.
-Erro de primeira tentativa: campo rs/rt trocado no helper de encode (API-Rust); expectativa
-errada de SLTIU com imm alto (flags). Ver `docs/iterations/0012-cpu-alu.md`.
+**0013** — Shifts (ROADMAP 1.3b): SLL/SRL/SRA (shift-imm, campo `sa`) e SLLV/SRLV/SRAV
+(shift-reg, quantidade em `rs & 0x1F`). 14 testes em `cpu_shifts.rs`.
+Bateria de mutação: 3/3 pegos, 2/2 controles verdes.
+Erro de primeira tentativa: nenhum na implementação; teste `opcode_desconhecido_especial_panics`
+da ALU usava secondary=0x00 que agora é SLL válido — a iteração trocou para 0x08, mas 0x08 é
+JR (chega no 1.5) e a revisão corrigiu para 0x3F, que é N/A permanente.
+Ver `docs/iterations/0013-cpu-shifts.md`.
 
 ## Próxima tarefa
 
-**ROADMAP 1.3b** — Shifts, e SÓ isso (a 0012 entregou o resto da ALU; loads são 1.4).
-Em `crates/psx-core/src/cpu.rs`, adicionar ao `special()`: SLL (secondary 0x00),
-SRL (0x02), SRA (0x03) — quantidade de shift no campo `sa` (bits 6..10) — e as variantes
-por registrador SLLV (0x04), SRLV (0x06), SRAV (0x07), que usam `rs & 0x1F`.
-Spec: `docs/reference/02-cpu.md` — seção `shifting instructions` (linha 316).
-Teste: `crates/psx-core/tests/cpu_shifts.rs`. Armadilhas: SRA é aritmético (propaga o bit
-de sinal — use `as i32 >> n`), SRL é lógico; nas variantes V a quantidade vem de `rs`
-mascarada com 0x1F (shift de 32 não existe); `sll $0,$0,0` é o NOP canônico e precisa
-continuar não fazendo nada.
-
-Depois dela, **ROADMAP 1.4** — Loads/stores + load delay slot. Expandir `step()` para LB/LBU/LH/LHU/LW
+**ROADMAP 1.4** — Loads/stores + load delay slot. Expandir `step()` para LB/LBU/LH/LHU/LW
 (loads) e SB/SH (stores). Implementar o **load delay slot**: o resultado de um load SÓ fica
 disponível uma instrução depois; ler o register destino no ciclo imediatamente seguinte
 retorna o valor anterior. Spec: `docs/reference/02-cpu.md` — seções `L156 Load/Store Opcodes`
@@ -42,7 +34,7 @@ não tem delay — o write-queue esconde. R0 locked nunca deve afetar nada.
 
 ## Placar de testes
 
-Workspace: **67** testes (8 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 11 bus_scheduler + 8 cpu_fetch_decode + 26 cpu_alu + 3 psx-cli/desktop).
+Workspace: **75** testes (8 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 11 bus_scheduler + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 3 psx-cli/desktop).
 
 ## Bloqueios
 

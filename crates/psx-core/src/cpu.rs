@@ -38,7 +38,35 @@ impl Cpu {
         let rs = ((instr >> 21) & 0x1F) as usize;
         let rt = ((instr >> 16) & 0x1F) as usize;
         let rd = ((instr >> 11) & 0x1F) as usize;
+        let sa = ((instr >> 6) & 0x1F) as usize;
         match secondary {
+            0x00 => {
+                let val = self.reg(rt) << sa;
+                self.set_reg(rd, val);
+            }
+            0x02 => {
+                let val = self.reg(rt) >> sa;
+                self.set_reg(rd, val);
+            }
+            0x03 => {
+                let val = (self.reg(rt) as i32 >> sa) as u32;
+                self.set_reg(rd, val);
+            }
+            0x04 => {
+                let shift = self.reg(rs) & 0x1F;
+                let val = self.reg(rt) << shift;
+                self.set_reg(rd, val);
+            }
+            0x06 => {
+                let shift = self.reg(rs) & 0x1F;
+                let val = self.reg(rt) >> shift;
+                self.set_reg(rd, val);
+            }
+            0x07 => {
+                let shift = self.reg(rs) & 0x1F;
+                let val = (self.reg(rt) as i32 >> shift) as u32;
+                self.set_reg(rd, val);
+            }
             0x21 => {
                 let val = self.reg(rs).wrapping_add(self.reg(rt));
                 self.set_reg(rd, val);

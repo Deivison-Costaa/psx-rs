@@ -19,7 +19,7 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [x] 1.1 Scheduler de eventos + bus (KUSEG/KSEG0/KSEG1), RAM 2MB, BIOS ROM (iter 0010)
 - [x] 1.2 Fetch/decode + LUI/ORI/SW (iter 0011)
 - [x] 1.3 ALU: ADDU/SUBU/AND/OR/XOR/NOR/SLT/SLTU + imediatos (iter 0012)
-- [ ] 1.3b Shifts SLL/SRL/SRA/SLLV/SRLV/SRAV (fatiado de 1.3 na revisão da 0012)
+- [x] 1.3b Shifts SLL/SRL/SRA/SLLV/SRLV/SRAV (fatiado de 1.3 na revisão da 0012) (iter 0013)
 - [ ] 1.4 Loads/stores + load delay slot
 - [ ] 1.5 Branches/jumps + branch delay slot
 - [ ] 1.6 MULT/MULTU/DIV/DIVU + HI/LO com stalls

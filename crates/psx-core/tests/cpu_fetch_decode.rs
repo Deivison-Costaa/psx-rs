@@ -116,7 +116,7 @@ fn sw_offset_negativo_e_sign_extended() {
     cpu.pc = 0;
     cpu.regs[9] = 0x0000_0200;
     cpu.regs[8] = 0xDEAD_BEEF;
-    let sw_t0_menos4_t1: u32 = 0b101011_01001_01000_1111111111111100;
+    let sw_t0_menos4_t1: u32 = 0xAD28_FFFC;
     bus.write32::<BusRead>(0, sw_t0_menos4_t1);
     cpu.step(&mut bus);
     assert_eq!(

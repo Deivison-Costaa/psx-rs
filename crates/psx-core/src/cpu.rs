@@ -43,7 +43,7 @@ impl Cpu {
     fn sw(&mut self, instr: u32, bus: &mut Bus) {
         let rs = ((instr >> 21) & 0x1F) as usize;
         let rt = ((instr >> 16) & 0x1F) as usize;
-        let imm = instr & 0xFFFF;
+        let imm = (instr & 0xFFFF) as u16 as i16 as u32;
         let addr = self.reg(rs).wrapping_add(imm);
         let val = self.reg(rt);
         bus.write32::<BusRead>(addr, val);

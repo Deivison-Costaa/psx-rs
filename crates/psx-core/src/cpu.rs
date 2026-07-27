@@ -296,12 +296,15 @@ impl Cpu {
         let rt = ((instr >> 16) & 0x1F) as usize;
         let rs_val = self.reg(rs);
         let rt_val = self.reg(rt);
-        if rt_val == 0 {
-            self.lo = 0xFFFF_FFFF;
-            self.hi = rs_val;
-        } else {
-            self.lo = rs_val / rt_val;
-            self.hi = rs_val % rt_val;
+        match (rs_val.checked_div(rt_val), rs_val.checked_rem(rt_val)) {
+            (Some(quot), Some(rem)) => {
+                self.lo = quot;
+                self.hi = rem;
+            }
+            _ => {
+                self.lo = 0xFFFF_FFFF;
+                self.hi = rs_val;
+            }
         }
     }
 

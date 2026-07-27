@@ -30,7 +30,10 @@ adversarialmente e faz merge é o orquestrador (Claude). Papéis em `docs/orques
 - **R8 — Orçamento de contexto é recurso do projeto.** Leia SÓ: `STATUS.md` → a linha do item
   no `ROADMAP.md` → a(s) seção(ões) da spec apontadas pelo handoff → o(s) arquivo(s)-alvo
   achados via `docs/mapa.md` → o teste do item atual. NUNCA leia `tests/` inteiro, specs
-  inteiras nem arquivos fora do item. Fonte com >500 linhas reprova em `file_size.rs`: fatie.
+  inteiras nem arquivos fora do item. **Arquivo de TESTE com >500 linhas reprova em
+  `file_size.rs`**: um arquivo de teste por item do ROADMAP, não um por subsistema.
+  Arquivo fonte pode ser grande se for coeso — cortar módulo por contagem de linha é pior
+  que um arquivo longo, e não há teto para `src/`.
 
 ## Mapa de ponteiros (abra só o que o passo pedir)
 

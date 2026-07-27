@@ -207,7 +207,7 @@ impl Cpu {
 
     fn jal(&mut self, instr: u32) {
         let target = instr & 0x03FF_FFFF;
-        self.set_reg(31, self.pc + 4);
+        self.set_reg(31, self.pc.wrapping_add(4));
         self.branch_target = Some((self.pc & 0xF000_0000) | (target << 2));
     }
 
@@ -220,7 +220,7 @@ impl Cpu {
         let rs = ((instr >> 21) & 0x1F) as usize;
         let rd = ((instr >> 11) & 0x1F) as usize;
         let target = self.reg(rs);
-        self.set_reg(rd, self.pc + 4);
+        self.set_reg(rd, self.pc.wrapping_add(4));
         self.branch_target = Some(target);
     }
 
@@ -276,7 +276,7 @@ impl Cpu {
             _ => return,
         };
         if link {
-            self.set_reg(31, self.pc + 4);
+            self.set_reg(31, self.pc.wrapping_add(4));
         }
         if cond {
             self.branch_taken(imm);

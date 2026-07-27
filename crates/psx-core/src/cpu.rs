@@ -5,6 +5,7 @@ pub struct Cpu {
     pub regs: [u32; 32],
     pub pc: u32,
     load_delay: Option<(usize, u32)>,
+    branch_target: Option<u32>,
 }
 
 impl Cpu {
@@ -13,12 +14,17 @@ impl Cpu {
             regs: [0u32; 32],
             pc: 0xBFC0_0000,
             load_delay: None,
+            branch_target: None,
         }
     }
 
     pub fn step(&mut self, bus: &mut Bus) {
         let instr = bus.read32::<BusRead>(self.pc);
-        self.pc = self.pc.wrapping_add(4);
+        if let Some(target) = self.branch_target.take() {
+            self.pc = target;
+        } else {
+            self.pc = self.pc.wrapping_add(4);
+        }
         let new_load = self.execute(instr, bus);
         if let Some((reg, val)) = self.load_delay.take() {
             self.set_reg(reg, val);
@@ -35,6 +41,34 @@ impl Cpu {
         match primary {
             0x00 => {
                 self.special(instr);
+                None
+            }
+            0x01 => {
+                self.bcondz(instr);
+                None
+            }
+            0x02 => {
+                self.j(instr);
+                None
+            }
+            0x03 => {
+                self.jal(instr);
+                None
+            }
+            0x04 => {
+                self.beq(instr);
+                None
+            }
+            0x05 => {
+                self.bne(instr);
+                None
+            }
+            0x06 => {
+                self.blez(instr);
+                None
+            }
+            0x07 => {
+                self.bgtz(instr);
                 None
             }
             0x08 => {
@@ -152,11 +186,100 @@ impl Cpu {
                 let val = (self.reg(rs) as i32) < (self.reg(rt) as i32);
                 self.set_reg(rd, val as u32);
             }
-            0x2B => {
+             0x2B => {
                 let val = self.reg(rs) < self.reg(rt);
                 self.set_reg(rd, val as u32);
             }
+            0x08 => {
+                self.jr(instr);
+            }
+            0x09 => {
+                self.jalr(instr);
+            }
             _ => unimplemented!("secondary opcode={:02X} nao implementado", secondary),
+        }
+    }
+
+    fn j(&mut self, instr: u32) {
+        let target = instr & 0x03FF_FFFF;
+        self.branch_target = Some((self.pc & 0xF000_0000) | (target << 2));
+    }
+
+    fn jal(&mut self, instr: u32) {
+        let target = instr & 0x03FF_FFFF;
+        self.set_reg(31, self.pc + 4);
+        self.branch_target = Some((self.pc & 0xF000_0000) | (target << 2));
+    }
+
+    fn jr(&mut self, instr: u32) {
+        let rs = ((instr >> 21) & 0x1F) as usize;
+        self.branch_target = Some(self.reg(rs));
+    }
+
+    fn jalr(&mut self, instr: u32) {
+        let rs = ((instr >> 21) & 0x1F) as usize;
+        let rd = ((instr >> 11) & 0x1F) as usize;
+        let target = self.reg(rs);
+        self.set_reg(rd, self.pc + 4);
+        self.branch_target = Some(target);
+    }
+
+    fn branch_taken(&mut self, offset: u32) {
+        self.branch_target = Some(self.pc.wrapping_add(offset << 2));
+    }
+
+    fn beq(&mut self, instr: u32) {
+        let rs = ((instr >> 21) & 0x1F) as usize;
+        let rt = ((instr >> 16) & 0x1F) as usize;
+        let imm = Self::sign_extend_imm(instr);
+        if self.reg(rs) == self.reg(rt) {
+            self.branch_taken(imm);
+        }
+    }
+
+    fn bne(&mut self, instr: u32) {
+        let rs = ((instr >> 21) & 0x1F) as usize;
+        let rt = ((instr >> 16) & 0x1F) as usize;
+        let imm = Self::sign_extend_imm(instr);
+        if self.reg(rs) != self.reg(rt) {
+            self.branch_taken(imm);
+        }
+    }
+
+    fn blez(&mut self, instr: u32) {
+        let rs = ((instr >> 21) & 0x1F) as usize;
+        let imm = Self::sign_extend_imm(instr);
+        if (self.reg(rs) as i32) <= 0 {
+            self.branch_taken(imm);
+        }
+    }
+
+    fn bgtz(&mut self, instr: u32) {
+        let rs = ((instr >> 21) & 0x1F) as usize;
+        let imm = Self::sign_extend_imm(instr);
+        if (self.reg(rs) as i32) > 0 {
+            self.branch_taken(imm);
+        }
+    }
+
+    fn bcondz(&mut self, instr: u32) {
+        let rs = ((instr >> 21) & 0x1F) as usize;
+        let rt = ((instr >> 16) & 0x1F) as usize;
+        let imm = Self::sign_extend_imm(instr);
+        let rs_val = self.reg(rs) as i32;
+        let link = rt >= 16;
+        let cond = match rt & 0x1F {
+            0x00 => rs_val < 0,
+            0x01 => rs_val >= 0,
+            0x10 => rs_val < 0,
+            0x11 => rs_val >= 0,
+            _ => return,
+        };
+        if link {
+            self.set_reg(31, self.pc + 4);
+        }
+        if cond {
+            self.branch_taken(imm);
         }
     }
 

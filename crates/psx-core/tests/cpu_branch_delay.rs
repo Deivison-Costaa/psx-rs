@@ -458,3 +458,37 @@ fn load_em_delay_slot() {
     assert_eq!(cpu.pc, 0x14);
     assert_eq!(cpu.regs[10], 0, "LW em delay slot: r10 ainda OLD");
 }
+
+// ===== Achados da revisao adversarial (orquestrador) =====
+
+#[test]
+fn jal_no_fim_do_espaco_de_enderecos_nao_estoura() {
+    let mut bus = bus_with_bios_empty();
+    let mut cpu = Cpu::new();
+    cpu.pc = 0xFFFF_FFF8;
+    bus.write32::<BusRead>(0xFFFF_FFF8, encode_j_type(0x03, 0x100));
+    bus.write32::<BusRead>(0xFFFF_FFFC, nop());
+    cpu.step(&mut bus);
+    assert_eq!(
+        cpu.regs[31], 0x0000_0000,
+        "PC do R3000A e aritmetica de 32 bits com wrap: ra = $+8 = 0xFFFFFFF8+8 = 0"
+    );
+}
+
+#[test]
+fn bcondz_rt_fora_da_tabela_comportamento_assumido() {
+    let mut bus = bus_with_bios_empty();
+    let mut cpu = Cpu::new();
+    cpu.pc = 0;
+    cpu.regs[5] = 0xFFFF_FFFF;
+    bus.write32::<BusRead>(0, encode_i_type(0x01, 0x02, 5, 0x0004));
+    bus.write32::<BusRead>(4, nop());
+    cpu.step(&mut bus);
+    cpu.step(&mut bus);
+    assert_eq!(
+        cpu.pc, 0x8,
+        "SUPOSICAO NAO VERIFICADA (nota 4 do STATUS, resolve no item 1.11): a spec local so \
+         tabela rt=00/01/10/11 no opcode 01h e nao diz o que rt=02h faz. Assumimos no-op; \
+         se o psxtest_cpu reprovar, o criterio vira bit16 = condicao e link por bits 20..17"
+    );
+}

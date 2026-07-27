@@ -31,8 +31,7 @@ eventos em ordem). Armadilha: KSEG1 lê físico limpo sem cache — por ora só 
 
 ## Placar de testes
 
-Workspace: **16** testes (8 meta-testes + 1 psx-cli version + 7 bus_bios).<!-- o bus_bios tem 8
-testes, mas um deles (bios_read32_offset_dentro_limite) só verifica que não panica -->
+Workspace: **19** testes (8 meta-testes + 8 bus_bios + 2 bios_flag + 1 version).
 
 ## Bloqueios
 

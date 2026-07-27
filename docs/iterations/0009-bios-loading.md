@@ -41,3 +41,18 @@ Workspace: 9 → **16** testes (+7: 8 bus_bios - 1 version que já existia). 0 f
 - SHA-256 não entra no core (armadilha do STATUS). Fica exclusivamente no CLI.
 - `BiosError::WrongSize` expõe `got` e `expected` para mensagens de erro informativas.
 - BIOS exception/panic em `read32` com offset inválido: aceitável por ora (item 1.1 trará acesso roteado pelo bus com bounds check).
+
+### Achados
+
+SEVERIDADE: média / PROCESSO / O QUE ESTAVA: sem commit test(...) separado (testes entraram
+junto com os feat), um commit em inglês, e um `chore:` sem escopo que o commit-lint reprovou
+— primeira captura real do guard. CORRIGIDO: histórico da branch reestruturado pelo
+orquestrador em test → feat(bus) → feat(cli) → docs, mensagens em português.
+
+SEVERIDADE: baixa / crates/psx-core/src/bus.rs / O QUE ESTÁ ESCRITO: read32 indexa direto e
+panica com offset > 0x7FFFC. O QUE A SPEC DIZ: acessos à região da BIOS são mascarados pelo
+barramento (01-memory-map.md § Memory Mirrors). COMO PROVAR: read32(0x80000) → panic.
+DECISÃO: aceito por ora — a máscara de endereço é exatamente o item 1.1 (Bus), registrada
+como armadilha no handoff.
+
+Bateria conferida: mutações e controle batem com os testes do diff — genuína.

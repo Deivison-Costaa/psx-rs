@@ -1,0 +1,93 @@
+# ROADMAP
+
+Cada item = **1 iteração = 1 PR** (commits test→feat→docs). Uma linha por item, sem prosa —
+narrativa mora em `docs/iterations/NNNN-*.md`. Trabalho fora da escada ganha sufixo (`0012b`).
+Teto de tamanho imposto por `roadmap_size.rs`.
+
+## M0 — Infra e processo
+- [x] 0.1 Repo público, merge-commit-only, template de PR (iter 0001)
+- [x] 0.2 Workspace 3 crates + esqueleto de módulos (iter 0002)
+- [ ] 0.3 Meta-testes de processo (7)
+- [ ] 0.4 CI check + commit-lint + proteção de branch
+- [x] 0.5 Docs de gestão (iter 0003)
+- [ ] 0.6 psx-spx fatiado em docs/reference com índice de seções
+- [ ] 0.7 fetch de EXEs de teste + scoreboard esqueleto
+- [ ] 0.8 Orquestração opencode/DeepSeek + smoke test de ponta a ponta
+- [ ] 0.9 Carregamento de BIOS com validação de hash (1ª iteração do trabalhador)
+
+## M1 — CPU R3000A até o BIOS falar
+- [ ] 1.1 Scheduler de eventos + bus (KUSEG/KSEG0/KSEG1), RAM 2MB, BIOS ROM
+- [ ] 1.2 Fetch/decode + LUI/ORI/SW
+- [ ] 1.3 ALU: ADD/ADDU/SUB/AND/OR/XOR/NOR/shifts/SLT + imediatos
+- [ ] 1.4 Loads/stores + load delay slot
+- [ ] 1.5 Branches/jumps + branch delay slot
+- [ ] 1.6 MULT/MULTU/DIV/DIVU + HI/LO com stalls
+- [ ] 1.7 LWL/LWR/SWL/SWR
+- [ ] 1.8 COP0: SR/CAUSE/EPC, exceções, RFE
+- [ ] 1.9 Cache isolation + scratchpad + memory control stubs
+- [ ] 1.10 Hook de TTY (A0h/B0h) → BIOS imprimindo no console
+- [ ] 1.11 Sideload de PS-EXE no psx-cli + Amidog psxtest_cpu no scoreboard
+- [ ] 1.12 CI: job scoreboard ligado
+
+## M2 — GPU (rasterizador por software)
+- [ ] 2.1 GPUSTAT + decodificação GP0/GP1
+- [ ] 2.2 VRAM 1MB + transfers (fill, CPU↔VRAM)
+- [ ] 2.3 Triângulos flat + gouraud
+- [ ] 2.4 Quads, retângulos, linhas
+- [ ] 2.5 Texturas 4/8/15bpp + CLUT + texture window
+- [ ] 2.6 Semi-transparência + dithering + mask bit
+- [ ] 2.7 Display regs, timing NTSC/PAL, vblank IRQ
+- [ ] 2.8 psx-desktop mínimo (eframe/egui) → logo do BIOS na tela
+- [ ] 2.9 Suíte GPU do ps1-tests no scoreboard
+
+## M3 — DMA, IRQ, timers
+- [ ] 3.1 Interrupt controller (I_STAT/I_MASK) + COP0
+- [ ] 3.2 DMA regs + canal 6 (OTC)
+- [ ] 3.3 DMA canal 2 GPU (block + linked-list)
+- [ ] 3.4 Timers 0/1/2
+
+## M4 — CDROM
+- [ ] 4.1 Regs/FIFOs/IRQs + GetStat/GetID/Test
+- [ ] 4.2 Parser BIN/CUE + Setloc/SeekL/ReadN/ReadS/Pause/Init
+- [ ] 4.3 DMA canal 3 + entrega de setores
+- [ ] 4.4 Boot de jogo 2D/menu
+
+## M5 — GTE
+- [ ] 5.1 Registradores + MFC2/MTC2/CFC2/CTC2/LWC2/SWC2
+- [ ] 5.2 RTPS/RTPT + divisão UNR
+- [ ] 5.3 NCLIP/AVSZ3/AVSZ4/SQR/OP
+- [ ] 5.4 MVMVA + comandos de iluminação (NCS/NCT/NCDS/NCCS...)
+- [ ] 5.5 Flags de saturação/overflow completos
+- [ ] 5.6 Amidog psxtest_gte no scoreboard → jogo 3D jogável
+
+## M6 — SIO: controle e memory card
+- [ ] 6.1 SIO0 + digital pad
+- [ ] 6.2 Input no psx-desktop (teclado/gamepad)
+- [ ] 6.3 Memory card (.mcd)
+
+## M7 — SPU
+- [ ] 7.1 Regs de voz + ADPCM
+- [ ] 7.2 Pitch/ADSR/volume + mixer
+- [ ] 7.3 Saída cpal + ring buffer
+- [ ] 7.4 Reverb + noise + CD-DA/XA
+
+## M8 — MDEC
+- [ ] 8.1 Regs + DMA canais 0/1
+- [ ] 8.2 Macroblocos (RLE, IDCT, YUV→RGB) → FMVs
+
+## M9 — App desktop
+- [ ] 9.1 Biblioteca: pasta de jogos, scan BIN/CUE, título/serial/região, lista
+- [ ] 9.2 Snapshot do core (serde) → save states F5/F8 + slots
+- [ ] 9.3 Memory cards automáticos por serial + tela de saves
+- [ ] 9.4 Controles PS/Xbox (gilrs) + tela de mapeamento + perfis
+- [ ] 9.5 Tela de configurações (BIOS, vídeo, áudio, pasta) em TOML
+- [ ] 9.6 Fast-forward + recentes + tempo de jogo
+
+## M10 — Precisão e compatibilidade
+- [ ] 10.1 Timings finos (ps1-tests de timing)
+- [ ] 10.2 Passe de compatibilidade (bugs viram itens 10.x)
+
+## M11 — Apresentação (incremental desde o M1)
+- [ ] 11.1 Relatório consolidado (docs/relatorio.md — atualizado a cada marco)
+- [ ] 11.2 Gráficos de metricas.csv + scoreboard-data
+- [ ] 11.3 Roteiro de demo

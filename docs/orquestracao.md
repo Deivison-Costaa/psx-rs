@@ -133,3 +133,39 @@ arquivo fonte" do diagnóstico do gb-rs sem confirmar com o usuário, e a regra 
 15 iterações sem ser questionada porque nenhum arquivo tinha chegado perto do limite. Só
 apareceu quando o `cpu.rs` chegou a 440 e o handoff começou a exigir refactor por causa
 dela.
+
+## 2026-07-27 — a CI reprovou por um lint que a máquina de desenvolvimento não conhece (iter 0016)
+
+Primeira falha de CI da série que não é do emulador nem do processo, e sim do **ambiente**.
+O `divu` da 0016 checava `rt_val == 0` antes de dividir; o clippy da CI reprovou com
+`manual_checked_ops`. O trabalhador tinha rodado `cargo clippy -D warnings` local e visto
+verde, e a remediação automática do `oc-loop` (`fmt` + `clippy --fix`) não achou nada para
+corrigir — os dois porque o clippy local **não tem o lint**: stable local em 1.92.0
+(2025-12-08), CI em `dtolnay/rust-toolchain@stable`, que instala a última (o log aponta a
+doc do clippy 1.97.0).
+
+O que isso diz sobre o protocolo: o passo 7 ("fmt + clippy + test antes de abrir o PR") é um
+portão que só vale se o toolchain local for o mesmo da CI. Enquanto os dois lados
+perseguirem "stable" de forma independente, toda stable nova é uma chance de PR vermelho por
+motivo que o trabalhador não tinha como ver — e as três remediações mecânicas do loop não
+cobrem isso, porque `clippy --fix` só conserta o que o clippy local enxerga.
+
+Duas saídas, decisão adiada para uma iteração de infra:
+1. `rustup update stable` antes de cada iteração (barato, mas depende de lembrar, e é
+   justamente o tipo de dependência de memória humana que o gb-rs mostrou não funcionar);
+2. `rust-toolchain.toml` **pinado**, local e CI na mesma versão fixa, bump deliberado como
+   item do ROADMAP. Mais determinístico e mais alinhado à tese do projeto; o custo é que
+   lints e correções novas do compilador só chegam quando alguém subir a versão.
+
+Por ora: toolchain local atualizado, `divu` reescrito com `checked_div`/`checked_rem` (mesmo
+comportamento, tabela de erros intacta) e o STATUS mandando sincronizar antes do clippy.
+
+A revisão da mesma PR achou o defeito mais caro, e esse é de teste, não de código: **os 18
+testes não distinguiam DIVU de DIV**. Trocando o corpo do `divu` por divisão com sinal, a
+suíte inteira passava — os dois testes de DIVU usavam `rs=100`, valor onde as duas
+interpretações coincidem. O contraste é útil: o `multu` **tem** teste com bit alto
+(`rs=0x8000_0000`). O trabalhador lembrou do sinal na multiplicação e esqueceu na divisão,
+e a bateria de mutação dele (7 mutantes) atacou divisão por zero, overflow e parte alta —
+nunca a assinatura. É o terceiro caso da série em que o defeito escapa exatamente onde o
+autor do teste não pensou em errar; a revisão adversarial por um modelo de outro vendor
+continua sendo o que pega isso.

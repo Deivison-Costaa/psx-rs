@@ -7,12 +7,14 @@
 
 **0016** — MULT/MULTU/DIV/DIVU + HI/LO (ROADMAP 1.6): MULT (SPECIAL 0x18), MULTU (0x19),
 DIV (0x1A), DIVU (0x1B), MFHI (0x10), MTHI (0x11), MFLO (0x12), MTLO (0x13) + campos
-`hi`/`lo` na struct `Cpu`. 18 testes em `cpu_mult_div.rs`.
+`hi`/`lo` na struct `Cpu`. 20 testes em `cpu_mult_div.rs`.
 Bateria de mutação: 7/7 pegos, 2/2 controles verdes.
 Erro de primeira tentativa: (1) `u32 as i64` zero-extende em vez de sign-extender para
 MULT (corrigido com `as i32 as i64`); (2) testes de MFHI/MFLO usavam `rs` em vez de `rd`
 no encode; (3) expectativa de `mult_64bits_hi_lo` calculada errada.
-Ver `docs/iterations/0016-cpu-mult-div.md`.
+A revisão adversarial achou a CI vermelha por lint que o clippy local (desatualizado) não
+conhece e um buraco de cobertura — DIVU implementado com sinal passava nos 18 testes; +2
+testes. Ver `docs/iterations/0016-cpu-mult-div.md`.
 
 ## Próxima tarefa
 
@@ -25,11 +27,14 @@ registrador ficam intactos (merge com o valor atual do rt). O mesmo vale para SW
 a memória. O endereço define qual fragmento de 8/16/24/32 bits é transferido (tabelado na
 spec). Teste: `crates/psx-core/tests/cpu_unaligned_load_store.rs`.
 
-`cpu_mult_div.rs` tem 253 linhas — dentro do teto de 500. `cpu.rs` tem 521 linhas, mas o
-teto de linha vale para testes, não para `src/`.<!--REVER: cpu.rs passou de 500. A coesao
-do arquivo ainda e boa (decode + ALU + mul/div + jumps/branches + loads/stores), fatiar por
-contagem seria pior. Se o orquestrador quiser fatiar, o ponto natural e separar mul/div
-num modulo `alu` e carregar via `Cpu::mult()` etc — mas nao agora.-->
+`cpu_mult_div.rs` tem 283 linhas — dentro do teto de 500. `cpu.rs` passou de 500 linhas e
+**continua inteiro**: o orquestrador respondeu a dúvida levantada na 0016 — o teto vale só
+para teste, e fatiar por contagem seria pior que um arquivo coeso. O corte virá quando a
+coesão pedir (candidato natural: COP0/exceções em módulo próprio, no 1.8).
+
+**Antes de rodar o clippy, sincronize o toolchain**: `rustup update stable`. A CI usa
+`dtolnay/rust-toolchain@stable` (sempre a última), e um stable local atrasado deixa passar
+lints novos — foi assim que a 0016 abriu PR com a CI vermelha.
 
 ## Repositório
 
@@ -40,7 +45,7 @@ num modulo `alu` e carregar via `Cpu::mult()` etc — mas nao agora.-->
 
 ## Placar de testes
 
-Workspace: **147** testes (8 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 18 cpu_mult_div).
+Workspace: **149** testes (8 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div).
 
 ## Bloqueios
 

@@ -181,7 +181,7 @@ fn print_ok_via_tty() {
 #[test]
 fn zerofill_bss() {
     let code_addr: u32 = 0x8000_0000;
-    let bss_addr: u32 = 0x8000_0020;
+    let bss_addr: u32 = 0x8000_1000;
     let bss_size: u32 = 8;
 
     let code = [nop()];
@@ -220,6 +220,44 @@ fn zerofill_bss() {
         bus.read32::<BusRead>(bss_addr.wrapping_add(4)),
         0,
         "A3: segundos 4 bytes do BSS devem ser zero"
+    );
+}
+
+// ===== SP/FP base=0 nao altera os registradores =====
+
+#[test]
+fn sp_fp_base_zero_nao_altera_registradores() {
+    let code_addr: u32 = 0x8000_0000;
+
+    let cfg = PsexeConfig {
+        dest_addr: code_addr,
+        initial_pc: code_addr,
+        initial_gp: 0,
+        sp_fp_base: 0,
+        sp_fp_offset: 0,
+        bss_addr: 0,
+        bss_size: 0,
+    };
+    let exe_data = build_ps_exe(&[nop()], &cfg);
+
+    let mut bus = bus_with_bios_empty();
+    let mut cpu = Cpu::new();
+    cpu.regs[29] = 0xDEAD_BEEF;
+    cpu.regs[30] = 0xCAFE_BABE;
+
+    let result = psx_core::psexe::load_psexe(&exe_data, &mut bus, &mut cpu);
+    assert!(
+        result.is_ok(),
+        "SP/FP base=0: load_psexe deve retornar Ok"
+    );
+
+    assert_eq!(
+        cpu.regs[29], 0xDEAD_BEEF,
+        "SP/FP base=0: SP (R29) nao deve ser alterado"
+    );
+    assert_eq!(
+        cpu.regs[30], 0xCAFE_BABE,
+        "SP/FP base=0: FP (R30) nao deve ser alterado"
     );
 }
 

@@ -17,7 +17,7 @@ pub fn load_psexe(exe_data: &[u8], bus: &mut Bus, cpu: &mut Cpu) -> Result<(), S
         )
     };
 
-    let _initial_pc = read_u32(0x10);
+    let pc_init = read_u32(0x10);
     let _initial_gp = read_u32(0x14);
     let dest_addr = read_u32(0x18);
     let file_size = read_u32(0x1C) as usize;
@@ -46,15 +46,15 @@ pub fn load_psexe(exe_data: &[u8], bus: &mut Bus, cpu: &mut Cpu) -> Result<(), S
         }
     }
 
-    cpu.pc = _initial_pc;
+    cpu.pc = pc_init;
     cpu.regs[28] = _initial_gp;
     if sp_fp_base != 0 {
         let sp_val = sp_fp_base.wrapping_add(sp_fp_offset);
         cpu.regs[29] = sp_val;
         cpu.regs[30] = sp_val;
     }
-    cpu.regs[4] = 1;
     cpu.regs[5] = 0;
+    cpu.regs[4] = 1;
 
     Ok(())
 }

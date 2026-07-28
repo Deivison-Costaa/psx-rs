@@ -5,7 +5,8 @@
 
 ## Papéis
 
-- **Trabalhador** — opencode + DeepSeek (`deepseek/deepseek-chat`), disparado por
+- **Trabalhador** — opencode + DeepSeek (`deepseek/deepseek-v4-pro` desde 2026-07-27;
+  `deepseek-chat` nas iterações 0009–0017), disparado por
   `scripts/oc-iter.ps1`. Escreve todo o código de emulação seguindo
   `.claude/skills/iterate/SKILL.md`. Custo por iteração ~duas ordens de grandeza menor que
   um modelo de fronteira (medido no gb-rs: US$ 0,11 vs US$ 5–8).
@@ -223,3 +224,31 @@ regra com meta-teste na CI não.
 Custo assumido: lint e correção novos do compilador só chegam quando alguém subir o
 `channel`, e isso vira item de ROADMAP com iteração própria. É o preço de o portão local
 significar o que a CI mede.
+
+## 2026-07-27 — o default que nunca foi uma decisão (troca para deepseek-v4-pro)
+
+O usuário perguntou se o trabalhador estava rodando no "flash" quando deveria estar no "pro".
+Respondi que esses nomes eram de outro fornecedor. Errado: `opencode models` lista
+`deepseek/deepseek-v4-flash` e `deepseek/deepseek-v4-pro` ao lado de `deepseek-chat` e
+`deepseek-reasoner`. Um comando decidiu o que eu tinha respondido de memória.
+
+O achado de processo não é o modelo — é que da iteração 0009 à 0017 o trabalhador rodou na
+geração anterior porque esse era o default escrito no `oc-iter.ps1` no dia 0008 e nunca mais
+olhado. Nenhuma iteração escolheu esse modelo; todas herdaram a escolha. É a mesma classe de
+falha do toolchain flutuante da 0017c, com o sinal trocado: lá um valor mudava sozinho, aqui
+um valor nunca mudava — e nos dois casos ninguém estava decidindo.
+
+A regra R1 ("não implemente hardware de memória, leia a spec") vale para o ferramental. O
+ambiente é verificável em um comando; responder de memória sobre ele é o mesmo erro, num
+lugar onde ele é ainda mais barato de evitar.
+
+Preço pago: a segunda tentativa da 1.7 estava em voo com `deepseek-chat` e foi morta aos
+18min36 (contra ~5min das iterações anteriores). Com isso perdi a comparação limpa que eu
+tinha planejado — repetir o item com o mesmo modelo para medir só o efeito do handoff
+corrigido. Se a próxima tentativa passar, não saberei se foi o handoff ou o modelo. Registrado
+como perda, não escondido: a decisão do dono do projeto sobre a ferramenta vale mais que a
+limpeza do meu experimento.
+
+O eixo de comparação passa a ser **v4-pro (padrão) × v4-flash (barato)**, a pedido do usuário,
+medido no `metricas.csv` por custo/iteração e por reprovação na revisão adversarial — não por
+impressão de qualidade. Substitui o `chat × reasoner` que estava reservado para o item 1.8.

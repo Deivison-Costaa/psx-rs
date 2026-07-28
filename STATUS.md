@@ -22,6 +22,13 @@ codificavam o mesmo modelo errado da implementação. Custo registrado no CSV co
 `rejeitado:semantica`. Diagnóstico completo e o que a segunda tentativa tem de fazer
 diferente: `docs/iterations/0017-cpu-unaligned-load-store.md`.
 
+**0017d — trabalhador migra para `deepseek/deepseek-v4-pro`.** Da 0009 à 0017 o trabalhador
+rodou em `deepseek-chat` (geração anterior) só porque era o default do `oc-iter.ps1`, nunca
+por decisão. A primeira tentativa da 0018 (1.7 de novo) foi **abortada aos 18min36 no meio do
+passo 5** para trocar de modelo; branch preservada como `abandonada/0018-lwl-chat-v3`, linha
+`abortado:troca-de-modelo` nas métricas. Eixo de comparação agora é v4-pro × v4-flash.
+Ver `docs/iterations/0017d-modelo-v4-pro.md`.
+
 ## Próxima tarefa
 
 **ROADMAP 1.7 (SEGUNDA TENTATIVA)** — LWL/LWR/SWL/SWR. A PR #27 foi **reprovada na revisão

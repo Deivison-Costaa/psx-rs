@@ -2,8 +2,11 @@
 # docs/metricas.csv. Usa `opencode serve` + `--attach` (bug de sessão headless do
 # `opencode run` direto no Windows, issue opencode#28407).
 # O trabalhador abre o PR e PARA; revisão e merge são do orquestrador (SKILL passo 9).
+# Modelo padrao: v4-pro. As iteracoes 0009..0017 rodaram em deepseek-chat (geracao anterior);
+# a troca foi decisao do usuario em 2026-07-27, no meio da segunda tentativa da 1.7. O par de
+# comparacao barato passa a ser deepseek-v4-flash, nao mais chat/reasoner.
 param(
-    [string]$Model = "deepseek/deepseek-chat",
+    [string]$Model = "deepseek/deepseek-v4-pro",
     [string]$TaskOverride = "",
     [int]$TimeoutMin = 45,
     [int]$Port = 4096

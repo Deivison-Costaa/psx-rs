@@ -15,47 +15,84 @@ simples. Ver `docs/iterations/0022-scratchpad-isc.md`.
 **0023** — Iteração de processo (sem código): incorporação das métricas pendentes da 0022 e
 registro do erro de escopo múltiplo em commit reprovado pelo `commit-lint`.
 
+**0024** — Iteração de processo (sem código): o handoff do 1.10 descrevia A0h/B0h como
+códigos de `syscall`; a spec diz que são endereços de chamada (`jal 0xA0`) com o número da
+função em R9. Corrigido contra `13-kernel-bios.md` antes de despachar o trabalhador. Ver
+`docs/iterations/0024-handoff-1.10-corrigido.md`.
+
 ## Próxima tarefa
 
 **ROADMAP 1.10** — Hook de TTY (A0h/B0h) → BIOS imprimindo no console.
 
-Primeiro item que conecta CPU + Bus + saída visível. O BIOS chama `syscall` com
-`$a0 = 0x3D` (PUTCHAR) e `$a1 = caractere`. O handler de syscall consulta o registrador
-`$v0` (ou `$t4`/`$t5`, a confirmar na spec) para decidir o serviço: `A0h` escreve o
-caractere em `$a0` para o TTY, e `B0h` faz o mesmo com string terminada em zero.
-O psx-cli (ou psx-desktop) captura esses caracteres e exibe.
+Primeiro item que conecta CPU + Bus + saída visível.
 
-**Escopo:** reconhecimento dos syscalls A0h/B0h no handler de syscall da CPU (+ registradores
-de entrada), um `TtyWriter` trait no bus ou no CLI, e acionamento a partir do handler.
+> **O handoff anterior deste item estava errado e foi corrigido na iter 0024 contra a spec.**
+> A0h/B0h **não** são códigos de `syscall`: são **endereços de chamada**. O código chama
+> `jal 0x000000A0` (ou `0xB0`, `0xC0`) com o **número da função em R9 (`$t1`)**, argumentos em
+> R4-R7 e retorno em R2. `syscall` é outra tabela (SYS-Functions, número em R4). Não invente:
+> leia `13-kernel-bios.md` L496 antes de codificar.
 
-**NÃO inclui:** exceções de syscall corretas (já implementadas na 1.8b); registradores de
-serviço do BIOS além do A0/B0.
+Funções de TTY deste item, **exatamente como a spec as numera**:
 
-**Spec:** `docs/reference/` — seções de syscall/PUTCHAR no psx-spx (buscar). Executáveis de
-teste: ver `scripts/` para programa de teste TTY.
+| Função | Chamada | R9 | Argumento |
+|---|---|---|---|
+| `putchar(char)` | `jal 0xA0` | `3Ch` | R4 = caractere (byte baixo) |
+| `putchar(char)` | `jal 0xB0` | `3Dh` | R4 = caractere (byte baixo) |
+| `puts(src)` | `jal 0xA0` | `3Eh` | R4 = ponteiro para string terminada em `00h` |
+| `puts(src)` | `jal 0xB0` | `3Fh` | R4 = ponteiro para string terminada em `00h` |
+
+**Escopo:** um hook no `Cpu::step` que dispara quando o PC **físico** (`pc & 0x1FFF_FFFF`)
+vale `A0h` ou `B0h`; se R9 casar com uma das quatro entradas acima, o byte (ou a string lida
+byte a byte via `bus.read8`) vai para um buffer de saída no `Bus`
+(`tty_push` / `take_tty`), e a execução **segue normalmente** — o hook só observa, não desvia
+o PC nem sintetiza um retorno.
+
+**NÃO inclui:** as demais funções A/B/C; `getchar`/`gets` (entrada); expansão de TAB/LF do
+`putchar` real (ver armadilha 3); impressão no psx-cli (só o buffer no core; o CLI drena
+depois, no item do runner).
+
+**Spec:** `docs/reference/13-kernel-bios.md` — L496 (`A-Functions`, convenção de chamada),
+L481 (`Parameters, Registers, Stack`), L2776 (`putchar`), L2742 (`puts`).
+
+**Arquivos-alvo:** `crates/psx-core/src/cpu.rs` (hook no `step`), `crates/psx-core/src/bus.rs`
+(buffer + `tty_push`/`take_tty`), teste novo `crates/psx-core/tests/cpu_tty_hook.rs`.
 
 ### Armadilhas
 
-1. **O handler de syscall do BIOS (`0x8000_0040`) já é executado pelo kernel da BIOS real.**
-   Com uma BIOS vazia (testes), o vetor `0x8000_0040` está em RAM (a BIOS é mapeada em
-   `0x1FC0_0000`, não em `0x8000_0040`). Para testar TTY sem BIOS real, é preciso ou
-   carregar a BIOS real (validação de hash, item 0.9), ou escrever um mini-handler no
-   início da RAM e desviar para ele.
-2. **PUTCHAR pode estar em `$v0` ou em `$t4`/`$t5`.** A spec do psx-spx não é clara sobre
-   qual registrador carrega o código de serviço. O Amidog `psxtest_cpu` ou um EXE de teste
-   próprio dirá. Por ora, assuma o padrão: `$v0` = código (A0h = putchar, B0h = puts),
-   `$a0` = caractere ou ponteiro.
+1. **Não precisa de BIOS nem de mini-handler.** A armadilha registrada antes (vetor
+   `0x8000_0040`, handler em RAM) pressupunha o mecanismo errado de `syscall`. Com o hook em
+   `jal 0xA0`, o teste monta `jal` + delay slot em RAM, ajusta R9/R4 e passa a executar até o
+   PC chegar em `A0h`. Nenhuma BIOS envolvida.
+2. **Espelhos de segmento.** O PC pode chegar como `0x000000A0`, `0x800000A0` ou `0xA00000A0`.
+   Compare o endereço **físico**, nunca o virtual.
+3. **`puts(0)` imprime `<NULL>`.** A spec é explícita (L2746-2749): se R4 aponta para um `00h`
+   nada é impresso, mas se R4 é `00000000h` a saída é os seis caracteres `<NULL>`, sem CR/LF.
+4. **String sem terminador trava o emulador.** `puts` deve ter um teto de bytes lidos
+   (proponha 1 MiB) e parar, em vez de varrer a memória para sempre.
+5. **O `putchar` real expande TAB e LF** (L2778-2780: `09h` → espaços até o próximo múltiplo
+   de 8; `0Ah` → `0Dh,0Ah`). Como o hook **observa** em vez de substituir a função, este item
+   grava o byte **cru**. Decisão deliberada, não esquecimento: registre como nota ASSUMIDA no
+   doc da iteração, com ponto de resolução = comparar com a saída de uma BIOS real.
 
 ### Testes de aceitação
 
-**D1 — PUTCHAR escreve um caractere.** Executa `syscall` com `$v0=0xA0, $a0='X'`. Exigido:
-o caractere `'X'` aparece no buffer de saída.
+**D1 — putchar por A0h.** RAM com `jal 0xA0` + delay slot, R9=`0x3C`, R4=`'X'`. Executa até o
+PC valer `0xA0`. Exigido: `take_tty()` devolve `b"X"`.
 
-**D2 — PUTS escreve string.** Executa `syscall` com `$v0=0xB0, $a0=ptr_para_string`.
-Exigido: a string completa termina com `\0` aparece no buffer de saída.
+**D2 — putchar por B0h usa outro número.** Mesmo cenário com `jal 0xB0` e R9=`0x3D`. Exigido:
+`b"X"`. E com `jal 0xB0` + R9=`0x3C` (número de A0h na tabela errada): **nada** é emitido.
 
-**D3 — Código desconhecido não crasha.** Executa `syscall` com `$v0=0xFF`. Exigido:
-não crasha (ignora silenciosamente ou loga).
+**D3 — puts lê até o `00h`.** R9=`0x3E`, R4 aponta para `"oi\0"` em RAM. Exigido: `b"oi"`, sem
+o terminador.
+
+**D4 — `puts(0)` emite `<NULL>`.** R9=`0x3E`, R4=`0`. Exigido: `b"<NULL>"`.
+
+**D5 — Número desconhecido é ignorado.** R9=`0xFF` em `jal 0xA0`. Exigido: buffer vazio, sem
+pânico, e a execução continua (o hook não altera PC nem registradores).
+
+**D6 — Espelho KSEG0.** Salto para `0x800000A0` com R9=`0x3C`. Use `jalr` (o alvo vem de um
+registrador): `jal` monta o alvo com os 4 bits altos do PC e, a partir de KUSEG, não alcança
+`0x8...`. Exigido: mesmo resultado de D1.
 
 ## Repositório
 

@@ -9,11 +9,11 @@ fn add(rd: u32, rt: u32, rs: u32) -> u32 {
 }
 
 fn syscall() -> u32 {
-    0x00_0000_0C
+    0x0000_000C
 }
 
 fn break_op() -> u32 {
-    0x00_0000_0D
+    0x0000_000D
 }
 
 // ============================================================================
@@ -169,10 +169,7 @@ fn load_word_desalinhado_dispara_adel() {
         cpu.cop0[8], 0x0000_0001,
         "B5a: BadVaddr = endereco desalinhado (0x00000001)"
     );
-    assert_eq!(
-        cpu.pc, 0x8000_0080,
-        "B5a: PC = vetor geral de excecao"
-    );
+    assert_eq!(cpu.pc, 0x8000_0080, "B5a: PC = vetor geral de excecao");
 }
 
 // ============================================================================
@@ -202,10 +199,7 @@ fn store_word_desalinhado_dispara_ades() {
         cpu.cop0[8], 0x0000_0003,
         "B5b: BadVaddr = endereco desalinhado (0x00000003)"
     );
-    assert_eq!(
-        cpu.pc, 0x8000_0080,
-        "B5b: PC = vetor geral de excecao"
-    );
+    assert_eq!(cpu.pc, 0x8000_0080, "B5b: PC = vetor geral de excecao");
 }
 
 // ============================================================================
@@ -225,10 +219,7 @@ fn badvaddr_inalterado_por_excecoes_que_nao_sejam_addr_error() {
 
         cpu.step(&mut bus);
 
-        assert_eq!(
-            cpu.cop0[8], 0xCAFE_0000,
-            "BadVaddr inalterado por syscall"
-        );
+        assert_eq!(cpu.cop0[8], 0xCAFE_0000, "BadVaddr inalterado por syscall");
     }
     {
         // break nao mexe em BadVaddr
@@ -241,10 +232,7 @@ fn badvaddr_inalterado_por_excecoes_que_nao_sejam_addr_error() {
 
         cpu.step(&mut bus);
 
-        assert_eq!(
-            cpu.cop0[8], 0xCAFE_0000,
-            "BadVaddr inalterado por break"
-        );
+        assert_eq!(cpu.cop0[8], 0xCAFE_0000, "BadVaddr inalterado por break");
     }
     {
         // overflow nao mexe em BadVaddr
@@ -259,10 +247,7 @@ fn badvaddr_inalterado_por_excecoes_que_nao_sejam_addr_error() {
 
         cpu.step(&mut bus);
 
-        assert_eq!(
-            cpu.cop0[8], 0xCAFE_0000,
-            "BadVaddr inalterado por overflow"
-        );
+        assert_eq!(cpu.cop0[8], 0xCAFE_0000, "BadVaddr inalterado por overflow");
     }
 }
 
@@ -296,10 +281,7 @@ fn addi_overflow_seta_cause_ovf_e_nao_escreve_rt() {
         cpu.cop0[14], 0x0000_0000,
         "EPC = endereco do ADDI (0x00000000)"
     );
-    assert_eq!(
-        cpu.pc, 0x8000_0080,
-        "PC = vetor geral de excecao"
-    );
+    assert_eq!(cpu.pc, 0x8000_0080, "PC = vetor geral de excecao");
 }
 
 // ============================================================================
@@ -326,10 +308,7 @@ fn load_halfword_desalinhado_dispara_adel() {
         cpu.cop0[8], 0x0000_0001,
         "LH desalinhado: BadVaddr = endereco desalinhado"
     );
-    assert_eq!(
-        cpu.pc, 0x8000_0080,
-        "LH desalinhado: PC = vetor geral"
-    );
+    assert_eq!(cpu.pc, 0x8000_0080, "LH desalinhado: PC = vetor geral");
 }
 
 // ============================================================================
@@ -356,8 +335,5 @@ fn store_halfword_desalinhado_dispara_ades() {
         cpu.cop0[8], 0x0000_0003,
         "SH desalinhado: BadVaddr = endereco desalinhado"
     );
-    assert_eq!(
-        cpu.pc, 0x8000_0080,
-        "SH desalinhado: PC = vetor geral"
-    );
+    assert_eq!(cpu.pc, 0x8000_0080, "SH desalinhado: PC = vetor geral");
 }

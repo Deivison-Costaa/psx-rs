@@ -84,3 +84,91 @@ fn scoreboard_rotula_host_bin_em_vez_de_fail_erro() {
          (um rótulo honesto), não tentar execução e cair em 'fail-erro'."
     );
 }
+
+#[test]
+fn scoreboard_nao_quebra_sem_diretorio_exes() {
+    let script = fs::read_to_string(support::repo_root().join("scripts/scoreboard.ps1"))
+        .expect("scripts/scoreboard.ps1 deve existir");
+
+    let after_missing_dir: Vec<&str> = script
+        .lines()
+        .skip_while(|l| !l.contains("Test-Path $ExeRoot"))
+        .take(8)
+        .collect();
+    let bloco = after_missing_dir.join("\n");
+
+    let tem_exit_zero = bloco.contains("exit 0");
+    assert!(
+        tem_exit_zero,
+        "scripts/scoreboard.ps1 não faz exit 0 quando tests/exes/ não existe. \
+         A ausência de EXEs deve produzir 0/0 sem quebrar o job (armadilha 2 do handoff 1.12)."
+    );
+
+    let nao_tem_write_error = !bloco.contains("Write-Error");
+    assert!(
+        nao_tem_write_error,
+        "scripts/scoreboard.ps1 usa Write-Error quando tests/exes/ não existe. \
+         Com $ErrorActionPreference = 'Stop', Write-Error termina o script e o job \
+         fica vermelho. A ausência de EXEs deve ser tolerada (saída 0, zero linhas)."
+    );
+}
+
+#[test]
+fn ci_yml_scoreboard_tem_permissions_write() {
+    let ci = fs::read_to_string(support::repo_root().join(".github/workflows/ci.yml"))
+        .expect("ci.yml deve existir");
+
+    let scoreboard_start = ci
+        .lines()
+        .position(|l| l.trim() == "scoreboard:")
+        .expect("ci.yml deve ter job 'scoreboard:'");
+    let scoreboard_end = ci
+        .lines()
+        .skip(scoreboard_start + 1)
+        .position(|l| {
+            let t = l.trim();
+            !t.is_empty()
+                && t.ends_with(':')
+                && !t.starts_with('-')
+                && !t.starts_with("name:")
+                && !t.starts_with("runs-on:")
+                && !t.starts_with("needs:")
+                && !t.starts_with("if:")
+                && !t.starts_with("timeout-minutes:")
+                && !t.starts_with("permissions:")
+                && !t.starts_with("steps:")
+                && !t.starts_with("contents:")
+        })
+        .map(|p| scoreboard_start + 1 + p)
+        .unwrap_or_else(|| ci.lines().count());
+    let scoreboard_block: Vec<&str> = ci
+        .lines()
+        .skip(scoreboard_start)
+        .take(scoreboard_end - scoreboard_start)
+        .collect();
+    let bloco = scoreboard_block.join("\n");
+
+    let tem_permissions = bloco.contains("permissions:") && bloco.contains("contents: write");
+    assert!(
+        tem_permissions,
+        "ci.yml job scoreboard não declara 'permissions: contents: write'. \
+         O GITHUB_TOKEN é somente-leitura por padrão, e o push para scoreboard-data \
+         resulta em 403 sem essa permissão (I1 da revisão adversarial da iter 0031)."
+    );
+}
+
+#[test]
+fn ci_yml_scoreboard_publica_so_na_main() {
+    let ci = fs::read_to_string(support::repo_root().join(".github/workflows/ci.yml"))
+        .expect("ci.yml deve existir");
+
+    let tem_guard =
+        ci.contains("if: github.event_name == 'push' && github.ref == 'refs/heads/main'");
+    assert!(
+        tem_guard,
+        "ci.yml job scoreboard publica na branch scoreboard-data sem a guarda \
+         'if: github.event_name == 'push' && github.ref == 'refs/heads/main'. \
+         Sem essa guarda, medições de PRs não revisados entram na série histórica \
+         com o mesmo peso das da main (I3 da revisão adversarial da iter 0031)."
+    );
+}

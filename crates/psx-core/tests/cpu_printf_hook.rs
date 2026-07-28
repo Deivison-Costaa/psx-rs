@@ -250,23 +250,29 @@ fn printf_fmt_sem_terminador_teto_1mib_evita_laco_infinito() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
 
-    for addr in 0x100u32..0x1000u32 {
-        bus.write8::<BusRead>(addr, b'A');
+    for addr in (0x0000_0000u32..0x0020_0000u32).step_by(4) {
+        bus.write32::<BusRead>(addr, 0x41414141u32);
     }
+
+    bus.write32::<BusRead>(0x0000_0000, jal(0x0000_00A0));
+    bus.write32::<BusRead>(0x0000_0004, nop());
 
     cpu.pc = 0x0000_0000;
     cpu.regs[9] = 0x3F;
     cpu.regs[4] = 0x100;
     cpu.regs[29] = 0x1FF0;
 
-    bus.write32::<BusRead>(0x0000_0000, jal(0x0000_00A0));
-    bus.write32::<BusRead>(0x0000_0004, nop());
-
     step_n(&mut cpu, &mut bus, 3);
 
+    let tty = bus.take_tty();
+    assert_eq!(
+        tty.len(),
+        1_048_576,
+        "A11: teto de 1 MiB — TTY deve ter exatamente 1_048_576 bytes"
+    );
     assert!(
-        !bus.take_tty().is_empty(),
-        "A11: fmt sem terminador deve emitir ate o teto de 1 MiB e parar, sem travar"
+        tty.iter().all(|&b| b == b'A'),
+        "A11: todos os bytes emitidos devem ser 'A'"
     );
 }
 

@@ -111,8 +111,9 @@ fn sideload_exe_minimo_jmp_self() {
 
     assert_eq!(cpu.pc, code_addr, "A1: PC inicial deve ser dest_addr");
 
-    run(&mut cpu, &mut bus, 20);
+    let steps = run(&mut cpu, &mut bus, 20);
 
+    assert_eq!(steps, 20, "A1: deve executar os 20 passos ate o step-limit");
     assert_eq!(
         cpu.pc, code_addr,
         "A1: apos JMP $, PC deve estar no endereco de self-loop"
@@ -125,9 +126,6 @@ fn sideload_exe_minimo_jmp_self() {
 fn print_ok_via_tty() {
     let code_addr: u32 = 0x8000_0000;
     let tty_addr: u32 = 0x0000_00A0;
-
-    let jr_ra: u32 = (31u32 << 21) | 0x08;
-    let tty_kseg0: u32 = 0x8000_00A0;
 
     let jmp_self_addr = code_addr + 8 * 4;
 
@@ -153,13 +151,7 @@ fn print_ok_via_tty() {
         bss_addr: 0,
         bss_size: 0,
     };
-    let mut exe_data = build_ps_exe(&code, &cfg);
-
-    let body_start = 0x800usize;
-    let tty_offset_in_body = (tty_kseg0 - code_addr) as usize;
-    let pos = body_start + tty_offset_in_body;
-    exe_data[pos..pos + 4].copy_from_slice(&jr_ra.to_le_bytes());
-    exe_data[pos + 4..pos + 8].copy_from_slice(&nop().to_le_bytes());
+    let exe_data = build_ps_exe(&code, &cfg);
 
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
@@ -170,6 +162,8 @@ fn print_ok_via_tty() {
         "A2: load_psexe deve retornar Ok; {:?}",
         result.err()
     );
+
+    psx_core::psexe::install_return_stubs(&mut bus);
 
     run(&mut cpu, &mut bus, 100);
 
@@ -246,10 +240,7 @@ fn sp_fp_base_zero_nao_altera_registradores() {
     cpu.regs[30] = 0xCAFE_BABE;
 
     let result = psx_core::psexe::load_psexe(&exe_data, &mut bus, &mut cpu);
-    assert!(
-        result.is_ok(),
-        "SP/FP base=0: load_psexe deve retornar Ok"
-    );
+    assert!(result.is_ok(), "SP/FP base=0: load_psexe deve retornar Ok");
 
     assert_eq!(
         cpu.regs[29], 0xDEAD_BEEF,
@@ -263,23 +254,26 @@ fn sp_fp_base_zero_nao_altera_registradores() {
 
 // ===== A4 — psxtest_cpu no scoreboard =====
 
+fn exe_dir() -> PathBuf {
+    let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    d.push("..");
+    d.push("tests");
+    d.push("exes");
+    d.push("amidog");
+    d.push("cpu");
+    d
+}
+
 #[test]
-fn psxtest_cpu_nao_disponivel() {
-    let exe_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("..")
-        .join("..")
-        .join("tests")
-        .join("exes")
-        .join("amidog")
-        .join("cpu")
-        .join("psxtest_cpu.psexe");
+fn psxtest_cpu_sideload_real() {
+    let exe_path = exe_dir().join("psxtest_cpu.exe");
 
     if !exe_path.exists() {
-        eprintln!("A4: psxtest_cpu.psexe nao encontrado — pule com scripts/fetch-test-exes.ps1");
+        eprintln!("A4: psxtest_cpu.exe nao encontrado — pule com scripts/fetch-test-exes.ps1");
         return;
     }
 
-    let exe_data = fs::read(&exe_path).expect("ler psxtest_cpu.psexe");
+    let exe_data = fs::read(&exe_path).expect("ler psxtest_cpu.exe");
 
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
@@ -291,10 +285,11 @@ fn psxtest_cpu_nao_disponivel() {
         result.err()
     );
 
+    psx_core::psexe::install_return_stubs(&mut bus);
+
     run(&mut cpu, &mut bus, 50_000_000);
 
     let tty = bus.take_tty();
-    let text = String::from_utf8_lossy(&tty);
 
     assert!(
         !tty.is_empty(),
@@ -302,11 +297,20 @@ fn psxtest_cpu_nao_disponivel() {
         tty.len()
     );
 
-    eprintln!(
-        "A4: psxtest_cpu TTY ({bytes} bytes): {preview}...",
-        bytes = tty.len(),
-        preview = &text[..text.len().min(200)]
-    );
+    let preview_len = tty.len().min(200);
+    let preview = String::from_utf8_lossy(&tty[..preview_len]);
+    eprintln!("A4: psxtest_cpu TTY ({} bytes): {}...", tty.len(), preview);
+}
+
+#[test]
+fn psxtest_cpu_nao_esta_disponivel_mas_ignorado() {
+    let exe_path = exe_dir().join("psxtest_cpu.exe");
+
+    if exe_path.exists() {
+        return;
+    }
+
+    eprintln!("psxtest_cpu.exe nao encontrado — arquivo ausente, teste inativo");
 }
 
 // ===== A5 — --bios ausente ou BIOS invalida → erro claro =====
@@ -393,4 +397,57 @@ fn bios_invalida_com_exe_erro() {
 
     let _ = fs::remove_file(&bios_path);
     let _ = fs::remove_file(&exe_path);
+}
+
+// ===== F4 — load_psexe rejeita corpo truncado =====
+
+#[test]
+fn load_psexe_rejeita_corpo_nao_multiplo_de_4() {
+    let code_addr: u32 = 0x8000_0000;
+    let code = [nop()];
+
+    let cfg = PsexeConfig {
+        dest_addr: code_addr,
+        initial_pc: code_addr,
+        initial_gp: 0,
+        sp_fp_base: 0,
+        sp_fp_offset: 0,
+        bss_addr: 0,
+        bss_size: 0,
+    };
+    let mut exe_data = build_ps_exe(&code, &cfg);
+    exe_data.resize(0x800 + 5, 0);
+
+    let mut bus = bus_with_bios_empty();
+    let mut cpu = Cpu::new();
+
+    let result = psx_core::psexe::load_psexe(&exe_data, &mut bus, &mut cpu);
+    assert!(
+        result.is_err(),
+        "F4: corpo nao multiplo de 4 deve retornar Err"
+    );
+}
+
+// ===== F6 — argumento desconhecido rejeitado =====
+
+#[test]
+fn argumento_desconhecido_rejeitado() {
+    let bin = env!("CARGO_BIN_EXE_psx-cli");
+
+    let output = Command::new(bin)
+        .arg("--bios-file")
+        .arg("x")
+        .output()
+        .expect("executar psx-cli com argumento desconhecido");
+
+    assert!(
+        !output.status.success(),
+        "F6: argumento desconhecido deve sair com codigo != 0"
+    );
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("desconhecido"),
+        "F6: stderr deve mencionar argumento desconhecido; stderr={:?}",
+        stderr
+    );
 }

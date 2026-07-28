@@ -31,11 +31,21 @@ putchar grava byte cru (sem expansão TAB/LF) — decisão deliberada. Ver
 
 **ROADMAP 1.11** — Sideload de PS-EXE no psx-cli + Amidog psxtest_cpu no scoreboard.
 
-**Spec:** `docs/reference/13-kernel-bios.md` — A(41h) LoadTest (L1041), A(43h) Exec (L1054-1063),
-A(51h) LoadExec (L1065-1095), Executable Memory Allocation (L1150-1157). O 1.11 não lê setores
-de CD-ROM; o sideloader carrega o .psexe inteiro de um arquivo no disco e extrai do header
-(800h bytes) os campos: entrypoint (PC), GP, SP base+offset, t_addr/t_size (código), b_addr/
-b_size (BSS zerado). Não implementa LoadExec — só o sideload mínimo para rodar um EXE.
+**PASSO ZERO, OBRIGATÓRIO (R1): a spec deste item NÃO está no repositório.** As seções abaixo
+descrevem as *funções* da BIOS que carregam um EXE, mas o **layout do header PS-EXE** (magic
+`PS-X EXE`, offsets de pc0/gp0/t_addr/t_size/b_addr/b_size/s_addr/s_size) não existe em
+`docs/reference/` — `grep -r "PS-X EXE" docs/reference/` não devolve nada. Antes de escrever
+qualquer código: acrescente o capítulo do psx-spx que documenta o formato do executável ao
+`scripts/fetch-reference-docs.ps1`, rode o script, commite (`chore(scripts)` +
+`docs(reference)`) e só então implemente, citando as linhas reais. Não deduza os offsets do
+header a partir de outro emulador nem da memória.
+
+**Spec (funções da BIOS, já local):** `docs/reference/13-kernel-bios.md` — A(41h) LoadTest
+(L1041), A(43h) Exec (L1054-1063), A(51h) LoadExec (L1065-1095), Executable Memory Allocation
+(L1150-1157). O 1.11 não lê setores de CD-ROM; o sideloader carrega o .psexe inteiro de um
+arquivo no disco e extrai do header (800h bytes) os campos: entrypoint (PC), GP, SP
+base+offset, t_addr/t_size (código), b_addr/b_size (BSS zerado). Não implementa LoadExec — só
+o sideload mínimo para rodar um EXE.
 
 **Arquivos-alvo:** `crates/psx-cli/src/main.rs` (args: `psx-cli --bios <BIOS> --exe <PS-EXE>`),
 `crates/psx-core/src/cpu.rs` (estado do step após halt), `crates/psx-cli/tests/cli_runner.rs`
@@ -46,16 +56,22 @@ b_size (BSS zerado). Não implementa LoadExec — só o sideload mínimo para ro
 1. **O header de PS-EXE tem 800h bytes, mas os campos relevantes estão em [10h..4Bh].**
    O headerbuf que Exec recebe tem só 3Ch bytes. O offset no arquivo .psexe é diferente
    do offset no headerbuf — não confundir.
-2. **O PC inicial do header é KSEG1 (0xBFC0_xxxx).** O sideload deve usar o endereço físico
-   para carregar o código na RAM, e setar o PC como está no header. Se o EXE almejar KUSEG,
-   o sideload escreve na RAM em KUSEG e seta o PC correspondente.
+2. **O endereço de destino do header é virtual — traduza antes de escrever na RAM.**
+   (A versão anterior desta armadilha afirmava que "o PC inicial do header é KSEG1
+   `0xBFC0_xxxx`". Isso está errado e foi removido na revisão do PR #39: `BFC00000h` é o
+   *reset entrypoint da BIOS ROM* — `14-io-map.md` L275 — não o PC de um executável, que
+   carrega em RAM. O valor real do campo vem do capítulo de formato do EXE que o passo zero
+   manda baixar; **não** assuma nada sobre ele antes de ler.)
 3. **BSS zerofill: b_addr pode ser > t_addr+t_size.** Zerar b_size bytes a partir de b_addr
    depois de carregar o código.
 4. **Registradores iniciais:** PC, GP (r28), SP=r29, FP=r30 — todos do header. R0=0 sempre.
    Demais registradores = 0 (a spec não especifica, mas é o que faz sentido para o estado
    limpo do sideload).
-5. **O loop de execução para quando o PC dobra para o mesmo endereço três vezes seguidas**
-   (halt por loop infinito: `JMP $`). O Amidog usa isso como mecanismo de parada.
+5. **Critério de parada do runner — NÃO VERIFICADO.** A proposta é parar quando o PC repete o
+   mesmo endereço (`JMP $`), mas nada na spec local diz que o Amidog termina assim; é palpite
+   de quem escreveu este handoff. Trate como hipótese: implemente um teto de passos como
+   parada primária (sempre correta) e, se for adotar a detecção de auto-loop, confirme com a
+   saída real do `psxtest_cpu` e registre no doc da iteração.
 6. **`scripts/fetch-test-exes.ps1` precisa ser rodado antes** para baixar `tests/exes/amidog/cpu/psxtest_cpu.psexe`.
    Verifique pré-existência no teste e pule com `#[ignore]` se faltar.
 

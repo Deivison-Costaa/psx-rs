@@ -62,3 +62,43 @@ Workspace: **212 → 221** testes (9 novos na 0025). A base de 209 no STATUS est
    foi substituído por `(0x3E, 0xA0) | (0x3F, 0xB0)` conforme a spec (F1). O hook passou a
    consultar `reg_with_pending` em vez de `regs[i]` para R4/R9, resolvendo o caso de `lw`
    no delay slot do `jal` (F2). Dois novos testes cobrem ambas as correções.
+
+## Revisão cruzada (orquestrador)
+
+Quatro achados na revisão do PR #39, todos corrigidos na rodada seguinte.
+
+| # | Achado | Correção |
+|---|---|---|
+| F1 | `puts` casava `(0x3E, _) \| (0x3F, _)`: aceitava `3Eh` via B0h (que é `gets`, entrada) e `3Fh` via A0h (que é `printf`). O braço do `putchar` logo acima já era estrito — inconsistência, não decisão | `(0x3E, 0xA0) \| (0x3F, 0xB0)` + teste `puts_b0h_com_numero_de_a0h_ignorado` |
+| F2 | O hook lia `regs[4]`/`regs[9]` no topo do `step`, antes do commit do load delay (que ocorre no fim). Um `lw $a0` no delay slot do `jal` — idioma padrão de compilador MIPS — faria o TTY imprimir o valor anterior | `reg_with_pending()` consulta o load pendente + teste `putchar_com_lw_no_delay_slot_do_jal` |
+| F3 | Placar `209 → 216`, quando o real era `212 → 221`. A base estava errada desde a 2ª rodada da 0022: o STATUS listava `6 bus_scratchpad_isc` com o arquivo já em 9 | Placar corrigido no doc e no STATUS |
+| F4 | O handoff do 1.11 tinha uma linha só, sem spec, arquivos-alvo, armadilhas ou testes de aceitação — o padrão que a iter 0024 acabara de proibir | Handoff reescrito com seções de spec, arquivos-alvo, 6 armadilhas e 5 testes de aceitação |
+
+### G1 — o handoff reescrito ainda afirmava hardware sem citação (corrigido pelo orquestrador)
+
+A rodada de correção resolveu a *forma* do F4, mas reintroduziu a *substância* do erro da
+0022 — desta vez dentro de uma armadilha em vez do texto principal:
+
+- **Armadilha 2 dizia "o PC inicial do header é KSEG1 (`0xBFC0_xxxx`)".** `BFC00000h` é o reset
+  entrypoint da BIOS ROM (`14-io-map.md` L275), não o PC de um executável, que carrega em RAM.
+- **Armadilha 5 dava como fato que o Amidog para com `JMP $`.** Nenhuma spec local diz isso.
+- Mais grave: **o layout do header PS-EXE não existe em `docs/reference/`** (`grep -r "PS-X EXE"`
+  não devolve nada). O handoff citava as funções da BIOS que *carregam* um EXE — LoadTest,
+  Exec, LoadExec, todas conferidas e corretas — mas não o formato do arquivo, que é o miolo do
+  item. Sem isso, o trabalhador ia inventar offsets.
+
+Corrigido no merge: as duas armadilhas foram remarcadas como hipótese explícita e o handoff
+ganhou um **passo zero obrigatório** mandando baixar o capítulo faltante via
+`fetch-reference-docs.ps1` antes de qualquer código (R1).
+
+Padrão que emerge de 0022 → 0024 → 0025: **a regra "handoff cita spec" pega o texto principal,
+mas as armadilhas passam batido** — e é nelas que a intuição de hardware se esconde. A próxima
+revisão de handoff confere armadilha por armadilha, não só o campo **Spec**.
+
+### Desvio de processo registrado
+
+O commit `7ebc2a4` tem prefixo `test(cpu):` mas carrega também a correção em
+`crates/psx-core/src/cpu.rs`. A separação por papel (`test` → `fix` → `docs`) pede dois
+commits. Ficou como está de propósito: reescrever a história para parecer mais limpa do que
+foi falsificaria o registro. Fica como dado — a separação de papéis é a regra que mais escorrega
+nas rodadas de correção, onde teste e fix nascem juntos.

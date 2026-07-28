@@ -116,31 +116,27 @@ fn a6_a0h_impar_descarta_halfword_extra() {
     assert_eq!(gpu.vram_pixel(0, 1), 0, "A6: pixel(0,1) nao escrito (extra descartada)");
 }
 
-#[test]
-fn a7_a0h_com_xsiz_zero_transfere_max_0x400() {
+#[rustfmt::skip]
+fn a0h_linha_cheia(raw_xsiz: u32) {
     let mut gpu = Gpu::new();
 
-    let cmd_top3_5: u32 = (0xA0u32) << 24;
-    gpu.write32(0, cmd_top3_5);
+    gpu.write32(0, 0xA0u32 << 24);
     gpu.write32(0, 0x0000_0000);
-    gpu.write32(0, 0x0001_0000);
-
-    for i in 0..512 {
-        let low = (i as u32 * 2) as u16;
-        let high = (i as u32 * 2 + 1) as u16;
-        gpu.write32(0, (high as u32) << 16 | low as u32);
+    gpu.write32(0, 0x0001_0000 | raw_xsiz);
+    for i in 0..512u32 {
+        gpu.write32(0, ((i * 2 + 1) << 16) | (i * 2));
     }
 
     for col in 0..1024u16 {
-        assert_eq!(
-            gpu.vram_pixel(col, 0),
-            col,
-            "A7: pixel({},0) deve ser {}, obtido {}",
-            col,
-            col,
-            gpu.vram_pixel(col, 0)
-        );
+        assert_eq!(gpu.vram_pixel(col, 0), col,
+            "Xsiz bruto {:#X} vira 1024 colunas: pixel({},0) deve ser {}, obtido {}",
+            raw_xsiz, col, col, gpu.vram_pixel(col, 0));
     }
+}
+
+#[test]
+fn a7_a0h_com_xsiz_zero_transfere_max_0x400() {
+    a0h_linha_cheia(0);
 }
 
 #[rustfmt::skip]
@@ -400,30 +396,7 @@ fn a0h_ysiz_513_mascara_para_1_linha() {
 
 #[test]
 fn a0h_xsiz_1024_mascara_para_0_colunas_vira_max() {
-    let mut gpu = Gpu::new();
-
-    let cmd_a0: u32 = (0xA0u32) << 24;
-    gpu.write32(0, cmd_a0);
-    gpu.write32(0, 0x0000_0000);
-    gpu.write32(0, 0x0001_0400);
-
-    let mut word_idx: u32 = 0;
-    for _ in 0..512 {
-        let low = word_idx;
-        word_idx += 1;
-        let high = word_idx;
-        word_idx += 1;
-        gpu.write32(0, (high << 16) | low);
-    }
-
-    for col in 0..1024u16 {
-        assert_eq!(
-            gpu.vram_pixel(col, 0),
-            col,
-            "Xsiz=1024 -> max: pixel({},0)",
-            col
-        );
-    }
+    a0h_linha_cheia(0x400);
 }
 
 #[test]

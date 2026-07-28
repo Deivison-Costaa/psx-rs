@@ -9,34 +9,74 @@
 Ver `docs/iterations/0031-ci-scoreboard-job.md`.
 
 ## Próxima tarefa
+**ROADMAP 1.14** — Opcode não implementado gera exceção (RI 0Ah / CpU 0Bh) em vez de panic.
 
-**ROADMAP 2.1** — GPUSTAT + decodificação GP0/GP1.
+Item novo, criado a partir de uma medição (`docs/iterations/0032-handoff-2-1.md`): com o
+GPUSTAT devolvendo o valor de reset da spec, as suítes do ps1-tests destravam e passam a
+executar de verdade — e a primeira delas a avançar (`ps1-tests/cpu/cop/cop.exe`) **derruba o
+emulador**:
 
-**Spec:** O item é o primeiro do marco M2 (GPU). A spec de referência é:
+```
+thread 'main' panicked at crates\psx-core\src\cpu.rs:231:18:
+not implemented: opcode primary=38 nao implementado
+```
 
-| Fonte | Seção | Arquivo local |
-|---|---|---|
-| psx-spx | GPU — GPUSTAT (L1-180) | `docs/reference/03-gpu.md` |
-| psx-spx | GPU — GP0/GP1 commands (L181-400) | `docs/reference/03-gpu.md` |
-| ROADMAP | Item 2.1 (L36) | `ROADMAP.md` |
-| BIOS | nota 1: local e hash (L75) | `STATUS.md` |
+Enquanto o `unimplemented!()` estiver no decodificador, cada suíte que alcança um opcode novo
+mata o processo em vez de virar uma linha de placar. Por isso este item vem **antes** do 2.1.
 
-**Arquivos-alvo:**
-- `crates/psx-core/src/gpu.rs` — novo módulo com `Gpu` struct, registrador `GPUSTAT` (leitura de status com bits de versão, DMA, modo de vídeo, etc.) e decodificação de comandos GP0/GP1 (escrita de parâmetros e comandos de renderização).
-- `crates/psx-core/src/bus.rs` — mapear a região de I/O da GPU (`0x1F801810`–`0x1F801817`) para o novo módulo.
+**Spec:** `docs/reference/02-cpu.md` (linhas absolutas do arquivo, conferidas com `grep -n`):
 
-**Armadilhas:**
-1. **GPUSTAT.26 (ready bit) é o que destrava o Amidog.** Todo EXE do ps1-tests imprime `ResetGraph:` e trava esperando `GPUSTAT.26 == 1`. Sem este bit setado, nenhuma suíte avança. O bus devolve `0` hoje para toda a região — o 2.1 precisa devolver `GPUSTAT.26 = 1` (ready) e `GPUSTAT.28 = 1` (odd/even field, valor de reset).
-2. **GPUSTAT.19-20 (bits de versão) = 2** no hardware real (GPU revision 2). Valor de reset documentado na spec.
-3. **GP0 e GP1 são write-only do lado do CPU.** Leitura de `0x1F801810` retorna GPUREAD (último valor lido da VRAM, não implementado ainda — retornar 0 é seguro), leitura de `0x1F801814` retorna GPUSTAT.
-4. **GP0(00h) é NOP**, mas GP0(01h) clear FIFO, GP0(02h) fill mode — comandos que afetam estado interno mesmo sem rasterizador.
-5. **Nenhuma suíte produz veredito real ainda** (ROADMAP 1.13, depende do 2.1). O scoreboard continua rotulando `tty`/`sem-saida`. Não invente critério de pass/fail nesta iteração.
-6. **Comentários ≤ 5%** (R7). A spec de GPU é densa: vá direto ao que o item pede (GPUSTAT + decodificação GP0/GP1), sem implementar rasterização. O rasterizador entra nos itens seguintes (2.2+).
+| Fato | Linha |
+|---|---|
+| Opcodes reservados → Reserved Instruction Exception, `excode=0Ah` | L230 |
+| Ler cop0r0..r2/r4/r10/r32..r63 → RI `0Ah` | L874 |
+| TLBR/TLBWI/TLBWR/TLBP → RI `0Ah` | L878 |
+| **`mov [mem],cop0reg` / `mov cop0reg,[mem]` (LWC0/SWC0) → Coprocessor Unusable, `excode=0Bh`, NÃO 0Ah** | L883-884 |
 
-**Testes de aceitação:**
-- A1: Leitura de GPUSTAT via `lw` em `0x1F801814` retorna valor com bits 26, 28 e 19-20 setados conforme spec.
-- A2: Escrita de comando GP0 via `sw` em `0x1F801810` e leitura de GPUSTAT reflete mudanças de estado (ex.: após GP0(01h), bits de comando resetam).
-- A3: `scripts/scoreboard.ps1` — o placar continua 50/50, mas agora com TTY maior (suites que travavam em GPUSTAT produzem mais saída).
+O opcode que o `cop.exe` alcançou é o primary `38h` = SWC0, ou seja, o caso de `0Bh` — não o
+de `0Ah`. Os dois códigos existem e não são intercambiáveis.
+
+**Arquivos-alvo:** `crates/psx-core/src/cpu.rs` (o `_ => unimplemented!(...)` do `execute`, e o
+mesmo padrão em `special`/`cop0_op` se houver), `crates/psx-core/tests/cpu_opcode_reservado.rs`
+(arquivo novo).
+
+### Armadilhas
+
+1. **O mecanismo de exceção já existe** desde o item 1.8b (`raise_exception`, `pending_exception`,
+   bit BD, EPC). Este item **não** reimplementa nada disso: só troca o `panic` por uma chamada
+   ao mecanismo existente com o excode certo. Leia `cpu.rs` antes de escrever qualquer coisa.
+2. **`0Ah` e `0Bh` não são o mesmo caso.** Coprocessor loads/stores (primary `30h..33h` e
+   `38h..3Bh`) são `0Bh` (L883-884). Opcode simplesmente inexistente é `0Ah` (L230). Um teste
+   para cada.
+3. **Não confundir com o COP2/GTE.** `12h` (COP2) e `3Ah` (SWC2) pertencem ao GTE, que é item
+   do M3 — hoje também caem no `unimplemented!`. Se você fizer todos virarem exceção, o GTE
+   vai passar a levantar `0Bh` silenciosamente em vez de estourar; **registre isso no doc**,
+   porque é uma mudança de comportamento que o M3 vai precisar desfazer.
+4. **Não existe `unwrap`/`expect`/`panic!`/`unimplemented!` em produção (R6).** Se sobrar
+   algum caminho de panic no decodificador depois deste item, ele é bug do item.
+5. **O contador de ciclos e o delay slot continuam valendo.** Exceção levantada em delay slot
+   já tem tratamento (bit BD) desde a 1.8b — o teste tem que cobrir opcode reservado dentro de
+   delay slot, senão o item não fecha o que a 1.8b abriu.
+
+### Testes de aceitação
+
+**A1 — RI (`0Ah`).** Opcode primary inexistente (ex.: `3Fh`) executado: `CAUSE.excode == 0Ah`,
+`EPC` aponta para a instrução, PC vai para o vetor de exceção.
+
+**A2 — CpU (`0Bh`).** `SWC0` (primary `38h`): `CAUSE.excode == 0Bh`. Mesmo teste para `LWC0`
+(primary `30h`).
+
+**A3 — em delay slot.** Opcode reservado no delay slot de um `jal`: `CAUSE.BD == 1` e `EPC`
+aponta para o **branch**, não para o delay slot (regra da 1.8b).
+
+**A4 — o `cop.exe` deixa de derrubar o processo.** Com o stub temporário de GPUSTAT descrito
+no doc da 0032 (`0x1F80_1814 => Some(0x1480_2000)` no `bus.rs`, **não commitar**), rodar
+`psx-cli --bios bios/SCPH1001.BIN --exe tests/exes/ps1-tests/cpu/cop/cop.exe` e verificar que
+o processo termina normalmente em vez de entrar em pânico. **Cole a saída no doc.** Sem o stub,
+o `cop.exe` nem chega ao opcode — então A4 sem o stub não prova nada.
+
+**A5 — nenhum panic sobrando.** `grep -rn "unimplemented!\|panic!\|unwrap()\|expect(" crates/psx-core/src/`
+não devolve nada fora de teste. Cole a saída (vazia) no doc.
 
 ## Repositório
 

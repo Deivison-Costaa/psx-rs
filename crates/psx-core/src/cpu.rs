@@ -109,9 +109,11 @@ impl Cpu {
             }
             0x20 => Some(self.lb(instr, bus)),
             0x21 => Some(self.lh(instr, bus)),
+            0x22 => Some(self.lwl(instr, bus)),
             0x23 => Some(self.lw(instr, bus)),
             0x24 => Some(self.lbu(instr, bus)),
             0x25 => Some(self.lhu(instr, bus)),
+            0x26 => Some(self.lwr(instr, bus)),
             0x28 => {
                 self.sb(instr, bus);
                 None
@@ -120,8 +122,16 @@ impl Cpu {
                 self.sh(instr, bus);
                 None
             }
+            0x2A => {
+                self.swl(instr, bus);
+                None
+            }
             0x2B => {
                 self.sw(instr, bus);
+                None
+            }
+            0x2E => {
+                self.swr(instr, bus);
                 None
             }
             _ => unimplemented!("opcode primary={:02X} nao implementado", primary),
@@ -503,6 +513,87 @@ impl Cpu {
         let addr = self.reg(rs).wrapping_add(imm);
         let val = self.reg(rt) as u16;
         bus.write16::<BusRead>(addr, val);
+    }
+
+    fn lwl(&self, instr: u32, bus: &Bus) -> (usize, u32) {
+        let rt = ((instr >> 16) & 0x1F) as usize;
+        let rs = ((instr >> 21) & 0x1F) as usize;
+        let imm = Self::sign_extend_imm(instr);
+        let addr = self.reg(rs).wrapping_add(imm);
+        let aligned = addr & !3;
+        let offset = (addr & 3) as usize;
+        let word = bus.read32::<BusRead>(aligned);
+        let old = self.reg_with_pending(rt);
+        let val = match offset {
+            0 => (old & 0x00FF_FFFF) | ((word & 0xFF) << 24),
+            1 => (old & 0x0000_FFFF) | ((word & 0xFFFF) << 16),
+            2 => (old & 0x0000_00FF) | ((word & 0x00FF_FFFF) << 8),
+            _ => word,
+        };
+        (rt, val)
+    }
+
+    fn lwr(&self, instr: u32, bus: &Bus) -> (usize, u32) {
+        let rt = ((instr >> 16) & 0x1F) as usize;
+        let rs = ((instr >> 21) & 0x1F) as usize;
+        let imm = Self::sign_extend_imm(instr);
+        let addr = self.reg(rs).wrapping_add(imm);
+        let aligned = addr & !3;
+        let offset = (addr & 3) as usize;
+        let word = bus.read32::<BusRead>(aligned);
+        let old = self.reg_with_pending(rt);
+        let val = match offset {
+            0 => word,
+            1 => (old & 0xFF00_0000) | (word >> 8),
+            2 => (old & 0xFFFF_0000) | (word >> 16),
+            _ => (old & 0xFFFF_FF00) | (word >> 24),
+        };
+        (rt, val)
+    }
+
+    fn swl(&mut self, instr: u32, bus: &mut Bus) {
+        let rt = ((instr >> 16) & 0x1F) as usize;
+        let rs = ((instr >> 21) & 0x1F) as usize;
+        let imm = Self::sign_extend_imm(instr);
+        let addr = self.reg(rs).wrapping_add(imm);
+        let aligned = addr & !3;
+        let offset = (addr & 3) as usize;
+        let word = bus.read32::<BusRead>(aligned);
+        let val = self.reg(rt);
+        let merged = match offset {
+            0 => (word & 0xFFFF_FF00) | ((val >> 24) & 0xFF),
+            1 => (word & 0xFFFF_0000) | ((val >> 16) & 0xFFFF),
+            2 => (word & 0xFF00_0000) | ((val >> 8) & 0x00FF_FFFF),
+            _ => val,
+        };
+        bus.write32::<BusRead>(aligned, merged);
+    }
+
+    fn swr(&mut self, instr: u32, bus: &mut Bus) {
+        let rt = ((instr >> 16) & 0x1F) as usize;
+        let rs = ((instr >> 21) & 0x1F) as usize;
+        let imm = Self::sign_extend_imm(instr);
+        let addr = self.reg(rs).wrapping_add(imm);
+        let aligned = addr & !3;
+        let offset = (addr & 3) as usize;
+        let word = bus.read32::<BusRead>(aligned);
+        let val = self.reg(rt);
+        let merged = match offset {
+            0 => val,
+            1 => (word & 0x0000_00FF) | ((val & 0x00FF_FFFF) << 8),
+            2 => (word & 0x0000_FFFF) | ((val & 0xFFFF) << 16),
+            _ => (word & 0x00FF_FFFF) | ((val & 0xFF) << 24),
+        };
+        bus.write32::<BusRead>(aligned, merged);
+    }
+
+    fn reg_with_pending(&self, idx: usize) -> u32 {
+        if let Some((reg, val)) = self.load_delay {
+            if reg == idx {
+                return val;
+            }
+        }
+        self.regs[idx]
     }
 
     fn reg(&self, idx: usize) -> u32 {

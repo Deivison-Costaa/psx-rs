@@ -158,6 +158,77 @@ fn ci_yml_scoreboard_tem_permissions_write() {
 }
 
 #[test]
+fn scoreboard_extrai_pass_fail_com_dedup() {
+    let script = fs::read_to_string(support::repo_root().join("scripts/scoreboard.ps1"))
+        .expect("scripts/scoreboard.ps1 deve existir");
+
+    let tem_regex_pass_fail = script.contains("^(pass|fail) - ");
+    assert!(
+        tem_regex_pass_fail,
+        "scripts/scoreboard.ps1 não usa o padrão '^(pass|fail) - ' para extrair \
+         vereditos do stdout. A saída das suítes produz linhas 'pass - nome_teste' e \
+         'fail - nome:linha \\'expr\\', given: X, expected: Y'. O parser precisa \
+         capturar ambas com regex."
+    );
+
+    let tem_dedup = script.contains("Sort-Object") && script.contains("Get-Unique");
+    assert!(
+        tem_dedup,
+        "scripts/scoreboard.ps1 não faz dedup das linhas de pass/fail. \
+         O code-in-io repete 3 linhas × 3 134 iterações; contar cada ocorrência \
+         infla o placar em 3×. O parser deve usar Sort-Object | Get-Unique para \
+         deduplicar por texto da linha antes de contar."
+    );
+}
+
+#[test]
+fn scoreboard_cabecalho_tem_detalhe_nao_ciclos() {
+    let script = fs::read_to_string(support::repo_root().join("scripts/scoreboard.ps1"))
+        .expect("scripts/scoreboard.ps1 deve existir");
+
+    let tem_cabecalho_detalhe = script.contains("detalhe");
+    assert!(
+        tem_cabecalho_detalhe,
+        "scripts/scoreboard.ps1 não usa 'detalhe' como nome da 6ª coluna. \
+         O cabeçalho do CSV deve ser 'ts,commit,suite,exe,status,detalhe' — \
+         a coluna 'ciclos' (antes vazia) passa a se chamar 'detalhe' e carrega \
+         as contagens no formato <n>p/<n>f."
+    );
+
+    let nao_tem_ciclos_no_cabecalho = !script.lines().any(|l| l.contains("ciclos"));
+    assert!(
+        nao_tem_ciclos_no_cabecalho,
+        "scripts/scoreboard.ps1 ainda contém 'ciclos' no cabeçalho do CSV. \
+         A coluna foi renomeada para 'detalhe' no item 1.13."
+    );
+}
+
+#[test]
+fn scoreboard_classifica_pass_fail_status_estendido() {
+    let script = fs::read_to_string(support::repo_root().join("scripts/scoreboard.ps1"))
+        .expect("scripts/scoreboard.ps1 deve existir");
+
+    let tem_status_pass = script.contains("status='pass'") || script.contains("'pass'");
+    let tem_status_fail = script.contains("status='fail'") || script.contains("'fail'");
+    assert!(
+        tem_status_pass && tem_status_fail,
+        "scripts/scoreboard.ps1 não classifica status como 'pass' ou 'fail' baseado \
+         nos vereditos extraídos do stdout. Suíte com ≥1 pass e zero fail deve ser 'pass'; \
+         suíte com ≥1 fail deve ser 'fail'. As classificações 'tty', 'sem-saida', \
+         'host-bin', 'sem-bios', 'timeout', 'fail-erro' continuam para os casos sem \
+         veredito."
+    );
+
+    let tem_detalhe_formato = script.contains("p/") || script.contains("'{0}p/{1}f'");
+    assert!(
+        tem_detalhe_formato,
+        "scripts/scoreboard.ps1 não gera a coluna detalhe no formato <n>p/<n>f. \
+         Exemplo: suíte com 2 pass e 0 fail → detalhe '2p/0f', suíte com 1 pass e \
+         2 fail → detalhe '1p/2f'."
+    );
+}
+
+#[test]
 fn ci_yml_scoreboard_publica_so_na_main() {
     let ci = fs::read_to_string(support::repo_root().join(".github/workflows/ci.yml"))
         .expect("ci.yml deve existir");

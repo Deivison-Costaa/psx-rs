@@ -55,10 +55,36 @@ between these ... although both access r2"). Hoje o merge lê `self.reg(rt)`, qu
 valor antigo quando o load anterior está no delay slot — o resultado do `lwl` some. O merge
 tem de usar o valor do load pendente quando ele for para o mesmo registrador.
 
-**Teste de aceitação obrigatório** (o item não fecha sem ele): `[0..3] = DD CC BB AA`,
-`[4..7] = 44 33 22 11`, `t0 = 1`; `lwl r2,3(t0)` seguido de `lwr r2,0(t0)` e um `nop` tem de
-deixar `r2 = 0x44DDCCBB` — a palavra desalinhada formada pelos bytes `[1][2][3][4]`. Esse é
-o idioma da spec e o motivo de os quatro opcodes existirem.
+Tabela derivada da spec pelo orquestrador, `k = endereço & 3`, `base = endereço & !3`, e
+`palavra` = a palavra de 32 bits em `base`. **Confira contra a spec antes de usar** — a versão
+anterior deste handoff trazia um valor errado (ver 0017e):
+
+| `k` | LWL: rt recebe | LWR: rt recebe |
+|---|---|---|
+| 0 | `rt[31:24] = mem[base+0]` | `rt = palavra` (32 bits) |
+| 1 | `rt[31:24]=mem[base+1]`, `rt[23:16]=mem[base+0]` | `rt[7:0]=mem[base+1]`, `rt[15:8]=mem[base+2]`, `rt[23:16]=mem[base+3]` |
+| 2 | `rt[31:24]=mem[base+2]`, `rt[23:16]=mem[base+1]`, `rt[15:8]=mem[base+0]` | `rt[7:0]=mem[base+2]`, `rt[15:8]=mem[base+3]` |
+| 3 | `rt = palavra` (32 bits) | `rt[7:0] = mem[base+3]` |
+
+Equivalente, e é assim que se implementa sem errar via de byte:
+`LWL: rt = (rt & ((1 << 8*(3-k)) - 1)) | (palavra << 8*(3-k))`
+`LWR: rt = (rt & !(0xFFFF_FFFF >> 8*k)) | (palavra >> 8*k)`
+Os stores são o espelho: `SWL` escreve os `k+1` bytes **altos** de rt em `[base+0..base+k]`;
+`SWR` escreve os `4-k` bytes **baixos** de rt em `[base+k..base+3]`. O resto da palavra em
+memória fica intacto.
+
+**Testes de aceitação obrigatórios** (o item não fecha sem os dois). Memória
+`[0..3] = DD CC BB AA` e `[4..7] = 44 33 22 11`, `t0 = 1`:
+
+1. **Load do par (idioma da spec):** `lwl r2,3(t0)` + `lwr r2,0(t0)` + `nop` tem de deixar
+   **`r2 = 0x44AABBCC`** — a palavra desalinhada no endereço 1, bytes `[1][2][3][4]` =
+   `CC BB AA 44`. Derivação: `lwl` em 4 é `k=0` → `r2[31:24] = mem[4] = 44`; `lwr` em 1 é
+   `k=1` → `r2[23:0] = mem[1],mem[2],mem[3] = CC,BB,AA`.
+2. **Round-trip do store:** com `r2 = 0x1122_3344`, `swl r2,3(t0)` + `swr r2,0(t0)` tem de
+   deixar `[0..3] = DD 44 33 22` e `[4..7] = 11 33 22 11`; e um `lwl`/`lwr` seguinte no mesmo
+   endereço tem de devolver `0x1122_3344`. Este teste é auto-verificável: se ida e volta
+   fecham e os bytes vizinhos (`DD` em `[0]`, `33 22 11` em `[5..7]`) sobreviveram, os quatro
+   opcodes concordam entre si e não invadiram memória alheia.
 
 Teste: `crates/psx-core/tests/cpu_unaligned_load_store.rs`. **Use** `tests/support/asm.rs`
 (`bus_with_bios_empty`, `encode_i_type`, `nop`) em vez de recriar helpers, e nomeie os

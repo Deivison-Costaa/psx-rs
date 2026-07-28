@@ -196,8 +196,12 @@ reprovada por inteiro. Nenhum deles apareceu na CI.
 Mudança de protocolo, e é a primeira que sai de uma rejeição: quando a spec do item traz um
 **idioma canônico**, o handoff passa a incluir um **teste de aceitação com valores literais**
 derivado da spec pelo orquestrador, obrigatório no PR. A assimetria é o ponto — uma asserção
-com bytes concretos (`r2 = 0x44DDCCBB` depois do par lwl/lwr) não pode ser satisfeita por um
+com bytes concretos (`r2 = 0x44AABBCC` depois do par lwl/lwr) não pode ser satisfeita por um
 modelo errado, enquanto uma asserção que o próprio autor deriva sempre pode.
+
+(Este parágrafo dizia `0x44DDCCBB` quando foi escrito. O valor estava errado — meu, não do
+trabalhador. Ver a entrada de 2026-07-27 mais abaixo, "o teste de aceitação obrigatório
+estava errado".)
 
 Registro honesto do que **eu** errei: o handoff do 1.7 foi escrito por mim na revisão da
 0016 e avisava que "o endereço define qual fragmento é transferido (tabelado na spec)" —
@@ -252,3 +256,36 @@ limpeza do meu experimento.
 O eixo de comparação passa a ser **v4-pro (padrão) × v4-flash (barato)**, a pedido do usuário,
 medido no `metricas.csv` por custo/iteração e por reprovação na revisão adversarial — não por
 impressão de qualidade. Substitui o `chat × reasoner` que estava reservado para o item 1.8.
+
+## 2026-07-27 — o teste de aceitação obrigatório estava errado
+
+Na revisão que reprovou a PR #27 eu fixei uma regra: item cuja spec traz idioma canônico
+ganha, no handoff, um teste de aceitação com valores literais derivados **pelo orquestrador**,
+obrigatório no PR. A assimetria era o argumento — asserção com bytes concretos não pode ser
+satisfeita por modelo mental errado.
+
+O valor que eu escrevi (`r2 = 0x44DDCCBB`) estava errado; o correto é `0x44AABBCC`. Usei
+`mem[0]`, que não pertence à palavra que começa em 1, e descartei `mem[3]`: indexação
+misturada, base-0 no byte do topo e base-1 nos três de baixo.
+
+Peguei carregando as seções da spec **antes** de o PR existir, para ter a revisão pronta na
+chegada. Derivei a tabela por conta e não bati com o meu próprio handoff; conferi pela forma
+algébrica e o segundo caminho concordou com o primeiro, não comigo. O trabalhador estava a
+~6 minutos de execução, sem branch criada. Morto. Segunda rodada abortada na mesma noite.
+
+Três consequências, e nenhuma delas é "abandonar a regra":
+
+1. Valor literal imposto pelo orquestrador passa a ser **derivado duas vezes por caminhos
+   diferentes**, e o handoff carrega a derivação junto com o resultado — para que o
+   trabalhador tenha como reprovar o orquestrador. Handoff também é código: precisa de
+   controle, não de confiança.
+2. **Ler a spec do item enquanto a iteração roda** vira prática do orquestrador. Foi o que
+   converteu um defeito entregue num defeito abortado, e custa espera que já existe.
+3. Reprovei a 0017 por confundir via de byte e cometi o simétrico ao compor os bytes. A
+   diferença não foi competência, foi ter quem revisasse: o trabalhador não tinha ninguém por
+   cima, eu tinha a spec. É argumento a favor da revisão cruzada — não a favor de o revisor
+   ser confiável.
+
+Custo da noite até aqui, sem uma linha de emulador entregue: duas rodadas do trabalhador
+abortadas (~24 min de execução) e três PRs de processo (#28, #29, #30). Registrado como está:
+o projeto mede o processo, e o processo hoje gastou mais do que produziu.

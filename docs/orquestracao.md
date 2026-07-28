@@ -207,3 +207,19 @@ do que aparenta.
 
 Custo da rejeição: US$ 0,0192 e 5 minutos do trabalhador. Reexecutar é mais barato que
 corrigir na branch, e mantém a separação de papéis — o orquestrador não escreve o emulador.
+
+## 2026-07-27 — decisão do usuário: toolchain pinado (iter 0017c)
+
+Das duas saídas registradas na entrada anterior, o usuário escolheu a segunda: pinar. Entrou
+`rust-toolchain.toml` com `channel = "1.97.1"`, e o `ci.yml` deixou de escolher canal — a
+versão vem de um lugar só.
+
+O que faz o pin valer é o segundo meta-teste, não o arquivo: `toolchain_pin.rs` reprova
+`ci.yml` que instale toolchain por conta própria. Sem isso, bastaria alguém reintroduzir um
+`@stable` no workflow para os dois lados divergirem outra vez sem ninguém perceber — que é
+o padrão que este projeto vem corrigindo desde o M0: regra que só existe em prosa degrada,
+regra com meta-teste na CI não.
+
+Custo assumido: lint e correção novos do compilador só chegam quando alguém subir o
+`channel`, e isso vira item de ROADMAP com iteração própria. É o preço de o portão local
+significar o que a CI mede.

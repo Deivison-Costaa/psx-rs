@@ -30,4 +30,5 @@ quando um item passa das 500 linhas de teste, ele vira mais de um arquivo — o 
 Suporte compartilhado em `crates/psx-core/tests/support/`: `mod.rs` (raiz do repo, varredura
 de fontes e de testes, usado pelos meta-testes) e `asm.rs` (montagem de opcodes e bus com
 BIOS vazia, usado pelos testes de CPU).
-Meta-testes de processo: `crates/psx-core/tests/{purity,comment_density,file_size,status_size,roadmap_size,ci_workflow,metrics_freshness}.rs`.
+Meta-testes de processo: `crates/psx-core/tests/{purity,comment_density,file_size,status_size,roadmap_size,ci_workflow,metrics_freshness,toolchain_pin}.rs`.
+A versão do compilador mora em `rust-toolchain.toml` (raiz) e em nenhum outro lugar.

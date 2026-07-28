@@ -1,5 +1,7 @@
 # Sem `if:` nos passos do job check, nunca: um passo pulado não mede nada e deixa o job
 # verde. O meta-teste ci_workflow.rs (item 0.3) reprova o PR que reintroduzir condicional.
+# A versão do compilador vem do rust-toolchain.toml e de nenhum outro lugar — este workflow
+# não escolhe canal (toolchain_pin.rs reprova quem voltar a escolher).
 name: CI
 
 on:
@@ -13,7 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - name: instala o compilador pinado no rust-toolchain.toml
+        run: rustup toolchain install --no-self-update && cargo --version
       - uses: Swatinem/rust-cache@v2
       - run: sudo apt-get update && sudo apt-get install -y libasound2-dev libudev-dev libxkbcommon-dev
       - run: cargo fmt --all -- --check

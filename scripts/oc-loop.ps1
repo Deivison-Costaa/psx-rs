@@ -8,9 +8,14 @@
 #
 # Antes de entregar o PR ao revisor, o loop aplica na branch as remediacoes DETERMINISTICAS
 # dos desvios que o trabalhador repetiu (iters 0009, 0010, 0011): checkbox do ROADMAP nao
-# marcado, metricas pendentes nao incorporadas, e lint reprovado por toolchain da CI mais
-# nova que a local. O que e semantico (escopo do handoff, correcao do hardware) continua
-# sendo trabalho do revisor.
+# marcado, metricas pendentes nao incorporadas, e formatacao/lint reprovados.
+#
+# A terceira remediacao NAO cobre "CI com toolchain mais novo que o local" - `clippy --fix`
+# so enxerga o que o clippy local enxerga, e foi assim que a 0016 abriu PR vermelha. Essa
+# classe de falha deixou de existir na 0017c, com o toolchain pinado em rust-toolchain.toml.
+#
+# O que e semantico (escopo do handoff, correcao do hardware) continua sendo trabalho do
+# revisor - e a 0017 mostrou que e ali que mora o defeito caro.
 param(
     [int]$N = 1,
     [switch]$AutoMerge,

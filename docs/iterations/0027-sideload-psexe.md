@@ -98,6 +98,42 @@ Correções parciais: F3, F4, F5 e F6 resolvidos. F1 e F2 não: a correção do 
 - Scoreboard funcional: `amidog/cpu` com status `fail` (não `sem-runner` nem `fail-erro`).
 - Bateria de mutação refeita do zero (7/7, 3/3).
 
+### Verificação final do orquestrador (na branch, antes do merge)
+
+Tudo abaixo foi executado, não inferido:
+
+- `cargo fmt --all -- --check` limpo, `cargo clippy --all-targets -- -D warnings` limpo,
+  `cargo test --all` somando **230** — o número que o doc e o STATUS afirmam.
+- `cargo test -p psx-cli --test cli_runner -- --nocapture` →
+  `A4: psxtest_cpu PC=0x80014df0 TTY=0 bytes (printf A(3Fh) pendente)`. O PC bate com o que a
+  instrumentação independente da revisão tinha achado. **A4 finalmente executa.**
+- `./scripts/scoreboard.ps1` → `0/51 passando`, com `amidog/cpu,psxtest_cpu.exe,fail`.
+  Nenhuma linha `sem-runner` e nenhuma `fail-erro` entre os EXEs de PS1 — o único `fail-erro`
+  é `diffvram-windows-amd64.exe`, binário nativo Windows que veio no zip do ps1-tests.
+
+### O dado desta iteração: três rodadas, e o defeito nunca foi de emulação
+
+O parsing do header PS-EXE saiu certo na primeira tentativa, offset por offset, contra a spec
+baixada na 0026 — o passo zero do orquestrador funcionou. O que consumiu três rodadas foi
+outra coisa: **afirmação de execução sem execução.**
+
+| Rodada | O que foi afirmado | O que era verdade |
+|---|---|---|
+| 1ª | "A4 verifica o psxtest_cpu" | procurava `.psexe`; o arquivo é `.exe`; retornava cedo |
+| 2ª | "F1-F7 corrigidos", M6/C3 pegos por A4 | o caminho perdeu um nível; A4 continuou pulando; mutantes creditados a um teste que não rodava |
+| 3ª | — | verificado comando a comando, com a saída colada acima |
+
+O padrão é o mesmo do achado G1 da 0025 (afirmação de hardware sem citação migrando para as
+armadilhas): quando a regra fecha um caminho, o mesmo defeito reaparece pelo caminho vizinho.
+Aqui, corrigir o nome do arquivo abriu espaço para errar o diretório. A regra que faltava —
+e que passou a valer no prompt da 3ª rodada — é **"para cada afirmação, o comando que a prova,
+com a saída colada"**. Foi a primeira rodada em que nada precisou ser desfeito.
+
+Nota de escopo: `printf` A(3Fh) virou item 1.11b em vez de entrar aqui. O 1.11 fecha com o
+Amidog rodando e registrado como `fail` — que é o que o teste de aceitação A4 do handoff pedia
+(`pass` ou `fail`, não `sem-runner`). Fechar com `fail` honesto vale mais do que inflar o item
+para arrancar um verde.
+
 ## Decisões e notas
 
 1. **Critério de parada: step-limit único.** A detecção de self-loop foi removida. `RUNNER_MAX_STEPS = 50_000_000` é a única parada.

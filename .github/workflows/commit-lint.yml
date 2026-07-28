@@ -3,6 +3,9 @@ name: commit-lint
 
 on:
   pull_request:
+    # 'edited' entra porque o titulo e validado aqui: sem ele, um titulo corrigido depois nunca
+    # fica verde (rerun reexecuta com o payload antigo) e so um push novo destrava o merge.
+    types: [opened, synchronize, reopened, edited]
 
 jobs:
   commit-lint:

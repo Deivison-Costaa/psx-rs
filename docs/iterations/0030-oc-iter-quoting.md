@@ -66,6 +66,14 @@ código de emulação. A rodada perdida foi despachada por mim, com um prompt es
    drenar stdout/stderr em thread separada — o opencode emite ~500 KB de JSON e encheria o
    buffer do pipe. A troca de uma linha resolve o defeito observado sem trocar o mecanismo de
    redirecionamento que já funciona.
-3. **O que continua frágil:** uma barra invertida imediatamente antes de uma aspa no prompt
+3. **Terceiro defeito, achado ao abrir este próprio PR:** o título saiu como
+   `(processo)` e o `commit-lint` reprovou — correto, o formato exige `(ROADMAP X.Y)`, e
+   iteração de processo referencia o item que serviu (a 0023 referenciou 1.9; esta referencia
+   1.11b). Mas corrigir o título **não** deixava o check verde: `on: pull_request` sem `types`
+   dispara só em `opened|synchronize|reopened`, e `gh run rerun` reexecuta com o payload
+   antigo — o título velho. Ou seja: título errado só se conserta com push novo ou
+   fechar/reabrir o PR. Adicionado `types: [opened, synchronize, reopened, edited]` em
+   `.github/workflows/commit-lint.yml`.
+4. **O que continua frágil:** uma barra invertida imediatamente antes de uma aspa no prompt
    ainda quebraria o escape. Não vi nenhuma nas nove rodadas até aqui; fica registrado em vez
    de tratado, para não gastar complexidade em caso hipotético.

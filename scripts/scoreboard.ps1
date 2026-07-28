@@ -10,7 +10,9 @@ $TimeoutSec = 120
 if (-not (Test-Path $ExeRoot)) {
     New-Item -ItemType Directory -Force $OutDir | Out-Null
     Write-Host "scoreboard: 0/0 — tests/exes/ nao existe (sem EXEs para avaliar)"
-    Set-Content $OutFile "ts,commit,suite,exe,status,ciclos"
+    if (-not (Test-Path $OutFile)) {
+        Set-Content $OutFile "ts,commit,suite,exe,status,ciclos"
+    }
     exit 0
 }
 New-Item -ItemType Directory -Force $OutDir | Out-Null

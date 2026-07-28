@@ -91,7 +91,32 @@ O job publicava em `push` e `pull_request`. Corrigido: passo de publicação gua
 - `ci.yml` sem newline no fim → adicionado.
 - `scripts/scoreboard.ps1` passou de 112 para 118 linhas.
 
-## Decisões e notas
+### Verificação do orquestrador, executando
+
+(O bloco acima foi escrito pelo trabalhador resumindo os achados; esta seção é a que o
+orquestrador assina. O resumo confere com o que eu tinha postado no PR.)
+
+- `cargo fmt --check` e `cargo clippy -D warnings` limpos; `cargo test --all` = **247**.
+- `./scripts/scoreboard.ps1` → `50/51 produziram saida`, com `host-bin 1` (o `diffvram`) e
+  `tty 50`. Voltou às 51 linhas por varredura; o I2 está resolvido de fato.
+- CI no head real (`904dec6`): `check` **success**, `scoreboard` **success**, com o passo de
+  publicação pulado por ser evento de `pull_request` — que é o comportamento pedido no I3.
+  O A3 do handoff, portanto, sai de "pendente" para verificado **no que dá para verificar
+  antes do merge**: o job roda verde. A publicação em si só exercita na primeira execução em
+  `push` na main, depois deste merge — e continua declarada como não verificada até lá.
+
+### Dois consertos meus nesta branch
+
+1. **`Set-Content $OutFile` no caminho de saída graciosa truncava a série local.** Quando
+   `tests/exes/` não existe, o script escrevia o header por cima de um `logs/scoreboard.csv`
+   já existente, apagando as varreduras anteriores. No runner não faz diferença (checkout
+   limpo), na máquina de quem desenvolve faz. Agora só escreve o header se o arquivo não
+   existir, igual ao caminho normal.
+2. **O detalhamento do placar no STATUS estava com `10 cli_runner`; são 9.** O total (247)
+   sempre foi medido e está certo; a soma das parcelas dava 248. A discrepância entrou na
+   0029 e passou por duas revisões — inclusive as minhas, que conferiram o total e não as
+   parcelas. Mesma família do erro registrado na 0022 (placar do STATUS errado por três
+   iterações): conferir o número que se lê não basta, é preciso conferir a conta que o produz.
 
 1. **Pré-filtro por extensão + magic bytes:** `scripts/scoreboard.ps1` agora varre `tests/exes/` com `Get-ChildItem -Include *.exe, *.psexe -Recurse` e lê os 8 primeiros bytes (via `FileStream`) de cada um. Arquivos com magic `PS-X EXE` seguem para execução; arquivos com extensão executável sem magic viram `host-bin` (uma linha, o `diffvram`); arquivos sem extensão executável não geram linha.
 

@@ -156,3 +156,108 @@ fn bcc_em_kseg2() {
         "D6: RAM em 0x001E_0130 nao foi tocada pela escrita em FFFE0130"
     );
 }
+
+fn ram_offset_of(addr: u32) -> u32 {
+    addr & 0x1F_FF_FF
+}
+
+#[test]
+fn memctrl_bcc_read8_read16_nao_alias_ram() {
+    let mut bus = bus_with_bios_empty();
+    let ram_alias = ram_offset_of(0x1F80_1060);
+    bus.write32::<BusRead>(ram_alias, 0xEEEE_EEEE);
+    bus.write32::<BusRead>(0x1F80_1060, 0x0000_0B88);
+    assert_eq!(
+        bus.read8::<BusRead>(0x1F80_1060),
+        0x88,
+        "F1: read8 RAM_SIZE byte0 le o registrador, nao a RAM"
+    );
+    assert_eq!(
+        bus.read8::<BusRead>(0x1F80_1061),
+        0x0B,
+        "F1: read8 RAM_SIZE byte1 le o registrador, nao a RAM"
+    );
+    assert_eq!(
+        bus.read16::<BusRead>(0x1F80_1060),
+        0x0B88,
+        "F1: read16 RAM_SIZE le o registrador"
+    );
+    let bcc_ram_alias = ram_offset_of(0xFFFE_0130);
+    bus.write32::<BusRead>(bcc_ram_alias, 0xEEEE_EEEE);
+    bus.write32::<BusRead>(0xFFFE_0130, 0xABCD_EF01);
+    assert_eq!(
+        bus.read8::<BusRead>(0xFFFE_0130),
+        0x01,
+        "F1: read8 BCC byte0 le o registrador"
+    );
+}
+
+#[test]
+fn io_catch_all_nao_corrompe_ram() {
+    let mut bus = bus_with_bios_empty();
+    bus.write32::<BusRead>(0x0000_1074, 0xEEEE_EEEE);
+    bus.write32::<BusRead>(0x0000_1080, 0xEEEE_EEEE);
+    bus.write32::<BusRead>(0x0000_1078, 0xEEEE_EEEE);
+    bus.write32::<BusRead>(0x1F80_1074, 0x0000_0FFF);
+    assert_eq!(
+        bus.read32::<BusRead>(0x0000_1074),
+        0xEEEE_EEEE,
+        "F2: RAM em 0x1074 nao foi tocada por escrita big em I_STAT"
+    );
+    assert_eq!(
+        bus.read32::<BusRead>(0x1F80_1074),
+        0,
+        "F2: I_STAT stub devolve 0 no read32"
+    );
+    assert_eq!(
+        bus.read8::<BusRead>(0x1F80_1074),
+        0,
+        "F2: I_STAT stub devolve 0 no read8"
+    );
+    assert_eq!(
+        bus.read16::<BusRead>(0x1F80_1074),
+        0,
+        "F2: I_STAT stub devolve 0 no read16"
+    );
+    bus.write32::<BusRead>(0x1F80_1080, 0xFFFF_FFFF);
+    assert_eq!(
+        bus.read32::<BusRead>(0x0000_1080),
+        0xEEEE_EEEE,
+        "F2: RAM em 0x1080 nao foi tocada por escrita em DMA"
+    );
+    assert_eq!(
+        bus.read32::<BusRead>(0x1F80_1080),
+        0,
+        "F2: DMA stub devolve 0"
+    );
+    bus.write16::<BusRead>(0x1F80_1074, 0x0FFF);
+    bus.write8::<BusRead>(0x1F80_1074, 0xFF);
+    assert_eq!(
+        bus.read32::<BusRead>(0x0000_1074),
+        0xEEEE_EEEE,
+        "F2: RAM nao corrompida por write16/write8 no I/O"
+    );
+    assert_eq!(
+        bus.read32::<BusRead>(0x1F80_1074),
+        0,
+        "F2: read32 apos write16/write8 devolve 0"
+    );
+}
+
+#[test]
+fn isc_nao_engole_address_error_sw() {
+    let mut bus = bus_with_bios_empty();
+    let mut cpu = Cpu::new();
+    cpu.pc = 0;
+    cpu.regs[4] = 0x0000_0201;
+    cpu.regs[5] = 0xCAFE_BABE;
+    cpu.cop0[12] = 0x0001_0000;
+    escreve_instrucoes(&mut bus, 0, &[sw(5, 4, 0), nop()]);
+    cpu.step(&mut bus);
+    assert_eq!(
+        cpu.cop0[13] & 0x7C,
+        0x14,
+        "F3: CAUSE tem AdES (0x14) mesmo com Isc=1"
+    );
+    assert_eq!(cpu.cop0[8], 0x0000_0201, "F3: BadVaddr = 0x0000_0201");
+}

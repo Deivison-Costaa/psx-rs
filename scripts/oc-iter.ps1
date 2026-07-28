@@ -49,9 +49,15 @@ $stamp = Get-Date -Format "yyyyMMdd-HHmmss"
 $outFile = "logs/oc-iter-$stamp.json"
 $errFile = "logs/oc-iter-$stamp.err"
 
+# Start-Process -ArgumentList NAO reescapa: o prompt vira um argumento so porque esta entre
+# aspas, e uma aspa DENTRO dele fecha a regiao citada. Dai qualquer token comecando com "-"
+# que caia fora vira flag do CLI (o "->" de "remover o teto -> teste trava" derrubou a rodada
+# de 28/07 11:52, com o opencode imprimindo o help). Escapar as aspas resolve.
+$promptArg = '"' + ($prompt -replace '"', '\"') + '"'
+
 $sw = [System.Diagnostics.Stopwatch]::StartNew()
 $p = Start-Process $oc -ArgumentList "run", "--attach", "http://localhost:$Port",
-    "-m", $Model, "--format", "json", "`"$prompt`"" -NoNewWindow -PassThru `
+    "-m", $Model, "--format", "json", $promptArg -NoNewWindow -PassThru `
     -RedirectStandardOutput $outFile -RedirectStandardError $errFile
 $done = $p.WaitForExit($TimeoutMin * 60 * 1000)
 if (-not $done) {
@@ -71,7 +77,11 @@ if ($resultado -eq "ok" -and (Get-Item $outFile).Length -lt 1000) {
 # Parser calibrado no smoke test 0008b sobre o JSON real do opencode 1.18.3: cada evento
 # step_finish traz "cost" e "tokens"{input,output} DAQUELE step - os totais sao a SOMA.
 # ("input" exclui cache read; steps conta so o evento "step_finish", nao o part "step-finish".)
+# Arquivo vazio devolve $null no -Raw, e [regex]::Matches($null,...) lanca excecao ANTES do
+# Add-Content la embaixo: a rodada de 28/07 11:52 falhou e nao deixou linha de metrica nenhuma.
+# Justo a falha e o dado que mais interessa registrar aqui.
 $raw = if (Test-Path $outFile) { Get-Content $outFile -Raw } else { "" }
+if ($null -eq $raw) { $raw = "" }
 $steps = ([regex]::Matches($raw, '"type":"step_finish"')).Count
 $costV = ([regex]::Matches($raw, '"cost":([0-9.eE+-]+)') |
     ForEach-Object { [double]$_.Groups[1].Value } | Measure-Object -Sum).Sum

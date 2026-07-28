@@ -293,15 +293,25 @@ fn psxtest_cpu_sideload_executa_sem_panico() {
 
     let tty = bus.take_tty();
     assert!(
+        !tty.is_empty(),
+        "A4: TTY nao deve estar vazio — printf A(3Fh) deve estar implementado (ROADMAP 1.11b)"
+    );
+    let tty_str = String::from_utf8_lossy(&tty);
+    assert!(
+        tty_str.contains("args: 0"),
+        "A4: TTY deve conter 'args: 0' apos printf; TTY={:?}",
+        tty_str
+    );
+    assert!(
         cpu.pc >= 0x8000_0000 && cpu.pc <= 0x807F_FFFF,
-        "A4: PC {:#x} deve estar em KSEG0 apos execucao (fora da faixa carregada?); TTY={} bytes",
+        "A4: PC {:#x} deve estar em KSEG0 apos execucao; TTY={} bytes",
         cpu.pc,
         tty.len()
     );
     eprintln!(
-        "A4: psxtest_cpu PC={:#x} TTY={} bytes (printf A(3Fh) pendente)",
+        "A4: psxtest_cpu PC={:#x} TTY='{}' (printf OK)",
         cpu.pc,
-        tty.len()
+        tty_str.trim_end()
     );
 }
 

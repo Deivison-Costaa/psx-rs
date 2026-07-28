@@ -5,15 +5,15 @@
 
 ## Última iteração concluída
 
-**0027** — Sideload de PS-EXE no psx-cli (ROADMAP 1.11): módulo `psx-core::psexe`
-com `load_psexe()` que parseia o header de 800h bytes (campos 10h-34h), carrega o corpo
-em RAM via `Bus` (tradução KSEG0→físico automática), zera BSS word-a-word, configura
-CPU (PC, GP, SP/FP com guarda `base≠0`, R4=1, R5=0). CLI aceita `--bios <path> --exe
-<path>`, executa com step-limit de 50M passos e emite TTY no stdout. 7 testes (A1-A5 +
-sp_fp_base_zero), 5/5 mutantes pegos, 2/2 controles verdes. Armadilhas: BSS dentro do
-body range sobrevivia a mutação (corrigido para 0x8000_1000); JMP $ da A2 saltava para
-code_addr em vez do próprio endereço (TTY=14 bytes). Ver
-`docs/iterations/0027-sideload-psexe.md`.
+**0027-correcao** — Rodada de correção da iter 0027 após revisão adversarial no PR #41.
+Bloco F1+F2: sideload agora instala stubs `jr $ra` em A0h/B0h/C0h (`psexe::install_return_stubs`)
+antes de entregar controle ao EXE; A2 parou de escrever `jr $ra` à mão. A4 usa o nome correto
+(`psxtest_cpu.exe`, não `.psexe`) e exercita o EXE real com stubs, afirmando TTY não vazio.
+Bloco F3: zero `unwrap()`/`expect()` em produção. Bloco F4: corpo truncado rejeitado com `Err`.
+Bloco F5: `cargo fmt` rodado. Bloco F6: detecção de halt removida (step-limit único), asserção
+de A1 ajustada para afirmar passos executados. Bloco F7: handoff do 1.12 reescrito no padrão.
+Scoreboard adaptado para invocar psx-cli real com `--bios --exe`, registrando `sem-bios` se a
+BIOS estiver ausente. 11 testes (10 cli_runner + 1 bios_flag), 230 no workspace.
 
 **0023** — Iteração de processo (sem código): incorporação das métricas pendentes da 0022 e
 registro do erro de escopo múltiplo em commit reprovado pelo `commit-lint`.
@@ -38,8 +38,32 @@ offsets citados linha a linha. Ver `docs/iterations/0026-spec-formato-psexe.md`.
 
 **ROADMAP 1.12** — CI: job scoreboard ligado + primeiro placar real no histórico.
 
-**Arquivos-alvo:** `.github/workflows/check.yml` (novo job `scoreboard`), `scripts/scoreboard.ps1`
-(adaptar para runner real em vez de `sem-runner`).
+**Spec:** O item não tem spec de hardware. Os arquivos de referência são:
+
+| Fonte | Seção | Arquivo local |
+|---|---|---|
+| ROADMAP | Item 1.12 (L32) | `ROADMAP.md` |
+| Scoreboard | script completo (L1-88) | `scripts/scoreboard.ps1` |
+| CI workflow | job check (L1-24) | `.github/workflows/ci.yml` |
+| Fetch de EXEs | script de download (L1-67) | `scripts/fetch-test-exes.ps1` |
+| BIOS | nota 1: local e hash | `STATUS.md` L71-72 |
+
+**Arquivos-alvo:**
+- `.github/workflows/ci.yml` — novo job `scoreboard` após `check`, com steps: checkout → rust → cache → fetch-test-exes → build psx-cli → roda `scripts/scoreboard.ps1` → commita `logs/scoreboard.csv` na branch `scoreboard-data`.
+- `scripts/scoreboard.ps1` — já adaptado nesta rodada para invocar `psx-cli --bios --exe`; o job de CI só precisa chamá-lo.
+
+**Armadilhas:**
+1. **BIOS é gitignored** (`STATUS.md` L71-72). O scoreboard já emite `sem-bios` quando `bios/SCPH1001.BIN` não existe. O job de CI precisa ou baixar a BIOS de um secret, ou aceitar `sem-bios` como estado legítimo.
+2. **EXEs são gitignored** — `scripts/fetch-test-exes.ps1` baixa do GitHub Releases. O job de CI precisa rodá-lo antes do scoreboard, e se falhar (sem token, rate-limit), o scoreboard roda vazio (0/0) sem quebrar o job.
+3. **Branch `scoreboard-data` é órfã.** Commits nela são append-only (`logs/scoreboard.csv`), nunca force-push. O job precisa de `actions/checkout` com `fetch-depth: 0` ou checkout separado da branch de dados. Documente o mecanismo no doc da iteração.
+4. **Timeout:** o Amidog `psxtest_cpu` roda ~5 segundos com step-limit de 50M. O timeout do job por EXE (`scoreboard.ps1` L120) está em 120s — se um EXE travar, o job pode levar `N * 120s`. Considere timeout de job no workflow (`timeout-minutes`).
+
+**Testes de aceitação:**
+- A1: `cargo test -p psx-cli --test cli_runner psxtest_cpu_sideload_real` passa quando `psxtest_cpu.exe` existe (TTY não vazio).
+- A2: `scripts/scoreboard.ps1` roda sem erro e produz `logs/scoreboard.csv` com header + pelo menos 1 linha.
+- A3: O job `scoreboard` no `ci.yml` está verde em PRs que não quebram o core (roda com `if: success()` após `check`).
+
+
 
 ## Repositório
 
@@ -53,7 +77,7 @@ offsets citados linha a linha. Ver `docs/iterations/0026-spec-formato-psexe.md`.
 
 ## Placar de testes
 
-Workspace: **228** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 27 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 7 cli_runner).
+Workspace: **230** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 27 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 10 cli_runner).
 
 ## Bloqueios
 

@@ -22,6 +22,7 @@ $Chapters = [ordered]@{
     "13-kernel-bios.md"          = "kernelbios.md"
     "14-io-map.md"               = "iomap.md"
     "15-cdrom-format.md"         = "cdromformat.md"
+    "16-cdrom-file-formats.md"   = "cdromfileformats.md"
 }
 
 $OutDir = "docs/reference"

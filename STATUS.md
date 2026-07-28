@@ -5,12 +5,7 @@
 
 ## Última iteração concluída
 
-**0031** — CI: job scoreboard ligado + filtro por magic bytes no script de placar (ROADMAP 1.12).
-`scripts/scoreboard.ps1` agora varre todos os arquivos e verifica os 8 primeiros bytes (`PS-X EXE`);
-binários de host (`diffvram-*.exe`) rotulados `host-bin` em vez de `fail-erro`. Job `scoreboard`
-adicionado ao `ci.yml` (após `check`, com `needs`/`if: success()`, timeout 15 min), publicando
-`scoreboard-data.csv` na branch órfã `scoreboard-data`. ROADMAP 1.13 (veredito real) adicionado como
-dependente do 2.1. Bateria 6/6, 2/2. 244 testes no workspace.
+**0031** — Rodada de correção (I1-I4): `permissions: contents: write` no job, pré-filtro por extensão + magic bytes (51 linhas/varredura, sem readmes), publish só na main, graceful exit sem EXEs (ROADMAP 1.12). Scoreboard 50/51. Bateria 10/10, 2/2. 247 testes (6 ci_scoreboard).
 Ver `docs/iterations/0031-ci-scoreboard-job.md`.
 
 ## Próxima tarefa
@@ -55,7 +50,7 @@ Ver `docs/iterations/0031-ci-scoreboard-job.md`.
 
 ## Placar de testes
 
-Workspace: **244** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 27 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 3 ci_scoreboard + 10 cli_runner).
+Workspace: **247** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 27 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 6 ci_scoreboard + 10 cli_runner).
 
 ## Bloqueios
 

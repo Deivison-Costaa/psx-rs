@@ -42,7 +42,52 @@ Workspace: **178** testes (151 anteriores + 27 de unaligned load/store). Meta-te
 
 ## Revisão cruzada (orquestrador)
 
-<!-- Preenchido pelo Claude na revisão do PR -->
+Revisão adversarial completa na PR #32 (três comentários, incluindo duas retratações do
+revisor). Verificação da implementação por três caminhos independentes:
+
+1. **Derivação algébrica das 16 posições.** `LWL: rt = (rt & ((1 << 8*(3-k)) - 1)) | (palavra
+   << 8*(3-k))`; `LWR: rt = (rt & !(0xFFFF_FFFF >> 8*k)) | (palavra >> 8*k)`; `SWL` escreve os
+   `k+1` bytes altos de rt em `[base+0..base+k]`, `SWR` os `4-k` bytes baixos em
+   `[base+k..base+3]`. 16/16 conferem.
+2. **Sonda com os dois testes de aceitação do handoff**, escrita pelo orquestrador antes de ler
+   o código do PR e não commitada. Ambos passam.
+3. **Mutação com os dois defeitos exatos da PR #27** (máscara em vez de deslocamento no
+   `LWL k=0`; `reg_with_pending` → `reg`): esta suíte pega os dois, com 6 e 2 testes falhando.
+   É a evidência mais forte da iteração — os testes desta tentativa teriam reprovado a anterior.
+
+### Achados que geraram correção na mesma branch
+
+- **Bateria de mutação irreproduzível:** os 7 nomes de teste da tabela não existiam no arquivo.
+  Placar certo, registro inutilizável. Corrigido com re-execução real.
+- **Lacuna de cobertura achada por mutação mais fina:** trocar `reg_with_pending` por `reg`
+  **apenas dentro de `fn lwl`** não quebrava nenhum dos 25 testes — nenhum caso cobria o LWL
+  lendo um load pendente. Comportamento certo, não testado. Fechado por
+  `lwl_enxerga_load_delay_de_lw_no_mesmo_registrador`.
+- **Teste de aceitação obrigatório ausente:** o round-trip `swl`/`swr` → `lwl`/`lwr` do handoff
+  não foi escrito, e o doc afirmava que existia. Fechado por
+  `round_trip_swl_swr_seguido_de_lwl_lwr`, cujas asserções batem com as da sonda do orquestrador.
+- **Título do PR reprovava o `commit-lint`** (`(ROADMAP 1.7, segunda tentativa)`). Corrigido pelo
+  orquestrador.
+
+### Achado sobre o handoff, não sobre o trabalho
+
+O teste de aceitação original usava `write32(base, 0xDDCC_BBAA)` onde o handoff dizia bytes
+`[0..3] = DD CC BB AA` (que é `0xAABBCCDD`) — layout invertido, asserção internamente correta,
+caso especificado não verificado. O valor resultante, `0x44DDCCBB`, é **exatamente** o literal
+errado que o orquestrador publicou e corrigiu na 0017e; como a correção foi feita "com rastro",
+ele seguia visível 6× no repositório. Ancoragem plausível. A tensão entre honestidade
+metodológica (manter o erro visível) e limpeza de handoff (não deixar valor errado ao alcance
+do trabalhador) fica registrada em `docs/orquestracao.md`.
+
+### Retratações do revisor
+
+Duas acusações minhas estavam erradas e foram retiradas no próprio PR: (a) a citação de spec
+`L240` deste PR é **mais precisa** que a `L235` do meu próprio
+`docs/iterations/0017-cpu-unaligned-load-store.md` — `L235` é a seção-pai `Load/Store
+Alignment`, `L240` é `Unaligned Load/Store`; (b) o mutante 5 da tabela, como descrito
+(helper inteiro mutado), **é** pego — a mutação que escapava era a minha, mais fina, só no ponto
+de chamada do `lwl`. Disso sai regra para a bateria: **mutar um helper compartilhado por N
+chamadores testa 1 mutante, não N; mutar cada ponto de chamada.**
 
 ## Decisões e notas
 

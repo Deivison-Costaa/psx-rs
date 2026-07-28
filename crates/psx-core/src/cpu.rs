@@ -219,10 +219,20 @@ impl Cpu {
             0x11 => self.mthi(instr),
             0x12 => self.mflo(instr),
             0x13 => self.mtlo(instr),
+            0x0C => {}
+            0x0D => {}
             0x18 => self.mult(instr),
             0x19 => self.multu(instr),
             0x1A => self.div(instr),
             0x1B => self.divu(instr),
+            0x20 => {
+                let val = self.reg(rs).wrapping_add(self.reg(rt));
+                self.set_reg(rd, val);
+            }
+            0x22 => {
+                let val = self.reg(rs).wrapping_sub(self.reg(rt));
+                self.set_reg(rd, val);
+            }
             _ => unimplemented!("secondary opcode={:02X} nao implementado", secondary),
         }
     }

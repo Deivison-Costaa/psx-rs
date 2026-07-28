@@ -137,7 +137,10 @@ impl Gpu {
                             count: 1,
                         }
                     }
-                    4 => VramState::SkipParams { remaining: 3 },
+                    4 => {
+                        self.stat.set(self.stat.get() & !(1 << 26));
+                        VramState::SkipParams { remaining: 3 }
+                    }
                     _ => match cmd {
                         0x02 => {
                             self.stat.set(self.stat.get() & !(1 << 26));
@@ -170,6 +173,7 @@ impl Gpu {
             }
             VramState::SkipParams { remaining } => {
                 if remaining <= 1 {
+                    self.stat.set(self.stat.get() | (1 << 26));
                     self.vram_state.set(VramState::Idle);
                 } else {
                     self.vram_state.set(VramState::SkipParams {
@@ -414,7 +418,10 @@ impl Gpu {
                 self.dma_direction.set(0);
                 self.vram_state.set(VramState::Idle);
             }
-            0x01 => {}
+            0x01 => {
+                self.vram_state.set(VramState::Idle);
+                self.stat.set(self.stat.get() | (1 << 26));
+            }
             0x02 => {
                 let s = self.stat.get();
                 self.stat.set(s & !(1 << 24));

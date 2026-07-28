@@ -488,9 +488,5 @@ fn swr_com_isc_ligado_nao_consome_o_gpuread() {
     cpu.step(&mut bus);
 
     let w = bus.read32::<BusRead>(GPU0);
-    assert_eq!(
-        w, 0x1234_5678,
-        "idem para swr, obtida 0x{:08X}",
-        w
-    );
+    assert_eq!(w, 0x1234_5678, "idem para swr, obtida 0x{:08X}", w);
 }

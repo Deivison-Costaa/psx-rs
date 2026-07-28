@@ -337,14 +337,26 @@ fn gp1_00h_reset_preserva_vram() {
     gpu.write32(0, (300u32 << 16) | 0x40);
     gpu.write32(0, 0x0001_0010);
     assert_eq!(gpu.vram_pixel(0, 0), 0x7C64, "antes do reset, (0,0)");
-    assert_eq!(gpu.vram_pixel(0x40, 300), 0x7C64, "antes do reset, (0x40,300)");
-    assert_eq!(gpu.vram_pixel(0x4F, 300), 0x7C64, "fill na linha 300 chega ao fim");
+    assert_eq!(
+        gpu.vram_pixel(0x40, 300),
+        0x7C64,
+        "antes do reset, (0x40,300)"
+    );
+    assert_eq!(
+        gpu.vram_pixel(0x4F, 300),
+        0x7C64,
+        "fill na linha 300 chega ao fim"
+    );
     assert_eq!(gpu.vram_pixel(0x40, 0), 0, "linha 0 nao recebeu o 2o fill");
 
     gpu.write32(4, 0x00 << 24);
     assert_eq!(gpu.vram_pixel(0, 0), 0x7C64, "GP1(00h) preserva (0,0)");
     assert_eq!(gpu.vram_pixel(15, 0), 0x7C64, "GP1(00h) preserva (15,0)");
-    assert_eq!(gpu.vram_pixel(0x40, 300), 0x7C64, "GP1(00h) preserva (0x40,300)");
+    assert_eq!(
+        gpu.vram_pixel(0x40, 300),
+        0x7C64,
+        "GP1(00h) preserva (0x40,300)"
+    );
     assert_eq!(gpu.stat(), 0x1480_2000, "GP1(00h): stat = 14802000h");
 }
 
@@ -359,8 +371,16 @@ fn a0h_ysiz_513_mascara_para_1_linha() {
 
     gpu.write32(0, 0x00BB_00AA);
 
-    assert_eq!(gpu.vram_pixel(0, 0), 0x00AA, "Ysiz=513 -> 1 linha: pixel(0,0)");
-    assert_eq!(gpu.vram_pixel(1, 0), 0x00BB, "Ysiz=513 -> 1 linha: pixel(1,0)");
+    assert_eq!(
+        gpu.vram_pixel(0, 0),
+        0x00AA,
+        "Ysiz=513 -> 1 linha: pixel(0,0)"
+    );
+    assert_eq!(
+        gpu.vram_pixel(1, 0),
+        0x00BB,
+        "Ysiz=513 -> 1 linha: pixel(1,0)"
+    );
     assert_eq!(gpu.vram_pixel(0, 1), 0, "Ysiz=513 -> 1 linha: pixel(0,1)=0");
     assert_eq!(
         (gpu.read32(4) >> 26) & 1,

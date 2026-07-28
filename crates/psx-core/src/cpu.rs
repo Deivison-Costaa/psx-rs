@@ -58,6 +58,11 @@ impl Cpu {
 
         if let Some(exc_code) = self.pending_exception.take() {
             let bad_vaddr = self.exception_badvaddr.take();
+
+            let sr = self.cop0[12];
+            let ie_ku_shifted = ((sr & 0x3) << 2) | ((sr & 0xC) << 2);
+            self.cop0[12] = (sr & !0x3F) | ie_ku_shifted;
+
             let mut cause = (exc_code as u32) << 2;
             if in_delay_slot {
                 cause |= 1 << 31;
@@ -65,7 +70,7 @@ impl Cpu {
                     cause |= 1 << 30;
                 }
             }
-            self.cop0[13] = cause;
+            self.cop0[13] = (self.cop0[13] & !0xC000_007C) | cause;
 
             if in_delay_slot {
                 self.cop0[14] = instr_pc.wrapping_sub(4);
@@ -83,6 +88,9 @@ impl Cpu {
                 0x8000_0080
             };
 
+            if let Some((reg, val)) = self.load_delay.take() {
+                self.set_reg(reg, val);
+            }
             self.branch_target = None;
             return;
         }

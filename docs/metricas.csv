@@ -28,3 +28,5 @@ ts,iter,resultado,custo_usd,tokens_in,tokens_out,steps,duracao_ms,head_antes,hea
 2026-07-27T20:19:30-03:00,0016,ok,0.0288,55713,25870,96,428188,8e5030b,27edf98,deepseek/deepseek-chat,trabalhador
 2026-07-27T20:48:40-03:00,0017,rejeitado:semantica,0.0192,36756,28170,48,316934,a99d671,a8b803f,deepseek/deepseek-chat,trabalhador
 2026-07-27T21:35:00-03:00,0017c,ok,,,,,,6a352c0,,claude-orquestrador,orquestrador
+2026-07-27T21:05:54-03:00,0018,abortado:troca-de-modelo,,,,,1116000,4d9af29,f94858b,deepseek/deepseek-chat,trabalhador
+2026-07-27T21:27:18-03:00,0017d,ok,,,,,,4d9af29,,claude-orquestrador,orquestrador

@@ -19,7 +19,7 @@
 param(
     [int]$N = 1,
     [switch]$AutoMerge,
-    [string]$Model = "deepseek/deepseek-chat"
+    [string]$Model = "deepseek/deepseek-v4-pro"
 )
 $ErrorActionPreference = "Stop"
 

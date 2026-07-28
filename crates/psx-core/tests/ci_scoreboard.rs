@@ -171,9 +171,11 @@ fn scoreboard_extrai_pass_fail_com_dedup() {
          capturar ambas com regex."
     );
 
-    let tem_dedup = script.contains("Sort-Object") && script.contains("Get-Unique");
+    let tem_dedup_pipeline = script.lines().any(|l| {
+        l.contains("^(pass|fail) - ") && l.contains("Sort-Object") && l.contains("Get-Unique")
+    });
     assert!(
-        tem_dedup,
+        tem_dedup_pipeline,
         "scripts/scoreboard.ps1 não faz dedup das linhas de pass/fail. \
          O code-in-io repete 3 linhas × 3 134 iterações; contar cada ocorrência \
          infla o placar em 3×. O parser deve usar Sort-Object | Get-Unique para \

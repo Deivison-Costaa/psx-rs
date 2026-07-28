@@ -243,6 +243,33 @@ fn printf_string_vazia() {
     );
 }
 
+// ===== A11 — string de formato sem terminador (teto de 1 MiB) =====
+
+#[test]
+fn printf_fmt_sem_terminador_teto_1mib_evita_laco_infinito() {
+    let mut bus = bus_with_bios_empty();
+    let mut cpu = Cpu::new();
+
+    for addr in 0x100u32..0x1000u32 {
+        bus.write8::<BusRead>(addr, b'A');
+    }
+
+    cpu.pc = 0x0000_0000;
+    cpu.regs[9] = 0x3F;
+    cpu.regs[4] = 0x100;
+    cpu.regs[29] = 0x1FF0;
+
+    bus.write32::<BusRead>(0x0000_0000, jal(0x0000_00A0));
+    bus.write32::<BusRead>(0x0000_0004, nop());
+
+    step_n(&mut cpu, &mut bus, 3);
+
+    assert!(
+        !bus.take_tty().is_empty(),
+        "A11: fmt sem terminador deve emitir ate o teto de 1 MiB e parar, sem travar"
+    );
+}
+
 // ===== A10 — percentual no final da string =====
 
 #[test]

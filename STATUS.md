@@ -5,99 +5,20 @@
 
 ## Última iteração concluída
 
-**0016** — MULT/MULTU/DIV/DIVU + HI/LO (ROADMAP 1.6): MULT (SPECIAL 0x18), MULTU (0x19),
-DIV (0x1A), DIVU (0x1B), MFHI (0x10), MTHI (0x11), MFLO (0x12), MTLO (0x13) + campos
-`hi`/`lo` na struct `Cpu`. 20 testes em `cpu_mult_div.rs`.
-Bateria de mutação: 7/7 pegos, 2/2 controles verdes.
-Erro de primeira tentativa: (1) `u32 as i64` zero-extende em vez de sign-extender para
-MULT (corrigido com `as i32 as i64`); (2) testes de MFHI/MFLO usavam `rs` em vez de `rd`
-no encode; (3) expectativa de `mult_64bits_hi_lo` calculada errada.
-A revisão adversarial achou a CI vermelha por lint que o clippy local (desatualizado) não
-conhece e um buraco de cobertura — DIVU implementado com sinal passava nos 18 testes; +2
-testes. Ver `docs/iterations/0016-cpu-mult-div.md`.
-
-**0017 — REPROVADA na revisão adversarial, PR #27 fechada sem merge** (LWL/LWR/SWL/SWR,
-ROADMAP 1.7). Primeira iteração rejeitada do projeto. Os 20 testes passavam porque
-codificavam o mesmo modelo errado da implementação. Custo registrado no CSV como
-`rejeitado:semantica`. Diagnóstico completo e o que a segunda tentativa tem de fazer
-diferente: `docs/iterations/0017-cpu-unaligned-load-store.md`.
-
-**0017d — trabalhador migra para `deepseek/deepseek-v4-pro`.** Da 0009 à 0017 o trabalhador
-rodou em `deepseek-chat` (geração anterior) só porque era o default do `oc-iter.ps1`, nunca
-por decisão. A primeira tentativa da 0018 (1.7 de novo) foi **abortada aos 18min36 no meio do
-passo 5** para trocar de modelo; branch preservada como `abandonada/0018-lwl-chat-v3`, linha
-`abortado:troca-de-modelo` nas métricas. Eixo de comparação agora é v4-pro × v4-flash.
-Ver `docs/iterations/0017d-modelo-v4-pro.md`.
+**0018** — LWL/LWR/SWL/SWR — SEGUNDA TENTATIVA (ROADMAP 1.7): 25 testes com golden
+values ancorados em bytes literais (não derivados da implementação), 7/7 mutantes pegos,
+1/1 controles verdes. Correção dos dois defeitos da PR #27: (1) vias de byte por
+deslocamento, não máscara; (2) `reg_with_pending` para o idioma LWL+LWR sem delay.
+Ver `docs/iterations/0018-cpu-unaligned-load-store.md`. PR #32 aberta para revisão
+adversarial.
 
 ## Próxima tarefa
 
-**ROADMAP 1.7 (SEGUNDA TENTATIVA)** — LWL/LWR/SWL/SWR. A PR #27 foi **reprovada na revisão
-adversarial**: implementação e testes compartilhavam o mesmo modelo errado, então os 20
-testes passavam e a bateria de mutação não pegava nada. Leia
-`docs/iterations/0017-cpu-unaligned-load-store.md` **antes de começar** — ele descreve os
-dois defeitos. Comece do zero a partir da main; não recupere a branch antiga.
-
-Spec: `docs/reference/02-cpu.md`, seções **Unaligned Load/Store** e **Unaligned Load/Store
-(Details)** (índice: L235, L257). Leia as duas.
-
-Armadilha 1 — **`[N*4+0]` na tabela da spec é ENDEREÇO DE BYTE, não a parte alta do valor
-da palavra.** Em little-endian o byte em `N*4+0` é o byte **menos** significativo da palavra
-lida em `N*4`: depois de `write32(0x1000, 0xAABBCCDD)`, o byte em `[0x1000]` vale `0xDD`.
-Então `LWL` com endereço `0x1000` ("transfer upper 8bit of Rt from [N*4+0]") põe **`0xDD`**
-em `rt[31:24]` — quem responder `0xAA` reproduziu o erro da PR #27. Derive as quatro
-posições de cada opcode dessa regra; o merge precisa **deslocar** a via de byte, não só
-mascarar. O que não é transferido fica intacto (nem zero- nem sign-extend), no registrador
-e na memória.
-
-Armadilha 2 — **LWL e LWR têm de enxergar um ao outro sem delay.** A spec mostra o idioma
-logo acima da tabela (`lwl r2,$0003(t0)` seguido de `lwr r2,$0000(t0)`, "no delay required
-between these ... although both access r2"). Hoje o merge lê `self.reg(rt)`, que ainda é o
-valor antigo quando o load anterior está no delay slot — o resultado do `lwl` some. O merge
-tem de usar o valor do load pendente quando ele for para o mesmo registrador.
-
-Tabela derivada da spec pelo orquestrador, `k = endereço & 3`, `base = endereço & !3`, e
-`palavra` = a palavra de 32 bits em `base`. **Confira contra a spec antes de usar** — a versão
-anterior deste handoff trazia um valor errado (ver 0017e):
-
-| `k` | LWL: rt recebe | LWR: rt recebe |
-|---|---|---|
-| 0 | `rt[31:24] = mem[base+0]` | `rt = palavra` (32 bits) |
-| 1 | `rt[31:24]=mem[base+1]`, `rt[23:16]=mem[base+0]` | `rt[7:0]=mem[base+1]`, `rt[15:8]=mem[base+2]`, `rt[23:16]=mem[base+3]` |
-| 2 | `rt[31:24]=mem[base+2]`, `rt[23:16]=mem[base+1]`, `rt[15:8]=mem[base+0]` | `rt[7:0]=mem[base+2]`, `rt[15:8]=mem[base+3]` |
-| 3 | `rt = palavra` (32 bits) | `rt[7:0] = mem[base+3]` |
-
-Equivalente, e é assim que se implementa sem errar via de byte:
-`LWL: rt = (rt & ((1 << 8*(3-k)) - 1)) | (palavra << 8*(3-k))`
-`LWR: rt = (rt & !(0xFFFF_FFFF >> 8*k)) | (palavra >> 8*k)`
-Os stores são o espelho: `SWL` escreve os `k+1` bytes **altos** de rt em `[base+0..base+k]`;
-`SWR` escreve os `4-k` bytes **baixos** de rt em `[base+k..base+3]`. O resto da palavra em
-memória fica intacto.
-
-**Testes de aceitação obrigatórios** (o item não fecha sem os dois). Memória
-`[0..3] = DD CC BB AA` e `[4..7] = 44 33 22 11`, `t0 = 1`:
-
-1. **Load do par (idioma da spec):** `lwl r2,3(t0)` + `lwr r2,0(t0)` + `nop` tem de deixar
-   **`r2 = 0x44AABBCC`** — a palavra desalinhada no endereço 1, bytes `[1][2][3][4]` =
-   `CC BB AA 44`. Derivação: `lwl` em 4 é `k=0` → `r2[31:24] = mem[4] = 44`; `lwr` em 1 é
-   `k=1` → `r2[23:0] = mem[1],mem[2],mem[3] = CC,BB,AA`.
-2. **Round-trip do store:** com `r2 = 0x1122_3344`, `swl r2,3(t0)` + `swr r2,0(t0)` tem de
-   deixar `[0..3] = DD 44 33 22` e `[4..7] = 11 33 22 11`; e um `lwl`/`lwr` seguinte no mesmo
-   endereço tem de devolver `0x1122_3344`. Este teste é auto-verificável: se ida e volta
-   fecham e os bytes vizinhos (`DD` em `[0]`, `33 22 11` em `[5..7]`) sobreviveram, os quatro
-   opcodes concordam entre si e não invadiram memória alheia.
-
-Teste: `crates/psx-core/tests/cpu_unaligned_load_store.rs`. **Use** `tests/support/asm.rs`
-(`bus_with_bios_empty`, `encode_i_type`, `nop`) em vez de recriar helpers, e nomeie os
-testes em português, como em `cpu_mult_div.rs`.
-
-`cpu_mult_div.rs` tem 283 linhas — dentro do teto de 500. `cpu.rs` passou de 500 linhas e
-**continua inteiro**: o orquestrador respondeu a dúvida levantada na 0016 — o teto vale só
-para teste, e fatiar por contagem seria pior que um arquivo coeso. O corte virá quando a
-coesão pedir (candidato natural: COP0/exceções em módulo próprio, no 1.8).
-
-**Toolchain é pinado** em `rust-toolchain.toml` (1.97.1) desde a 0017c: o rustup resolve a
-versão sozinho, local e CI rodam o mesmo compilador, e o clippy que você vê é o que a CI vê.
-Não rode `rustup update` esperando efeito aqui — subir de versão é iteração própria.
+**ROADMAP 1.8** — COP0: SR/CAUSE/EPC, exceções (overflow, syscall, break, address error), RFE.
+Spec: `docs/reference/02-cpu.md` seções **System Control Coprocessor (COP0)** (índice L11)
+e **COP0 - Register Summary** (L568). Leia também **exception opcodes** (L409),
+**illegal opcodes** (L148) e as notas de dívida em **Notas** do STATUS (item 5: bit BD/delay
+slot, item 2: overflow trap em ADDI/ADD/SUB).
 
 ## Repositório
 
@@ -108,7 +29,7 @@ Não rode `rustup update` esperando efeito aqui — subir de versão é iteraç�
 
 ## Placar de testes
 
-Workspace: **151** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div).
+Workspace: **176** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 25 cpu_unaligned_load_store).
 
 ## Bloqueios
 

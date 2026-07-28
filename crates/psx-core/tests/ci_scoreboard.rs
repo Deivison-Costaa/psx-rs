@@ -4,9 +4,8 @@ use std::fs;
 
 #[test]
 fn scoreboard_filtra_por_magic_bytes_e_nao_por_extensao() {
-    let script =
-        fs::read_to_string(support::repo_root().join("scripts/scoreboard.ps1"))
-            .expect("scripts/scoreboard.ps1 deve existir");
+    let script = fs::read_to_string(support::repo_root().join("scripts/scoreboard.ps1"))
+        .expect("scripts/scoreboard.ps1 deve existir");
 
     let nao_filtra_so_por_extensao = !script.contains("-Include *") || script.contains("PS-X EXE");
     assert!(
@@ -39,7 +38,8 @@ fn ci_yml_tem_job_scoreboard() {
 
     let tem_job = effective.windows(3).any(|w| {
         w[0].trim() == "scoreboard:"
-            || (w[0].starts_with("scoreboard") && w[1].starts_with("name:")
+            || (w[0].starts_with("scoreboard")
+                && w[1].starts_with("name:")
                 && w[2].starts_with("runs-on:"))
     });
     assert!(
@@ -73,9 +73,8 @@ fn ci_yml_tem_job_scoreboard() {
 
 #[test]
 fn scoreboard_rotula_host_bin_em_vez_de_fail_erro() {
-    let script =
-        fs::read_to_string(support::repo_root().join("scripts/scoreboard.ps1"))
-            .expect("scripts/scoreboard.ps1 deve existir");
+    let script = fs::read_to_string(support::repo_root().join("scripts/scoreboard.ps1"))
+        .expect("scripts/scoreboard.ps1 deve existir");
 
     let tem_host_bin = script.contains("host-bin");
     assert!(

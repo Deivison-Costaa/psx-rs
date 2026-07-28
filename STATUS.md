@@ -157,3 +157,8 @@ Workspace: **188** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version
 8. **Registradores N/A do COP0 (r0-r2, r4, r10, r32-r63) não disparam exceção — dívida
    do 1.8b.** Leitura retorna 0, escrita é ignorada. O comportamento correto é Reserved
    Instruction Exception (excode=0Ah).
+9. **Acesso ao COP0 em User mode com COP0 disabled — dívida do 1.8b.** Acessar qualquer
+   registrador do COP0 que não seja garbage (r16-r31), ou executar RFE, em User mode com
+   COP0 disabled (SR.bit1=1 e SR.bit28=0) gera Coprocessor Unusable Exception (excode=0Bh).
+   Os registradores garbage r16-r31 podem ser acessados nesse estado sem exceção. Fonte:
+   `docs/reference/02-cpu.md`, seção cop0r16-r31 - Garbage (L805).

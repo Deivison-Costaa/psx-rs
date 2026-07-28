@@ -22,8 +22,8 @@
 ## Erros de primeira tentativa
 
 | # | Categoria | O que eu assumi | O que a spec diz | Como foi pego |
-|---|---|---|---|---|
-| 1 | nenhum | Nenhum erro de primeira tentativa. O handoff do STATUS estava excepcionalmente detalhado — trazia golden values derivados por duas rotas independentes, armadilhas nomeadas e regra nova de bateria. A implementação foi direta. | — | — |
+|---|---|---|---|---|---|
+| 1 | API-Rust | O teste `mtc0_com_r0_escreve_zero` setava `cpu.regs[0] = 0x1234_5678` supondo que a leitura de R0 via `self.regs[0]` forçasse zero. Na implementação, `fn reg(&self, idx: usize)` retorna o valor bruto do array; só a escrita (`set_reg`) é gated em `idx == 0`. | A spec (02-cpu.md) não define detalhe de implementação Rust, mas a API do `Cpu` diferencia `reg()` (leitura crua) de `set_reg()` (escrita com gate). O bug era de API, não de hardware. | O teste falhou: escrever 0x1234_5678 em `regs[0]` antes do `mtc0 r0, $12` fazia `MTC0` escrever 0x1234_5678 em SR em vez de 0. Corrigido na Decisão 5 removendo a atribuição a `regs[0]` e confiando que R0 já é zero desde `Cpu::new`. |
 
 ## Bateria de mutação
 
@@ -59,15 +59,20 @@ Workspace: **188** testes (178 anteriores + 10 de cop0_regs). Meta-testes: 10.
    Leitura retorna 0, escrita é ignorada. O comportamento correto (Reserved Instruction
    Exception, excode=0Ah) depende do mecanismo de exceção que entra no item 1.8b.
 
-3. **Registradores garbage (r16-r31) retornam 0.** A spec diz "garbage" sem garantia de valor;
-   0 é tão válido quanto qualquer outro. O teste `registrador_garbage_nao_dispara_excecao`
-   verifica apenas que a leitura não causa exceção (assert `== 0` — se o valor mudar no futuro
-   por implementação de cache ou timing, o teste aceita qualquer valor).
+3. **Registradores garbage (r16-r31) retornam 0 — comportamento ASSUMIDO (resolve no item 1.11).**
+   A spec (`02-cpu.md`, seção cop0r16-r31 - Garbage) diz que a leitura devolve lixo com padrão
+   observável: logo após ler um registrador válido costuma repetir o valor dele; mais tarde
+   costuma dar `00000020h`, depois `00000040h` ou `00000100h`. Retornar 0 sempre é simplificação
+   legítima, mas não é o que o hardware faz. O teste `registrador_garbage_nao_dispara_excecao`
+   verifica que a leitura de r16 via MFC0 não causa exceção e que o valor entregue é exatamente
+   0 (`assert_eq!(cpu.regs[10], 0)`). O assert `== 0` fixa o comportamento assumido; se mudarmos
+   para um modelo de garbage mais realista (cache, timing), o teste precisa ser atualizado. Ponto
+   de resolução: Amidog `psxtest_cpu` no item 1.11.
 
 4. **TAR (r6) é marcado (R) na spec mas implementado como R/W.** Mesmo critério de EPC/BadVaddr:
    comportamento assumido, sem evidência contrária. Resolução no item 1.11.
 
-5. **Teste `mtc0_com_r0_escreve_zero` corrigido durante a implementação.** A versão original
+5. **Teste `mtc0_com_r0_escreve_zero` corrigido durante a implementação (ver tabela de Erros, linha 1).** A versão original
    setava `cpu.regs[0] = 0x1234_5678` e esperava que MTC0 lesse 0 — mas `self.regs[0]` retorna
    o valor do array, não força zero. O teste foi reescrito para não adulterar R0 e verificar
    que o valor escrito é 0 (R0 é zero desde `Cpu::new`).

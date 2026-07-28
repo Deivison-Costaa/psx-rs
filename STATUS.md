@@ -5,63 +5,22 @@
 
 ## Última iteração concluída
 
-**0035** — GPUSTAT + decodificação GP0/GP1 (ROADMAP 2.1), com rodada curta de correção (K1-K4
-da revisão adversarial). 271 testes. Bateria 7/7, 2/2.
-Ver `docs/iterations/0035-gpustat-gp0-gp1.md`.
+**0036** — Veredito real no scoreboard: parser de pass/fail com dedup (ROADMAP 1.13). 274 testes.
+Bateria 7/7, 2/2.
+Ver `docs/iterations/0036-scoreboard-veredito.md`.
 
 ## Próxima tarefa
-**ROADMAP 1.13** — Veredito real no scoreboard: parser de pass/fail na saída TTY das suítes.
+**ROADMAP 2.2** — VRAM 1MB + transfers (fill, CPU VRAM).
 
-A tarefa depende do 2.1 (GPUSTAT + GP0/GP1), que foi entregue, e dos dados empíricos
-coletados na revisão (ver `docs/iterations/0035-gpustat-gp0-gp1.md` § Medições).
+Arquivos-alvo: `crates/psx-core/src/gpu.rs` (extensão do módulo GPU), `crates/psx-core/src/bus.rs`
+(janela de VRAM no mapa de memória). Spec: `docs/reference/03-gpu.md` § VRAM, § GP0 commands
+(C0h fill, A0h copy rectangle CPU→VRAM, C0h copy rectangle VRAM→CPU).
 
-**Formato observado (dados concretos da revisão):**
-
-- `cop` = 2 vereditos, `code-in-io` = 9 402, as outras 8 suítes = 0.
-- Linhas de pass: `pass - <nome_do_teste>`
-- Linhas de fail: `fail - <nome>:<linha> \`<expressao>\`, given: X, expected: Y`
-- `code-in-io` repete: 3 linhas distintas × 3 134 iterações — **o parser precisa deduplicar
-  antes de contar.**
-- Duas falhas são bugs legítimos do emulador (código do scratchpad deveria levantar bus error
-  e não levanta): registrar no doc mas **não corrigir aqui** (R4).
-
-**Arquivos-alvo:** `scripts/scoreboard.ps1` — substituir o critério atual "TTY não vazio" por
-contagem de `^(pass|fail) - ` no stdout capturado, com dedup por linha distinta.
-
-**Spec de referência:** o formato é auto-evidente da saída dos EXEs; `scripts/scoreboard.ps1:92-93`
-captura `$Matches[2]` (bytes TTY) do stderr do runner. O stdout do psx-cli (L94-95 do
-`crates/psx-cli/src/main.rs`) contém as linhas `pass -`/`fail -`.
-
-**Armadilha:** o `code-in-io` é um loop de 3 134 iterações com 3 linhas distintas — contar
-todas como eventos independentes infla o placar em 3×. A dedup deve ser por texto da linha,
-não por contagem de ocorrências.
-
-**Esquema do CSV — decidido, não deixar a cargo da implementação.** Uma suíte pode ter pass
-**e** fail ao mesmo tempo: o `code-in-io`, pós-dedup, tem 1 pass (`testCodeInRam`) e 2 fails
-(`testCodeInScratchpad:40` e `:41`). Um `status` do tipo `pass:N` *ou* `fail:N` não representa
-isso. Portanto:
-
-- `status` continua sendo **um rótulo**, com o vocabulário estendido: `pass` (≥1 veredito e
-  zero falhas), `fail` (≥1 falha), e os já existentes `tty` (produziu saída mas nenhum
-  veredito), `sem-saida`, `host-bin`, `sem-bios`, `timeout`, `fail-erro`.
-- A **sexta coluna**, hoje chamada `ciclos` e vazia em todas as linhas, passa a se chamar
-  `detalhe` e carrega as contagens pós-dedup no formato `<n>p/<n>f` (ex.: `1p/2f`). A aridade
-  do CSV não muda, então as linhas já publicadas em `scoreboard-data` continuam válidas com o
-  campo vazio — **não reescreva o histórico**.
-
-**Testes de aceitação:**
-
-- A1: `pwsh scripts/scoreboard.ps1` e conferir no CSV que `amidog/cpu` … `cop.exe` sai como
-  `pass` com detalhe `2p/0f`, e `code-in-io.exe` como `fail` com detalhe `1p/2f`. **Cole a
-  saída no doc.**
-- A2: nenhuma suíte sem veredito muda de rótulo — as que hoje são `tty` continuam `tty`.
-  Compare a distribuição antes/depois e cole as duas.
-- A3: o `host-bin` do `diffvram` e o comportamento sem BIOS (`sem-bios`) continuam intactos.
-- A4: `cargo test --all` verde, com meta-teste novo cobrindo o parser (dedup + suíte mista).
-
-**Escopo (R4):** parser de pass/fail com dedup no scoreboard.ps1, coluna `status` com
-contagem. **Fora do escopo:** corrigir o bug do scratchpad, alterar o psx-cli, formatar
-output para humano.
+Armadilha: VRAM é 1024×512 pixels de 16 bits = 1 MB, mas o espaço de endereçamento do bus é
+2 MB — a janela de 2 MB espelha a VRAM. Coordenadas X são módulo 1024, Y módulo 512.
+Transfers usam palavras de 16 bits; o fill usa uma cor de 24 bits com máscara de pixel.
+Cada comando GP0 pode ser multi-palavra — o protocolo de recebimento da iter 0035 já suporta
+isso, mas o fill (C0h) e os rectangles (A0h/C0h) vão precisar de máquina de estado.
 
 ## Repositório
 
@@ -75,7 +34,7 @@ output para humano.
 
 ## Placar de testes
 
-Workspace: **271** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 27 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 11 cpu_opcode_reservado + 13 gpu_status_gp0_gp1 + 6 ci_scoreboard + 9 cli_runner).
+Workspace: **274** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 27 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 11 cpu_opcode_reservado + 13 gpu_status_gp0_gp1 + 9 ci_scoreboard + 9 cli_runner).
 
 ## Bloqueios
 

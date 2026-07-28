@@ -394,7 +394,7 @@ fn sr_e_empilhado_na_entrada_da_excecao() {
         assert_eq!(
             cpu.cop0[12], 0x0000_000C,
             "E2: SR=0x03 antes do syscall deve virar 0x0C (bits 0-1→2-3, bits 0-1 zerados). \
-             Comportamento ASSUMIDO — verificar com Amidog psxtest_cpu no item 1.11 (nota 10 do STATUS)."
+             Comportamento ASSUMIDO — verificar com Amidog psxtest_cpu no item 1.11 (nota E2 do STATUS, empilhamento de SR)."
         );
     }
     {
@@ -402,17 +402,17 @@ fn sr_e_empilhado_na_entrada_da_excecao() {
         let mut cpu = Cpu::new();
         cpu.pc = 0;
 
-        cpu.regs[8] = 0x0040_0031;
+        cpu.regs[8] = 0x0000_FF31;
         bus.write32::<BusRead>(0x0000, mtc0(8, 12));
         bus.write32::<BusRead>(0x0004, syscall());
 
-        cpu.step(&mut bus); // MTC0 r8 → SR=0x0040_0031
+        cpu.step(&mut bus); // MTC0 r8 → SR=0x0000_FF31
         cpu.step(&mut bus); // syscall → excecao (push)
 
         assert_eq!(
-            cpu.cop0[12], 0x0040_0004,
-            "E2: SR=0x0040_0031 deve virar 0x0040_0004 (bits 4-5 sobrescritos por zero, \
-             bit 22 intacto). Pega mutante que limpa so bits 0-1 em vez de 2-5."
+            cpu.cop0[12], 0x0000_FF04,
+            "E2: SR=0x0000_FF31 deve virar 0x0000_FF04 (bits 4-5 sobrescritos por zero, \
+             campo Im 8-15 intacto). Pega mutante que limpa so bits 0-1 em vez de 2-5."
         );
     }
 }
@@ -478,7 +478,7 @@ fn load_pendente_e_commitado_antes_da_excecao_comportamento_assumido() {
         cpu.regs[5], 0xCAFE_BABEu32,
         "E3: r5 deve valer 0xCAFE_BABE apos a excecao. \
          Comportamento ASSUMIDO — o load delay e commitado antes do desvio para o handler. \
-         Verificar com Amidog psxtest_cpu no item 1.11 (nota 11 do STATUS)."
+         Verificar com Amidog psxtest_cpu no item 1.11 (nota E3 do STATUS, load delay commitado)."
     );
     assert_eq!(
         cpu.cop0[13], 0x0000_0020,

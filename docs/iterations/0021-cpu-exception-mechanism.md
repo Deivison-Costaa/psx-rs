@@ -57,7 +57,7 @@ Placar: **12/12 mutantes pegos, 3/3 controles verdes.**
 
 | # | Tipo | Mutação | Teste que pegou |
 |---|---|---|---|
-| 11 | Mutante | Máscara do push do SR `!0x3F` → `!0x3` (limpa só bits 0-1, não bits 2-5) | `sr_e_empilhado_na_entrada_da_excecao` (segundo caso: SR=0x0040_0031 → 0x0040_0004) |
+| 11 | Mutante | Máscara do push do SR `!0x3F` → `!0x3` (limpa só bits 0-1, não bits 2-5) | `sr_e_empilhado_na_entrada_da_excecao` (segundo caso: SR=0x0000_FF31 → 0x0000_FF04) |
 | 12 | Mutante | Máscara do CAUSE `!0xC000_007C` → `!0x0000_007C` (não limpa BD/BT entre exceções) | `excecao_sequencial_limpa_bd_e_bt` |
 
 ### Controles
@@ -86,6 +86,77 @@ A primeira rodada de revisão adversarial achou três lacunas (E1/E2/E3) porque 
 
 **Regra do literal (terceira ocorrência no projeto).** Um literal que verifica limpeza-antes-de-OR precisa de um bit em 1 na origem onde o resultado correto exige 0, senão o OR esconde a máscara errada. Ocorrências: (1) iteração 1.8a com SR=0x34 na verificação de `rfe`; (2) esta iteração com SR=0x03 no push do SR (E2 inicial); (3) esta mesma iteração com SR=0x3F no round-trip (E2b). Em todos os casos, o literal tinha os bits-alvo zerados na origem, e o OR de `ie_ku_shifted` (ou `rfe` shift) colocava os valores corretos nos bits de destino, mascarando o defeito. A correção é sempre a mesma: escolher um literal que tenha 1 nos bits que a máscara deve limpar, para que a falha de limpeza apareça como diferença no resultado.
 
+## Revisão cruzada (orquestrador)
+
+Três comentários na PR #35 e **duas rodadas de correção** — único item do M1 até aqui que
+precisou de duas. O motivo é registrável, e não é o óbvio.
+
+### Como a implementação foi verificada
+
+1. **Sondas escritas antes de ler o código do PR**, não commitadas. Rodada 1: três cenários
+   deliberadamente fora dos casos de aceitação B1–B5. **Os três falharam.** Rodada 2: os mesmos
+   três re-executados sobre a correção.
+
+   | Sonda | Rodada 1 | Rodada 2 |
+   |---|---|---|
+   | `cop0[13] & 0x300` após `syscall` | `0x000` | `0x300` |
+   | `SR = 0x3` → `syscall` | `0x3` | `0xC` |
+   | `lw r5` → `syscall` | `0` | `0xCAFE_BABE` |
+
+2. **Álgebra do empilhamento conferida contra o `rfe` da 1.8a.** `(sr & !0x3F) | ((sr & 0x3) <<
+   2) | ((sr & 0xC) << 2)` é o inverso exato do desempilhamento, e o `sr_push_seguido_de_rfe_...`
+   prova isso empiricamente.
+3. **Mutação re-executada pelo orquestrador**, não conferida na tabela. Dos três mutantes
+   próprios, dois escapavam da suíte inteira (11 e 12 da tabela acima).
+4. **Sonda de escopo:** `syscall` não executa o opcode seguinte e `EPC` aponta para o próprio
+   `syscall`. Passa. A garantia é estrutural — `step()` executa uma instrução por chamada — mas
+   a spec cita o caso ("immediately executed, ie. without executing the following opcode") e a
+   arquitetura pode mudar.
+
+### A leitura do processo
+
+**A implementação convergiu em uma rodada; a suíte de testes não.** A separação importa, porque
+a leitura preguiçosa ("duas rodadas, logo a revisão não converge") é falsa: os achados da rodada
+2 são de classe estritamente mais fraca. Nenhum comportamento errado, só rede de regressão
+furada. Um mutante que escapa não quebra o emulador hoje — tira a capacidade de detectar quem o
+quebrar amanhã.
+
+Regra nova de handoff, válida a partir da 1.9: **todo item que escreve em registrador
+persistente precisa de um caso de aceitação com o registrador sujo antes.** As duas rodadas
+acharam no mesmo eixo (estado prévio; estado deixado por outra exceção) porque teste de
+aceitação verifica transição a partir do reset — é assim que se escreve um caso mínimo.
+
+Regra nova de registro: **nota ASSUMIDA do STATUS é referenciada por título, não por número.**
+A seção Notas foi renumerada neste PR (as dívidas 2 e 5 fecharam com o 1.8b) e as quatro
+referências cruzadas do doc e das mensagens de `assert` ficaram apontando para a numeração
+antiga. Zero efeito em comportamento, mas quem for resolver as notas ASSUMIDAS no item 1.11
+abriria a nota errada — e o registro é entregável de mesmo peso que o emulador aqui. Renumerar
+lista referenciada por ponteiro tem raio maior que o arquivo editado, e o número é volátil por
+construção: toda dívida fechada renumera as de baixo.
+
+### Mérito do trabalho
+
+- Os três erros de primeira tentativa da tabela original são honestos e específicos, não
+  "nenhum". O nº 1 (`branch_target.is_some()` não detecta delay slot de branch condicional não
+  tomado) é achado genuíno do próprio trabalhador, e separar `delay_slot_pending` de
+  `branch_taken` é a correção certa.
+- A armadilha 4 do handoff — a máscara de escrita do CAUSE criada na 1.8a engolindo o ExcCode —
+  **não** foi pisada.
+- O mutante 9 da bateria admite que o teste E2 simples sobrevive e que só o E2b o pega. Bateria
+  que reporta o próprio ponto cego vale mais que placar liso.
+
+### Erros do orquestrador nesta iteração
+
+| # | Categoria | O que eu errei | Como foi pego |
+|---|---|---|---|
+| 1 | derivação | O literal `SR = 0x0040_0031` que especifiquei na rodada 2 usa o **bit 22 (BEV)** como "bit que prova que o resto do SR sobrevive". BEV tem semântica: com BEV=1 os vetores mudam para `0xBFC0_0180`. O teste só afirma sobre `cop0[12]`, então está correto hoje — mas é armadilha plantada para quando o BEV for implementado. | Reli a tabela do `cop0r12 - SR` ao preparar o handoff do 1.9. Trocado para `0x0000_FF31` → `0x0000_FF04`, usando o campo Im (8-15), que precisa sobreviver de qualquer jeito e não muda fluxo. Mesma força contra o mutante 11. |
+| 2 | processo | Despachei a rodada 2 antes de conferir as referências cruzadas do STATUS, então o achado M-C chegou com a rodada já em voo e não pôde entrar nela. | Óbvio ao reler o doc para preencher esta seção. |
+
+**Edição direta do orquestrador nesta branch, declarada:** a troca do literal do mutante 11 e as
+quatro referências cruzadas foram aplicadas por mim, não pelo trabalhador — são um literal
+derivado por mim (erro meu) e quatro strings sem efeito em comportamento. Uma terceira rodada
+custaria mais do que registra. O papel geral segue valendo: código de emulação é do trabalhador.
+
 ## Decisões e notas
 
 1. **Flags de delay slot separados de branch_target.** `delay_slot_pending` é setado por TODO branch/jump (inclusive condicionais não tomados). `branch_taken` indica se o branch foi tomado (para o bit BT do CAUSE). `branch_target` continua como antes (só setado quando o desvio é tomado). Isso resolve a nota 5 do STATUS.
@@ -102,6 +173,6 @@ A primeira rodada de revisão adversarial achou três lacunas (E1/E2/E3) porque 
 
 7. **E1 — CAUSE preserva bits Sw (8-9) e IP (10-15).** Correção aplicada na revisão adversarial (PR #35). A gravação do ExcCode agora usa máscara: `self.cop0[13] = (self.cop0[13] & !0xC000_007C) | cause`, preservando os bits que a exceção não define. O erro original (`self.cop0[13] = cause`) zerava os bits Sw, o que contradiz a spec: "Clear them before returning from the exception handler" só faz sentido se o hardware não limpar sozinho.
 
-8. **E2 — Empilhamento de SR na entrada da exceção (comportamento ASSUMIDO).** O inverso exato do RFE: bits 0-1 (IEc/KUc) → bits 2-3 (IEp/KUp), bits 2-3 (IEp/KUp) → bits 4-5 (IEo/KUo), bits 0-1 zerados. A spec local NÃO documenta o push, apenas o RFE (que desempilha). Ponto de resolução: Amidog `psxtest_cpu` no item 1.11. Ver nota 10 do STATUS.
+8. **E2 — Empilhamento de SR na entrada da exceção (comportamento ASSUMIDO).** O inverso exato do RFE: bits 0-1 (IEc/KUc) → bits 2-3 (IEp/KUp), bits 2-3 (IEp/KUp) → bits 4-5 (IEo/KUo), bits 0-1 zerados. A spec local NÃO documenta o push, apenas o RFE (que desempilha). Ponto de resolução: Amidog `psxtest_cpu` no item 1.11. Ver a nota "E2 — empilhamento de SR" do STATUS.
 
-9. **E3 — Load delay commitado antes da exceção (comportamento ASSUMIDO).** Escolha (a): commitar o load pendente antes de entrar na exceção, com o argumento de que o acesso à memória do `lw` já ocorreu quando a exceção da instrução seguinte é reconhecida. A spec local não tem evidência sobre este caso (R1). Ponto de resolução: Amidog `psxtest_cpu` no item 1.11. Ver nota 11 do STATUS.
+9. **E3 — Load delay commitado antes da exceção (comportamento ASSUMIDO).** Escolha (a): commitar o load pendente antes de entrar na exceção, com o argumento de que o acesso à memória do `lw` já ocorreu quando a exceção da instrução seguinte é reconhecida. A spec local não tem evidência sobre este caso (R1). Ponto de resolução: Amidog `psxtest_cpu` no item 1.11. Ver a nota "E3 — load delay commitado" do STATUS.

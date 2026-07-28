@@ -158,6 +158,28 @@ fn gouraud_triangle_interpola_para_ponto_medio_da_aresta_esquerda() {
 
 #[rustfmt::skip]
 #[test]
+fn gouraud_triangle_produz_cores_diferentes_em_pontos_distintos() {
+    let mut gpu = Gpu::new();
+
+    let cmd: u32 = 0x3000_0000 | 0xF8;
+    gpu.write32(0, cmd);
+    gpu.write32(0, 0x000A_000A);
+    gpu.write32(0, 0x00_F8_00_00);
+    gpu.write32(0, 0x000A_001E);
+    gpu.write32(0, 0x00_00_F8_00);
+    gpu.write32(0, 0x001E_000A);
+
+    let val_esq = gpu.vram_pixel(10, 15);
+    let val_dir = gpu.vram_pixel(20, 10);
+    assert!(val_esq != 0 && val_dir != 0,
+        "B7b-G: ambos pixels devem ser coloridos, esq=0x{:04X} dir=0x{:04X}", val_esq, val_dir);
+    assert_ne!(val_esq, val_dir,
+        "B7b-G: cores DEVEM ser diferentes em pontos distintos (gouraud), obtidos 0x{:04X} e 0x{:04X}",
+        val_esq, val_dir);
+}
+
+#[rustfmt::skip]
+#[test]
 fn gouraud_quad_interpola_cores_nos_vertices() {
     let mut gpu = Gpu::new();
 

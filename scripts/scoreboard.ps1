@@ -8,7 +8,10 @@ $BiosPath = "bios/SCPH1001.BIN"
 $TimeoutSec = 120
 
 if (-not (Test-Path $ExeRoot)) {
-    Write-Error "tests/exes/ nao existe — rode scripts/fetch-test-exes.ps1 antes."
+    New-Item -ItemType Directory -Force $OutDir | Out-Null
+    Write-Host "scoreboard: 0/0 — tests/exes/ nao existe (sem EXEs para avaliar)"
+    Set-Content $OutFile "ts,commit,suite,exe,status,ciclos"
+    exit 0
 }
 New-Item -ItemType Directory -Force $OutDir | Out-Null
 
@@ -37,7 +40,7 @@ $commit = (git rev-parse --short HEAD).Trim()
 
 $rows = @()
 
-$candidateFiles = Get-ChildItem $ExeRoot -Recurse -File | Sort-Object FullName
+$candidateFiles = Get-ChildItem $ExeRoot -Include *.exe, *.psexe -Recurse | Sort-Object FullName
 
 foreach ($candidate in $candidateFiles) {
     $suite = (Resolve-Path -Relative $candidate.Directory) -replace '\\', '/' -replace '^\./tests/exes/', ''
@@ -48,12 +51,15 @@ foreach ($candidate in $candidateFiles) {
     }
 
     try {
-        $header = [System.IO.File]::ReadAllBytes($candidate.FullName)
-        if ($header.Length -lt 8) {
+        $stream = [System.IO.File]::OpenRead($candidate.FullName)
+        $buffer = New-Object byte[] 8
+        $read = $stream.Read($buffer, 0, 8)
+        $stream.Close()
+        if ($read -lt 8) {
             $rows += "$ts,$commit,$suite,$($candidate.Name),host-bin,"
             continue
         }
-        $magic = [System.Text.Encoding]::ASCII.GetString($header[0..7])
+        $magic = [System.Text.Encoding]::ASCII.GetString($buffer)
         if ($magic -ne "PS-X EXE") {
             $rows += "$ts,$commit,$suite,$($candidate.Name),host-bin,"
             continue

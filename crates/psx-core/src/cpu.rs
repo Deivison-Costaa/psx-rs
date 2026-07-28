@@ -43,6 +43,11 @@ impl Cpu {
         let instr_pc = self.pc;
         let instr = bus.read32::<BusRead>(instr_pc);
 
+        let phys = instr_pc & 0x1FFF_FFFF;
+        if phys == 0xA0 || phys == 0xB0 {
+            // stub
+        }
+
         let in_delay_slot = self.delay_slot_pending;
         let was_taken = self.branch_taken;
         self.delay_slot_pending = false;

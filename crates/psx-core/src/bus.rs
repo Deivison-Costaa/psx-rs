@@ -105,6 +105,7 @@ pub struct Bus {
     scratchpad: Scratchpad,
     mem_ctrl: MemCtrl,
     bcc: Bcc,
+    tty_buffer: Vec<u8>,
 }
 
 impl Bus {
@@ -115,7 +116,16 @@ impl Bus {
             scratchpad: Scratchpad::new(),
             mem_ctrl: MemCtrl::new(),
             bcc: Bcc::new(),
+            tty_buffer: Vec::new(),
         }
+    }
+
+    pub fn tty_push(&mut self, byte: u8) {
+        self.tty_buffer.push(byte);
+    }
+
+    pub fn take_tty(&mut self) -> Vec<u8> {
+        std::mem::take(&mut self.tty_buffer)
     }
 
     fn kseg(addr: u32) -> u8 {

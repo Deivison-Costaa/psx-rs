@@ -1,4 +1,4 @@
-use psx_core::bus::{Bus, BusRead, Bios, Ram};
+use psx_core::bus::{Bios, Bus, BusRead, Ram};
 use psx_core::cpu::Cpu;
 use std::fs;
 use std::path::PathBuf;
@@ -16,10 +16,7 @@ fn ori(rt: u32, rs: u32, imm: u16) -> u32 {
     (0x0D << 26) | (rs << 21) | (rt << 16) | (imm as u32)
 }
 
-/// Constrói um PS-EXE sintético com o código MIPS fornecido (word a word).
-/// O código é carregado a partir de `dest_addr`.
-fn build_ps_exe(
-    code: &[u32],
+struct PsexeConfig {
     dest_addr: u32,
     initial_pc: u32,
     initial_gp: u32,
@@ -27,7 +24,9 @@ fn build_ps_exe(
     sp_fp_offset: u32,
     bss_addr: u32,
     bss_size: u32,
-) -> Vec<u8> {
+}
+
+fn build_ps_exe(code: &[u32], cfg: &PsexeConfig) -> Vec<u8> {
     let header_size = 0x800;
     let body_words = code.len();
     let body_size = ((body_words * 4) + 0x7FF) & !0x7FF;
@@ -39,16 +38,16 @@ fn build_ps_exe(
         data[pos..pos + 4].copy_from_slice(&val.to_le_bytes());
     };
 
-    offset(0x10, initial_pc);
-    offset(0x14, initial_gp);
-    offset(0x18, dest_addr);
+    offset(0x10, cfg.initial_pc);
+    offset(0x14, cfg.initial_gp);
+    offset(0x18, cfg.dest_addr);
     offset(0x1C, body_size as u32);
     offset(0x20, 0);
     offset(0x24, 0);
-    offset(0x28, bss_addr);
-    offset(0x2C, bss_size);
-    offset(0x30, sp_fp_base);
-    offset(0x34, sp_fp_offset);
+    offset(0x28, cfg.bss_addr);
+    offset(0x2C, cfg.bss_size);
+    offset(0x30, cfg.sp_fp_base);
+    offset(0x34, cfg.sp_fp_offset);
 
     for (i, &word) in code.iter().enumerate() {
         let pos = header_size + i * 4;
@@ -89,22 +88,26 @@ fn sideload_exe_minimo_jmp_self() {
     let jmp_self = encode_j(0x02, code_addr);
     let code = [jmp_self, nop()];
 
-    let exe_data = build_ps_exe(
-        &code,
-        code_addr,
-        code_addr,
-        0,
-        0x801F_FFF0,
-        0,
-        0,
-        0,
-    );
+    let cfg = PsexeConfig {
+        dest_addr: code_addr,
+        initial_pc: code_addr,
+        initial_gp: 0,
+        sp_fp_base: 0x801F_FFF0,
+        sp_fp_offset: 0,
+        bss_addr: 0,
+        bss_size: 0,
+    };
+    let exe_data = build_ps_exe(&code, &cfg);
 
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
 
     let result = psx_core::psexe::load_psexe(&exe_data, &mut bus, &mut cpu);
-    assert!(result.is_ok(), "A1: load_psexe deve retornar Ok; {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "A1: load_psexe deve retornar Ok; {:?}",
+        result.err()
+    );
 
     assert_eq!(cpu.pc, code_addr, "A1: PC inicial deve ser dest_addr");
 
@@ -126,6 +129,8 @@ fn print_ok_via_tty() {
     let jr_ra: u32 = (31u32 << 21) | 0x08;
     let tty_kseg0: u32 = 0x8000_00A0;
 
+    let jmp_self_addr = code_addr + 8 * 4;
+
     let code = [
         ori(9, 0, 0x3C),
         ori(4, 0, b'O' as u16),
@@ -135,20 +140,20 @@ fn print_ok_via_tty() {
         ori(4, 0, b'K' as u16),
         encode_j(0x03, tty_addr),
         nop(),
-        encode_j(0x02, code_addr),
+        encode_j(0x02, jmp_self_addr),
         nop(),
     ];
 
-    let mut exe_data = build_ps_exe(
-        &code,
-        code_addr,
-        code_addr,
-        0,
-        0x801F_FFF0,
-        0,
-        0,
-        0,
-    );
+    let cfg = PsexeConfig {
+        dest_addr: code_addr,
+        initial_pc: code_addr,
+        initial_gp: 0,
+        sp_fp_base: 0x801F_FFF0,
+        sp_fp_offset: 0,
+        bss_addr: 0,
+        bss_size: 0,
+    };
+    let mut exe_data = build_ps_exe(&code, &cfg);
 
     let body_start = 0x800usize;
     let tty_offset_in_body = (tty_kseg0 - code_addr) as usize;
@@ -168,11 +173,7 @@ fn print_ok_via_tty() {
 
     run(&mut cpu, &mut bus, 100);
 
-    assert_eq!(
-        bus.take_tty(),
-        b"OK",
-        "A2: take_tty() deve devolver b'OK'"
-    );
+    assert_eq!(bus.take_tty(), b"OK", "A2: take_tty() deve devolver b'OK'");
 }
 
 // ===== A3 — Zero-fill do BSS =====
@@ -185,16 +186,16 @@ fn zerofill_bss() {
 
     let code = [nop()];
 
-    let exe_data = build_ps_exe(
-        &code,
-        code_addr,
-        code_addr,
-        0,
-        0x801F_FFF0,
-        0,
+    let cfg = PsexeConfig {
+        dest_addr: code_addr,
+        initial_pc: code_addr,
+        initial_gp: 0,
+        sp_fp_base: 0x801F_FFF0,
+        sp_fp_offset: 0,
         bss_addr,
         bss_size,
-    );
+    };
+    let exe_data = build_ps_exe(&code, &cfg);
 
     let mut bus = bus_with_bios_empty();
 
@@ -263,7 +264,8 @@ fn psxtest_cpu_nao_disponivel() {
         tty.len()
     );
 
-    eprintln!("A4: psxtest_cpu TTY ({bytes} bytes): {preview}...",
+    eprintln!(
+        "A4: psxtest_cpu TTY ({bytes} bytes): {preview}...",
         bytes = tty.len(),
         preview = &text[..text.len().min(200)]
     );
@@ -278,7 +280,16 @@ fn exe_sem_bios_erro() {
     let exe_path = bins_dir().join("min.psexe");
     let jmp_self = encode_j(0x02, 0x8000_0000);
     let code = [jmp_self, nop()];
-    let exe_data = build_ps_exe(&code, 0x8000_0000, 0x8000_0000, 0, 0, 0, 0, 0);
+    let cfg = PsexeConfig {
+        dest_addr: 0x8000_0000,
+        initial_pc: 0x8000_0000,
+        initial_gp: 0,
+        sp_fp_base: 0,
+        sp_fp_offset: 0,
+        bss_addr: 0,
+        bss_size: 0,
+    };
+    let exe_data = build_ps_exe(&code, &cfg);
     fs::write(&exe_path, &exe_data).expect("escrever EXE sintetico");
 
     let bin = env!("CARGO_BIN_EXE_psx-cli");
@@ -310,7 +321,16 @@ fn bios_invalida_com_exe_erro() {
     fs::write(&bios_path, b"invalida").expect("escrever BIOS invalida");
 
     let exe_path = bins_dir().join("min2.psexe");
-    let exe_data = build_ps_exe(&[nop()], 0x8000_0000, 0x8000_0000, 0, 0, 0, 0, 0);
+    let cfg = PsexeConfig {
+        dest_addr: 0x8000_0000,
+        initial_pc: 0x8000_0000,
+        initial_gp: 0,
+        sp_fp_base: 0,
+        sp_fp_offset: 0,
+        bss_addr: 0,
+        bss_size: 0,
+    };
+    let exe_data = build_ps_exe(&[nop()], &cfg);
     fs::write(&exe_path, &exe_data).expect("escrever EXE sintetico");
 
     let bin = env!("CARGO_BIN_EXE_psx-cli");

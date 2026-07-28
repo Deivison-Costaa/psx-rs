@@ -5,78 +5,11 @@
 
 ## Última iteração concluída
 
-**0031** — Rodada de correção (I1-I4): `permissions: contents: write` no job, pré-filtro por extensão + magic bytes (51 linhas/varredura, sem readmes), publish só na main, graceful exit sem EXEs (ROADMAP 1.12). Scoreboard 50/51. Bateria 10/10, 2/2. 247 testes (6 ci_scoreboard).
-Ver `docs/iterations/0031-ci-scoreboard-job.md`.
+**0033** — Opcode não implementado gera exceção RI/CpU em vez de panic (ROADMAP 1.14). 258 testes (11 novos + 3 renomeados). Bateria 7/7, 2/2. Nenhum `unimplemented!`/`panic!`/`unwrap()`/`expect()` no source.
+Ver `docs/iterations/0033-cpu-opcode-reservado.md`.
 
 ## Próxima tarefa
-**ROADMAP 1.14** — Opcode não implementado gera exceção (RI 0Ah / CpU 0Bh) em vez de panic.
-
-Item novo, criado a partir de uma medição (`docs/iterations/0032-handoff-2-1.md`): com o
-GPUSTAT devolvendo o valor de reset da spec, as suítes do ps1-tests destravam e passam a
-executar de verdade — e a primeira delas a avançar (`ps1-tests/cpu/cop/cop.exe`) **derruba o
-emulador**:
-
-```
-thread 'main' panicked at crates\psx-core\src\cpu.rs:231:18:
-not implemented: opcode primary=38 nao implementado
-```
-
-Enquanto o `unimplemented!()` estiver no decodificador, cada suíte que alcança um opcode novo
-mata o processo em vez de virar uma linha de placar. Por isso este item vem **antes** do 2.1.
-
-**Spec:** `docs/reference/02-cpu.md` (linhas absolutas do arquivo, conferidas com `grep -n`):
-
-| Fato | Linha |
-|---|---|
-| Opcodes reservados → Reserved Instruction Exception, `excode=0Ah` | L230 |
-| Ler cop0r0..r2/r4/r10/r32..r63 → RI `0Ah` | L874 |
-| TLBR/TLBWI/TLBWR/TLBP → RI `0Ah` | L878 |
-| **`mov [mem],cop0reg` / `mov cop0reg,[mem]` (LWC0/SWC0) → Coprocessor Unusable, `excode=0Bh`, NÃO 0Ah** | L883-884 |
-
-O opcode que o `cop.exe` alcançou é o primary `38h` = SWC0, ou seja, o caso de `0Bh` — não o
-de `0Ah`. Os dois códigos existem e não são intercambiáveis.
-
-**Arquivos-alvo:** `crates/psx-core/src/cpu.rs` (o `_ => unimplemented!(...)` do `execute`, e o
-mesmo padrão em `special`/`cop0_op` se houver), `crates/psx-core/tests/cpu_opcode_reservado.rs`
-(arquivo novo).
-
-### Armadilhas
-
-1. **O mecanismo de exceção já existe** desde o item 1.8b (`raise_exception`, `pending_exception`,
-   bit BD, EPC). Este item **não** reimplementa nada disso: só troca o `panic` por uma chamada
-   ao mecanismo existente com o excode certo. Leia `cpu.rs` antes de escrever qualquer coisa.
-2. **`0Ah` e `0Bh` não são o mesmo caso.** Coprocessor loads/stores (primary `30h..33h` e
-   `38h..3Bh`) são `0Bh` (L883-884). Opcode simplesmente inexistente é `0Ah` (L230). Um teste
-   para cada.
-3. **Não confundir com o COP2/GTE.** `12h` (COP2) e `3Ah` (SWC2) pertencem ao GTE, que é item
-   do M3 — hoje também caem no `unimplemented!`. Se você fizer todos virarem exceção, o GTE
-   vai passar a levantar `0Bh` silenciosamente em vez de estourar; **registre isso no doc**,
-   porque é uma mudança de comportamento que o M3 vai precisar desfazer.
-4. **Não existe `unwrap`/`expect`/`panic!`/`unimplemented!` em produção (R6).** Se sobrar
-   algum caminho de panic no decodificador depois deste item, ele é bug do item.
-5. **O contador de ciclos e o delay slot continuam valendo.** Exceção levantada em delay slot
-   já tem tratamento (bit BD) desde a 1.8b — o teste tem que cobrir opcode reservado dentro de
-   delay slot, senão o item não fecha o que a 1.8b abriu.
-
-### Testes de aceitação
-
-**A1 — RI (`0Ah`).** Opcode primary inexistente (ex.: `3Fh`) executado: `CAUSE.excode == 0Ah`,
-`EPC` aponta para a instrução, PC vai para o vetor de exceção.
-
-**A2 — CpU (`0Bh`).** `SWC0` (primary `38h`): `CAUSE.excode == 0Bh`. Mesmo teste para `LWC0`
-(primary `30h`).
-
-**A3 — em delay slot.** Opcode reservado no delay slot de um `jal`: `CAUSE.BD == 1` e `EPC`
-aponta para o **branch**, não para o delay slot (regra da 1.8b).
-
-**A4 — o `cop.exe` deixa de derrubar o processo.** Com o stub temporário de GPUSTAT descrito
-no doc da 0032 (`0x1F80_1814 => Some(0x1480_2000)` no `bus.rs`, **não commitar**), rodar
-`psx-cli --bios bios/SCPH1001.BIN --exe tests/exes/ps1-tests/cpu/cop/cop.exe` e verificar que
-o processo termina normalmente em vez de entrar em pânico. **Cole a saída no doc.** Sem o stub,
-o `cop.exe` nem chega ao opcode — então A4 sem o stub não prova nada.
-
-**A5 — nenhum panic sobrando.** `grep -rn "unimplemented!\|panic!\|unwrap()\|expect(" crates/psx-core/src/`
-não devolve nada fora de teste. Cole a saída (vazia) no doc.
+**ROADMAP 2.1** — GPUSTAT + decodificação GP0/GP1. Handoff em `docs/iterations/0032-handoff-2-1.md` (revisado e aprovado).
 
 ## Repositório
 

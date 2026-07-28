@@ -8,12 +8,15 @@
 
 | Fonte | Seção | Arquivo local |
 |---|---|---|
-| psx-spx | § GP0(02h) FillVram (L1041) | docs/reference/03-gpu.md |
-| psx-spx | § GPU Memory Transfer Commands (L488) | docs/reference/03-gpu.md |
-| psx-spx | § Masking and Rounding for FILL (L525) | docs/reference/03-gpu.md |
-| psx-spx | § Masking for COPY Commands (L549) | docs/reference/03-gpu.md |
-| psx-spx | § Wrapping (L582) | docs/reference/03-gpu.md |
-| psx-spx | § GP1(00h) Reset GPU (L632) | docs/reference/03-gpu.md |
+| psx-spx | § Quick Rectangle Fill (L217) | docs/reference/03-gpu.md |
+| psx-spx | § GPU Memory Transfer Commands (L603) | docs/reference/03-gpu.md |
+| psx-spx | § Masking and Rounding for FILL (L640) | docs/reference/03-gpu.md |
+| psx-spx | § Masking for COPY Commands (L664) | docs/reference/03-gpu.md |
+| psx-spx | § Wrapping (L697) | docs/reference/03-gpu.md |
+| psx-spx | § GP1(00h) Reset GPU (L747) | docs/reference/03-gpu.md |
+| psx-spx | § Ready Bits (bits 26/27) (L1041) | docs/reference/03-gpu.md |
+| psx-spx | § GP1(01h) Reset Command Buffer (L767) | docs/reference/03-gpu.md |
+| psx-spx | § Mask setting afeta CPU→VRAM (L590) | docs/reference/03-gpu.md |
 
 ## Erros de primeira tentativa
 

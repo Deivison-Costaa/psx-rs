@@ -44,7 +44,55 @@ Scoreboard: nao executado (item 1.14 anterior ao runner 1.11+).
 
 ## Revisão cruzada (orquestrador)
 
-<!-- Preenchido pelo Claude na revisão do PR -->
+Uma rodada, um achado, e ele foi de acréscimo. A melhor rodada da sessão.
+
+### Verificado executando, em `7083845`
+
+- `cargo fmt --check` e `cargo clippy -D warnings` limpos; `cargo test --all` = **258**.
+- A5 confere: `grep -rn "unimplemented!\|panic!(\|unwrap()\|expect(" crates/psx-core/src/`
+  volta vazio.
+- **O andaime nao vazou:** `git diff main...HEAD -- crates/psx-core/src/bus.rs` esta vazio. O
+  handoff da 0032 mandou usar um stub temporario de GPUSTAT no teste de aceitacao e avisou
+  para nao commitar; era um risco assumido de proposito, e nao se materializou.
+- **Bateria conferida por reaplicacao.** Peguei o mutante 7 — o que o proprio doc admite ter
+  sobrevivido na primeira tentativa — e reapliquei:
+  ```
+  test todos_primarios_cpu_geram_cpu ... FAILED
+  test result: FAILED. 10 passed; 1 failed
+  ```
+  Pega de verdade. Primeira bateria da sessao que passa nessa conferencia sem correcao (as
+  anteriores: 0027 M6/C3 e 0029 M8, todas creditadas a testes que nao pegavam nada).
+
+### J1 — o A4 nao tinha sido executado, e o resultado real e melhor que o esperado
+
+A nota 5 original dizia "o comportamento esperado e que ... termine normalmente sem panic".
+Comportamento esperado nao e medicao. Rodei:
+
+```
+$ psx-cli --bios bios/SCPH1001.BIN --exe tests/exes/ps1-tests/cpu/cop/cop.exe
+cpu/cop
+pass - testCop0Disabled
+pass - testCop0Enabled
+Runner: 50000000 passos, TTY: 205 bytes   [exit=0]
+```
+
+**Este e o primeiro veredito real de hardware que o projeto produz.** Dois testes de
+coprocessador do ps1-tests passando — e no formato `pass - <nome>`, que e exatamente o que o
+item 1.13 (veredito real no scoreboard) vai precisar parsear. O 1.13 deixou de depender de
+palpite sobre o formato de saida.
+
+Medindo a vizinhanca, uma ressalva util: `io-access-bitwidth` despeja `VSync: timeout` em
+serie. Os 3 582 bytes que ele produziu na medicao da 0032 nao sao teste rodando, sao espera
+por vblank — timers/IRQ, itens do M2. Nao contar aquele byte-count como progresso.
+
+### Correcoes minhas nesta branch
+
+- Nota 5 reescrita com a saida real; nota 6 nova registrando `CAUSE.CE` como limitacao
+  conhecida (`02-cpu.md` L681) em vez de ampliar o item.
+- **O placar do STATUS ficou em 247 quando o real e 258** — o passo 8 do protocolo pede a
+  atualizacao e ela nao veio. Corrigido, com o detalhamento por arquivo recontado
+  (). Terceira vez na sessao que o numero do STATUS diverge do
+  medido (0029, 0031, esta): conferir contando, nunca lendo.
 
 ## Decisões e notas
 
@@ -56,4 +104,11 @@ Scoreboard: nao executado (item 1.14 anterior ao runner 1.11+).
 
 4. **A5 confirmado:** `grep -rn "unimplemented!\|panic!\|unwrap()\|expect(" crates/psx-core/src/` retorna vazio (fora de `#[cfg(test)]`).
 
-5. **A4 (cop.exe)** nao foi testado automaticamente — depende do stub temporario de GPUSTAT no `bus.rs` (nao commitado) descrito no doc da 0032. Com o stub, o comportamento esperado e que `psx-cli --bios bios/SCPH1001.BIN --exe tests/exes/ps1-tests/cpu/cop/cop.exe` termine normalmente sem panic.
+5. **A4 (cop.exe) — executado pelo orquestrador na revisao**, com o stub temporario de GPUSTAT
+   do doc da 0032 aplicado a mao (nao commitado). O resultado esta na secao de revisao cruzada:
+   nao so nao entra em panico, como produz o primeiro veredito real de hardware do projeto.
+
+6. **Limitacao conhecida: `CAUSE.CE` nao e preenchido.** `raise_exception(0x0B, None)` levanta
+   Coprocessor Unusable sem escrever o numero do coprocessador em `CAUSE.28-29`, que a spec
+   define (`02-cpu.md` L681). Nenhuma suite cobra isso hoje; ampliar o item para cobrir seria
+   violar R4. Fica registrado para quando o M3 (GTE) precisar.

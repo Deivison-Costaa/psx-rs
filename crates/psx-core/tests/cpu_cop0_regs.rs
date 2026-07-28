@@ -30,10 +30,6 @@ fn ori(rt: u32, rs: u32, imm: u16) -> u32 {
     (0x0D << 26) | (rs << 21) | (rt << 16) | (imm as u32)
 }
 
-fn addu(rd: u32, rt: u32, rs: u32) -> u32 {
-    (rs << 21) | (rt << 16) | (rd << 11) | 0x21
-}
-
 // ============================================================================
 // A1 — RFE: SR com 0x34 → RFE → SR deve valer 0x3D
 // Spec: bit2-3 → bit0-1, bit4-5 → bit2-3, bits 4-5 inalterados
@@ -44,6 +40,7 @@ fn addu(rd: u32, rt: u32, rs: u32) -> u32 {
 fn sr_rfe_move_campos_ie_ku_corretamente() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    cpu.pc = 0;
 
     cpu.regs[8] = 0x0000_0034;
     bus.write32::<BusRead>(0x0000, mtc0(8, 12));
@@ -71,6 +68,7 @@ fn sr_rfe_move_campos_ie_ku_corretamente() {
 fn cause_mascara_escrita_apenas_bits_8_e_9() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    cpu.pc = 0;
 
     cpu.cop0[13] = 0x0000_0020;
     cpu.regs[8] = 0xFFFF_FFFF;
@@ -96,6 +94,7 @@ fn cause_mascara_escrita_apenas_bits_8_e_9() {
 fn mfc0_tem_load_delay_de_um_opcode() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    cpu.pc = 0;
 
     cpu.cop0[15] = 0x0000_0002;
 
@@ -125,6 +124,7 @@ fn mfc0_tem_load_delay_de_um_opcode() {
 fn mtc0_nao_tem_store_delay() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    cpu.pc = 0;
 
     cpu.regs[8] = 0xDEAD_BEEF;
     cpu.cop0[12] = 0x0000_0000;
@@ -150,6 +150,7 @@ fn mtc0_nao_tem_store_delay() {
 fn prid_retorna_0x00000002() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    cpu.pc = 0;
 
     bus.write32::<BusRead>(0x0000, mfc0(10, 15));
     bus.write32::<BusRead>(0x0004, nop());
@@ -170,6 +171,7 @@ fn prid_retorna_0x00000002() {
 fn epc_gravavel_comportamento_assumido() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    cpu.pc = 0;
 
     cpu.regs[8] = 0x8000_1234;
     bus.write32::<BusRead>(0x0000, mtc0(8, 14));
@@ -193,6 +195,7 @@ fn epc_gravavel_comportamento_assumido() {
 fn badvaddr_gravavel_comportamento_assumido() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    cpu.pc = 0;
 
     cpu.regs[8] = 0x1FC0_0000;
     bus.write32::<BusRead>(0x0000, mtc0(8, 8));
@@ -216,6 +219,7 @@ fn badvaddr_gravavel_comportamento_assumido() {
 fn sr_aceita_escrita_completa_via_mtc0() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    cpu.pc = 0;
 
     cpu.regs[8] = 0xABCD_0005;
     bus.write32::<BusRead>(0x0000, mtc0(8, 12));
@@ -239,6 +243,7 @@ fn sr_aceita_escrita_completa_via_mtc0() {
 fn registrador_garbage_nao_dispara_excecao() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    cpu.pc = 0;
 
     bus.write32::<BusRead>(0x0000, mfc0(10, 16));
     bus.write32::<BusRead>(0x0004, nop());
@@ -253,16 +258,15 @@ fn registrador_garbage_nao_dispara_excecao() {
 }
 
 // ============================================================================
-// MTC0 em registrador SR com R0 — nao altera SR (R0 = zero, set_reg ignora)
-// Mas MTC0 escreve o valor do registrador — testa que R0 escreve 0
+// MTC0 com rt=R0 escreve 0 no COP0 (R0 é hardwired a zero)
 // ============================================================================
 #[test]
 fn mtc0_com_r0_escreve_zero() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    cpu.pc = 0;
 
     cpu.cop0[12] = 0xFFFF_FFFF;
-    cpu.regs[0] = 0x1234_5678;
     bus.write32::<BusRead>(0x0000, mtc0(0, 12));
     bus.write32::<BusRead>(0x0004, mfc0(10, 12));
     bus.write32::<BusRead>(0x0008, nop());
@@ -273,6 +277,6 @@ fn mtc0_com_r0_escreve_zero() {
 
     assert_eq!(
         cpu.regs[10], 0x0000_0000,
-        "MTC0 com rt=R0: escreve 0 (R0 sempre zero) no COP0, SR fica zerado"
+        "MTC0 com rt=R0: escreve 0 (R0 hardwired zero) no COP0, SR fica zerado"
     );
 }

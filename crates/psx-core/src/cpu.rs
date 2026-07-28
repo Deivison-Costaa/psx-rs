@@ -605,8 +605,57 @@ impl Cpu {
         self.regs[idx]
     }
 
-    fn cop0_op(&mut self, _instr: u32) -> Option<(usize, u32)> {
-        None
+    fn cop0_op(&mut self, instr: u32) -> Option<(usize, u32)> {
+        let co = (instr >> 21) & 0x1F;
+        match co {
+            0x00 => {
+                let rt = ((instr >> 16) & 0x1F) as usize;
+                let rd = ((instr >> 11) & 0x1F) as usize;
+                Some((rt, self.cop0_read(rd)))
+            }
+            0x04 => {
+                let rt = ((instr >> 16) & 0x1F) as usize;
+                let rd = ((instr >> 11) & 0x1F) as usize;
+                let val = self.regs[rt];
+                self.cop0_write(rd, val);
+                None
+            }
+            0x10..=0x1F => {
+                let cop0cmd = instr & 0x3F;
+                match cop0cmd {
+                    0x10 => {
+                        let sr = self.cop0[12];
+                        let iec_kuc = (sr >> 2) & 0x3;
+                        let iep_kup = (sr >> 4) & 0x3;
+                        self.cop0[12] = (sr & !0xF) | iec_kuc | (iep_kup << 2);
+                        None
+                    }
+                    _ => None,
+                }
+            }
+            _ => None,
+        }
+    }
+
+    fn cop0_read(&self, reg: usize) -> u32 {
+        if reg >= 32 {
+            return 0;
+        }
+        self.cop0[reg]
+    }
+
+    fn cop0_write(&mut self, reg: usize, val: u32) {
+        if reg >= 32 {
+            return;
+        }
+        if reg == 15 {
+            return;
+        }
+        if reg == 13 {
+            self.cop0[13] = (self.cop0[13] & !0x300) | (val & 0x300);
+            return;
+        }
+        self.cop0[reg] = val;
     }
 
     fn set_reg(&mut self, idx: usize, val: u32) {

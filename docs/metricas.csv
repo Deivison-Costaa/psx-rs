@@ -32,3 +32,4 @@ ts,iter,resultado,custo_usd,tokens_in,tokens_out,steps,duracao_ms,head_antes,hea
 2026-07-27T21:27:18-03:00,0017d,ok,,,,,,4d9af29,,claude-orquestrador,orquestrador
 2026-07-27T21:34:51-03:00,0018,abortado:handoff-errado,,,,,390000,da3a444,,deepseek/deepseek-v4-pro,trabalhador
 2026-07-27T21:34:51-03:00,0017e,ok,,,,,,da3a444,,claude-orquestrador,orquestrador
+2026-07-27T21:37:45-03:00,0018,ok,0.1595,87196,56990,106,1380349,f99e114,c05f034,deepseek/deepseek-v4-pro,trabalhador

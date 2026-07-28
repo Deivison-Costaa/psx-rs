@@ -169,3 +169,41 @@ e a bateria de mutação dele (7 mutantes) atacou divisão por zero, overflow e 
 nunca a assinatura. É o terceiro caso da série em que o defeito escapa exatamente onde o
 autor do teste não pensou em errar; a revisão adversarial por um modelo de outro vendor
 continua sendo o que pega isso.
+
+## 2026-07-27 — a primeira iteração rejeitada, e ela veio verde (iter 0017)
+
+A PR #27 chegou à revisão com CI verde, 20 testes passando e bateria de mutação 7/7. Os
+quatro opcodes estavam errados. O diagnóstico está em
+`docs/iterations/0017-cpu-unaligned-load-store.md`; aqui fica o que ele diz sobre o
+**processo**.
+
+O defeito não é de disciplina: a R5 foi cumprida à risca. Teste antes de implementar protege
+o código contra divergir do que o autor entendeu — e não protege contra o autor ter
+entendido errado. Quando o mesmo agente escreve o teste e a implementação na mesma sessão, o
+teste herda o modelo mental, e a bateria de mutação só confirma que o código concorda
+consigo mesmo. Placar 7/7 com valor zero: os mutantes foram conferidos contra expectativas
+erradas.
+
+É a diferença entre os dois eixos de verificação que o projeto usa. O eixo *interno*
+(teste-primeiro, mutação, clippy, CI) mede consistência e já estava saturado. O eixo
+*externo* — revisão adversarial por um modelo de outro vendor, lendo a spec de novo — é o
+único que estava olhando para fora do modelo mental do autor, e foi o que pegou. Vale para o
+relatório: das quatro últimas iterações, três tiveram defeito real achado só na revisão
+cruzada (0014 no bus, 0015 no overflow do link, 0016 na cobertura do DIVU) e a quarta foi
+reprovada por inteiro. Nenhum deles apareceu na CI.
+
+Mudança de protocolo, e é a primeira que sai de uma rejeição: quando a spec do item traz um
+**idioma canônico**, o handoff passa a incluir um **teste de aceitação com valores literais**
+derivado da spec pelo orquestrador, obrigatório no PR. A assimetria é o ponto — uma asserção
+com bytes concretos (`r2 = 0x44DDCCBB` depois do par lwl/lwr) não pode ser satisfeita por um
+modelo errado, enquanto uma asserção que o próprio autor deriva sempre pode.
+
+Registro honesto do que **eu** errei: o handoff do 1.7 foi escrito por mim na revisão da
+0016 e avisava que "o endereço define qual fragmento é transferido (tabelado na spec)" —
+verdadeiro e inútil. Não nomeou a armadilha que importava (`[N*4+0]` é endereço de byte, não
+a parte alta do valor da palavra) porque eu também não tinha derivado a tabela na hora de
+escrever o handoff — só na hora de revisar. Handoff escrito sem passar pela spec vale menos
+do que aparenta.
+
+Custo da rejeição: US$ 0,0192 e 5 minutos do trabalhador. Reexecutar é mais barato que
+corrigir na branch, e mantém a separação de papéis — o orquestrador não escreve o emulador.

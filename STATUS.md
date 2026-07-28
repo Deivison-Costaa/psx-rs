@@ -16,16 +16,46 @@ A revisão adversarial achou a CI vermelha por lint que o clippy local (desatual
 conhece e um buraco de cobertura — DIVU implementado com sinal passava nos 18 testes; +2
 testes. Ver `docs/iterations/0016-cpu-mult-div.md`.
 
+**0017 — REPROVADA na revisão adversarial, PR #27 fechada sem merge** (LWL/LWR/SWL/SWR,
+ROADMAP 1.7). Primeira iteração rejeitada do projeto. Os 20 testes passavam porque
+codificavam o mesmo modelo errado da implementação. Custo registrado no CSV como
+`rejeitado:semantica`. Diagnóstico completo e o que a segunda tentativa tem de fazer
+diferente: `docs/iterations/0017-cpu-unaligned-load-store.md`.
+
 ## Próxima tarefa
 
-**ROADMAP 1.7** — LWL/LWR/SWL/SWR (unaligned load/store). Spec: `docs/reference/02-cpu.md`,
-seções **Unaligned Load/Store** e **Unaligned Load/Store (Details)** (índice: L235, L257).
-Leia as duas — a primeira define os opcodes, a segunda detalha a fragmentação por alinhamento.
+**ROADMAP 1.7 (SEGUNDA TENTATIVA)** — LWL/LWR/SWL/SWR. A PR #27 foi **reprovada na revisão
+adversarial**: implementação e testes compartilhavam o mesmo modelo errado, então os 20
+testes passavam e a bateria de mutação não pegava nada. Leia
+`docs/iterations/0017-cpu-unaligned-load-store.md` **antes de começar** — ele descreve os
+dois defeitos. Comece do zero a partir da main; não recupere a branch antiga.
 
-Armadilhas: LWL/LWR **não** zero- nem sign-extendem — os bytes não transferidos do
-registrador ficam intactos (merge com o valor atual do rt). O mesmo vale para SWL/SWR com
-a memória. O endereço define qual fragmento de 8/16/24/32 bits é transferido (tabelado na
-spec). Teste: `crates/psx-core/tests/cpu_unaligned_load_store.rs`.
+Spec: `docs/reference/02-cpu.md`, seções **Unaligned Load/Store** e **Unaligned Load/Store
+(Details)** (índice: L235, L257). Leia as duas.
+
+Armadilha 1 — **`[N*4+0]` na tabela da spec é ENDEREÇO DE BYTE, não a parte alta do valor
+da palavra.** Em little-endian o byte em `N*4+0` é o byte **menos** significativo da palavra
+lida em `N*4`: depois de `write32(0x1000, 0xAABBCCDD)`, o byte em `[0x1000]` vale `0xDD`.
+Então `LWL` com endereço `0x1000` ("transfer upper 8bit of Rt from [N*4+0]") põe **`0xDD`**
+em `rt[31:24]` — quem responder `0xAA` reproduziu o erro da PR #27. Derive as quatro
+posições de cada opcode dessa regra; o merge precisa **deslocar** a via de byte, não só
+mascarar. O que não é transferido fica intacto (nem zero- nem sign-extend), no registrador
+e na memória.
+
+Armadilha 2 — **LWL e LWR têm de enxergar um ao outro sem delay.** A spec mostra o idioma
+logo acima da tabela (`lwl r2,$0003(t0)` seguido de `lwr r2,$0000(t0)`, "no delay required
+between these ... although both access r2"). Hoje o merge lê `self.reg(rt)`, que ainda é o
+valor antigo quando o load anterior está no delay slot — o resultado do `lwl` some. O merge
+tem de usar o valor do load pendente quando ele for para o mesmo registrador.
+
+**Teste de aceitação obrigatório** (o item não fecha sem ele): `[0..3] = DD CC BB AA`,
+`[4..7] = 44 33 22 11`, `t0 = 1`; `lwl r2,3(t0)` seguido de `lwr r2,0(t0)` e um `nop` tem de
+deixar `r2 = 0x44DDCCBB` — a palavra desalinhada formada pelos bytes `[1][2][3][4]`. Esse é
+o idioma da spec e o motivo de os quatro opcodes existirem.
+
+Teste: `crates/psx-core/tests/cpu_unaligned_load_store.rs`. **Use** `tests/support/asm.rs`
+(`bus_with_bios_empty`, `encode_i_type`, `nop`) em vez de recriar helpers, e nomeie os
+testes em português, como em `cpu_mult_div.rs`.
 
 `cpu_mult_div.rs` tem 283 linhas — dentro do teto de 500. `cpu.rs` passou de 500 linhas e
 **continua inteiro**: o orquestrador respondeu a dúvida levantada na 0016 — o teto vale só
@@ -34,7 +64,8 @@ coesão pedir (candidato natural: COP0/exceções em módulo próprio, no 1.8).
 
 **Antes de rodar o clippy, sincronize o toolchain**: `rustup update stable`. A CI usa
 `dtolnay/rust-toolchain@stable` (sempre a última), e um stable local atrasado deixa passar
-lints novos — foi assim que a 0016 abriu PR com a CI vermelha.
+lints novos — foi assim que a 0016 abriu PR com a CI vermelha. (Some quando o pin do
+`rust-toolchain.toml` entrar — decisão tomada pelo usuário, iteração de infra própria.)
 
 ## Repositório
 

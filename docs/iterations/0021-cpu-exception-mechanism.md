@@ -26,10 +26,12 @@
 | 4 | COP0-mask | `self.cop0[13] = cause` sobrescrevia o registrador inteiro, zerando os bits Sw (8-9) e IP (10-15). | A spec diz que os bits 8-9 são "Write to these bits to manually cause an exception. Clear them before returning from the exception handler" — a instrução de limpar em software só faz sentido se o hardware não limpar sozinho. | Revisão adversarial do orquestrador (PR #35). Corrigido com máscara: `self.cop0[13] = (self.cop0[13] & !0xC000_007C) \| cause`. |
 | 5 | SR-stack | Não havia empilhamento de SR na entrada da exceção — `RFE` desempilha mas nada empilhava. | Comportamento ASSUMIDO: o inverso exato do RFE. A spec local só documenta o RFE, não o push. | Revisão adversarial do orquestrador (PR #35). Implementado push: bits 0-1 → 2-3, bits 2-3 → 4-5, bits 0-1 zerados. |
 | 6 | load-delay | Load pendente era descartado pela exceção — o `return` antecipado no `step()` ocorria antes de `self.load_delay` ser commitado. | Comportamento ASSUMIDO: o acesso à memória do `lw` já ocorreu quando a exceção da instrução seguinte é reconhecida, então o valor pendente deve ser commitado antes de entrar na exceção. | Revisão adversarial do orquestrador (PR #35). Corrigido commitando o load delay antes do `return`.
+| 7 | cobertura (teste) | O teste `sr_e_empilhado_na_entrada_da_excecao` usava apenas SR=0x03, que tem os bits 2-5 zerados. O literal 0x03 não distingue a limpeza correta dos bits 2-5 (máscara `!0x3F`) da limpeza insuficiente (`!0x3`), porque o OR dos bits shiftados esconde o defeito quando os bits 2-5 de origem são zero. **O defeito era de TESTE, não de implementação.** | O segundo caso com SR=0x0040_0031 (bits 4-5=11, bit 22=1) expõe o mutante: o resultado correto é 0x0040_0004, o mutante produz 0x0040_0034. | Segunda rodada de revisão adversarial (PR #35, mutante M-A). Adicionado segundo caso SR=0x0040_0031 → 0x0040_0004 ao teste existente.
+| 8 | cobertura (teste) | Nenhum teste do item disparava duas exceções em sequência. Se a primeira exceção ocorre em delay slot (BD=1, BT=1), os bits 31-30 do CAUSE podem ficar velhos na segunda exceção se a máscara de pré-limpeza esquecer de limpá-los. **O defeito era de TESTE, não de implementação.** | O código usa máscara `!0xC000_007C` que limpa BD e BT corretamente. O mutante `!0x0000_007C` mantém os bits 31-30 entre exceções. | Segunda rodada de revisão adversarial (PR #35, mutante M-B). Adicionado teste `excecao_sequencial_limpa_bd_e_bt`.
 
 ## Bateria de mutação
 
-Placar: **10/10 mutantes pegos, 3/3 controles verdes.**
+Placar: **12/12 mutantes pegos, 3/3 controles verdes.**
 
 ### Mutantes originais (iteração inicial)
 
@@ -51,6 +53,13 @@ Placar: **10/10 mutantes pegos, 3/3 controles verdes.**
 | 9 | Mutante | Shift errado no push (`iep_kup << 2` em vez de `(sr & 0xC) << 2` — IEp vai para bits 2-3, não 4-5) | `sr_push_seguido_de_rfe_restaura_os_bits_0_3` (o E2 simples com SR=0x03 sobrevive, prova que o E2b é necessário) |
 | 10 | Mutante | Load delay não commitado antes da exceção (removido o `if let Some`) | `load_pendente_e_commitado_antes_da_excecao_comportamento_assumido` |
 
+### Mutantes da segunda rodada de revisão adversarial (PR #35)
+
+| # | Tipo | Mutação | Teste que pegou |
+|---|---|---|---|
+| 11 | Mutante | Máscara do push do SR `!0x3F` → `!0x3` (limpa só bits 0-1, não bits 2-5) | `sr_e_empilhado_na_entrada_da_excecao` (segundo caso: SR=0x0040_0031 → 0x0040_0004) |
+| 12 | Mutante | Máscara do CAUSE `!0xC000_007C` → `!0x0000_007C` (não limpa BD/BT entre exceções) | `excecao_sequencial_limpa_bd_e_bt` |
+
 ### Controles
 
 | # | Tipo | Mutação | Resultado |
@@ -61,7 +70,7 @@ Placar: **10/10 mutantes pegos, 3/3 controles verdes.**
 
 ## Placar antes → depois
 
-Workspace: **188 → 202** testes (+14). Os 10 originais + 4 novos (E1, E2, E2b, E3).
+Workspace: **188 → 203** testes (+15). Os 10 originais + 5 novos (E1, E2, E2b, E3, M-B sequencial).
 
 ## Por que a suite original não pegou as três lacunas
 
@@ -72,6 +81,10 @@ Os 10 testes originais cobrem exatamente os 5 casos de aceitação do handoff do
 - **E3 (load delay):** Nenhum teste original combinava load + exceção na instrução seguinte. O B4 (BD + syscall) usa `JAL` + `syscall`, sem load pendente.
 
 A lição é sobre o formato do handoff dirigido por testes de aceitação: ele garante o que foi pedido e nada além. As lacunas de borda (estado prévio do CAUSE, SR significativo, load pendente) são exatamente o tipo de coisa que testes de integração mais amplos (como o Amidog `psxtest_cpu`, item 1.11) exercitariam. Isso não é falha do trabalhador — o código passava em todos os testes pedidos. É uma característica do processo: o handoff define o "o que", os testes de aceitação verificam o "o que", e revisões adversariais encontram o "o que mais".
+
+A primeira rodada de revisão adversarial achou três lacunas (E1/E2/E3) porque nenhum teste combinava exceção com ESTADO PRÉVIO; esta segunda rodada achou duas (M-A/M-B) porque nenhum teste combinava exceção com ESTADO DEIXADO POR OUTRA EXCECÃO. O eixo é o mesmo — teste de aceitação verifica transição a partir do reset.
+
+**Regra do literal (terceira ocorrência no projeto).** Um literal que verifica limpeza-antes-de-OR precisa de um bit em 1 na origem onde o resultado correto exige 0, senão o OR esconde a máscara errada. Ocorrências: (1) iteração 1.8a com SR=0x34 na verificação de `rfe`; (2) esta iteração com SR=0x03 no push do SR (E2 inicial); (3) esta mesma iteração com SR=0x3F no round-trip (E2b). Em todos os casos, o literal tinha os bits-alvo zerados na origem, e o OR de `ie_ku_shifted` (ou `rfe` shift) colocava os valores corretos nos bits de destino, mascarando o defeito. A correção é sempre a mesma: escolher um literal que tenha 1 nos bits que a máscara deve limpar, para que a falha de limpeza apareça como diferença no resultado.
 
 ## Decisões e notas
 

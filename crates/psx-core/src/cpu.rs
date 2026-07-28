@@ -228,7 +228,14 @@ impl Cpu {
                 None
             }
             0x10 => self.cop0_op(instr),
-            _ => unimplemented!("opcode primary={:02X} nao implementado", primary),
+            _ => {
+                match primary {
+                    0x11..=0x13 => self.raise_exception(0x0B, None),
+                    0x30..=0x33 | 0x38..=0x3B => self.raise_exception(0x0B, None),
+                    _ => self.raise_exception(0x0A, None),
+                };
+                None
+            }
         }
     }
 
@@ -332,7 +339,7 @@ impl Cpu {
                     self.raise_exception(0x0C, None);
                 }
             }
-            _ => unimplemented!("secondary opcode={:02X} nao implementado", secondary),
+            _ => self.raise_exception(0x0A, None),
         }
     }
 
@@ -807,7 +814,10 @@ impl Cpu {
                         self.cop0[12] = (sr & !0xF) | iec_kuc | (iep_kup << 2);
                         None
                     }
-                    _ => None,
+                    _ => {
+                        self.raise_exception(0x0A, None);
+                        None
+                    }
                 }
             }
             _ => None,

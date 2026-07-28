@@ -81,16 +81,20 @@ fn r0_is_always_zero() {
 }
 
 #[test]
-fn unknown_opcode_panics() {
+fn unknown_opcode_gera_ri() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
     cpu.pc = 0;
     let illegal: u32 = 0xFFFFFFFF;
     bus.write32::<BusRead>(0, illegal);
-    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        cpu.step(&mut bus);
-    }));
-    assert!(result.is_err(), "Opcode desconhecido deve panic");
+    cpu.step(&mut bus);
+    let exc = (cpu.cop0[13] >> 2) & 0x1F;
+    assert_eq!(
+        exc, 0x0A,
+        "Opcode desconhecido deve gerar RI (0Ah), veio 0x{:1X}",
+        exc
+    );
+    assert_eq!(cpu.pc, 0x8000_0080);
 }
 
 #[test]

@@ -369,14 +369,18 @@ fn sltiu_imm_alto_comparacao_unsigned() {
 }
 
 #[test]
-fn opcode_desconhecido_especial_panics() {
+fn opcode_desconhecido_especial_gera_ri() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
     cpu.pc = 0;
     let instr = encode_special(0x3F, 0, 0, 0);
     bus.write32::<BusRead>(0, instr);
-    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        cpu.step(&mut bus);
-    }));
-    assert!(result.is_err(), "SPECIAL unknown secondary must panic");
+    cpu.step(&mut bus);
+    let exc = (cpu.cop0[13] >> 2) & 0x1F;
+    assert_eq!(
+        exc, 0x0A,
+        "SPECIAL unknown secondary deve gerar RI (0Ah), veio 0x{:1X}",
+        exc
+    );
+    assert_eq!(cpu.pc, 0x8000_0080);
 }

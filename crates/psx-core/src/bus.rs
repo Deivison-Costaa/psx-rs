@@ -132,6 +132,10 @@ impl Bus {
         std::mem::take(&mut self.tty_buffer)
     }
 
+    pub fn gpu_vram_u16(&self, x: u16, y: u16) -> u16 {
+        self.gpu.vram_u16(x, y)
+    }
+
     fn kseg(addr: u32) -> u8 {
         (addr >> 29) as u8
     }

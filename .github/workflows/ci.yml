@@ -29,6 +29,8 @@ jobs:
     needs: check
     if: success()
     timeout-minutes: 15
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -45,6 +47,7 @@ jobs:
       - name: roda scoreboard
         run: pwsh scripts/scoreboard.ps1
       - name: publica placar na branch scoreboard-data
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           git checkout scoreboard-data 2>/dev/null || git checkout --orphan scoreboard-data
           git rm -rf --cached . 2>/dev/null || true

@@ -28,7 +28,7 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [x] 1.8b Mecanismo de exceção: overflow, syscall, break, AdEL/AdES, bit BD (iter 0021)
 - [x] 1.9 Cache isolation + scratchpad + memory control stubs (iter 0022)
 - [x] 1.10 Hook de TTY (A0h/B0h) → BIOS imprimindo no console (iter 0025)
-- [ ] 1.11 Sideload de PS-EXE no psx-cli + Amidog psxtest_cpu no scoreboard
+- [x] 1.11 Sideload de PS-EXE no psx-cli + Amidog psxtest_cpu no scoreboard (iter 0027)
 - [ ] 1.12 CI: job scoreboard ligado
 
 ## M2 — GPU (rasterizador por software)

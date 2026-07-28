@@ -62,10 +62,9 @@ testes em português, como em `cpu_mult_div.rs`.
 para teste, e fatiar por contagem seria pior que um arquivo coeso. O corte virá quando a
 coesão pedir (candidato natural: COP0/exceções em módulo próprio, no 1.8).
 
-**Antes de rodar o clippy, sincronize o toolchain**: `rustup update stable`. A CI usa
-`dtolnay/rust-toolchain@stable` (sempre a última), e um stable local atrasado deixa passar
-lints novos — foi assim que a 0016 abriu PR com a CI vermelha. (Some quando o pin do
-`rust-toolchain.toml` entrar — decisão tomada pelo usuário, iteração de infra própria.)
+**Toolchain é pinado** em `rust-toolchain.toml` (1.97.1) desde a 0017c: o rustup resolve a
+versão sozinho, local e CI rodam o mesmo compilador, e o clippy que você vê é o que a CI vê.
+Não rode `rustup update` esperando efeito aqui — subir de versão é iteração própria.
 
 ## Repositório
 
@@ -76,7 +75,7 @@ lints novos — foi assim que a 0016 abriu PR com a CI vermelha. (Some quando o 
 
 ## Placar de testes
 
-Workspace: **149** testes (8 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div).
+Workspace: **151** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div).
 
 ## Bloqueios
 

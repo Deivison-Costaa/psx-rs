@@ -7,19 +7,42 @@
 
 **0029** — Hook de printf A(3Fh) com expansão de % → Amidog imprimindo no TTY (ROADMAP 1.11b).
 Suporte a `%%`, `%c`, `%s`, `%d`/`%i`, `%u`, `%x`/`%X` com argumentos de A1/A2/A3 e pilha em
-`[SP+10h..]`. Especificadores fora do escopo (`%o`, `%n`, etc.) emitidos como literal. `%` no
-fim da string emitido antes do break. Bateria 7/7, 3/3. Scoreboard 50/51: `amidog/cpu pass`.
-240 testes no workspace. Ver `docs/iterations/0029-cpu-printf-hook.md`.
+`[SP+10h..]`. Teto de 1 MiB no laço principal de varredura da string de formato (correção H2
+da revisão adversarial). Especificadores fora do escopo (`%o`, `%n`, etc.) emitidos como
+literal. `%` no fim da string emitido antes do break. Bateria 8/8, 3/3. Scoreboard 50/51
+produziram saída (rótulo `tty`/`sem-saida`, veredito real no 1.12). 241 testes no workspace.
+Ver `docs/iterations/0029-cpu-printf-hook.md`.
 
 ## Próxima tarefa
 
-**ROADMAP 1.12** — CI: job scoreboard ligado.
+**ROADMAP 1.12** — CI: job scoreboard ligado + primeiro placar real no histórico.
 
-O scoreboard já funciona (`scripts/scoreboard.ps1` — 50/51 passando). O item 1.12 consiste
-em adicionar um job na CI (`.github/workflows/ci.yml`) que execute o scoreboard e publique
-o resultado.
+**Spec:** O item não tem spec de hardware. Os arquivos de referência são:
 
-**Arquivos-alvo:** `.github/workflows/ci.yml`
+| Fonte | Seção | Arquivo local |
+|---|---|---|
+| ROADMAP | Item 1.12 (L32) | `ROADMAP.md` |
+| Scoreboard | script completo (L1-96) | `scripts/scoreboard.ps1` |
+| CI workflow | job check (L1-24) | `.github/workflows/ci.yml` |
+| Fetch de EXEs | script de download (L1-67) | `scripts/fetch-test-exes.ps1` |
+| BIOS | nota 1: local e hash | `STATUS.md` L52-53 |
+
+**Arquivos-alvo:**
+- `.github/workflows/ci.yml` — novo job `scoreboard` após `check`, com steps: checkout → rust → cache → fetch-test-exes → build psx-cli → roda `scripts/scoreboard.ps1` → commita `logs/scoreboard.csv` na branch `scoreboard-data`.
+- `scripts/scoreboard.ps1` — já invoca `psx-cli --bios --exe` de verdade (resolvido na 0029); o job de CI só precisa chamá-lo.
+
+**Armadilhas:**
+1. **BIOS é gitignored** (`STATUS.md` L52-53). O scoreboard já emite `sem-bios` quando `bios/SCPH1001.BIN` não existe. O job de CI precisa ou baixar a BIOS de um secret, ou aceitar `sem-bios` como estado legítimo.
+2. **EXEs são gitignored** — `scripts/fetch-test-exes.ps1` baixa do GitHub Releases. O job de CI precisa rodá-lo antes do scoreboard, e se falhar (sem token, rate-limit), o scoreboard roda vazio (0/0) sem quebrar o job.
+3. **Branch `scoreboard-data` é órfã.** Commits nela são append-only (`logs/scoreboard.csv`), nunca force-push. O job precisa de `actions/checkout` com `fetch-depth: 0` ou checkout separado da branch de dados. Documente o mecanismo no doc da iteração.
+4. **Timeout:** o Amidog `psxtest_cpu` roda ~0,3 s com step-limit de 50M. O timeout do job por EXE em `scripts/scoreboard.ps1` está em 120s — se um EXE travar, o job pode levar `N * 120s`. Considere timeout de job no workflow (`timeout-minutes`).
+5. **Nem todo `.exe` em `tests/exes/` é um PS-EXE.** O zip do ps1-tests traz utilitários de host (`ps1-tests/tools/diffvram-windows-amd64.exe`); o glob `-Include *.exe` os pega, o `load_psexe` reprova no magic e o placar registra `fail-erro`, poluindo a série. Filtrar pelos 8 primeiros bytes (`PS-X EXE`, `16-cdrom-file-formats.md` L1163) em vez da extensão, ou dar status próprio a esse caso. Medido em 28/07: 51 arquivos varridos, 1 é binário de host.
+6. **O status `tty`/`sem-saida` NÃO é veredito de teste.** O scoreboard hoje mede "produziu saída no TTY", não se o EXE passou ou falhou. O critério de veredito real (ler a saída de cada suite e extrair `pass`/`fail`) é trabalho do 1.12 — não "conserte" o placar mexendo no limiar de bytes do TTY.
+
+**Testes de aceitação:**
+- A1: `cargo test -p psx-cli --test cli_runner psxtest_cpu_sideload_executa_sem_panico` passa quando `psxtest_cpu.exe` existe (sideload + execução sem pânico, PC em KSEG0).
+- A2: `scripts/scoreboard.ps1` roda sem erro e produz `logs/scoreboard.csv` com header + pelo menos 1 linha.
+- A3: O job `scoreboard` no `ci.yml` está verde em PRs que não quebram o core (roda com `if: success()` após `check`).
 
 ## Repositório
 
@@ -33,7 +56,7 @@ o resultado.
 
 ## Placar de testes
 
-Workspace: **240** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 27 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 10 cpu_printf_hook + 10 cli_runner).
+Workspace: **241** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 27 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 10 cli_runner).
 
 ## Bloqueios
 

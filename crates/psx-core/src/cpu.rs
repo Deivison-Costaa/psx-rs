@@ -45,7 +45,29 @@ impl Cpu {
 
         let phys = instr_pc & 0x1FFF_FFFF;
         if phys == 0xA0 || phys == 0xB0 {
-            // stub
+            let fn_idx = self.regs[9];
+            match (fn_idx, phys) {
+                (0x3C, 0xA0) | (0x3D, 0xB0) => {
+                    bus.tty_push((self.regs[4] & 0xFF) as u8);
+                }
+                (0x3E, _) | (0x3F, _) => {
+                    let src = self.regs[4];
+                    if src == 0 {
+                        for &b in b"<NULL>" {
+                            bus.tty_push(b);
+                        }
+                    } else {
+                        for offset in 0..1_048_576u32 {
+                            let byte = bus.read8::<BusRead>(src.wrapping_add(offset));
+                            if byte == 0 {
+                                break;
+                            }
+                            bus.tty_push(byte);
+                        }
+                    }
+                }
+                _ => {}
+            }
         }
 
         let in_delay_slot = self.delay_slot_pending;

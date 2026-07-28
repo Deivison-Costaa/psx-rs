@@ -1,0 +1,10 @@
+# Pinado de proposito: a CI e a maquina de desenvolvimento tem de rodar o MESMO compilador.
+# Perseguindo "stable" dos dois lados, a iter 0016 abriu PR com a CI vermelha por um lint que
+# o clippy local (cinco versoes atras) nao conhecia — e a auto-remediacao do loop nao tinha
+# como corrigir, porque `clippy --fix` so enxerga o que o clippy local enxerga.
+# Subir de versao e iteracao propria: troque o channel, rode o portao inteiro, registre o que
+# quebrou no doc da iteracao. Nunca como efeito colateral de outro item.
+[toolchain]
+channel = "1.97.1"
+components = ["rustfmt", "clippy"]
+profile = "minimal"

@@ -31,7 +31,7 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [x] 1.11 Sideload de PS-EXE no psx-cli + Amidog psxtest_cpu no scoreboard (iter 0027)
 - [x] 1.11b Hook de printf A(3Fh) com expansão de % → Amidog imprimindo no TTY (iter 0029)
 - [x] 1.12 CI: job scoreboard ligado (iter 0031)
-- [ ] 1.13 Veredito real no scoreboard: ler a saida de cada suite e extrair pass/fail (depende do 2.1 — GPUSTAT + decodificacao GP0/GP1)
+- [x] 1.13 Veredito real no scoreboard: ler a saida de cada suite e extrair pass/fail (depende do 2.1 — GPUSTAT + decodificacao GP0/GP1) (iter 0036)
 - [x] 1.14 Opcode nao implementado gera excecao (RI 0Ah / CpU 0Bh) em vez de panic (iter 0033)
 
 ## M2 — GPU (rasterizador por software)

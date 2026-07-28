@@ -11,7 +11,7 @@ if (-not (Test-Path $ExeRoot)) {
     New-Item -ItemType Directory -Force $OutDir | Out-Null
     Write-Host "scoreboard: 0/0 — tests/exes/ nao existe (sem EXEs para avaliar)"
     if (-not (Test-Path $OutFile)) {
-        Set-Content $OutFile "ts,commit,suite,exe,status,ciclos"
+        Set-Content $OutFile "ts,commit,suite,exe,status,detalhe"
     }
     exit 0
 }
@@ -87,20 +87,33 @@ foreach ($candidate in $candidateFiles) {
             continue
         }
 
-        $stderr = Get-Content "logs/tmp_stderr.txt" -Raw -ErrorAction SilentlyContinue
-        if ($stderr -match "Runner: (\d+) passos, TTY: (\d+) bytes") {
-            $ttyBytes = [int]$Matches[2]
-            if ($ttyBytes -gt 0) {
-                $rows += "$ts,$commit,$suite,$($candidate.Name),tty,"
-            } else {
-                $rows += "$ts,$commit,$suite,$($candidate.Name),sem-saida,"
-            }
+        $stdout = Get-Content "logs/tmp_stdout.txt" -Raw -ErrorAction SilentlyContinue
+        $veredictLines = @()
+        if ($stdout) {
+            $veredictLines = @($stdout -split "`n" | Where-Object { $_ -match '^(pass|fail) - ' } | Sort-Object | Get-Unique)
+        }
+        $passCount = @($veredictLines | Where-Object { $_ -match '^pass - ' }).Count
+        $failCount = @($veredictLines | Where-Object { $_ -match '^fail - ' }).Count
+
+        if ($passCount -gt 0 -or $failCount -gt 0) {
+            $status = if ($failCount -gt 0) { 'fail' } else { 'pass' }
+            $detalhe = "${passCount}p/${failCount}f"
+            $rows += "$ts,$commit,$suite,$($candidate.Name),$status,$detalhe"
         } else {
-            $stdout = Get-Content "logs/tmp_stdout.txt" -Raw -ErrorAction SilentlyContinue
-            if ($stdout -and $stdout.Length -gt 0) {
-                $rows += "$ts,$commit,$suite,$($candidate.Name),tty,"
+            $stderr = Get-Content "logs/tmp_stderr.txt" -Raw -ErrorAction SilentlyContinue
+            if ($stderr -match "Runner: (\d+) passos, TTY: (\d+) bytes") {
+                $ttyBytes = [int]$Matches[2]
+                if ($ttyBytes -gt 0) {
+                    $rows += "$ts,$commit,$suite,$($candidate.Name),tty,"
+                } else {
+                    $rows += "$ts,$commit,$suite,$($candidate.Name),sem-saida,"
+                }
             } else {
-                $rows += "$ts,$commit,$suite,$($candidate.Name),sem-saida,"
+                if ($stdout -and $stdout.Length -gt 0) {
+                    $rows += "$ts,$commit,$suite,$($candidate.Name),tty,"
+                } else {
+                    $rows += "$ts,$commit,$suite,$($candidate.Name),sem-saida,"
+                }
             }
         }
     } catch {
@@ -112,9 +125,14 @@ Remove-Item "logs/tmp_stdout.txt" -ErrorAction SilentlyContinue
 Remove-Item "logs/tmp_stderr.txt" -ErrorAction SilentlyContinue
 
 if (-not (Test-Path $OutFile)) {
-    Set-Content $OutFile "ts,commit,suite,exe,status,ciclos"
+    Set-Content $OutFile "ts,commit,suite,exe,status,detalhe"
 }
 Add-Content $OutFile $rows
 $total = @($rows).Count
 $tty = @($rows | Where-Object { $_ -match ",tty," }).Count
-Write-Host "scoreboard: $tty/$total produziram saida (criterio: TTY nao vazio; veredito real fica para o 1.13) (commit $commit, bios=$haveBios) -> $OutFile"
+$pass = @($rows | Where-Object { $_ -match ",pass," }).Count
+$fail = @($rows | Where-Object { $_ -match ",fail," }).Count
+$comVeredito = $pass + $fail
+$semSaida = @($rows | Where-Object { $_ -match ",sem-saida," }).Count
+$outros = $total - $tty - $comVeredito - $semSaida
+Write-Host "scoreboard: $comVeredito com veredito ($($pass)p/$($fail)f), $tty so com saida, $semSaida sem saida, $outros nao avaliados, de $total arquivos (commit $commit, bios=$haveBios) -> $OutFile"

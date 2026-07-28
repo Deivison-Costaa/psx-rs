@@ -5,95 +5,63 @@
 
 ## Última iteração concluída
 
-**0033** — Opcode não implementado gera exceção RI/CpU em vez de panic (ROADMAP 1.14). 258 testes (11 novos + 3 renomeados). Bateria 7/7, 2/2. Nenhum `unimplemented!`/`panic!`/`unwrap()`/`expect()` no source.
-Ver `docs/iterations/0033-cpu-opcode-reservado.md`.
+**0035** — GPUSTAT + decodificação GP0/GP1 (ROADMAP 2.1), com rodada curta de correção (K1-K4
+da revisão adversarial). 271 testes. Bateria 7/7, 2/2.
+Ver `docs/iterations/0035-gpustat-gp0-gp1.md`.
 
 ## Próxima tarefa
-**ROADMAP 2.1** — GPUSTAT + decodificação GP0/GP1. Primeiro item do M2.
+**ROADMAP 1.13** — Veredito real no scoreboard: parser de pass/fail na saída TTY das suítes.
 
-O handoff anterior deste item (escrito na 0031) tinha quatro afirmações erradas, corrigidas e
-registradas em `docs/iterations/0032-handoff-2-1.md`. Este aqui é o handoff de verdade, com as
-linhas conferidas uma a uma com `grep -n` em 28/07.
+A tarefa depende do 2.1 (GPUSTAT + GP0/GP1), que foi entregue, e dos dados empíricos
+coletados na revisão (ver `docs/iterations/0035-gpustat-gp0-gp1.md` § Medições).
 
-**Spec:** `docs/reference/03-gpu.md` — linhas **absolutas do arquivo**:
+**Formato observado (dados concretos da revisão):**
 
-| Fato | Linha |
-|---|---|
-| Portas: `1F801810h`-Write = GP0, `1F801814h`-Write = GP1, `1F801810h`-Read = GPUREAD, `1F801814h`-Read = GPUSTAT | L144-147 |
-| Tabela de bits do GPUSTAT, bit a bit | L1002-1032 |
-| **GP1(00h) Reset GPU — "Accordingly, GPUSTAT becomes 14802000h"** | L747-763 |
-| GP1(01h) Reset Command Buffer | L767 |
-| GP1(02h) Acknowledge IRQ1 (GPUSTAT.24) | L773 |
-| GP1(03h) Display Enable (GPUSTAT.23) | L779 |
-| GP1(04h) DMA Direction (GPUSTAT.29-30, e define o *significado* do bit 25) | L789 |
-| GP1(08h) Display mode — mapa bit a bit para GPUSTAT.16-22 e .14 | L885-893 |
-| GP0(E1h) Draw Mode / Texpage (GPUSTAT.0-10 e .15) | L492 |
-| GP0(E6h) Mask Bit Setting (GPUSTAT.11-12) | L578 |
-| GP0(00h) NOP e seus mirrors | L721, L734 |
+- `cop` = 2 vereditos, `code-in-io` = 9 402, as outras 8 suítes = 0.
+- Linhas de pass: `pass - <nome_do_teste>`
+- Linhas de fail: `fail - <nome>:<linha> \`<expressao>\`, given: X, expected: Y`
+- `code-in-io` repete: 3 linhas distintas × 3 134 iterações — **o parser precisa deduplicar
+  antes de contar.**
+- Duas falhas são bugs legítimos do emulador (código do scratchpad deveria levantar bus error
+  e não levanta): registrar no doc mas **não corrigir aqui** (R4).
 
-**Arquivos-alvo:** `crates/psx-core/src/gpu.rs` (hoje tem 1 byte — módulo vazio),
-`crates/psx-core/src/bus.rs` (mapear `1F801810h..1F801817h`),
-`crates/psx-core/tests/gpu_status_gp0_gp1.rs` (arquivo novo).
+**Arquivos-alvo:** `scripts/scoreboard.ps1` — substituir o critério atual "TTY não vazio" por
+contagem de `^(pass|fail) - ` no stdout capturado, com dedup por linha distinta.
 
-**Escopo (R4):** GPUSTAT como espelho do estado que GP1(03h/04h/08h) e GP0(E1h/E6h) escrevem,
-mais os bits de "pronto" fixos. **Fora do escopo:** rasterização, VRAM, transferências,
-temporização, IRQ de verdade. Comando de renderização pode ser aceito e descartado — mas veja
-a armadilha 5.
+**Spec de referência:** o formato é auto-evidente da saída dos EXEs; `scripts/scoreboard.ps1:92-93`
+captura `$Matches[2]` (bytes TTY) do stderr do runner. O stdout do psx-cli (L94-95 do
+`crates/psx-cli/src/main.rs`) contém as linhas `pass -`/`fail -`.
 
-### Armadilhas
+**Armadilha:** o `code-in-io` é um loop de 3 134 iterações com 3 linhas distintas — contar
+todas como eventos independentes infla o placar em 3×. A dedup deve ser por texto da linha,
+não por contagem de ocorrências.
 
-1. **Não monte o valor de reset bit a bit: a spec dá o número pronto.** Depois de GP1(00h),
-   `GPUSTAT = 14802000h` (L763). Use-o como golden value do teste. Decompondo, são os bits
-   28 (ready DMA), 26 (ready cmd), 23 (display disabled) e 13 (interlace field) — se a sua
-   montagem der outro número, é a montagem que está errada, não a spec.
-2. **Não existe campo de "versão da GPU" no GPUSTAT.** O handoff antigo afirmava que os bits
-   19-20 eram revisão do hardware: são **Vertical Resolution** e **Video Mode** (L1021-1022).
-   E o bit 28 é **Ready to receive DMA Block**, não odd/even — odd/even é o bit **31** (L1033).
-3. **Bit 25 não é um bit de estado: o significado dele muda conforme GP1(04h)** (L1027-1031).
-   Com DMA direction 0 é sempre zero; 1 = FIFO não cheio; 2 = igual ao bit 28; 3 = igual ao 27.
-   Implementar como espelho condicional, não como flag guardada.
-4. **O bus tem um catch-all** que devolve `0` para `1F801024h..1F801FFFh` desde a iteração 0022,
-   e há testes que dependem dele (`bus_scratchpad_isc`). Ao abrir a janela da GPU, não quebre o
-   catch-all nem os testes existentes — rode `cargo test --all` e compare o total antes/depois.
-5. **GP0 tem comandos multi-palavra.** Se você aceitar comandos de renderização e descartá-los,
-   precisa consumir o número certo de palavras de parâmetro, senão a próxima palavra de dados
-   vira "comando" e o estado do GPUSTAT começa a mudar sozinho. Se não for implementar a
-   contagem, restrinja-se a GP0(00h/01h/E1h..E6h) e **escreva no doc quais comandos ficaram de
-   fora** — engolir comando em silêncio é o defeito que a 0029 registrou com `%o`.
-6. **Escrita em `1F801814h` é GP1; leitura do mesmo endereço é GPUSTAT.** São coisas
-   diferentes no mesmo endereço (L144-147). O mesmo vale para `1F801810h`: escrita é GP0,
-   leitura é GPUREAD (não implementado — devolver `0` é aceitável, mas registre como stub).
-7. **Não invente critério de pass/fail no scoreboard.** Isso é o item 1.13, que depende deste.
+**Esquema do CSV — decidido, não deixar a cargo da implementação.** Uma suíte pode ter pass
+**e** fail ao mesmo tempo: o `code-in-io`, pós-dedup, tem 1 pass (`testCodeInRam`) e 2 fails
+(`testCodeInScratchpad:40` e `:41`). Um `status` do tipo `pass:N` *ou* `fail:N` não representa
+isso. Portanto:
 
-### Testes de aceitação
+- `status` continua sendo **um rótulo**, com o vocabulário estendido: `pass` (≥1 veredito e
+  zero falhas), `fail` (≥1 falha), e os já existentes `tty` (produziu saída mas nenhum
+  veredito), `sem-saida`, `host-bin`, `sem-bios`, `timeout`, `fail-erro`.
+- A **sexta coluna**, hoje chamada `ciclos` e vazia em todas as linhas, passa a se chamar
+  `detalhe` e carrega as contagens pós-dedup no formato `<n>p/<n>f` (ex.: `1p/2f`). A aridade
+  do CSV não muda, então as linhas já publicadas em `scoreboard-data` continuam válidas com o
+  campo vazio — **não reescreva o histórico**.
 
-**A1 — valor de reset.** Após GP1(00h) via `sw` em `1F801814h`, um `lw` em `1F801814h`
-devolve exatamente `0x1480_2000` (golden value, L763).
+**Testes de aceitação:**
 
-**A2 — GP1(08h) mapeia para GPUSTAT.** Escrever display mode com bits 0-7 variados e conferir
-GPUSTAT.16-22 e .14 conforme a tabela de L885-893. Pelo menos dois valores distintos.
+- A1: `pwsh scripts/scoreboard.ps1` e conferir no CSV que `amidog/cpu` … `cop.exe` sai como
+  `pass` com detalhe `2p/0f`, e `code-in-io.exe` como `fail` com detalhe `1p/2f`. **Cole a
+  saída no doc.**
+- A2: nenhuma suíte sem veredito muda de rótulo — as que hoje são `tty` continuam `tty`.
+  Compare a distribuição antes/depois e cole as duas.
+- A3: o `host-bin` do `diffvram` e o comportamento sem BIOS (`sem-bios`) continuam intactos.
+- A4: `cargo test --all` verde, com meta-teste novo cobrindo o parser (dedup + suíte mista).
 
-**A3 — GP0(E1h) e GP0(E6h).** Draw mode escreve GPUSTAT.0-10 e .15 (L492); mask bit escreve
-GPUSTAT.11-12 (L578).
-
-**A4 — GP1(03h) alterna o bit 23** e GP1(04h) escreve os bits 29-30, com o bit 25 seguindo a
-regra da armadilha 3 nos quatro modos.
-
-**A5 — o catch-all sobreviveu.** `cargo test --all` verde, e o total sobe apenas pelos testes
-novos: 258 + N. Se algum teste antigo mudou de resultado, o item quebrou algo.
-
-**A6 — o EXE real, SEM andaime.** Este é o teste que fecha o item:
-`psx-cli --bios bios/SCPH1001.BIN --exe tests/exes/ps1-tests/cpu/cop/cop.exe` tem que imprimir
-
-```
-pass - testCop0Disabled
-pass - testCop0Enabled
-```
-
-**sem** o stub temporário de GPUSTAT no `bus.rs` — hoje isso só sai com o andaime aplicado à
-mão (medido na revisão da 0033). Depois deste item, sai porque a GPU existe. **Cole a saída no
-doc.** E rode `./scripts/scoreboard.ps1`, colando a distribuição de status: a expectativa é
-que várias suítes saiam do banner e produzam saída de verdade — meça, não estime.
+**Escopo (R4):** parser de pass/fail com dedup no scoreboard.ps1, coluna `status` com
+contagem. **Fora do escopo:** corrigir o bug do scratchpad, alterar o psx-cli, formatar
+output para humano.
 
 ## Repositório
 
@@ -107,7 +75,7 @@ que várias suítes saiam do banner e produzam saída de verdade — meça, não
 
 ## Placar de testes
 
-Workspace: **258** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 27 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 11 cpu_opcode_reservado + 6 ci_scoreboard + 9 cli_runner).
+Workspace: **271** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 27 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 11 cpu_opcode_reservado + 13 gpu_status_gp0_gp1 + 6 ci_scoreboard + 9 cli_runner).
 
 ## Bloqueios
 

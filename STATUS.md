@@ -31,6 +31,53 @@ putchar grava byte cru (sem expansão TAB/LF) — decisão deliberada. Ver
 
 **ROADMAP 1.11** — Sideload de PS-EXE no psx-cli + Amidog psxtest_cpu no scoreboard.
 
+**Spec:** `docs/reference/13-kernel-bios.md` — A(41h) LoadTest (L1041), A(43h) Exec (L1054-1063),
+A(51h) LoadExec (L1065-1095), Executable Memory Allocation (L1150-1157). O 1.11 não lê setores
+de CD-ROM; o sideloader carrega o .psexe inteiro de um arquivo no disco e extrai do header
+(800h bytes) os campos: entrypoint (PC), GP, SP base+offset, t_addr/t_size (código), b_addr/
+b_size (BSS zerado). Não implementa LoadExec — só o sideload mínimo para rodar um EXE.
+
+**Arquivos-alvo:** `crates/psx-cli/src/main.rs` (args: `psx-cli --bios <BIOS> --exe <PS-EXE>`),
+`crates/psx-core/src/cpu.rs` (estado do step após halt), `crates/psx-cli/tests/cli_runner.rs`
+(teste de integração novo).
+
+### Armadilhas
+
+1. **O header de PS-EXE tem 800h bytes, mas os campos relevantes estão em [10h..4Bh].**
+   O headerbuf que Exec recebe tem só 3Ch bytes. O offset no arquivo .psexe é diferente
+   do offset no headerbuf — não confundir.
+2. **O PC inicial do header é KSEG1 (0xBFC0_xxxx).** O sideload deve usar o endereço físico
+   para carregar o código na RAM, e setar o PC como está no header. Se o EXE almejar KUSEG,
+   o sideload escreve na RAM em KUSEG e seta o PC correspondente.
+3. **BSS zerofill: b_addr pode ser > t_addr+t_size.** Zerar b_size bytes a partir de b_addr
+   depois de carregar o código.
+4. **Registradores iniciais:** PC, GP (r28), SP=r29, FP=r30 — todos do header. R0=0 sempre.
+   Demais registradores = 0 (a spec não especifica, mas é o que faz sentido para o estado
+   limpo do sideload).
+5. **O loop de execução para quando o PC dobra para o mesmo endereço três vezes seguidas**
+   (halt por loop infinito: `JMP $`). O Amidog usa isso como mecanismo de parada.
+6. **`scripts/fetch-test-exes.ps1` precisa ser rodado antes** para baixar `tests/exes/amidog/cpu/psxtest_cpu.psexe`.
+   Verifique pré-existência no teste e pule com `#[ignore]` se faltar.
+
+### Testes de aceitação
+
+**A1 — Sideload de EXE mínimo.** Um .psexe sintético (montado no teste via bytes): magic "PS-X EXE",
+PC=0x8000_0000, GP=0, SP base/offset em RAM, t_addr=0x8000_0000, t_size=4, código = `JMP $`.
+Runner executa e detecta halt em ≤1000 steps.
+
+**A2 — print "OK" via TTY.** EXE sintético com `jal 0xA0` + R9=0x3C + R4='O' + R4='K'`, seguido
+de `JMP $`. `take_tty()` devolve `b"OK"`.
+
+**A3 — Zero-fill do BSS.** EXE com b_size=8, b_addr logo após o código. Verifica que os 8 bytes
+de RAM em b_addr são zero após o load.
+
+**A4 — `psxtest_cpu` executa e o scoreboard registra o resultado.** `scripts/scoreboard.ps1`
+roda com o runner funcional; o EXE do Amidog não precisa passar todos os testes (vai falhar
+nos assumidos), mas o placar deve listar o EXE com status `pass` ou `fail` (não `sem-runner`).
+
+**A5 — `--bios` ausente ou BIOS inválida → erro claro.** `psx-cli --exe foo.psexe` sem `--bios`
+imprime mensagem de erro e sai com código ≠ 0.
+
 ## Repositório
 
 - `main` protegida a partir da iter 0004; 1 PR por item; merge commit (nunca squash);
@@ -43,7 +90,7 @@ putchar grava byte cru (sem expansão TAB/LF) — decisão deliberada. Ver
 
 ## Placar de testes
 
-Workspace: **216** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 6 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 27 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 7 cpu_tty_hook).
+Workspace: **221** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 27 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook).
 
 ## Bloqueios
 

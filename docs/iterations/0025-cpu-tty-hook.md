@@ -19,16 +19,17 @@
 
 | # | Categoria | O que eu assumi | O que a spec diz | Como foi pego |
 |---|---|---|---|---|
-| | nenhum | | | |
+| 1 | puts aceitava R9=3Eh via B0h e R9=3Fh via A0h | wildcard `(0x3E, _) \| (0x3F, _)` bastava | spec estrita: puts = A(3Eh) ou B(3Fh); cruzado (3Eh via B0h, 3Fh via A0h) são gets/printf | revisão adversarial F1 — teste `puts_b0h_com_numero_de_a0h_ignorado` pego pela ausência do mutante |
+| 2 | hook lia registradores ignorando load delay pendente | `self.regs[4]`/`self.regs[9]` no topo do step | idioma padrão MIPS: lw no delay slot do jal → R4 assentado pelo load quando o hook lê | revisão adversarial F2 — teste `putchar_com_lw_no_delay_slot_do_jal` |
 
 A implementação seguiu o handoff corrigido (iter 0024) — endereços de chamada, não códigos de
-syscall — e nenhum erro de primeira tentativa ocorreu. As armadilhas do STATUS estavam todas
+syscall. As armadilhas do STATUS estavam todas
 cobertas: máscara de endereço físico, puts(0) = `<NULL>`, teto de 1 MiB no puts, e o byte cru
 do putchar sem expansão TAB/LF.
 
 ## Bateria de mutação
 
-5/5 mutantes pegos, 2/2 controles verdes.
+6/6 mutantes pegos, 2/2 controles verdes.
 
 | Mutação | Teste que pegou |
 |---|---|
@@ -37,12 +38,13 @@ do putchar sem expansão TAB/LF.
 | M3: ler `self.regs[8]` em vez de `self.regs[9]` | D1, D2a, D3, D4, D6 — R9 não lido |
 | M4: remover `if src == 0` do puts | D4 (puts_null_emite_texto_null): leu byte 0x28 de RAM em vez de emitir `<NULL>` |
 | M5: inverter puts `(0x3E, 0xB0) \| (0x3F, 0xA0)` | D3, D4: 0x3E via A0h não reconhecido |
+| M6: wildcard `(0x3E, _) \| (0x3F, _)` em vez de estrito | F1 (puts_b0h_com_numero_de_a0h_ignorado): 3Eh via B0h seria gets mas wildcard trata como puts |
 | **C1:** renomear `fn_idx` → `f` | Todos verdes |
 | **C2:** reordenar match arms (puts antes de putchar) | Todos verdes |
 
 ## Placar antes → depois
 
-Workspace: **209 → 216** testes (7 novos).
+Workspace: **212 → 221** testes (9 novos na 0025). A base de 209 no STATUS estava errada: `bus_scratchpad_isc` tinha 9 testes desde a 2ª rodada da 0022, mas o STATUS mostrava 6. Corrigido na revisão adversarial (F3).
 
 ## Decisões e notas
 
@@ -56,8 +58,7 @@ Workspace: **209 → 216** testes (7 novos).
 3. **Teto de 1 MiB no puts.** Sem terminador 00h, o loop para após 1.048.576 bytes. A spec não
    especifica teto; adotamos 1 MiB por segurança contra loops infinitos.
 
-4. **`puts` com `(0x3E, _) | (0x3F, _)` é mais permissivo que a spec.** A spec lista puts como
-   A(3Eh) ou B(3Fh), mas não proíbe a combinação cruzada (0x3E via B0h ou 0x3F via A0h). O
-   mutante que restringe `(0x3E, 0xA0) | (0x3F, 0xB0)` sobreviveria no teste atual (os testes
-   só usam 0x3E via A0h). Registrado como nota, não como erro: o comportamento permissivo é
-   equivalente para as 4 funções do escopo e não causa divergência observável.
+4. **Correção pós-revisão — puts estrito + load delay.** O wildcard `(0x3E, _) | (0x3F, _)`
+   foi substituído por `(0x3E, 0xA0) | (0x3F, 0xB0)` conforme a spec (F1). O hook passou a
+   consultar `reg_with_pending` em vez de `regs[i]` para R4/R9, resolvendo o caso de `lw`
+   no delay slot do `jal` (F2). Dois novos testes cobrem ambas as correções.

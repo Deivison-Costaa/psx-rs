@@ -32,11 +32,12 @@ impl Scratchpad {
     }
 
     fn read32(&self, offset: usize) -> u32 {
-        u32::from_le_bytes(
-            self.data[offset..offset + 4]
-                .try_into()
-                .expect("scratchpad offset alinhado"),
-        )
+        u32::from_le_bytes([
+            self.data[offset],
+            self.data[offset + 1],
+            self.data[offset + 2],
+            self.data[offset + 3],
+        ])
     }
 
     fn write32(&mut self, offset: usize, val: u32) {
@@ -138,6 +139,7 @@ impl Bus {
             0x1F80_1000..=0x1F80_1023 => Some(self.mem_ctrl.read32(phys)),
             0x1F80_1060 => Some(self.mem_ctrl.read32(phys)),
             0xFFFE_0130 => Some(self.bcc.0),
+            0x1F80_1024..=0x1F80_105F | 0x1F80_1061..=0x1F80_1FFF => Some(0),
             _ => None,
         }
     }
@@ -164,6 +166,7 @@ impl Bus {
                 self.bcc.0 = val;
                 true
             }
+            0x1F80_1024..=0x1F80_105F | 0x1F80_1061..=0x1F80_1FFF => true,
             _ => false,
         }
     }
@@ -176,6 +179,21 @@ impl Bus {
                 }
                 Some(self.scratchpad.data[(phys - 0x1F80_0000 + offset) as usize])
             }
+            0x1F80_1000..=0x1F80_1023 => {
+                let val = self.mem_ctrl.read32(phys);
+                let byte_index = (phys & 3) + offset;
+                Some(((val >> (byte_index * 8)) & 0xFF) as u8)
+            }
+            0x1F80_1060..=0x1F80_1063 => {
+                let val = self.mem_ctrl.read32(0x1F80_1060);
+                let byte_index = (phys - 0x1F80_1060) + offset;
+                Some(((val >> (byte_index * 8)) & 0xFF) as u8)
+            }
+            0xFFFE_0130..=0xFFFE_0133 => {
+                let byte_index = (phys - 0xFFFE_0130) + offset;
+                Some(((self.bcc.0 >> (byte_index * 8)) & 0xFF) as u8)
+            }
+            0x1F80_1024..=0x1F80_105F | 0x1F80_1064..=0x1F80_1FFF => Some(0),
             _ => None,
         }
     }
@@ -190,6 +208,7 @@ impl Bus {
                 true
             }
             0x1F80_1000..=0x1F80_1023 | 0x1F80_1060 | 0xFFFE_0130 => true,
+            0x1F80_1024..=0x1F80_105F | 0x1F80_1061..=0x1F80_1FFF => true,
             _ => false,
         }
     }

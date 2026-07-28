@@ -562,15 +562,15 @@ impl Cpu {
     }
 
     fn sw(&mut self, instr: u32, bus: &mut Bus) {
-        if self.is_isc() {
-            return;
-        }
         let rs = ((instr >> 21) & 0x1F) as usize;
         let rt = ((instr >> 16) & 0x1F) as usize;
         let imm = Self::sign_extend_imm(instr);
         let addr = self.reg(rs).wrapping_add(imm);
         if addr & 3 != 0 {
             self.raise_exception(0x05, Some(addr));
+            return;
+        }
+        if self.is_isc() {
             return;
         }
         let val = self.reg(rt);
@@ -635,27 +635,27 @@ impl Cpu {
     }
 
     fn sb(&mut self, instr: u32, bus: &mut Bus) {
+        let rs = ((instr >> 21) & 0x1F) as usize;
+        let rt = ((instr >> 16) & 0x1F) as usize;
+        let imm = Self::sign_extend_imm(instr);
+        let addr = self.reg(rs).wrapping_add(imm);
         if self.is_isc() {
             return;
         }
-        let rt = ((instr >> 16) & 0x1F) as usize;
-        let rs = ((instr >> 21) & 0x1F) as usize;
-        let imm = Self::sign_extend_imm(instr);
-        let addr = self.reg(rs).wrapping_add(imm);
         let val = self.reg(rt) as u8;
         bus.write8::<BusRead>(addr, val);
     }
 
     fn sh(&mut self, instr: u32, bus: &mut Bus) {
-        if self.is_isc() {
-            return;
-        }
-        let rt = ((instr >> 16) & 0x1F) as usize;
         let rs = ((instr >> 21) & 0x1F) as usize;
+        let rt = ((instr >> 16) & 0x1F) as usize;
         let imm = Self::sign_extend_imm(instr);
         let addr = self.reg(rs).wrapping_add(imm);
         if addr & 1 != 0 {
             self.raise_exception(0x05, Some(addr));
+            return;
+        }
+        if self.is_isc() {
             return;
         }
         let val = self.reg(rt) as u16;
@@ -699,16 +699,16 @@ impl Cpu {
     }
 
     fn swl(&mut self, instr: u32, bus: &mut Bus) {
-        if self.is_isc() {
-            return;
-        }
-        let rt = ((instr >> 16) & 0x1F) as usize;
         let rs = ((instr >> 21) & 0x1F) as usize;
+        let rt = ((instr >> 16) & 0x1F) as usize;
         let imm = Self::sign_extend_imm(instr);
         let addr = self.reg(rs).wrapping_add(imm);
         let aligned = addr & !3;
         let offset = (addr & 3) as usize;
         let word = bus.read32::<BusRead>(aligned);
+        if self.is_isc() {
+            return;
+        }
         let val = self.reg(rt);
         let merged = match offset {
             0 => (word & 0xFFFF_FF00) | ((val >> 24) & 0xFF),
@@ -720,16 +720,16 @@ impl Cpu {
     }
 
     fn swr(&mut self, instr: u32, bus: &mut Bus) {
-        if self.is_isc() {
-            return;
-        }
-        let rt = ((instr >> 16) & 0x1F) as usize;
         let rs = ((instr >> 21) & 0x1F) as usize;
+        let rt = ((instr >> 16) & 0x1F) as usize;
         let imm = Self::sign_extend_imm(instr);
         let addr = self.reg(rs).wrapping_add(imm);
         let aligned = addr & !3;
         let offset = (addr & 3) as usize;
         let word = bus.read32::<BusRead>(aligned);
+        if self.is_isc() {
+            return;
+        }
         let val = self.reg(rt);
         let merged = match offset {
             0 => val,

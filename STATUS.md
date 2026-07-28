@@ -22,9 +22,16 @@ registradores e implementa o fluxo de entrada em exceção.
 
 **Escopo:** `syscall` (primary 0x00, secondary 0x0C), `break` (primary 0x00, secondary
 0x0D), overflow trap em `ADD` (secondary 0x20) e `ADDI` (primary 0x08), address error
-(AdEL/AdES) em load/store desalinhados e acesso a KUSEG em user mode, bit BD no CAUSE
-para exceções em delay slot. **NÃO inclui:** interrupções externas (IRQ — M3), handler
-de exceção completo, nem os vetores de exceção em si (jump para 0x80000080/etc.).
+(AdEL/AdES) em load/store desalinhados, bit BD no CAUSE para exceções em delay slot,
+e o **desvio para o vetor** — o vetor É o mecanismo; sem transferência de controle o item
+não tem sentido.
+
+**NÃO inclui** (correção de escopo do orquestrador, 2026-07-27): interrupções externas
+(IRQ — M3); handler de exceção em si; **Reserved Instruction (0Ah)** para os registradores
+N/A do COP0 e cop0cmd inválido; **Coprocessor Unusable (0Bh)** para COP1/COP3 e para COP2
+com `SR.CU2=0`; acesso a KUSEG em user mode. Essas quatro viram dívida com nota própria.
+Motivo: BD e delay slot são a parte arriscada deste item; somar mais duas famílias de causa
+alarga o raio de explosão, que é exatamente o que a divisão do 1.8 evitou.
 
 **O que muda na CPU:**
 - `Cpu` ganha flag `in_delay_slot: bool` e `branch_pc: Option<u32>` para setar
@@ -36,11 +43,7 @@ de exceção completo, nem os vetores de exceção em si (jump para 0x80000080/e
   deixa `rt` intacto.
 - `syscall` (0x0C): ExcCode=08h.
 - `break` (0x0D): ExcCode=09h.
-- `COP0` command inválido (cop0cmd ≠ 0x10): ExcCode=0Ah (RI).
-- `MFC0`/`MTC0` para registrador N/A (r0-r2, r4, r10, r32-r63): ExcCode=0Ah (RI).
-- `COP1`/`COP3` (primary 0x11/0x13): ExcCode=0Bh (CpU).
-- `COP2` com SR.CU2=0: ExcCode=0Bh (CpU).
-- Load/store desalinhado e acesso KUSEG em user mode: ExcCode=04h (AdEL) / 05h (AdES).
+- Load/store desalinhado: ExcCode=04h (AdEL) / 05h (AdES), com `BadVaddr` escrito.
 
 **Spec:** `docs/reference/02-cpu.md` — `exception opcodes` (L409), `COP0 - Exception
 Handling` (L589), `Exception Vectors` (L736), `Exception Priority` (L752),
@@ -61,33 +64,58 @@ Handling` (L589), `Exception Vectors` (L736), `Exception Priority` (L752),
 3. **Overflow trap: `rt` fica intacto.** Diferente de `ADDU`, o `ADD` e `ADDI` NÃO
    escrevem `rt` quando há overflow. O registrador destino mantém o valor anterior. A
    nota 2 do STATUS documenta a dívida atual (`ADDI` idêntico a `ADDIU`).
-4. **`MFC0`/`MTC0` para registrador N/A dispara RI, não CpU.** A spec é explícita:
-   "Trying to read any of these registers causes a Reserved Instruction Exception
-   (excode=0Ah)". Não confunda com COP1/COP3 que dão CpU (0Bh).
+4. **A máscara de escrita do CAUSE, criada na 1.8a, vai engolir o ExcCode se você passar
+   por ela.** `cop0_write(13, ...)` só grava os bits 8-9 — é o comportamento correto para
+   `MTC0` e está coberto por teste. O mecanismo de exceção **não** é um `MTC0`: ele escreve
+   `self.cop0[13]` direto. Passar pelo `cop0_write` faz o ExcCode sumir em silêncio, com
+   todos os testes da 1.8a continuando verdes. Esta é a armadilha mais provável do item, e
+   ela nasceu de a 1.8a estar certa.
 5. **`syscall` e `break` estão no espaço `special` (primary 0x00).** Secondary 0x0C e
    0x0D respectivamente. O `unimplemented!` atual em `special()` os pegaria — troque
    por exceção.
 
 ### Testes de aceitação OBRIGATÓRIOS
 
-**B1 — Overflow em ADD.** `r8 = 0x7FFF_FFFF`, `r9 = 0x7FFF_FFFF`. Executar `ADD r10, r8, r9`.
-Exigido: `r10` inalterado (era 0), `CAUSE.ExcCode = 0Ch`, `EPC` aponta para o ADD.
+Literais derivados pelo orquestrador por duas rotas (regra da 0017e). **Exija o valor do
+CAUSE inteiro, não só o campo ExcCode** — o erro provável é gravar o ExcCode sem deslocar
+(`0x0C` em vez de `0x30`), e um teste que lê só o campo não distingue os dois.
+Rota 1: ExcCode ocupa os bits 2-6, logo `CAUSE = ExcCode << 2`. Rota 2 para cada valor abaixo,
+em binário: `08h = 01000b` → `0100000b` = `0x20`; `09h = 01001b` → `0100100b` = `0x24`;
+`0Ch = 01100b` → `0110000b` = `0x30`; `04h` → `0x10`; `05h` → `0x14`.
 
-**B2 — syscall.** Executar `syscall`. Exigido: `CAUSE.ExcCode = 08h`, `EPC` aponta para
-o syscall, PC salta para `0x80000080` (BEV=0).
+**B1 — Overflow em ADD.** `r8 = r9 = 0x7FFF_FFFF`, executar `ADD r10, r8, r9`.
+Exigido: `r10` **inalterado**, `CAUSE = 0x0000_0030`, `EPC` = endereço do `ADD`,
+`PC = 0x8000_0080`.
 
-**B3 — BD flag no delay slot.** `JAL 0x...` seguido de `syscall` no delay slot. Exigido:
-`CAUSE.BD = 1`, `CAUSE.BT = 1`, `EPC = endereço do JAL` (não do syscall).
+**B2 — syscall.** Exigido: `CAUSE = 0x0000_0020`, `EPC` = endereço do `syscall`,
+`PC = 0x8000_0080`.
 
-**B4 — Load desalinhado dispara AdEL.** `LW` para endereço não alinhado a 4 bytes.
-Exigido: `CAUSE.ExcCode = 04h`, `rt` inalterado, `BadVaddr = endereço desalinhado`.
+**B3 — break vai para OUTRO vetor.** Exigido: `CAUSE = 0x0000_0024` e
+**`PC = 0x8000_0040`**, não `0x8000_0080`. A tabela `Exception Vectors` (L736) dá linha
+própria para "COP0 Break" com BEV=0. Mandar `break` para o vetor geral é o erro clássico
+deste item e é o único caso em que a suíte inteira pode ficar verde com o desvio errado —
+por isso este teste é obrigatório.
+
+**B4 — BD no delay slot.** `JAL` seguido de `syscall` no delay slot. Exigido:
+`CAUSE = 0xC000_0020` (BD no bit31, BT no bit30, ExcCode 08h nos bits 2-6) e
+**`EPC` = endereço do `JAL`**, não do `syscall` — "EPC is set to the address of the
+exception - 4".
+
+**B5 — Load desalinhado dispara AdEL.** `LW` em endereço não múltiplo de 4. Exigido:
+`CAUSE = 0x0000_0010`, `rt` inalterado, `BadVaddr` = o endereço desalinhado,
+`PC = 0x8000_0080`. Espelhe com `SW` desalinhado: `CAUSE = 0x0000_0014`.
+A spec diz que `BadVaddr` é atualizado **só** por AdEL/AdES — os outros casos acima devem
+deixá-lo intacto, e isso vale um assert.
 
 ### Dívidas que este item fecha
 
 - Nota 2 do STATUS (overflow trap em ADDI/ADD/SUB)
 - Nota 5 do STATUS (flag `in_delay_slot` para bit BD)
-- Dívida dos registradores N/A do COP0 (1.8a nota 2)
 - `unimplemented!` em `special()` para opcodes 0x0C (syscall) e 0x0D (break)
+
+**Dívidas que este item NÃO fecha** (ficam para um 1.8c ou para o 1.11): Reserved Instruction
+(0Ah) nos registradores N/A do COP0 e em cop0cmd inválido; Coprocessor Unusable (0Bh) em
+COP1/COP3 e em COP2 com `SR.CU2=0` (nota 9); address error por acesso a KUSEG em user mode.
 
 ## Repositório
 

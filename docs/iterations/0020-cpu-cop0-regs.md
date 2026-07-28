@@ -46,7 +46,62 @@ Workspace: **188** testes (178 anteriores + 10 de cop0_regs). Meta-testes: 10.
 
 ## Revisão cruzada (orquestrador)
 
-<!-- Preenchido pelo Claude na revisão do PR -->
+Revisão adversarial na PR #34. **Implementação aprovada sem ressalva de hardware.** Conferi
+`RFE` contra a spec (`(sr & !0xF)` preserva os bits 4-5, que é a metade da regra que costuma
+sumir), a máscara de escrita do `CAUSE`, o `PRID = 0x0000_0002` (CXD8606CQ) e a via de
+`load_delay` do `MFC0` contra a ausência de store delay no `MTC0`. Os 6 nomes de teste da
+bateria **existem no arquivo** — a lição da 0018 pegou.
+
+Re-executei os 6 mutantes da tabela: os 6 são pegos. Acrescentei dois mutantes próprios; um
+achou lacuna, e ela era culpa do handoff, não do trabalho.
+
+### O literal de aceitação A1 era fraco, e o defeito era meu
+
+Mutante extra: `(sr & !0xF)` → `(sr & !0x3)` — limpar só os bits 0-1 antes do OR. **Escapava
+da suíte inteira.** Com `SR = 0x34`, os bits 3:2 antigos valem `01` e os novos (vindos de 5:4)
+valem `11`; o OR devolve `11`, que por acaso é o resultado correto.
+
+```
+SR=0x34: correto=0x3D   mutante(&!0x3)=0x3D   nao distingue
+SR=0x0C: correto=0x03   mutante(&!0x3)=0x0F   distingue
+```
+
+Eu havia chamado `0x34` de "assimétrico de propósito" no handoff da 0019: ele pega os dois
+erros que eu previ (shift do campo inteiro; copiar 4-5 para 2-3 zerando 4-5), e não pega o
+terceiro. Corrigido com o caso `SR = 0x0C → 0x03` acrescentado ao mesmo teste; confirmei que
+o mutante passa a ser pego.
+
+**Regra nova:** literal de aceitação precisa ter um **bit antigo em 1 onde o bit novo é 0**,
+senão não distingue "sobrescrever" de "OR por cima". Vale para todo item que mova campos de
+bits — o 1.8b inteiro é disso.
+
+### Achados de registro, corrigidos na mesma branch
+
+- **Regressão de higiene de teste:** o arquivo declarava `mod support;` sem usar e redefinia
+  `bus_with_bios_empty`, `nop` e um `ori` equivalente ao `encode_i_type`. Foi um dos dois
+  achados que reprovaram a PR #27 e que a 1.7 corrigiu. Voltou; corrigido.
+- **"Erros de primeira tentativa: nenhum" contradizendo a Decisão 5 do próprio doc**, que
+  descrevia um erro real (supor que a leitura de `regs[0]` forçasse zero, quando só a escrita
+  é guardada). Subcontar esse número corrompe um dos gráficos do relatório final (M11.2), que
+  é metade da entrega do projeto. Preenchido e classificado como `API-Rust`, com referência
+  cruzada entre a tabela e a decisão.
+- **Nota afirmando o que o código não faz:** dizia que o teste dos registradores garbage
+  "aceita qualquer valor" sendo um `assert_eq!(x, 0)`. Mesma classe dos 7 nomes fantasma da
+  0018. Reescrita, com o retorno 0 marcado como comportamento ASSUMIDO e ponto de resolução
+  no item 1.11 — a spec descreve um padrão de lixo observável que não implementamos.
+- **Guardas inalcançáveis** `if reg >= 32` em `cop0_read`/`cop0_write`: `rd` vem de 5 bits.
+
+### Correção de escopo no handoff do 1.8b
+
+O handoff que esta iteração deixou escrito dizia "**NÃO inclui** (...) os vetores de exceção em
+si" e, três linhas abaixo, "desvia para o vetor de exceção". O vetor **é** o mecanismo: sem
+transferência de controle o item não existe. Corrigido, e o escopo foi apertado — RI (0Ah),
+CpU (0Bh) e address error de KUSEG em user mode viram dívida explícita, pelo mesmo motivo que
+levou a dividir o 1.8.
+
+Acrescentei ao handoff a armadilha que **esta iteração criou ao estar certa**: a máscara de
+escrita do CAUSE faz `cop0_write(13, ..)` gravar só os bits 8-9. O mecanismo de exceção que
+passar por ela perde o `ExcCode` em silêncio, com todos os testes da 1.8a verdes.
 
 ## Decisões e notas
 

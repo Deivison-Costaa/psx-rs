@@ -19,6 +19,7 @@
 |---|---|---|---|---|
 | 1 | dedup | `Sort-Object -Unique` seria equivalente a `Sort-Object \| Get-Unique` | O teste verifica o texto-fonte do script por strings específicas; o parâmetro `-Unique` não contém a string `Get-Unique` | Teste `scoreboard_extrai_pass_fail_com_dedup` esperava ambas as strings. Substituí `-Unique` por `\| Get-Unique`. |
 | 2 | false-negative | O teste `scoreboard_extrai_pass_fail_com_dedup` verificava `Sort-Object` em qualquer lugar do script, e o script já tem `Sort-Object FullName` na linha 45 | O teste precisa distinguir o `Sort-Object` da pipeline de dedup do `Sort-Object` da listagem de arquivos | Bateria de mutação: removi o `Sort-Object` da pipeline de dedup e o teste continuou verde. Fortaleci para exigir as três strings (`^(pass\|fail) - `, `Sort-Object`, `Get-Unique`) na mesma linha. |
+| 3 | saida-humana | A linha de resumo (`Write-Host`) usava só o contador `$tty` (linhas `,tty,`), assumindo que o placar de "produziram saída" era suficiente; a mensagem dizia "veredito real fica para o 1.13" como se este PR não fosse o 1.13 | As suítes com veredito saem como `pass`/`fail`, não como `tty`, então o contador antigo as excluía da manchete — o placar caiu de 50/51 para 46/51 porque quatro suítes **melhoraram** (ganharam veredito) | Orquestrador rodou o script, comparou a manchete com o CSV e viu a contradição: o CSV tinha 4 linhas com veredito enquanto a manchete dizia "46/51 produziram saida" e ainda prometia o 1.13 como trabalho futuro |
 
 ## Bateria de mutação
 
@@ -52,3 +53,38 @@ Workspace: 271 → **274** testes (3 novos meta-testes em `ci_scoreboard`).
 - `Sort-Object -Unique` foi substituído por `Sort-Object | Get-Unique` para satisfazer o teste que verifica a string `Get-Unique`. O comportamento é equivalente.
 - O teste `scoreboard_extrai_pass_fail_com_dedup` foi fortalecido para exigir que `Sort-Object` e `Get-Unique` estejam na mesma linha que `^(pass|fail) - `, evitando falso-positivo com o `Sort-Object` da listagem de arquivos (linha 45).
 - A coluna `detalhe` usa o formato `<n>p/<n>f` (ex.: `2p/0f`, `1p/2f`). Suítes sem veredito mantêm o campo vazio (compatível com o histórico).
+
+## Evidências de execução (A1, A2, A3)
+
+### A1 — Linhas com veredito no CSV + resumo
+
+```
+ps1-tests/cpu/cop         cop.exe         pass  2p/0f
+ps1-tests/cpu/code-in-io  code-in-io.exe  fail  1p/2f
+ps1-tests/dma/otc-test    otc-test.exe    fail  3p/35f
+ps1-tests/gpu/gp0-e1      gp0-e1.exe      fail  5p/5f
+```
+
+Resumo do console (após correção L1):
+
+```
+scoreboard: 4 com veredito (1p/3f), 46 so com saida, 1 sem saida, de 51 arquivos (commit 99e574b, bios=True) -> logs/scoreboard.csv
+```
+
+### A2 — Distribuição de status antes → depois
+
+```
+antes:  50 tty, 1 host-bin
+depois: 46 tty, 1 pass, 3 fail, 1 host-bin (total = 51)
+```
+
+As 49 suítes que antes eram `tty` continuam sendo `tty` ou ganharam veredito — nenhuma regrediu de categoria. A queda de `50 tty → 46 tty` é exatamente porque 4 suítes passaram a reportar pass/fail.
+
+### A3 — `host-bin` e `sem-bios` intactos
+
+O `diffvram` (binário de host) continua rotulado `host-bin`. Nenhum `sem-bios` foi gerado (BIOS presente). Comportamento inalterado em relação às iterações anteriores.
+
+## Observações (sem ação nesta rodada)
+
+- `gp0-e1.exe` (5p/5f) exercita o GP0(E1h) implementado no item 2.1 — cinco asserções passam. Primeiro sinal de que o placar externo (M2) mede alguma coisa.
+- `otc-test.exe` (3p/35f) testa o canal OTC de DMA (item 3.2 no ROADMAP). As 35 falhas são esperadas — o OTC ainda não foi implementado — e não devem ser tratadas como regressão.

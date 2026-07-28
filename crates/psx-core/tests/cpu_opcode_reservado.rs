@@ -185,10 +185,7 @@ fn swc0_em_delay_slot_gera_cpu_com_bd() {
         "A3b: SWC0 em delay slot → CpU=0Bh. CAUSE=0x{:08X}",
         cause
     );
-    assert!(
-        cause & (1 << 31) != 0,
-        "A3b: BD = 1"
-    );
+    assert!(cause & (1 << 31) != 0, "A3b: BD = 1");
     assert_eq!(cpu.cop0[14], 0x0000_0000);
     assert_eq!(cpu.pc, 0x8000_0080);
 }
@@ -228,7 +225,43 @@ fn varios_primarios_reservados_nao_panicam() {
         cpu.step(&mut bus);
 
         let exc = (cpu.cop0[13] >> 2) & 0x1F;
-        assert_eq!(exc, 0x0A, "primary=0x{:02X}: ExcCode=0Ah esperado, veio 0x{:1X}", primary, exc);
-        assert_eq!(cpu.pc, 0x8000_0080, "primary=0x{:02X}: PC nao foi para vetor", primary);
+        assert_eq!(
+            exc, 0x0A,
+            "primary=0x{:02X}: ExcCode=0Ah esperado, veio 0x{:1X}",
+            primary, exc
+        );
+        assert_eq!(
+            cpu.pc, 0x8000_0080,
+            "primary=0x{:02X}: PC nao foi para vetor",
+            primary
+        );
+    }
+}
+
+#[test]
+fn todos_primarios_cpu_geram_cpu() {
+    let mut bus = bus_with_bios_empty();
+
+    let cpu_primaries = [
+        0x11u32, 0x12, 0x13, 0x30, 0x31, 0x32, 0x33, 0x38, 0x39, 0x3A, 0x3B,
+    ];
+
+    for &primary in &cpu_primaries {
+        let mut cpu = Cpu::new();
+        cpu.pc = 0;
+        bus.write32::<BusRead>(0x0000, primary << 26);
+        cpu.step(&mut bus);
+
+        let exc = (cpu.cop0[13] >> 2) & 0x1F;
+        assert_eq!(
+            exc, 0x0B,
+            "primary=0x{:02X}: ExcCode=0Bh (CpU) esperado, veio 0x{:1X}",
+            primary, exc
+        );
+        assert_eq!(
+            cpu.pc, 0x8000_0080,
+            "primary=0x{:02X}: PC nao foi para vetor de excecao",
+            primary
+        );
     }
 }

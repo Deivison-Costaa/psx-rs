@@ -40,3 +40,5 @@ ts,iter,resultado,custo_usd,tokens_in,tokens_out,steps,duracao_ms,head_antes,hea
 2026-07-27T23:29:53-03:00,0021,ok,0.0889,52534,31381,80,882144,9892466,8474d84,deepseek/deepseek-v4-pro,trabalhador
 2026-07-27T23:50:08-03:00,0021,ok:correcao-pos-revisao-1,0.114,142869,24878,83,709350,9892466,ec0e0eb,deepseek/deepseek-v4-pro,trabalhador
 2026-07-28T00:07:12-03:00,0021,ok:correcao-pos-revisao-2,0.035,41249,7554,26,263235,9892466,0425264,deepseek/deepseek-v4-pro,trabalhador
+2026-07-28T00:20:25-03:00,0022,ok,0.0453,75960,25908,87,607075,8c172dc,3e30915,deepseek/deepseek-v4-flash,trabalhador
+2026-07-28T00:36:50-03:00,0022,ok,0.0442,65700,24915,80,698942,8c172dc,a2d8afe,deepseek/deepseek-v4-flash,trabalhador

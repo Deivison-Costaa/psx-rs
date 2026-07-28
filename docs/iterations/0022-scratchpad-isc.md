@@ -78,3 +78,22 @@ revisão adversarial do PR #36. Todos corrigidos e cobertos por teste nesta roda
 4. **KSEG2 não passa por `to_physical`.** Endereços em KSEG2 (0xC0000000+) mantêm o valor original via braço `_`, o que faz `0xFFFE_0130` chegar intacto ao region decode.
 5. **Isc não engole AdES.** A checagem de `is_isc()` agora ocorre após o cálculo do endereço e a validação de alinhamento nos cinco stores (sw, sb, sh, swl, swr). AdES dispara mesmo com Isc=1.
 6. **Catch-all 0x1F801000..0x1F801FFF.** Leitura devolve 0, escrita engolida, para toda a faixa de I/O que não tem registrador implementado. **Dívida registrada:** IRQ e DMA serão implementados no M3, GPU no M2, timers no M3. O catch-all será substituído por decodificação real em cada iteração.
+
+## Erro de processo: escopo múltiplo reprovado pelo commit-lint
+
+Quatro commits desta iteração usaram escopo com vírgula (`feat(bus,cpu)`, `fix(test,bus)`,
+`test(bus,cpu)`, `fix(bus,cpu)`) porque a mudança tocava dois módulos. O job `commit-lint`
+reprovou o PR #36: o regex é `^(test|feat|fix|refactor|docs|chore)\([a-z0-9-]+\): .+`, que
+não aceita vírgula. Toda a história da `main` até aqui usa escopo único, então quem estava
+fora do padrão eram os commits, não o lint — a regra foi mantida e as mensagens reescritas
+(escopo `bus`, com o segundo módulo citado no resumo). As árvores são idênticas às originais
+(`git diff` vazio contra o head antigo), só as mensagens mudaram.
+
+Consequência para o registro: os SHAs `head_depois` das duas linhas da 0022 em
+`docs/metricas.csv` (`3e30915` e `a2d8afe`) apontam para commits que a reescrita órfãos.
+O mapeamento é `3e30915 → 3faa73f` e `a2d8afe → bba175d` (merge `b947ff6`). As linhas ficam
+com os SHAs originais de propósito: são o que o trabalhador de fato produziu.
+
+Lição para as próximas iterações: o handoff deve dizer explicitamente ao trabalhador que o
+escopo do commit é **um único identificador** `[a-z0-9-]`, mesmo quando a mudança toca dois
+módulos.

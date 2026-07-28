@@ -740,10 +740,10 @@ impl Cpu {
         let addr = self.reg(rs).wrapping_add(imm);
         let aligned = addr & !3;
         let offset = (addr & 3) as usize;
-        let word = bus.read32::<BusRead>(aligned);
         if self.is_isc() {
             return;
         }
+        let word = bus.read32::<BusRead>(aligned);
         let val = self.reg(rt);
         let merged = match offset {
             0 => (word & 0xFFFF_FF00) | ((val >> 24) & 0xFF),
@@ -761,10 +761,10 @@ impl Cpu {
         let addr = self.reg(rs).wrapping_add(imm);
         let aligned = addr & !3;
         let offset = (addr & 3) as usize;
-        let word = bus.read32::<BusRead>(aligned);
         if self.is_isc() {
             return;
         }
+        let word = bus.read32::<BusRead>(aligned);
         let val = self.reg(rt);
         let merged = match offset {
             0 => val,

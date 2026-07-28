@@ -5,27 +5,36 @@
 
 ## Última iteração concluída
 
-**0037** — **Fechamento do M1** (sem código): relatório consolidado com os números medidos
-(59 execuções, US$ 1,87, 20,3% de retrabalho, 92 erros de primeira tentativa por categoria,
-placar com veredito) e os três achados soltos viraram itens 10.3–10.5. Ver
-`docs/iterations/0037-fechamento-m1.md` e `docs/relatorio.md` §5.
-
-**0036** — Veredito real no scoreboard: parser de pass/fail com dedup (ROADMAP 1.13). 274 testes.
-Bateria 7/7, 2/2.
-Ver `docs/iterations/0036-scoreboard-veredito.md`.
+**0038** — **VRAM 1MB + transfers CPU↔VRAM** (ROADMAP 2.2). Fill GP0(02h), A0h copy
+CPU→VRAM, C0h copy VRAM→CPU pelo GPUREAD. Seis rodadas de trabalhador: 1 aproveitada,
+1 timeout e 4 falhas de processo; testes e correções finais feitos pelo orquestrador.
+Bateria 13/14 + 1 equivalente, 2/2 controles. 300 testes.
+Ver `docs/iterations/0038-vram-transfers.md`.
 
 ## Próxima tarefa
-**ROADMAP 2.2** — VRAM 1MB + transfers (fill, CPU VRAM).
 
-Arquivos-alvo: `crates/psx-core/src/gpu.rs` (extensão do módulo GPU), `crates/psx-core/src/bus.rs`
-(janela de VRAM no mapa de memória). Spec: `docs/reference/03-gpu.md` § VRAM, § GP0 commands
-(C0h fill, A0h copy rectangle CPU→VRAM, C0h copy rectangle VRAM→CPU).
+**ROADMAP 2.3** — Triângulos flat + gouraud.
 
-Armadilha: VRAM é 1024×512 pixels de 16 bits = 1 MB, mas o espaço de endereçamento do bus é
-2 MB — a janela de 2 MB espelha a VRAM. Coordenadas X são módulo 1024, Y módulo 512.
-Transfers usam palavras de 16 bits; o fill usa uma cor de 24 bits com máscara de pixel.
-Cada comando GP0 pode ser multi-palavra — o protocolo de recebimento da iter 0035 já suporta
-isso, mas o fill (C0h) e os rectangles (A0h/C0h) vão precisar de máquina de estado.
+Arquivo-alvo: `crates/psx-core/src/gpu.rs` (a máquina de estados de GP0 já existe — o
+`write_gp0` decodifica pelos 3 bits altos do byte de comando; polígonos são `top3 == 1`).
+Spec: `docs/reference/03-gpu.md` § GPU Render Polygon Commands (**L254**), § GPU Rendering
+Attributes (**L439**), § Vertex (**L440**), § Color Attribute (**L457**). Números de linha
+REAIS, conferidos com `grep -n`.
+
+**Armadilha 1 — o índice de seções no topo dos arquivos de `docs/reference/` usa offsets
+relativos à marca `CORPO:` e NÃO bate com a linha real** (diferença medida: +115 em
+`03-gpu.md`). Sempre reconferir com `grep -n` antes de citar linha.
+
+**Armadilha 2 — contagem de palavras.** O número de parâmetros varia com shading (flat vs
+gouraud), número de vértices (3 vs 4) e textura (on/off). Errar a contagem dessincroniza o
+FIFO e as palavras seguintes viram comandos — foi exatamente o defeito G3 desta iteração com
+o GP0(80h). Vértices são coordenadas signed de 16 bits (`YyyyXxxxh`); cores são 24 bits
+empacotados (`BbGgRrh`).
+
+**Armadilha 3 — teste que não mede.** Nesta iteração sete mutações sobreviveram a 19 testes
+verdes. Para 2.3: assertar **valor exato** de pixel em coordenada absoluta, nunca
+`assert_ne!`/"não deu panic"; e nada de round-trip (desenhar e reler pela mesma função não
+mede endereçamento). Ver a seção da revisão delegada no doc da 0038.
 
 ## Repositório
 
@@ -39,7 +48,7 @@ isso, mas o fill (C0h) e os rectangles (A0h/C0h) vão precisar de máquina de es
 
 ## Placar de testes
 
-Workspace: **274** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 27 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 11 cpu_opcode_reservado + 13 gpu_status_gp0_gp1 + 9 ci_scoreboard + 9 cli_runner).
+Workspace: **300** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 29 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 11 cpu_opcode_reservado + 16 gpu_status_gp0_gp1 + 9 ci_scoreboard + 9 cli_runner + 21 gpu_vram_transfers).
 
 ## Bloqueios
 

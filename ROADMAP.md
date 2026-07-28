@@ -36,7 +36,7 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 
 ## M2 — GPU (rasterizador por software)
 - [x] 2.1 GPUSTAT + decodificação GP0/GP1 (iter 0035)
-- [ ] 2.2 VRAM 1MB + transfers (fill, CPU↔VRAM)
+- [x] 2.2 VRAM 1MB + transfers (fill, CPU↔VRAM) (iter 0038)
 - [ ] 2.3 Triângulos flat + gouraud
 - [ ] 2.4 Quads, retângulos, linhas
 - [ ] 2.5 Texturas 4/8/15bpp + CLUT + texture window
@@ -94,6 +94,9 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [ ] 10.3 Bus error ao executar codigo do scratchpad (exposto por ps1-tests/cpu/code-in-io)
 - [ ] 10.4 CAUSE.CE nao preenchido nas excecoes de Coprocessor Unusable (02-cpu.md L681)
 - [ ] 10.5 Amidog psxtest_cpu para apos "args: 0" — causa nao investigada (medido na iter 0032)
+- [ ] 10.6 GP0(80h) VRAM->VRAM blit (hoje consumido e ignorado)
+- [ ] 10.7 Mask setting GP0(E6h) aplicado a CPU->VRAM e VRAM->VRAM (03-gpu.md L590-592)
+- [ ] 10.8 SWL/SWR fazem read-modify-write e leem portas de I/O de leitura destrutiva
 
 ## M11 — Apresentação (incremental desde o M1)
 - [ ] 11.1 Relatório consolidado (docs/relatorio.md — atualizado a cada marco)

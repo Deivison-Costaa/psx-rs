@@ -112,6 +112,10 @@ pub struct Bus {
 }
 
 impl Bus {
+    pub fn gpu(&self) -> &Gpu {
+        &self.gpu
+    }
+
     pub fn new(ram: Ram, bios: Bios) -> Self {
         Bus {
             ram,
@@ -214,9 +218,9 @@ impl Bus {
             }
             0x1F80_1810..=0x1F80_1817 => {
                 let base = phys & !3;
-                let val = self.gpu.read32(base - 0x1F80_1810);
-                let byte = ((val >> ((phys & 3) * 8)) & 0xFF) as u8;
-                Some(byte)
+                let val = self.gpu.peek32(base - 0x1F80_1810);
+                let byte_index = (phys & 3) + offset;
+                Some(((val >> (byte_index * 8)) & 0xFF) as u8)
             }
             0x1F80_1024..=0x1F80_105F | 0x1F80_1064..=0x1F80_1FFF => Some(0),
             _ => None,

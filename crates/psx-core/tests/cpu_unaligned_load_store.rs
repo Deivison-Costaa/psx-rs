@@ -431,3 +431,62 @@ fn lwl_enxerga_load_delay_de_lw_no_mesmo_registrador() {
     cpu.step(&mut bus);
     assert_eq!(cpu.regs[2], 0xDDAA_BBBB);
 }
+
+const GPU0: u32 = 0xBF80_1810;
+
+#[test]
+fn swl_com_isc_ligado_nao_consome_o_gpuread() {
+    let mut bus = bus_with_bios_empty();
+
+    bus.write32::<BusRead>(GPU0, 0xA0u32 << 24);
+    bus.write32::<BusRead>(GPU0, 0x0000_0000);
+    bus.write32::<BusRead>(GPU0, 0x0001_0002);
+    bus.write32::<BusRead>(GPU0, 0xBBAA_DDCC);
+
+    bus.write32::<BusRead>(GPU0, 0xC0u32 << 24);
+    bus.write32::<BusRead>(GPU0, 0x0000_0000);
+    bus.write32::<BusRead>(GPU0, 0x0001_0002);
+
+    let mut cpu = Cpu::new();
+    cpu.cop0[12] |= 1 << 16;
+    cpu.regs[8] = GPU0;
+    cpu.pc = 0;
+    bus.write32::<BusRead>(0, encode_ual(SWL, 2, 8, 0));
+    bus.write32::<BusRead>(4, nop());
+    cpu.step(&mut bus);
+    cpu.step(&mut bus);
+
+    let w = bus.read32::<BusRead>(GPU0);
+    assert_eq!(
+        w, 0xBBAA_DDCC,
+        "com Isc ligado o store e descartado; o read32 do swl nao pode consumir \
+         a palavra do C0h, obtida 0x{:08X}",
+        w
+    );
+}
+
+#[test]
+fn swr_com_isc_ligado_nao_consome_o_gpuread() {
+    let mut bus = bus_with_bios_empty();
+
+    bus.write32::<BusRead>(GPU0, 0xA0u32 << 24);
+    bus.write32::<BusRead>(GPU0, 0x0000_0000);
+    bus.write32::<BusRead>(GPU0, 0x0001_0002);
+    bus.write32::<BusRead>(GPU0, 0x1234_5678);
+
+    bus.write32::<BusRead>(GPU0, 0xC0u32 << 24);
+    bus.write32::<BusRead>(GPU0, 0x0000_0000);
+    bus.write32::<BusRead>(GPU0, 0x0001_0002);
+
+    let mut cpu = Cpu::new();
+    cpu.cop0[12] |= 1 << 16;
+    cpu.regs[8] = GPU0;
+    cpu.pc = 0;
+    bus.write32::<BusRead>(0, encode_ual(SWR, 2, 8, 0));
+    bus.write32::<BusRead>(4, nop());
+    cpu.step(&mut bus);
+    cpu.step(&mut bus);
+
+    let w = bus.read32::<BusRead>(GPU0);
+    assert_eq!(w, 0x1234_5678, "idem para swr, obtida 0x{:08X}", w);
+}

@@ -9,15 +9,30 @@ param(
     [string]$Model = "deepseek/deepseek-v4-pro",
     [string]$TaskOverride = "",
     [int]$TimeoutMin = 45,
-    [int]$Port = 4096
+    [int]$Port = 4096,
+    # Rodada de CONTINUACAO de um item reprovado na revisao: fica na branch que ja existe e
+    # troca o texto envoltorio, que senao manda "ao abrir o PR, PARE" — com o PR ja aberto,
+    # o trabalhador le isso como "ja acabou" e devolve a rodada sem fazer nada. Aconteceu
+    # duas vezes seguidas na iter 0038 (rodadas 4 e 5, US$ 0,056 e 4 min de parede).
+    [string]$ContinueBranch = "",
+    # Task longa vem de ARQUIVO, nao da linha de comando: prompt grande em -TaskOverride
+    # esbarra nas armadilhas de quoting do Start-Process (ver comentario do $promptArg).
+    # Lido com -Raw e no caminho ABSOLUTO — arquivo escrito pelo Bash em /tmp o PowerShell
+    # le como C:\tmp, e uma rodada ja morreu no lancamento com zero tokens por isso.
+    [string]$TaskFile = ""
 )
 $ErrorActionPreference = "Stop"
 
 if ((git status --porcelain | Measure-Object).Count -ne 0) {
     Write-Error "Arvore suja - commit ou descarte antes de iterar."
 }
-git checkout main | Out-Null
-git pull --ff-only | Out-Null
+if ($ContinueBranch) {
+    git checkout $ContinueBranch | Out-Null
+    git pull --ff-only | Out-Null
+} else {
+    git checkout main | Out-Null
+    git pull --ff-only | Out-Null
+}
 $headAntes = (git rev-parse --short HEAD).Trim()
 
 # Duas armadilhas do npm no Windows (smoke tests 0008b/1 e /2): o shim opencode.ps1 nao roda
@@ -38,10 +53,24 @@ if (-not $up) {
     }
 }
 
+if ($TaskFile) {
+    if (-not (Test-Path $TaskFile)) { Write-Error "TaskFile nao encontrado: $TaskFile" }
+    $TaskOverride = Get-Content $TaskFile -Raw
+}
 $task = if ($TaskOverride) { $TaskOverride } else { "a secao 'Proxima tarefa' do STATUS.md" }
-$prompt = "Voce e o trabalhador do projeto psx-rs. Execute EXATAMENTE UMA iteracao seguindo " +
+$prompt = if ($ContinueBranch) {
+    "Voce e o trabalhador do projeto psx-rs. Esta e uma rodada de CONTINUACAO de um item que " +
+    "JA foi reprovado na revisao adversarial, na branch $ContinueBranch, que JA existe e cujo " +
+    "PR JA esta aberto. O PR estar aberto NAO significa que acabou: significa que voce vai " +
+    "ACRESCENTAR commits a ele. Nao crie branch, nao recrie branch, nao abra PR, nao faca " +
+    "merge, nao use --force. O protocolo em .claude/skills/iterate/SKILL.md vale para o " +
+    "resto (passos 4 a 8); os passos 2, 9 e 11 nao se aplicam. Tarefa: $task. " +
+    "Ao terminar, faca git push e PARE."
+} else {
+    "Voce e o trabalhador do projeto psx-rs. Execute EXATAMENTE UMA iteracao seguindo " +
     "o protocolo em .claude/skills/iterate/SKILL.md (leia-o primeiro, inteiro). Tarefa: $task. " +
     "Ao abrir o PR, PARE - nao faca merge, nao comece outro item."
+}
 
 New-Item -ItemType Directory -Force logs | Out-Null
 $ts = Get-Date -Format "yyyy-MM-ddTHH:mm:sszzz"
@@ -91,6 +120,9 @@ $tinV = ([regex]::Matches($raw, '"input":(\d+)') |
 $toutV = ([regex]::Matches($raw, '"output":(\d+)') |
     ForEach-Object { [long]$_.Groups[1].Value } | Measure-Object -Sum).Sum
 
+# $iter sai do ultimo doc em docs/iterations. Quando a rodada morre ANTES do passo 8 o doc
+# nao existe e a linha herda o numero anterior — foi o caso do timeout da 0038, gravado como
+# 0037. Continua valendo conferir o numero antes de commitar a metrica.
 $iter = Get-ChildItem docs/iterations -Filter "*.md" |
     Where-Object { $_.Name -match '^(\d{4}[a-z]?)' } |
     ForEach-Object { $Matches[1] } | Sort-Object | Select-Object -Last 1

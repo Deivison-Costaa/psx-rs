@@ -58,3 +58,12 @@ ts,iter,resultado,custo_usd,tokens_in,tokens_out,steps,duracao_ms,head_antes,hea
 2026-07-28T13:50:17-03:00,0035,ok:correcao-pos-revisao,0.0345,43452,7723,28,257602,58d656f,8137219,deepseek/deepseek-v4-pro,trabalhador
 2026-07-28T15:28:36-03:00,0036,ok,0.0515,38551,15442,76,566632,7c6cf84,99e574b,deepseek/deepseek-v4-pro,trabalhador
 2026-07-28T15:42:13-03:00,0036,ok:correcao-pos-revisao,0.0192,23899,4791,23,166329,7c6cf84,5af59c4,deepseek/deepseek-v4-pro,trabalhador
+2026-07-28T17:36:16-03:00,0037,falha:timeout,0.0597,33544,18919,30,2700027,796f9ce,796f9ce,deepseek/deepseek-v4-pro,trabalhador
+2026-07-28T18:26:58-03:00,0038,ok,0.1653,104103,46590,129,1433396,796f9ce,85307d4,deepseek/deepseek-v4-pro,trabalhador
+2026-07-28T18:56:00-03:00,0038,ok:revisor-a-spec,1.2601,484650,16222,10,216135,85307d4,85307d4,claude-opus-5,revisor
+2026-07-28T18:57:00-03:00,0038,ok:revisor-b-consequencia,1.7676,871606,21369,15,299739,85307d4,85307d4,claude-opus-5,revisor
+2026-07-28T18:59:00-03:00,0038,ok:revisor-c-teste,1.8701,586079,31008,10,414413,85307d4,85307d4,claude-opus-5,revisor
+2026-07-28T19:05:58-03:00,0038,falha:reescreveu-branch,0.132,80901,35118,95,1104419,796f9ce,1744e7d,deepseek/deepseek-v4-pro,trabalhador
+2026-07-28T19:29:05-03:00,0038,falha:parou-sem-fazer,0.0327,48683,1417,13,145833,796f9ce,796f9ce,deepseek/deepseek-v4-pro,trabalhador
+2026-07-28T19:34:36-03:00,0038,falha:parou-sem-fazer,0.0232,38355,2543,18,102809,796f9ce,949a05f,deepseek/deepseek-v4-pro,trabalhador
+2026-07-28T19:39:52-03:00,0038,falha:recomecou-do-zero,0.0661,34096,24284,46,1155538,796f9ce,db2420f,deepseek/deepseek-v4-pro,trabalhador

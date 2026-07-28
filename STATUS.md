@@ -20,79 +20,16 @@ códigos de `syscall`; a spec diz que são endereços de chamada (`jal 0xA0`) co
 função em R9. Corrigido contra `13-kernel-bios.md` antes de despachar o trabalhador. Ver
 `docs/iterations/0024-handoff-1.10-corrigido.md`.
 
+**0025** — Hook de TTY (A0h/B0h) (ROADMAP 1.10): hook no `Cpu::step` que detecta PC físico
+`A0h`/`B0h`, lê R9 e emite putchar/puts para buffer no Bus (`tty_push`/`take_tty`). 7
+testes (D1-D6 + D2b), 5/5 mutantes pegos, 2/2 controles verdes. O handoff corrigido pela
+iter 0024 foi essencial: A0h/B0h como endereços de `jal`, não como códigos de syscall.
+putchar grava byte cru (sem expansão TAB/LF) — decisão deliberada. Ver
+`docs/iterations/0025-cpu-tty-hook.md`.
+
 ## Próxima tarefa
 
-**ROADMAP 1.10** — Hook de TTY (A0h/B0h) → BIOS imprimindo no console.
-
-Primeiro item que conecta CPU + Bus + saída visível.
-
-> **O handoff anterior deste item estava errado e foi corrigido na iter 0024 contra a spec.**
-> A0h/B0h **não** são códigos de `syscall`: são **endereços de chamada**. O código chama
-> `jal 0x000000A0` (ou `0xB0`, `0xC0`) com o **número da função em R9 (`$t1`)**, argumentos em
-> R4-R7 e retorno em R2. `syscall` é outra tabela (SYS-Functions, número em R4). Não invente:
-> leia `13-kernel-bios.md` L496 antes de codificar.
-
-Funções de TTY deste item, **exatamente como a spec as numera**:
-
-| Função | Chamada | R9 | Argumento |
-|---|---|---|---|
-| `putchar(char)` | `jal 0xA0` | `3Ch` | R4 = caractere (byte baixo) |
-| `putchar(char)` | `jal 0xB0` | `3Dh` | R4 = caractere (byte baixo) |
-| `puts(src)` | `jal 0xA0` | `3Eh` | R4 = ponteiro para string terminada em `00h` |
-| `puts(src)` | `jal 0xB0` | `3Fh` | R4 = ponteiro para string terminada em `00h` |
-
-**Escopo:** um hook no `Cpu::step` que dispara quando o PC **físico** (`pc & 0x1FFF_FFFF`)
-vale `A0h` ou `B0h`; se R9 casar com uma das quatro entradas acima, o byte (ou a string lida
-byte a byte via `bus.read8`) vai para um buffer de saída no `Bus`
-(`tty_push` / `take_tty`), e a execução **segue normalmente** — o hook só observa, não desvia
-o PC nem sintetiza um retorno.
-
-**NÃO inclui:** as demais funções A/B/C; `getchar`/`gets` (entrada); expansão de TAB/LF do
-`putchar` real (ver armadilha 3); impressão no psx-cli (só o buffer no core; o CLI drena
-depois, no item do runner).
-
-**Spec:** `docs/reference/13-kernel-bios.md` — L496 (`A-Functions`, convenção de chamada),
-L481 (`Parameters, Registers, Stack`), L2776 (`putchar`), L2742 (`puts`).
-
-**Arquivos-alvo:** `crates/psx-core/src/cpu.rs` (hook no `step`), `crates/psx-core/src/bus.rs`
-(buffer + `tty_push`/`take_tty`), teste novo `crates/psx-core/tests/cpu_tty_hook.rs`.
-
-### Armadilhas
-
-1. **Não precisa de BIOS nem de mini-handler.** A armadilha registrada antes (vetor
-   `0x8000_0040`, handler em RAM) pressupunha o mecanismo errado de `syscall`. Com o hook em
-   `jal 0xA0`, o teste monta `jal` + delay slot em RAM, ajusta R9/R4 e passa a executar até o
-   PC chegar em `A0h`. Nenhuma BIOS envolvida.
-2. **Espelhos de segmento.** O PC pode chegar como `0x000000A0`, `0x800000A0` ou `0xA00000A0`.
-   Compare o endereço **físico**, nunca o virtual.
-3. **`puts(0)` imprime `<NULL>`.** A spec é explícita (L2746-2749): se R4 aponta para um `00h`
-   nada é impresso, mas se R4 é `00000000h` a saída é os seis caracteres `<NULL>`, sem CR/LF.
-4. **String sem terminador trava o emulador.** `puts` deve ter um teto de bytes lidos
-   (proponha 1 MiB) e parar, em vez de varrer a memória para sempre.
-5. **O `putchar` real expande TAB e LF** (L2778-2780: `09h` → espaços até o próximo múltiplo
-   de 8; `0Ah` → `0Dh,0Ah`). Como o hook **observa** em vez de substituir a função, este item
-   grava o byte **cru**. Decisão deliberada, não esquecimento: registre como nota ASSUMIDA no
-   doc da iteração, com ponto de resolução = comparar com a saída de uma BIOS real.
-
-### Testes de aceitação
-
-**D1 — putchar por A0h.** RAM com `jal 0xA0` + delay slot, R9=`0x3C`, R4=`'X'`. Executa até o
-PC valer `0xA0`. Exigido: `take_tty()` devolve `b"X"`.
-
-**D2 — putchar por B0h usa outro número.** Mesmo cenário com `jal 0xB0` e R9=`0x3D`. Exigido:
-`b"X"`. E com `jal 0xB0` + R9=`0x3C` (número de A0h na tabela errada): **nada** é emitido.
-
-**D3 — puts lê até o `00h`.** R9=`0x3E`, R4 aponta para `"oi\0"` em RAM. Exigido: `b"oi"`, sem
-o terminador.
-
-**D4 — `puts(0)` emite `<NULL>`.** R9=`0x3E`, R4=`0`. Exigido: `b"<NULL>"`.
-
-**D5 — Número desconhecido é ignorado.** R9=`0xFF` em `jal 0xA0`. Exigido: buffer vazio, sem
-pânico, e a execução continua (o hook não altera PC nem registradores).
-
-**D6 — Espelho KSEG0.** Salto para `0x800000A0` com R9=`0x3C`. Use `jalr` (o alvo vem de um
-registrador): `jal` monta o alvo com os 4 bits altos do PC e, a partir de KUSEG, não alcança
-`0x8...`. Exigido: mesmo resultado de D1.
+**ROADMAP 1.11** — Sideload de PS-EXE no psx-cli + Amidog psxtest_cpu no scoreboard.
 
 ## Repositório
 
@@ -106,7 +43,7 @@ registrador): `jal` monta o alvo com os 4 bits altos do PC e, a partir de KUSEG,
 
 ## Placar de testes
 
-Workspace: **209** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 6 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 27 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo).
+Workspace: **216** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 6 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 27 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 7 cpu_tty_hook).
 
 ## Bloqueios
 

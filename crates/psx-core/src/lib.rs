@@ -8,6 +8,7 @@ pub mod gpu;
 pub mod gte;
 pub mod irq;
 pub mod mdec;
+pub mod psexe;
 pub mod scheduler;
 pub mod sio;
 pub mod spu;

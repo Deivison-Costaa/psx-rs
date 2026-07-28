@@ -379,22 +379,42 @@ fn excecao_preserva_bits_sw_do_cause() {
 // ============================================================================
 #[test]
 fn sr_e_empilhado_na_entrada_da_excecao() {
-    let mut bus = bus_with_bios_empty();
-    let mut cpu = Cpu::new();
-    cpu.pc = 0;
+    {
+        let mut bus = bus_with_bios_empty();
+        let mut cpu = Cpu::new();
+        cpu.pc = 0;
 
-    cpu.regs[8] = 0x0000_0003;
-    bus.write32::<BusRead>(0x0000, mtc0(8, 12));
-    bus.write32::<BusRead>(0x0004, syscall());
+        cpu.regs[8] = 0x0000_0003;
+        bus.write32::<BusRead>(0x0000, mtc0(8, 12));
+        bus.write32::<BusRead>(0x0004, syscall());
 
-    cpu.step(&mut bus); // MTC0 r8 → SR=0x03
-    cpu.step(&mut bus); // syscall → excecao (push)
+        cpu.step(&mut bus); // MTC0 r8 → SR=0x03
+        cpu.step(&mut bus); // syscall → excecao (push)
 
-    assert_eq!(
-        cpu.cop0[12], 0x0000_000C,
-        "E2: SR=0x03 antes do syscall deve virar 0x0C (bits 0-1→2-3, bits 0-1 zerados). \
-         Comportamento ASSUMIDO — verificar com Amidog psxtest_cpu no item 1.11 (nota 10 do STATUS)."
-    );
+        assert_eq!(
+            cpu.cop0[12], 0x0000_000C,
+            "E2: SR=0x03 antes do syscall deve virar 0x0C (bits 0-1→2-3, bits 0-1 zerados). \
+             Comportamento ASSUMIDO — verificar com Amidog psxtest_cpu no item 1.11 (nota 10 do STATUS)."
+        );
+    }
+    {
+        let mut bus = bus_with_bios_empty();
+        let mut cpu = Cpu::new();
+        cpu.pc = 0;
+
+        cpu.regs[8] = 0x0040_0031;
+        bus.write32::<BusRead>(0x0000, mtc0(8, 12));
+        bus.write32::<BusRead>(0x0004, syscall());
+
+        cpu.step(&mut bus); // MTC0 r8 → SR=0x0040_0031
+        cpu.step(&mut bus); // syscall → excecao (push)
+
+        assert_eq!(
+            cpu.cop0[12], 0x0040_0004,
+            "E2: SR=0x0040_0031 deve virar 0x0040_0004 (bits 4-5 sobrescritos por zero, \
+             bit 22 intacto). Pega mutante que limpa so bits 0-1 em vez de 2-5."
+        );
+    }
 }
 
 // ============================================================================

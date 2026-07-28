@@ -46,6 +46,50 @@ Workspace: 271 → **274** testes (3 novos meta-testes em `ci_scoreboard`).
 
 ## Revisão cruzada (orquestrador)
 
+Duas rodadas. A primeira entregou o parser; a segunda consertou a manchete.
+
+### Verificado executando, em `5af59c4`
+
+```
+ps1-tests/cpu/cop         cop.exe         pass  2p/0f
+ps1-tests/cpu/code-in-io  code-in-io.exe  fail  1p/2f
+ps1-tests/dma/otc-test    otc-test.exe    fail  3p/35f
+ps1-tests/gpu/gp0-e1      gp0-e1.exe      fail  5p/5f
+```
+
+A dedup faz o trabalho: o `code-in-io` repete tres linhas 3 134 vezes e sai como `1p/2f`, nao
+`3134p/6268f`. fmt e clippy limpos, `cargo test --all` = **274**.
+
+### L1 — a manchete contradizia o CSV que ela mesma escrevia
+
+```
+scoreboard: 46/51 produziram saida (criterio: TTY nao vazio; veredito real fica para o 1.13)
+```
+
+Duas coisas erradas na mesma linha: ela prometia o 1.13 como trabalho futuro sendo que este PR
+**e** o 1.13; e o contador somava so linhas `,tty,`, de modo que as quatro suites que passaram
+a produzir veredito sairam da conta. O numero caiu de 50/51 para 46/51 **porque quatro suites
+melhoraram** — quem lesse o console concluiria que o emulador regrediu.
+
+E o caso mais limpo desta sessao de um defeito que nenhum teste pegaria: o CSV estava certo, a
+bateria estava certa, os meta-testes estavam certos. Errado estava o que um humano le. Ficou
+registrado na tabela de erros com categoria `saida-humana`.
+
+### L2 — o A1 pedia a saida colada, e ela nao estava no doc
+
+O resultado estava certo (conferi rodando), mas quem entregou nao demonstrou. Corrigido na 2a
+rodada: o doc agora traz as quatro linhas, a distribuicao antes/depois e a manchete nova.
+
+### Correcao minha nesta branch
+
+A manchete reescrita ainda somava `host-bin` dentro de "sem saida" (`$total - $tty -
+$comVeredito`), rotulando o `diffvram` — que nem e um PS-EXE — como suite sem saida. Agora
+`sem-saida` e contado direto e o resto aparece como "nao avaliados":
+
+```
+scoreboard: 4 com veredito (1p/3f), 46 so com saida, 0 sem saida, 1 nao avaliados, de 51 arquivos
+```
+
 <!-- Preenchido pelo Claude na revisão do PR -->
 
 ## Decisões e notas

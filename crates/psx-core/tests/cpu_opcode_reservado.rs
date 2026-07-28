@@ -37,7 +37,7 @@ fn secondary_inexistente_gera_ri() {
     let mut cpu = Cpu::new();
     cpu.pc = 0;
 
-    bus.write32::<BusRead>(0x0000, (0x00 << 26) | 0x3E);
+    bus.write32::<BusRead>(0x0000, 0x3E);
 
     cpu.step(&mut bus);
 

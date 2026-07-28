@@ -557,7 +557,14 @@ impl Cpu {
         self.set_reg(rt, val);
     }
 
+    fn is_isc(&self) -> bool {
+        (self.cop0[12] >> 16) & 1 != 0
+    }
+
     fn sw(&mut self, instr: u32, bus: &mut Bus) {
+        if self.is_isc() {
+            return;
+        }
         let rs = ((instr >> 21) & 0x1F) as usize;
         let rt = ((instr >> 16) & 0x1F) as usize;
         let imm = Self::sign_extend_imm(instr);
@@ -628,6 +635,9 @@ impl Cpu {
     }
 
     fn sb(&mut self, instr: u32, bus: &mut Bus) {
+        if self.is_isc() {
+            return;
+        }
         let rt = ((instr >> 16) & 0x1F) as usize;
         let rs = ((instr >> 21) & 0x1F) as usize;
         let imm = Self::sign_extend_imm(instr);
@@ -637,6 +647,9 @@ impl Cpu {
     }
 
     fn sh(&mut self, instr: u32, bus: &mut Bus) {
+        if self.is_isc() {
+            return;
+        }
         let rt = ((instr >> 16) & 0x1F) as usize;
         let rs = ((instr >> 21) & 0x1F) as usize;
         let imm = Self::sign_extend_imm(instr);
@@ -686,6 +699,9 @@ impl Cpu {
     }
 
     fn swl(&mut self, instr: u32, bus: &mut Bus) {
+        if self.is_isc() {
+            return;
+        }
         let rt = ((instr >> 16) & 0x1F) as usize;
         let rs = ((instr >> 21) & 0x1F) as usize;
         let imm = Self::sign_extend_imm(instr);
@@ -704,6 +720,9 @@ impl Cpu {
     }
 
     fn swr(&mut self, instr: u32, bus: &mut Bus) {
+        if self.is_isc() {
+            return;
+        }
         let rt = ((instr >> 16) & 0x1F) as usize;
         let rs = ((instr >> 21) & 0x1F) as usize;
         let imm = Self::sign_extend_imm(instr);

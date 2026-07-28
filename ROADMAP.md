@@ -25,7 +25,7 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [x] 1.6 MULT/MULTU/DIV/DIVU + HI/LO com stalls (iter 0016)
 - [x] 1.7 LWL/LWR/SWL/SWR (iter 0018)
 - [x] 1.8a COP0: registradores SR/CAUSE/EPC/BadVaddr/PRID + MTC0/MFC0 + RFE (sem exceções) (iter 0020)
-- [ ] 1.8b Mecanismo de exceção: overflow, syscall, break, AdEL/AdES, bit BD
+- [x] 1.8b Mecanismo de exceção: overflow, syscall, break, AdEL/AdES, bit BD (iter 0021)
 - [ ] 1.9 Cache isolation + scratchpad + memory control stubs
 - [ ] 1.10 Hook de TTY (A0h/B0h) → BIOS imprimindo no console
 - [ ] 1.11 Sideload de PS-EXE no psx-cli + Amidog psxtest_cpu no scoreboard

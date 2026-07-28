@@ -5,117 +5,110 @@
 
 ## Última iteração concluída
 
-**0020** — COP0: banco de registradores + `MTC0`/`MFC0` + `RFE` (ROADMAP 1.8a): 10 testes,
-6/6 mutantes pegos, 2/2 controles verdes. Banco COP0 com 32 registradores inicializado
-(PRID=0x2), CAUSE com máscara de escrita nos bits 8-9, RFE com cópia correta dos campos
-IE/KU (bit2-3→bit0-1, bit4-5→bit2-3, bits 4-5 inalterados), MFC0 com load delay de 1
-opcode, MTC0 sem store delay. EPC e BadVaddr implementados como graváveis (comportamento
-ASSUMIDO, resolve no item 1.11). Registradores N/A e garbage não disparam exceção (dívida
-do 1.8b). Ver `docs/iterations/0020-cpu-cop0-regs.md`.
+**0021** — Mecanismo de exceção (ROADMAP 1.8b): overflow em `ADD`/`ADDI` com `rt` intacto,
+`syscall` (08h), `break` (09h) no vetor próprio `0x8000_0040`, AdEL/AdES com `BadVaddr`,
+bits BD/BT. ExcCode escrito direto em `self.cop0[13]`, sem passar pela máscara da 1.8a.
+**Duas rodadas de revisão adversarial**: a primeira achou três lacunas de comportamento
+(CAUSE apagando os bits Sw; nenhum empilhamento do SR na entrada, com o `rfe` da 1.8a
+desempilhando o nada; load pendente descartado pela exceção); a segunda achou dois mutantes
+que escapavam da suíte inteira. 15 testes, 12/12 mutantes pegos, 3/3 controles verdes.
+Ver `docs/iterations/0021-cpu-exception-mechanism.md`.
 
 ## Próxima tarefa
 
-**ROADMAP 1.8b** — Mecanismo de exceção: overflow, syscall, break, AdEL/AdES, bit BD.
+**ROADMAP 1.9** — Scratchpad (1KB), isolamento de cache (`SR.Isc`) e registradores de memory
+control. Primeiro item do M1 que mexe no **bus**, não na CPU.
 
-A base COP0 está pronta (1.8a). Este item conecta os gatilhos de exceção ao banco de
-registradores e implementa o fluxo de entrada em exceção.
+O handoff do trabalhador propunha um 1.8c (Reserved Instruction + Coprocessor Unusable) aqui.
+Decisão do orquestrador: **vai para depois do 1.11**, com a prioridade escolhida pelo que o
+Amidog `psxtest_cpu` reprovar. Motivo na armadilha 1 abaixo — o 1.9 conserta corrupção de RAM
+em curso, e está no caminho crítico do 1.10 (ver o BIOS imprimir). RI/CpU não bloqueiam nada
+e são exatamente o tipo de dívida que o scoreboard do 1.11 mede melhor do que eu estimo.
+A derivação do 1.8c está preservada nas notas.
 
-**Escopo:** `syscall` (primary 0x00, secondary 0x0C), `break` (primary 0x00, secondary
-0x0D), overflow trap em `ADD` (secondary 0x20) e `ADDI` (primary 0x08), address error
-(AdEL/AdES) em load/store desalinhados, bit BD no CAUSE para exceções em delay slot,
-e o **desvio para o vetor** — o vetor É o mecanismo; sem transferência de controle o item
-não tem sentido.
+**Escopo:** decodificação de região no `Bus` para (a) Scratchpad 1KB em `1F800000h..1F8003FFh`,
+(b) memory control em `1F801000h..1F801023h` e `1F801060h` (RAM_SIZE), (c) o BCC em
+`FFFE0130h` (KSEG2), e (d) `SR.Isc` (bit 16) fazendo os stores da CPU não chegarem à memória.
 
-**NÃO inclui** (correção de escopo do orquestrador, 2026-07-27): interrupções externas
-(IRQ — M3); handler de exceção em si; **Reserved Instruction (0Ah)** para os registradores
-N/A do COP0 e cop0cmd inválido; **Coprocessor Unusable (0Bh)** para COP1/COP3 e para COP2
-com `SR.CU2=0`; acesso a KUSEG em user mode. Essas quatro viram dívida com nota própria.
-Motivo: BD e delay slot são a parte arriscada deste item; somar mais duas famílias de causa
-alarga o raio de explosão, que é exatamente o que a divisão do 1.8 evitou.
+**NÃO inclui:** i-cache de verdade (linhas, tags, fill) — o `Isc` aqui só engole store;
+Bus Error para regiões não usadas; espelhos de RAM configuráveis por `RAM_SIZE`; write queue;
+scratchpad executável. Cada um vira nota de dívida.
 
-**O que muda na CPU:**
-- `Cpu` ganha flag `in_delay_slot: bool` e `branch_pc: Option<u32>` para setar
-  `CAUSE.BD` e `EPC = branch_pc` (não `pc`) quando a exceção ocorre num delay slot.
-- `step()` detecta exceção e, em vez de executar a instrução, seta `CAUSE.ExcCode`,
-  `CAUSE.BD`, `CAUSE.CE` (se coprocessor), `EPC` (ou `EPC-4` se BD=1), e
-  `BadVaddr` (se AdEL/AdES), e desvia para o vetor de exceção (0x80000080 com BEV=0).
-- `ADD` (secondary 0x20) e `ADDI` (primary 0x08): overflow trap → ExcCode=0Ch (Ovf),
-  deixa `rt` intacto.
-- `syscall` (0x0C): ExcCode=08h.
-- `break` (0x0D): ExcCode=09h.
-- Load/store desalinhado: ExcCode=04h (AdEL) / 05h (AdES), com `BadVaddr` escrito.
-
-**Spec:** `docs/reference/02-cpu.md` — `exception opcodes` (L409), `COP0 - Exception
-Handling` (L589), `Exception Vectors` (L736), `Exception Priority` (L752),
-`Coprocessor Instructions` (L422), `arithmetic instructions` (L285), `Illegal Opcodes`
-(L148).
+**Spec:** `docs/reference/01-memory-map.md` — `Memory Map` (L2), `KUSEG,KSEG0,KSEG1,KSEG2`
+(L26), `Scratchpad` (L91), `Memory Mirrors` (L119), `Memory Exceptions` (L133).
+`docs/reference/12-memory-control.md` — portas (L6–L36), `RAM_SIZE` (L152), `BCC` (L203).
+`docs/reference/02-cpu.md` — `cop0r12 - SR` (L624), bit 16 `Isc`.
 
 ### Armadilhas nomeadas
 
-1. **Ordem de prioridade de exceção importa.** A spec lista `Reset > AdEL > AdES > DBE >
-   ...`. Se duas condições de exceção ocorrerem na mesma instrução, a de maior
-   prioridade vence. Mas na prática do 1.8b, a maioria das exceções são mutuamente
-   exclusivas (não dá pra ter overflow E syscall na mesma instrução). Ainda assim,
-   implemente a cadeia de `if/else if` na ordem da spec.
-2. **BD: EPC aponta para o branch, não para o delay slot.** Quando `CAUSE.BD=1`, `EPC`
-   contém o endereço do branch (ou seja, `EPC = pc - 4` relativo ao delay slot). O
-   handler de exceção precisa dessa informação para decidir se re-executa o branch ou
-   avança. A nota 5 do STATUS já documenta a dívida do flag `in_delay_slot`.
-3. **Overflow trap: `rt` fica intacto.** Diferente de `ADDU`, o `ADD` e `ADDI` NÃO
-   escrevem `rt` quando há overflow. O registrador destino mantém o valor anterior. A
-   nota 2 do STATUS documenta a dívida atual (`ADDI` idêntico a `ADDIU`).
-4. **A máscara de escrita do CAUSE, criada na 1.8a, vai engolir o ExcCode se você passar
-   por ela.** `cop0_write(13, ...)` só grava os bits 8-9 — é o comportamento correto para
-   `MTC0` e está coberto por teste. O mecanismo de exceção **não** é um `MTC0`: ele escreve
-   `self.cop0[13]` direto. Passar pelo `cop0_write` faz o ExcCode sumir em silêncio, com
-   todos os testes da 1.8a continuando verdes. Esta é a armadilha mais provável do item, e
-   ela nasceu de a 1.8a estar certa.
-5. **`syscall` e `break` estão no espaço `special` (primary 0x00).** Secondary 0x0C e
-   0x0D respectivamente. O `unimplemented!` atual em `special()` os pegaria — troque
-   por exceção.
+1. **Isto não é "falta implementar", é corrupção ativa em curso.** `Bus::ram_offset` faz
+   `phys & 0x1F_FFFF` para **todo** endereço que não seja BIOS. Consequência aritmética:
+   `0x1F80_0000 & 0x1F_FFFF = 0x00_0000` — o scratchpad é hoje um **alias do endereço 0 da
+   RAM**; `0x1F80_1060 & 0x1F_FFFF = 0x00_1060` — cada escrita do BIOS em memory control
+   sobrescreve RAM real; `0xFFFE_0130 & 0x1F_FFFF = 0x1E_0130` — o BCC sobrescreve RAM em
+   1.9 MB. As três faixas ficam dentro dos 64 KB de RAM reservados ao kernel ou em uso.
+   Comece medindo isso com teste que falha, não implementando.
+2. **A decodificação de região vem ANTES do fallback de RAM, e vale para os seis acessos.**
+   Repare que `read32` já testa a faixa da BIOS mas `write32` **não** — escrever na BIOS hoje
+   cai na RAM. Não conserte isso aqui (é dívida separada), mas não repita o padrão: a nova
+   decodificação vale para `read8/16/32` e `write8/16/32`.
+3. **KSEG2 não passa pela máscara de região, e está certo assim.** `to_physical` devolve `addr`
+   intacto no braço `_`, que é o comportamento correto para `0xFFFE_0130`. O defeito está no
+   `ram_offset`, que mascara depois. Não mexa em `to_physical` para "consertar" o KSEG2.
+4. **O comentário do braço `0b010` em `to_physical` está errado.** Diz `KUSEG:
+   0x0000_0000..0x1FFF_FFFF`, mas `addr >> 29 == 0b010` é `0x4000_0000..0x5FFF_FFFF`; o KUSEG
+   baixo cai no braço `_` e funciona por coincidência (`addr & 0x1FFF_FFFF == addr` ali).
+   Corrija o comentário em uma linha, respeitando R7.
+5. **Scratchpad NÃO é espelhado em KSEG1.** A spec é explícita: "The Scratchpad is mirrored
+   only in KUSEG and KSEG0, but not in KSEG1", e a tabela do memory map traz `--` na coluna
+   KSEG1 da linha Scratchpad. `0xBF80_0000` **não** é scratchpad. O correto seria Bus Error
+   (`Memory Exceptions`: "Bus Error -> Unused Memory Regions"), que não existe ainda — devolva
+   0 / ignore a escrita e marque como **comportamento ASSUMIDO** com resolução no 1.11.
+6. **O `Bus` não pode conhecer o COP0.** `Isc` mora no `SR`, que é da CPU. Decida onde a
+   checagem entra (CPU antes de chamar o bus, ou flag passado ao bus) e **justifique no doc** —
+   mas um `Bus` que precise de `&Cpu` reprova a revisão.
 
 ### Testes de aceitação OBRIGATÓRIOS
 
-Literais derivados pelo orquestrador por duas rotas (regra da 0017e). **Exija o valor do
-CAUSE inteiro, não só o campo ExcCode** — o erro provável é gravar o ExcCode sem deslocar
-(`0x0C` em vez de `0x30`), e um teste que lê só o campo não distingue os dois.
-Rota 1: ExcCode ocupa os bits 2-6, logo `CAUSE = ExcCode << 2`. Rota 2 para cada valor abaixo,
-em binário: `08h = 01000b` → `0100000b` = `0x20`; `09h = 01001b` → `0100100b` = `0x24`;
-`0Ch = 01100b` → `0110000b` = `0x30`; `04h` → `0x10`; `05h` → `0x14`.
+Literais derivados por duas rotas (regra da 0017e). Regra nova, da 1.8b: **todo item que
+escreve em região/registrador persistente precisa de um caso com o vizinho sujo antes** — sem
+isso um alias passa despercebido exatamente como passou na 1.8b.
 
-**B1 — Overflow em ADD.** `r8 = r9 = 0x7FFF_FFFF`, executar `ADD r10, r8, r9`.
-Exigido: `r10` **inalterado**, `CAUSE = 0x0000_0030`, `EPC` = endereço do `ADD`,
-`PC = 0x8000_0080`.
+**D1 — Scratchpad é memória própria, não alias da RAM.** `write32(0x0000_0000, 0xAAAA_AAAA)`,
+depois `write32(0x1F80_0000, 0x5555_5555)`. Exigido: `read32(0x0000_0000) == 0xAAAA_AAAA` **e**
+`read32(0x1F80_0000) == 0x5555_5555`. Rota 1: o mapa lista Scratchpad como região própria de
+1K, separada da Main RAM. Rota 2: `0x1F80_0000 & 0x1F_FFFF = 0`, que prova o alias hoje. O
+primeiro assert é o que importa — sem ele, um scratchpad ainda aliasado passa.
 
-**B2 — syscall.** Exigido: `CAUSE = 0x0000_0020`, `EPC` = endereço do `syscall`,
-`PC = 0x8000_0080`.
+**D2 — Espelho em KSEG0 sim, em KSEG1 não.** `write32(0x1F80_0010, 0xC0DE_C0DE)`. Exigido:
+`read32(0x9F80_0010) == 0xC0DE_C0DE` e `read32(0xBF80_0010) == 0` (ASSUMIDO; a mensagem do
+assert diz que é suposição, no estilo do
+`load_pendente_e_commitado_antes_da_excecao_comportamento_assumido`).
 
-**B3 — break vai para OUTRO vetor.** Exigido: `CAUSE = 0x0000_0024` e
-**`PC = 0x8000_0040`**, não `0x8000_0080`. A tabela `Exception Vectors` (L736) dá linha
-própria para "COP0 Break" com BEV=0. Mandar `break` para o vetor geral é o erro clássico
-deste item e é o único caso em que a suíte inteira pode ficar verde com o desvio errado —
-por isso este teste é obrigatório.
+**D3 — Limite superior.** `write32(0x1F80_03FC, 0x1234_5678)` é o último word válido e tem de
+ler de volta. 1KB = `0x400` bytes → último word alinhado em `0x400 - 4 = 0x3FC`; a spec dá a
+faixa fechada `1F800000h..1F8003FFh`.
 
-**B4 — BD no delay slot.** `JAL` seguido de `syscall` no delay slot. Exigido:
-`CAUSE = 0xC000_0020` (BD no bit31, BT no bit30, ExcCode 08h nos bits 2-6) e
-**`EPC` = endereço do `JAL`**, não do `syscall` — "EPC is set to the address of the
-exception - 4".
+**D4 — `Isc=1` engole o store.** Sem isolamento, `sw` de `0xDEAD_BEEF` em `0x0000_0200`. Depois
+`mtc0` com `SR = 0x0001_0000`, `sw` de `0x0000_0000` no **mesmo** endereço, `mtc0` com `SR = 0`,
+e `lw`. Exigido: **`0xDEAD_BEEF`**. Rota 1: "When isolated, all load and store operations are
+targetted to the cache instead of main memory". Rota 2: o kernel usa `Isc` com `FFFE0130h` para
+invalidar a i-cache no boot; se esses stores fossem para a RAM, o BIOS escreveria lixo por cima
+do próprio código antes de chegar ao shell.
 
-**B5 — Load desalinhado dispara AdEL.** `LW` em endereço não múltiplo de 4. Exigido:
-`CAUSE = 0x0000_0010`, `rt` inalterado, `BadVaddr` = o endereço desalinhado,
-`PC = 0x8000_0080`. Espelhe com `SW` desalinhado: `CAUSE = 0x0000_0014`.
-A spec diz que `BadVaddr` é atualizado **só** por AdEL/AdES — os outros casos acima devem
-deixá-lo intacto, e isso vale um assert.
+**D5 — Memory control não corrompe a RAM.** `write32(0x1F80_1000, 0x1F00_0000)` e
+`write32(0x1F80_1060, 0x0000_0B88)`. Exigido: `read32(0x0000_1000) == 0` e
+`read32(0x0000_1060) == 0` — a RAM **não** foi tocada — e `read32(0x1F80_1060) == 0x0000_0B88`.
+Os dois asserts sobre a RAM são o coração; sem eles, guardar o valor num campo novo passa mesmo
+continuando a corromper.
 
-### Dívidas que este item fecha
-
-- Nota 2 do STATUS (overflow trap em ADDI/ADD/SUB)
-- Nota 5 do STATUS (flag `in_delay_slot` para bit BD)
-- `unimplemented!` em `special()` para opcodes 0x0C (syscall) e 0x0D (break)
-
-**Dívidas que este item NÃO fecha** (ficam para um 1.8c ou para o 1.11): Reserved Instruction
-(0Ah) nos registradores N/A do COP0 e em cop0cmd inválido; Coprocessor Unusable (0Bh) em
-COP1/COP3 e em COP2 com `SR.CU2=0` (nota 9); address error por acesso a KUSEG em user mode.
+**D6 — BCC em KSEG2.** `write32(0x001E_0130, 0x1111_1111)` como testemunha, depois
+`write32(0xFFFE_0130, 0x0001_E988)`. Exigido: `read32(0xFFFE_0130) == 0x0001_E988` **e**
+`read32(0x001E_0130) == 0x1111_1111`. Rota 1: memory map, "FFFE0130h (in KSEG2) 0.5K Internal
+CPU control registers (Cache Control)". Rota 2 — derivação bit a bit da coluna "usually" da
+tabela BCC: RAM(3), DS(7), IBLKSZ(8), IS1(11), RDPRI(13), NOPAD(14), BGNT(15), LDSCH(16) →
+`0b1_1110_1001_1000_1000` = `0x1E988`, que é o valor que o BIOS de fato escreve. As duas rotas
+concordam.
 
 ## Repositório
 
@@ -126,7 +119,7 @@ COP1/COP3 e em COP2 com `SR.CU2=0` (nota 9); address error por acesso a KUSEG em
 
 ## Placar de testes
 
-Workspace: **188** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 27 cpu_unaligned_load_store + 10 cpu_cop0_regs).
+Workspace: **203** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 27 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo).
 
 ## Bloqueios
 
@@ -144,12 +137,7 @@ Workspace: **188** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version
 
 1. BIOS local: `bios/SCPH1001.BIN` (MD5 924E392ED05558FFDB115408C263DCCF), gitignored,
    validada na iter 0009 (item 0.9). Nunca commitar.
-2. **Dívida de overflow trap (fecha no item 1.8).** `ADDI` está implementado sem trap,
-   idêntico a `ADDIU` — a spec (02-cpu.md, `arithmetic instructions`) manda excetuar e
-   deixar `rt` intacto no overflow. `ADD` (secondary 0x20) e `SUB` (0x22) nem existem no
-   match: dão `unimplemented!`. Quando o 1.8 trouxer o mecanismo de exceção, os três
-   entram juntos. Autorizado no handoff da 0012, mas é dívida, não comportamento correto.
-3. **Load delay × escrita no mesmo registrador: comportamento ASSUMIDO, não verificado
+2. **Load delay × escrita no mesmo registrador: comportamento ASSUMIDO, não verificado
    (resolve no item 1.11).** Quando a instrução do delay slot escreve o registrador
    destino do load (`lw r10,..` seguido de `ori r10,..`), a nossa implementação faz o
    **load vencer**. A spec local não decide: `02-cpu.md § Caution - Load Delay` só diz que
@@ -159,7 +147,7 @@ Workspace: **188** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version
    hoje e nomeia a dúvida, para que uma futura mudança seja deliberada. Ponto de
    resolução: Amidog `psxtest_cpu` no item 1.11 — se ele reprovar, inverter a ordem em
    `Cpu::step` (commitar o load antes de executar, escrevendo num banco de saída).
-4. **BcondZ com `rt` fora da tabela: comportamento ASSUMIDO (resolve no item 1.11).** O
+3. **BcondZ com `rt` fora da tabela: comportamento ASSUMIDO (resolve no item 1.11).** O
    opcode 01h só tem `rt`=00h/01h/10h/11h tabelados em `02-cpu.md § Opcode/Parameter
    Encoding`; a spec local não diz o que `rt`=02h..0Fh/12h..1Fh fazem. Assumimos **no-op
    silencioso** (nem desvia nem linka). O teste
@@ -167,26 +155,50 @@ Workspace: **188** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version
    suposição. Se o Amidog `psxtest_cpu` reprovar, o critério a testar primeiro é o de
    hardware conhecido: bit16 sozinho decide BLTZ/BGEZ e o link ocorre quando os bits
    20..17 valem 1000b — o que faria `rt`=02h agir como BLTZ.
-5. **Dívida do bit BD / delay slot para o item 1.8.** `Cpu` sinaliza desvio pendente com
-   `branch_target: Option<u32>`, consumido em `step` ANTES de executar a instrução. Isso
-   basta para o desvio, mas apaga a informação "a instrução atual está num delay slot",
-   que o 1.8 precisa para setar `CAUSE.BD` e apontar `EPC` para o branch (e não para o
-   delay slot) — a própria spec cita o caso em `§ JALR cautions`. Quem fizer o 1.8 tem de
-   guardar esse flag junto com o endereço do branch, não deduzi-lo depois.
-6. **EPC e BadVaddr são graváveis via MTC0 — comportamento ASSUMIDO (resolve no item
+4. **EPC e BadVaddr são graváveis via MTC0 — comportamento ASSUMIDO (resolve no item
    1.11).** A spec marca ambos como (R), mas o comportamento sob escrita não está
    documentado localmente. Implementados como R/W na 1.8a. Os testes
    `epc_gravavel_comportamento_assumido` e `badvaddr_gravavel_comportamento_assumido`
    fixam o comportamento atual. Se o Amidog `psxtest_cpu` reprovar, adicionar `if reg ==
    8 || reg == 14 { return; }` em `cop0_write`.
-7. **TAR (cop0r6) é R/W — comportamento ASSUMIDO (resolve no item 1.11).** Mesmo
+5. **TAR (cop0r6) é R/W — comportamento ASSUMIDO (resolve no item 1.11).** Mesmo
    critério de EPC/BadVaddr: spec marca (R), implementado como R/W sem evidência
    contrária.
-8. **Registradores N/A do COP0 (r0-r2, r4, r10, r32-r63) não disparam exceção — dívida
-   do 1.8b.** Leitura retorna 0, escrita é ignorada. O comportamento correto é Reserved
+6. **Registradores N/A do COP0 (r0-r2, r4, r10, r32-r63) não disparam exceção — dívida
+   do 1.8c, a agendar depois do 1.11.** Leitura retorna 0, escrita é ignorada. O comportamento correto é Reserved
    Instruction Exception (excode=0Ah).
-9. **Acesso ao COP0 em User mode com COP0 disabled — dívida do 1.8b.** Acessar qualquer
+7. **Acesso ao COP0 em User mode com COP0 disabled — dívida do 1.8c, a agendar depois do 1.11.** Acessar qualquer
    registrador do COP0 que não seja garbage (r16-r31), ou executar RFE, em User mode com
    COP0 disabled (SR.bit1=1 e SR.bit28=0) gera Coprocessor Unusable Exception (excode=0Bh).
    Os registradores garbage r16-r31 podem ser acessados nesse estado sem exceção. Fonte:
    `docs/reference/02-cpu.md`, seção cop0r16-r31 - Garbage (L805).
+8. **E1 — Entrada de exceção preserva bits Sw (8-9) e IP (10-15) do CAUSE.** A escrita
+   do ExcCode agora usa máscara: `self.cop0[13] = (self.cop0[13] & !0xC000_007C) | cause`,
+   gravando apenas BD (bit31), BT (bit30) e ExcCode (bits 2-6). O erro original
+   (`self.cop0[13] = cause`) zerava os bits Sw, contradizendo a spec que diz "clear them
+   before returning from the exception handler" — instrução de software que só faz sentido
+   se o hardware não limpar sozinho. Corrigido na revisão adversarial do PR #35.
+9. **E2 — Empilhamento de SR na entrada da exceção: comportamento ASSUMIDO (resolve no
+   item 1.11).** O inverso exato do RFE: bits 0-1 (IEc/KUc) → bits 2-3 (IEp/KUp), bits 2-3
+   (IEp/KUp) → bits 4-5 (IEo/KUo), bits 0-1 zerados. A spec local NÃO documenta o push,
+   apenas o RFE que desempilha. Sem o push, um handler que execute RFE restaura lixo nos
+   bits IEc/KUc. Ponto de resolução: Amidog `psxtest_cpu`. Testes:
+   `sr_e_empilhado_na_entrada_da_excecao` e `sr_push_seguido_de_rfe_restaura_os_bits_0_3`.
+10. **E3 — Load delay commitado antes da exceção: comportamento ASSUMIDO (resolve no
+   item 1.11).** O acesso à memória do `lw` já ocorreu quando a exceção da instrução
+   seguinte é reconhecida; o valor pendente é commitado antes do desvio para o handler.
+   A spec local não tem evidência sobre este caso (R1). Escolha (a) entre duas opções
+   igualmente plausíveis. Teste:
+   `load_pendente_e_commitado_antes_da_excecao_comportamento_assumido`.
+
+11. **A spec se contradiz sobre o EPC do `syscall` — ASSUMIDO (resolve no item 1.11).**
+   `cop0r14 - EPC` diz que o registrador guarda "the address at which an exception occured",
+   o que dá `EPC = endereço do próprio syscall`; a seção `exception opcodes` descreve o
+   handler examinando `[epc-4]` para ler o opcode que causou a exceção, o que só fecha se
+   `EPC` apontasse para a instrução **seguinte**. Implementamos a primeira leitura, que é a
+   do registrador em si e a que os testes B2/B4 fixam. As duas leituras se reconciliam se
+   `[epc-4]` for descuido de redação sobre o caso BD (onde `EPC` de fato aponta 4 bytes
+   antes). Não mudamos sem evidência (R1). Ponto de resolução: Amidog `psxtest_cpu`.
+12. **`file_size.rs`: `cpu_exception_mechanism.rs` está em 487 linhas de 500.** O próximo
+   teste de exceção vai para `cpu_exception_estado_previo.rs`, criado na segunda rodada de
+   revisão do PR #35, ou para um arquivo novo com nome próprio. Não corte casos existentes.

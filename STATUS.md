@@ -5,31 +5,45 @@
 
 ## Última iteração concluída
 
-**0035** — GPUSTAT + decodificação GP0/GP1 (ROADMAP 2.1). 271 testes (13 novos). Bateria 7/7, 2/2.
+**0035** — GPUSTAT + decodificação GP0/GP1 (ROADMAP 2.1), com rodada curta de correção (K1-K4
+da revisão adversarial). 271 testes. Bateria 7/7, 2/2.
 Ver `docs/iterations/0035-gpustat-gp0-gp1.md`.
 
 ## Próxima tarefa
-**ROADMAP 2.2** — VRAM 1MB + transfers (fill, CPU↔VRAM).
+**ROADMAP 1.13** — Veredito real no scoreboard: parser de pass/fail na saída TTY das suítes.
 
-**Spec:** `docs/reference/03-gpu.md` — seções sobre VRAM e comandos de transferência:
+A tarefa depende do 2.1 (GPUSTAT + GP0/GP1), que foi entregue, e dos dados empíricos
+coletados na revisão (ver `docs/iterations/0035-gpustat-gp0-gp1.md` § Medições).
 
-| Fato | Linha |
-|---|---|
-| VRAM Overview / VRAM Addressing | L119-138 |
-| Quick Rectangle Fill (GP0(02h)) | L102-118 |
-| VRAM to VRAM blitting — command 4 (GP0(80h-9Fh)) | L494-501 |
-| CPU to VRAM blitting — command 5 (GP0(A0h-BFh)) | L503-512 |
-| VRAM to CPU blitting — command 6 (GP0(C0h-DFh)) | L514-523 |
-| Masking and Rounding for FILL | L525-548 |
-| Masking for COPY commands | L549-571 |
-| GPU Command Summary (FIFO sizes) | L57-90 |
+**Formato observado (dados concretos da revisão):**
 
-**Arquivos-alvo:** `crates/psx-core/src/gpu.rs` (adicionar VRAM, `write_gp0` com comandos de
-transferência), `crates/psx-core/tests/gpu_vram_transfers.rs` (novo).
+- `cop` = 2 vereditos, `code-in-io` = 9 402, as outras 8 suítes = 0.
+- Linhas de pass: `pass - <nome_do_teste>`
+- Linhas de fail: `fail - <nome>:<linha> \`<expressao>\`, given: X, expected: Y`
+- `code-in-io` repete: 3 linhas distintas × 3 134 iterações — **o parser precisa deduplicar
+  antes de contar.**
+- Duas falhas são bugs legítimos do emulador (código do scratchpad deveria levantar bus error
+  e não levanta): registrar no doc mas **não corrigir aqui** (R4).
 
-**Escopo (R4):** VRAM de 1MB (`[u16; 512 * 1024]`), comandos GP0(02h) Fill, GP0(80h-9Fh)
-VRAM→VRAM, GP0(A0h-BFh) CPU→VRAM, GP0(C0h-DFh) VRAM→CPU, wrapping e masking de coordenadas.
-**Fora do escopo:** rendering, texturas, text window, display area, DMA.
+**Arquivos-alvo:** `scripts/scoreboard.ps1` — substituir o critério atual "TTY não vazio" por
+contagem de `^(pass|fail) - ` no stdout capturado, com dedup por linha distinta.
+
+**Spec de referência:** o formato é auto-evidente da saída dos EXEs; `scripts/scoreboard.ps1:92-93`
+captura `$Matches[2]` (bytes TTY) do stderr do runner. O stdout do psx-cli (L94-95 do
+`crates/psx-cli/src/main.rs`) contém as linhas `pass -`/`fail -`.
+
+**Armadilha:** o `code-in-io` é um loop de 3 134 iterações com 3 linhas distintas — contar
+todas como eventos independentes infla o placar em 3×. A dedup deve ser por texto da linha,
+não por contagem de ocorrências.
+
+**Teste de aceitação:** `scripts/scoreboard.ps1` deve produzir CSV com coluna `status` = `pass:N`
+ou `fail:N` (N = vereditos únicos pós-dedup) em vez de `tty`/`sem-saida`. Comando de prova:
+`pwsh scripts/scoreboard.ps1` e conferir que as suítes `cop` e `code-in-io` têm status
+`pass:2` e `fail:2` (as 2 falhas do scratchpad), respectivamente.
+
+**Escopo (R4):** parser de pass/fail com dedup no scoreboard.ps1, coluna `status` com
+contagem. **Fora do escopo:** corrigir o bug do scratchpad, alterar o psx-cli, formatar
+output para humano.
 
 ## Repositório
 

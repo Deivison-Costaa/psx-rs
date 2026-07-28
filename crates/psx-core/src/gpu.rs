@@ -2,7 +2,6 @@
 pub struct Gpu {
     pub stat: u32,
     dma_direction: u8,
-    interlace: bool,
 }
 
 impl Default for Gpu {
@@ -16,7 +15,6 @@ impl Gpu {
         Gpu {
             stat: 0x1480_2000,
             dma_direction: 0,
-            interlace: false,
         }
     }
 
@@ -71,7 +69,6 @@ impl Gpu {
             0x00 => {
                 self.stat = 0x1480_2000;
                 self.dma_direction = 0;
-                self.interlace = false;
             }
             0x01 => {}
             0x02 => {
@@ -91,10 +88,7 @@ impl Gpu {
             }
             0x08 => {
                 let param = val & 0xFF;
-                self.interlace = (param >> 5) & 1 != 0;
-                let bits: u32 = (param & 0x80) << 7
-                    | (param & 0x40) << 10
-                    | (param & 0x3F) << 17;
+                let bits: u32 = (param & 0x80) << 7 | (param & 0x40) << 10 | (param & 0x3F) << 17;
                 let mask: u32 = (1 << 14) | (0x7F << 16);
                 self.stat = (self.stat & !mask) | bits;
             }

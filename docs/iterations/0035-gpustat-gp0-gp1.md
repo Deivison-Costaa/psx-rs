@@ -64,5 +64,26 @@ Workspace: 258 → **271** testes (13 novos: `gpu_status_gp0_gp1`).
 1. **Bit 27 (Ready to send VRAM→CPU) mantido em 0** — o golden value `0x14802000` tem bit 27=0, e a spec (L1049-1050) diz que ele é setado após GP0(C0h) e seus parâmetros. Como GP0(C0h) não está implementado, manter em 0 é correto para este item.
 2. **Bit 13 (Interlace Field) mantido em 1** — para GPU v2 com interlace off, a spec diz "always 1" (L1068). Toggling de interlace será tratado no item 2.7 (timing).
 3. **GPUREAD retorna 0 (stub)** — respostas a GP0(C0h) e GP1(10h) não estão implementadas. Leitura em `1F801810h` retorna 0 por enquanto.
-4. **Comandos GP0 desconhecidos são ignorados silenciosamente** — sem contagem de palavras de parâmetro para comandos multi-palavra (armadilha 5). Apenas GP0(00h/04h-1Eh/E0h/E1h/E6h/E7h-EFh) têm handlers. Comandos de rendering (20h-7Fh), transferência (80h-DFh) e IRQ (1Fh) são aceitos e descartados sem consumir parâmetros. Registrado para o item 2.2.
+4. **Comandos GP0 desconhecidos são ignorados silenciosamente** — sem contagem de palavras de parâmetro para comandos multi-palavra (armadilha 5). Apenas GP0(00h/04h-1Eh/E0h/E1h/E6h/E7h-EFh) têm handlers. Comandos de rendering (20h-7Fh), transferência (80h-DFh) e IRQ (1Fh) são aceitos e descartados sem consumir parâmetros. **Consequência:** as palavras de parâmetro continuam sendo decodificadas como comandos — um vértice cujo byte alto caia em `E1h`/`E6h` reescreve o GPUSTAT sem que nada indique isso (risco baixo hoje: coordenadas pequenas dão byte alto 00h-03h, que casa com o NOP). Registrado para o item 2.2.
 5. **GP1(05h/06h/07h/09h/10h+) não implementados** — fora do escopo deste item (R4). Registrados para os itens 2.7 (display regs) e 2.9 (GP1(10h) para detecção de GPU).
+67: 6. **Campo `interlace` removido na revisão (K3)** — era escrito em `new()`, GP1(00h) e GP1(08h), mas nunca lido (o `derive(Debug)` mascarava o dead_code). A informação já vive no GPUSTAT.22 via golden value e bit-mapping do GP1(08h).
+68: 7. **Escrita de byte na janela da GPU descartada explicitamente (K4)** — registradores da GPU são de 32 bits; byte writes não fazem sentido de hardware. Um comentário de uma linha documenta o descarte em vez de retornar `true` como se tivesse funcionado.
+69: 
+70: ## Medições para o item 1.13 (contribuição da revisão)
+71: 
+72: Vereditos reais (`^(pass|fail) - `) nas dez primeiras suítes do ps1-tests:
+73: 
+74: | Suite | vereditos |
+75: |---|---|
+76: | cop | 2 |
+77: | code-in-io | 9 402 |
+78: | as outras 8 | 0 |
+79: 
+80: O `code-in-io` **repete**: são 3 linhas distintas × 3 134 iterações. Duas delas são falhas legítimas do emulador:
+81: 
+82: ```
+83: fail - testCodeInScratchpad:40 `wasExceptionThrown() == true`, given: 0x0, expected: 0x1
+84: fail - testCodeInScratchpad:41 `getExceptionType() == cop0::CAUSE::Exception::busErrorInstruction`, given: 0x3e00008, expected: 0x6
+85: ```
+86: 
+87: Ou seja: executar código do scratchpad deveria levantar bus error e não levanta. **Não corrigir aqui (R4)** — registrado como achado. O parser do 1.13 vai precisar deduplicar antes de contar, e o formato de falha (`nome:linha \`expressao\`, given: X, expected: Y`) é concreto o bastante para o placar.

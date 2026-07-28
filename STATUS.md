@@ -5,44 +5,38 @@
 
 ## Última iteração concluída
 
-**0029** — Hook de printf A(3Fh) com expansão de % → Amidog imprimindo no TTY (ROADMAP 1.11b).
-Suporte a `%%`, `%c`, `%s`, `%d`/`%i`, `%u`, `%x`/`%X` com argumentos de A1/A2/A3 e pilha em
-`[SP+10h..]`. Teto de 1 MiB no laço principal de varredura da string de formato (correção H2
-da revisão adversarial). Especificadores fora do escopo (`%o`, `%n`, etc.) emitidos como
-literal. `%` no fim da string emitido antes do break. Bateria 8/8, 3/3. Scoreboard 50/51
-produziram saída (rótulo `tty`/`sem-saida`, veredito real no 1.12). 241 testes no workspace.
-Ver `docs/iterations/0029-cpu-printf-hook.md`.
+**0031** — Rodada de correção (I1-I4): `permissions: contents: write` no job, pré-filtro por extensão + magic bytes (51 linhas/varredura, sem readmes), publish só na main, graceful exit sem EXEs (ROADMAP 1.12). Scoreboard 50/51. Bateria 10/10, 2/2. 247 testes (6 ci_scoreboard).
+Ver `docs/iterations/0031-ci-scoreboard-job.md`.
 
 ## Próxima tarefa
 
-**ROADMAP 1.12** — CI: job scoreboard ligado + primeiro placar real no histórico.
+**ROADMAP 2.1** — GPUSTAT + decodificação GP0/GP1.
 
-**Spec:** O item não tem spec de hardware. Os arquivos de referência são:
+**Spec:** O item é o primeiro do marco M2 (GPU). A spec de referência é:
 
 | Fonte | Seção | Arquivo local |
 |---|---|---|
-| ROADMAP | Item 1.12 (L32) | `ROADMAP.md` |
-| Scoreboard | script completo (L1-96) | `scripts/scoreboard.ps1` |
-| CI workflow | job check (L1-24) | `.github/workflows/ci.yml` |
-| Fetch de EXEs | script de download (L1-67) | `scripts/fetch-test-exes.ps1` |
-| BIOS | nota 1: local e hash | `STATUS.md` L52-53 |
+| psx-spx | GPU — GPUSTAT (L1-180) | `docs/reference/03-gpu.md` |
+| psx-spx | GPU — GP0/GP1 commands (L181-400) | `docs/reference/03-gpu.md` |
+| ROADMAP | Item 2.1 (L36) | `ROADMAP.md` |
+| BIOS | nota 1: local e hash (L75) | `STATUS.md` |
 
 **Arquivos-alvo:**
-- `.github/workflows/ci.yml` — novo job `scoreboard` após `check`, com steps: checkout → rust → cache → fetch-test-exes → build psx-cli → roda `scripts/scoreboard.ps1` → commita `logs/scoreboard.csv` na branch `scoreboard-data`.
-- `scripts/scoreboard.ps1` — já invoca `psx-cli --bios --exe` de verdade (resolvido na 0029); o job de CI só precisa chamá-lo.
+- `crates/psx-core/src/gpu.rs` — novo módulo com `Gpu` struct, registrador `GPUSTAT` (leitura de status com bits de versão, DMA, modo de vídeo, etc.) e decodificação de comandos GP0/GP1 (escrita de parâmetros e comandos de renderização).
+- `crates/psx-core/src/bus.rs` — mapear a região de I/O da GPU (`0x1F801810`–`0x1F801817`) para o novo módulo.
 
 **Armadilhas:**
-1. **BIOS é gitignored** (`STATUS.md` L52-53). O scoreboard já emite `sem-bios` quando `bios/SCPH1001.BIN` não existe. O job de CI precisa ou baixar a BIOS de um secret, ou aceitar `sem-bios` como estado legítimo.
-2. **EXEs são gitignored** — `scripts/fetch-test-exes.ps1` baixa do GitHub Releases. O job de CI precisa rodá-lo antes do scoreboard, e se falhar (sem token, rate-limit), o scoreboard roda vazio (0/0) sem quebrar o job.
-3. **Branch `scoreboard-data` é órfã.** Commits nela são append-only (`logs/scoreboard.csv`), nunca force-push. O job precisa de `actions/checkout` com `fetch-depth: 0` ou checkout separado da branch de dados. Documente o mecanismo no doc da iteração.
-4. **Timeout:** o Amidog `psxtest_cpu` roda ~0,3 s com step-limit de 50M. O timeout do job por EXE em `scripts/scoreboard.ps1` está em 120s — se um EXE travar, o job pode levar `N * 120s`. Considere timeout de job no workflow (`timeout-minutes`).
-5. **Nem todo `.exe` em `tests/exes/` é um PS-EXE.** O zip do ps1-tests traz utilitários de host (`ps1-tests/tools/diffvram-windows-amd64.exe`); o glob `-Include *.exe` os pega, o `load_psexe` reprova no magic e o placar registra `fail-erro`, poluindo a série. Filtrar pelos 8 primeiros bytes (`PS-X EXE`, `16-cdrom-file-formats.md` L1163) em vez da extensão, ou dar status próprio a esse caso. Medido em 28/07: 51 arquivos varridos, 1 é binário de host.
-6. **O status `tty`/`sem-saida` NÃO é veredito de teste.** O scoreboard hoje mede "produziu saída no TTY", não se o EXE passou ou falhou. O critério de veredito real (ler a saída de cada suite e extrair `pass`/`fail`) é trabalho do 1.12 — não "conserte" o placar mexendo no limiar de bytes do TTY.
+1. **GPUSTAT.26 (ready bit) é o que destrava o Amidog.** Todo EXE do ps1-tests imprime `ResetGraph:` e trava esperando `GPUSTAT.26 == 1`. Sem este bit setado, nenhuma suíte avança. O bus devolve `0` hoje para toda a região — o 2.1 precisa devolver `GPUSTAT.26 = 1` (ready) e `GPUSTAT.28 = 1` (odd/even field, valor de reset).
+2. **GPUSTAT.19-20 (bits de versão) = 2** no hardware real (GPU revision 2). Valor de reset documentado na spec.
+3. **GP0 e GP1 são write-only do lado do CPU.** Leitura de `0x1F801810` retorna GPUREAD (último valor lido da VRAM, não implementado ainda — retornar 0 é seguro), leitura de `0x1F801814` retorna GPUSTAT.
+4. **GP0(00h) é NOP**, mas GP0(01h) clear FIFO, GP0(02h) fill mode — comandos que afetam estado interno mesmo sem rasterizador.
+5. **Nenhuma suíte produz veredito real ainda** (ROADMAP 1.13, depende do 2.1). O scoreboard continua rotulando `tty`/`sem-saida`. Não invente critério de pass/fail nesta iteração.
+6. **Comentários ≤ 5%** (R7). A spec de GPU é densa: vá direto ao que o item pede (GPUSTAT + decodificação GP0/GP1), sem implementar rasterização. O rasterizador entra nos itens seguintes (2.2+).
 
 **Testes de aceitação:**
-- A1: `cargo test -p psx-cli --test cli_runner psxtest_cpu_sideload_executa_sem_panico` passa quando `psxtest_cpu.exe` existe (sideload + execução sem pânico, PC em KSEG0).
-- A2: `scripts/scoreboard.ps1` roda sem erro e produz `logs/scoreboard.csv` com header + pelo menos 1 linha.
-- A3: O job `scoreboard` no `ci.yml` está verde em PRs que não quebram o core (roda com `if: success()` após `check`).
+- A1: Leitura de GPUSTAT via `lw` em `0x1F801814` retorna valor com bits 26, 28 e 19-20 setados conforme spec.
+- A2: Escrita de comando GP0 via `sw` em `0x1F801810` e leitura de GPUSTAT reflete mudanças de estado (ex.: após GP0(01h), bits de comando resetam).
+- A3: `scripts/scoreboard.ps1` — o placar continua 50/50, mas agora com TTY maior (suites que travavam em GPUSTAT produzem mais saída).
 
 ## Repositório
 
@@ -56,7 +50,7 @@ Ver `docs/iterations/0029-cpu-printf-hook.md`.
 
 ## Placar de testes
 
-Workspace: **241** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 27 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 10 cli_runner).
+Workspace: **247** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 27 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 6 ci_scoreboard + 9 cli_runner).
 
 ## Bloqueios
 

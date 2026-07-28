@@ -8,7 +8,12 @@ $BiosPath = "bios/SCPH1001.BIN"
 $TimeoutSec = 120
 
 if (-not (Test-Path $ExeRoot)) {
-    Write-Error "tests/exes/ nao existe — rode scripts/fetch-test-exes.ps1 antes."
+    New-Item -ItemType Directory -Force $OutDir | Out-Null
+    Write-Host "scoreboard: 0/0 — tests/exes/ nao existe (sem EXEs para avaliar)"
+    if (-not (Test-Path $OutFile)) {
+        Set-Content $OutFile "ts,commit,suite,exe,status,ciclos"
+    }
+    exit 0
 }
 New-Item -ItemType Directory -Force $OutDir | Out-Null
 
@@ -37,29 +42,48 @@ $commit = (git rev-parse --short HEAD).Trim()
 
 $rows = @()
 
-$exeFiles = Get-ChildItem $ExeRoot -Recurse -Include *.exe, *.psexe | Sort-Object FullName
+$candidateFiles = Get-ChildItem $ExeRoot -Include *.exe, *.psexe -Recurse | Sort-Object FullName
 
-foreach ($exe in $exeFiles) {
-    $suite = (Resolve-Path -Relative $exe.Directory) -replace '\\', '/' -replace '^\./tests/exes/', ''
+foreach ($candidate in $candidateFiles) {
+    $suite = (Resolve-Path -Relative $candidate.Directory) -replace '\\', '/' -replace '^\./tests/exes/', ''
 
     if (-not $haveBios) {
-        $rows += "$ts,$commit,$suite,$($exe.Name),sem-bios,"
+        $rows += "$ts,$commit,$suite,$($candidate.Name),sem-bios,"
         continue
     }
 
     try {
-        $argString = "--bios `"$BiosPath`" --exe `"$($exe.FullName)`""
+        $stream = [System.IO.File]::OpenRead($candidate.FullName)
+        $buffer = New-Object byte[] 8
+        $read = $stream.Read($buffer, 0, 8)
+        $stream.Close()
+        if ($read -lt 8) {
+            $rows += "$ts,$commit,$suite,$($candidate.Name),host-bin,"
+            continue
+        }
+        $magic = [System.Text.Encoding]::ASCII.GetString($buffer)
+        if ($magic -ne "PS-X EXE") {
+            $rows += "$ts,$commit,$suite,$($candidate.Name),host-bin,"
+            continue
+        }
+    } catch {
+        $rows += "$ts,$commit,$suite,$($candidate.Name),host-bin,"
+        continue
+    }
+
+    try {
+        $argString = "--bios `"$BiosPath`" --exe `"$($candidate.FullName)`""
         $proc = Start-Process -FilePath $cliBin -ArgumentList $argString -NoNewWindow -PassThru -RedirectStandardOutput "logs/tmp_stdout.txt" -RedirectStandardError "logs/tmp_stderr.txt"
         $finished = $proc.WaitForExit($TimeoutSec * 1000)
 
         if (-not $finished) {
             $proc.Kill()
-            $rows += "$ts,$commit,$suite,$($exe.Name),timeout,"
+            $rows += "$ts,$commit,$suite,$($candidate.Name),timeout,"
             continue
         }
 
         if ($proc.ExitCode -ne 0) {
-            $rows += "$ts,$commit,$suite,$($exe.Name),fail-erro,"
+            $rows += "$ts,$commit,$suite,$($candidate.Name),fail-erro,"
             continue
         }
 
@@ -67,20 +91,20 @@ foreach ($exe in $exeFiles) {
         if ($stderr -match "Runner: (\d+) passos, TTY: (\d+) bytes") {
             $ttyBytes = [int]$Matches[2]
             if ($ttyBytes -gt 0) {
-                $rows += "$ts,$commit,$suite,$($exe.Name),tty,"
+                $rows += "$ts,$commit,$suite,$($candidate.Name),tty,"
             } else {
-                $rows += "$ts,$commit,$suite,$($exe.Name),sem-saida,"
+                $rows += "$ts,$commit,$suite,$($candidate.Name),sem-saida,"
             }
         } else {
             $stdout = Get-Content "logs/tmp_stdout.txt" -Raw -ErrorAction SilentlyContinue
             if ($stdout -and $stdout.Length -gt 0) {
-                $rows += "$ts,$commit,$suite,$($exe.Name),tty,"
+                $rows += "$ts,$commit,$suite,$($candidate.Name),tty,"
             } else {
-                $rows += "$ts,$commit,$suite,$($exe.Name),sem-saida,"
+                $rows += "$ts,$commit,$suite,$($candidate.Name),sem-saida,"
             }
         }
     } catch {
-        $rows += "$ts,$commit,$suite,$($exe.Name),erro,"
+        $rows += "$ts,$commit,$suite,$($candidate.Name),erro,"
     }
 }
 
@@ -93,4 +117,4 @@ if (-not (Test-Path $OutFile)) {
 Add-Content $OutFile $rows
 $total = @($rows).Count
 $tty = @($rows | Where-Object { $_ -match ",tty," }).Count
-Write-Host "scoreboard: $tty/$total produziram saida (criterio: TTY nao vazio; veredito real fica para o 1.12) (commit $commit, bios=$haveBios) -> $OutFile"
+Write-Host "scoreboard: $tty/$total produziram saida (criterio: TTY nao vazio; veredito real fica para o 1.13) (commit $commit, bios=$haveBios) -> $OutFile"

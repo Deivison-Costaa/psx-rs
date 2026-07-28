@@ -22,3 +22,42 @@ jobs:
       - run: cargo fmt --all -- --check
       - run: cargo clippy --all-targets -- -D warnings
       - run: cargo test --all
+
+  scoreboard:
+    name: scoreboard
+    runs-on: ubuntu-latest
+    needs: check
+    if: success()
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: instala o compilador pinado
+        run: rustup toolchain install --no-self-update && cargo --version
+      - uses: Swatinem/rust-cache@v2
+      - run: sudo apt-get update && sudo apt-get install -y libasound2-dev libudev-dev libxkbcommon-dev
+      - name: baixa EXEs de teste
+        run: pwsh scripts/fetch-test-exes.ps1
+        continue-on-error: true
+      - name: build psx-cli
+        run: cargo build --release -p psx-cli
+      - name: roda scoreboard
+        run: pwsh scripts/scoreboard.ps1
+      - name: publica placar na branch scoreboard-data
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          git checkout scoreboard-data 2>/dev/null || git checkout --orphan scoreboard-data
+          git rm -rf --cached . 2>/dev/null || true
+          if [ -f scoreboard-data.csv ]; then
+            tail -n +2 logs/scoreboard.csv >> scoreboard-data.csv
+          else
+            cp logs/scoreboard.csv scoreboard-data.csv
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add scoreboard-data.csv
+          git diff --staged --quiet || git commit -m "scoreboard: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          git push origin scoreboard-data

@@ -30,10 +30,13 @@ enum VramState {
         height: u16,
         remaining: u32,
     },
+    SkipParams {
+        remaining: u8,
+    },
 }
 
 pub struct Gpu {
-    pub stat: Cell<u32>,
+    stat: Cell<u32>,
     dma_direction: Cell<u8>,
     vram: Vec<u16>,
     vram_state: Cell<VramState>,
@@ -74,6 +77,25 @@ impl Gpu {
         }
     }
 
+    pub fn peek32(&self, offset: u32) -> u32 {
+        match offset {
+            0x0 => self.peek_gpuread(),
+            0x4 => {
+                let dir = self.dma_direction.get();
+                let stat = self.stat.get();
+                let bit25 = match dir {
+                    0 => 0,
+                    1 => 1 << 25,
+                    2 => ((stat >> 28) & 1) << 25,
+                    3 => ((stat >> 27) & 1) << 25,
+                    _ => 0,
+                };
+                (stat & !(1 << 25)) | bit25
+            }
+            _ => 0,
+        }
+    }
+
     pub fn write32(&mut self, offset: u32, val: u32) {
         match offset {
             0x0 => self.write_gp0(val),
@@ -86,6 +108,10 @@ impl Gpu {
         let xi = (x & 0x3FF) as usize;
         let yi = (y & 0x1FF) as usize;
         self.vram[yi * 1024 + xi]
+    }
+
+    pub fn stat(&self) -> u32 {
+        self.stat.get()
     }
 
     fn write_gp0(&mut self, val: u32) {
@@ -111,6 +137,7 @@ impl Gpu {
                             count: 1,
                         }
                     }
+                    4 => VramState::SkipParams { remaining: 3 },
                     _ => match cmd {
                         0x02 => {
                             self.stat.set(self.stat.get() & !(1 << 26));
@@ -141,6 +168,15 @@ impl Gpu {
                     },
                 });
             }
+            VramState::SkipParams { remaining } => {
+                if remaining <= 1 {
+                    self.vram_state.set(VramState::Idle);
+                } else {
+                    self.vram_state.set(VramState::SkipParams {
+                        remaining: remaining - 1,
+                    });
+                }
+            }
             VramState::Header { cmd, words, count } => {
                 let mut w = words;
                 w[count as usize] = val;
@@ -148,8 +184,11 @@ impl Gpu {
                 if c >= 3 {
                     self.commit_header(cmd, w);
                 } else {
-                    self.vram_state
-                        .set(VramState::Header { cmd, words: w, count: c });
+                    self.vram_state.set(VramState::Header {
+                        cmd,
+                        words: w,
+                        count: c,
+                    });
                 }
             }
             VramState::CpuToVram {
@@ -264,7 +303,7 @@ impl Gpu {
 
         for row in 0..ysiz as u16 {
             let py = ypos.wrapping_add(row) & 0x1FF;
-            for col in (0..xsiz as u16).step_by(1) {
+            for col in 0..xsiz as u16 {
                 let px = xpos.wrapping_add(col) & 0x3FF;
                 self.vram[py as usize * 1024 + px as usize] = pixel;
             }
@@ -281,15 +320,6 @@ impl Gpu {
                 height,
                 mut remaining,
             } => {
-                if remaining == 0 {
-                    let mut stat = self.stat.get();
-                    stat &= !(1 << 27);
-                    stat |= 1 << 26;
-                    self.stat.set(stat);
-                    self.vram_state.set(VramState::Idle);
-                    return 0;
-                }
-
                 let total = (width as u32) * (height as u32);
                 let processed = total - remaining;
 
@@ -336,13 +366,52 @@ impl Gpu {
         }
     }
 
+    fn peek_gpuread(&self) -> u32 {
+        let state = self.vram_state.get();
+        match state {
+            VramState::VramToCpu {
+                x,
+                y,
+                width,
+                height,
+                remaining,
+            } => {
+                if remaining == 0 {
+                    return 0;
+                }
+
+                let total = (width as u32) * (height as u32);
+                let processed = total - remaining;
+
+                let col = (processed % width as u32) as u16;
+                let row = (processed / width as u32) as u16;
+                let px = x.wrapping_add(col) & 0x3FF;
+                let py = y.wrapping_add(row) & 0x1FF;
+                let hw1 = self.vram[py as usize * 1024 + px as usize];
+
+                let hw2 = if remaining > 1 {
+                    let processed2 = processed + 1;
+                    let col2 = (processed2 % width as u32) as u16;
+                    let row2 = (processed2 / width as u32) as u16;
+                    let px2 = x.wrapping_add(col2) & 0x3FF;
+                    let py2 = y.wrapping_add(row2) & 0x1FF;
+                    self.vram[py2 as usize * 1024 + px2 as usize]
+                } else {
+                    0
+                };
+
+                (hw1 as u32) | ((hw2 as u32) << 16)
+            }
+            _ => 0,
+        }
+    }
+
     fn write_gp1(&mut self, val: u32) {
         let cmd = (val >> 24) as u8;
         match cmd {
             0x00 => {
                 self.stat.set(0x1480_2000);
                 self.dma_direction.set(0);
-                self.vram.fill(0);
                 self.vram_state.set(VramState::Idle);
             }
             0x01 => {}
@@ -366,8 +435,7 @@ impl Gpu {
             }
             0x08 => {
                 let param = val & 0xFF;
-                let bits: u32 =
-                    (param & 0x80) << 7 | (param & 0x40) << 10 | (param & 0x3F) << 17;
+                let bits: u32 = (param & 0x80) << 7 | (param & 0x40) << 10 | (param & 0x3F) << 17;
                 let mask: u32 = (1 << 14) | (0x7F << 16);
                 let s = self.stat.get();
                 self.stat.set((s & !mask) | bits);
@@ -412,6 +480,9 @@ impl fmt::Debug for VramState {
                     "CpuToVram(pos=({},{}), size={}x{}, rem={})",
                     x, y, width, height, remaining
                 )
+            }
+            VramState::SkipParams { remaining } => {
+                write!(f, "SkipParams(rem={})", remaining)
             }
             VramState::VramToCpu {
                 x,

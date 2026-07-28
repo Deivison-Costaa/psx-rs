@@ -214,7 +214,7 @@ impl Bus {
             }
             0x1F80_1810..=0x1F80_1817 => {
                 let base = phys & !3;
-                let val = self.gpu.read32(base - 0x1F80_1810);
+                let val = self.gpu.peek32(base - 0x1F80_1810);
                 let byte = ((val >> ((phys & 3) * 8)) & 0xFF) as u8;
                 Some(byte)
             }

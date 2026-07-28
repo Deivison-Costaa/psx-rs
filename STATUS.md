@@ -5,33 +5,36 @@
 
 ## Última iteração concluída
 
-**0037** — fechamento do M1 (PR #51).
+**0038** — **VRAM 1MB + transfers CPU↔VRAM** (ROADMAP 2.2). Fill GP0(02h), A0h copy
+CPU→VRAM, C0h copy VRAM→CPU pelo GPUREAD. Seis rodadas de trabalhador: 1 aproveitada,
+1 timeout e 4 falhas de processo; testes e correções finais feitos pelo orquestrador.
+Bateria 13/14 + 1 equivalente, 2/2 controles. 300 testes.
+Ver `docs/iterations/0038-vram-transfers.md`.
 
 ## Próxima tarefa
 
-**ROADMAP 2.2 — VRAM 1MB + transfers. NÃO ESTÁ CONCLUÍDO: reprovado na revisão.**
-Rodada de continuação na branch `iter/0038-vram-transfers`, PR #52 já aberto (não abrir
-outro, não recriar a branch — a rodada 3 recriou e destruiu commits do orquestrador).
+**ROADMAP 2.3** — Triângulos flat + gouraud.
 
-A implementação de hardware está certa e foi conferida máscara por máscara contra
-`docs/reference/03-gpu.md` — não mexer no que está certo. O que reprovou:
+Arquivo-alvo: `crates/psx-core/src/gpu.rs` (a máquina de estados de GP0 já existe — o
+`write_gp0` decodifica pelos 3 bits altos do byte de comando; polígonos são `top3 == 1`).
+Spec: `docs/reference/03-gpu.md` § GPU Render Polygon Commands (**L254**), § GPU Rendering
+Attributes (**L439**), § Vertex (**L440**), § Color Attribute (**L457**). Números de linha
+REAIS, conferidos com `grep -n`.
 
-1. **Sete mutações aplicadas e rodadas pelo orquestrador sobreviveram** — os testes estão
-   verdes e não medem: Ypos nunca ≠ 0 em nenhum dos 19 testes; stride da VRAM pode virar 512
-   nos caminhos de cópia; wrap em X pode ser removido do A0h e do C0h; a fórmula Ysiz do COPY
-   pode ser deletada; o fill pode ser abortado pelo mask-bit; e `GP1(00h)` pode encher a VRAM
-   de `0xFFFF` — o defeito G1 de volta — que `gp1_00h_reset_preserva_vram` continua passando,
-   porque usa `assert_ne!(pixel, 0)`.
-2. **Quatro defeitos de código**: GP1(01h) não limpa a máquina de estado (L767-771);
-   bit 26 não cai durante os params do GP0(80h) (L1051-1053); `region_read_byte` ignora o
-   parâmetro `offset` no braço da GPU (`lhu` do GPUSTAT dá 0x8080, não 0x1480);
-   `swl`/`swr` leem o bus antes do `is_isc()` e consomem GPUREAD num store.
-3. **Doc**: controles da bateria não foram rodados; mutante (c) é equivalente, não gap;
-   créditos de (g) e (d) inflados; e a explicação do placar 4→5 vereditos inventa uma causa
-   que o próprio `logs/scoreboard.csv` desmente.
+**Armadilha 1 — o índice de seções no topo dos arquivos de `docs/reference/` usa offsets
+relativos à marca `CORPO:` e NÃO bate com a linha real** (diferença medida: +115 em
+`03-gpu.md`). Sempre reconferir com `grep -n` antes de citar linha.
 
-Handoff do 2.3 (triângulos flat + gouraud) fica guardado em
-`docs/iterations/0038-vram-transfers.md` e volta para cá quando o 2.2 fechar.
+**Armadilha 2 — contagem de palavras.** O número de parâmetros varia com shading (flat vs
+gouraud), número de vértices (3 vs 4) e textura (on/off). Errar a contagem dessincroniza o
+FIFO e as palavras seguintes viram comandos — foi exatamente o defeito G3 desta iteração com
+o GP0(80h). Vértices são coordenadas signed de 16 bits (`YyyyXxxxh`); cores são 24 bits
+empacotados (`BbGgRrh`).
+
+**Armadilha 3 — teste que não mede.** Nesta iteração sete mutações sobreviveram a 19 testes
+verdes. Para 2.3: assertar **valor exato** de pixel em coordenada absoluta, nunca
+`assert_ne!`/"não deu panic"; e nada de round-trip (desenhar e reler pela mesma função não
+mede endereçamento). Ver a seção da revisão delegada no doc da 0038.
 
 ## Repositório
 
@@ -45,7 +48,7 @@ Handoff do 2.3 (triângulos flat + gouraud) fica guardado em
 
 ## Placar de testes
 
-Workspace: **293** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 27 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 11 cpu_opcode_reservado + 13 gpu_status_gp0_gp1 + 9 ci_scoreboard + 9 cli_runner + 19 gpu_vram_transfers).
+Workspace: **300** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 29 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 11 cpu_opcode_reservado + 16 gpu_status_gp0_gp1 + 9 ci_scoreboard + 9 cli_runner + 21 gpu_vram_transfers).
 
 ## Bloqueios
 

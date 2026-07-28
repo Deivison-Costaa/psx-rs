@@ -16,6 +16,14 @@ fn break_op() -> u32 {
     0x0000_000D
 }
 
+fn mtc0(rt: u32, cop0_reg: u32) -> u32 {
+    (0x10 << 26) | (0x04 << 21) | (rt << 16) | (cop0_reg << 11)
+}
+
+fn rfe() -> u32 {
+    (0x10 << 26) | (1 << 25) | 0x10
+}
+
 // ============================================================================
 // B1 — Overflow em ADD: ExcCode=0Ch, rt inalterado, PC=vetor geral
 // Spec: ADD rd,rs,rt com overflow deve disparar excecao Ovf e deixar rd
@@ -336,4 +344,124 @@ fn store_halfword_desalinhado_dispara_ades() {
         "SH desalinhado: BadVaddr = endereco desalinhado"
     );
     assert_eq!(cpu.pc, 0x8000_0080, "SH desalinhado: PC = vetor geral");
+}
+
+// ============================================================================
+// E1 — Corrigir: excecao NAO apaga os bits Sw (8-9) do CAUSE.
+// A spec diz que os bits Sw sao R/W e devem ser limpos por software
+// (RFE handler), nao pelo hardware na entrada da excecao.
+// O bug: self.cop0[13] = cause sobrescreve o registrador inteiro.
+// ============================================================================
+#[test]
+fn excecao_preserva_bits_sw_do_cause() {
+    let mut bus = bus_with_bios_empty();
+    let mut cpu = Cpu::new();
+    cpu.pc = 0;
+
+    cpu.regs[8] = 0x0000_0300;
+    bus.write32::<BusRead>(0x0000, mtc0(8, 13));
+    bus.write32::<BusRead>(0x0004, syscall());
+
+    cpu.step(&mut bus); // MTC0 → cop0[13] = 0x300
+    cpu.step(&mut bus); // syscall → excecao
+
+    assert_eq!(
+        cpu.cop0[13], 0x0000_0320,
+        "E1: CAUSE = ExcCode(Sys=08h) << 2 | Sw=0x300 preservado = 0x320"
+    );
+}
+
+// ============================================================================
+// E2 — Empilhamento de SR na entrada da excecao.
+// Comportamento ASSUMIDO (nao documentado na spec local, apenas o RFE).
+// O inverso exato do RFE: bits 0-1 → 2-3, bits 2-3 → 4-5, bits 0-1 = 0.
+// Ponto de resolucao: Amidog psxtest_cpu (item 1.11).
+// ============================================================================
+#[test]
+fn sr_e_empilhado_na_entrada_da_excecao() {
+    let mut bus = bus_with_bios_empty();
+    let mut cpu = Cpu::new();
+    cpu.pc = 0;
+
+    cpu.regs[8] = 0x0000_0003;
+    bus.write32::<BusRead>(0x0000, mtc0(8, 12));
+    bus.write32::<BusRead>(0x0004, syscall());
+
+    cpu.step(&mut bus); // MTC0 r8 → SR=0x03
+    cpu.step(&mut bus); // syscall → excecao (push)
+
+    assert_eq!(
+        cpu.cop0[12], 0x0000_000C,
+        "E2: SR=0x03 antes do syscall deve virar 0x0C (bits 0-1→2-3, bits 0-1 zerados). \
+         Comportamento ASSUMIDO — verificar com Amidog psxtest_cpu no item 1.11 (nota 10 do STATUS)."
+    );
+}
+
+// ============================================================================
+// E2b — Round-trip: SR empilhado + RFE restaura os bits 0-3.
+// Verifica que o empilhamento e o RFE sao inversos exatos.
+// ============================================================================
+#[test]
+fn sr_push_seguido_de_rfe_restaura_os_bits_0_3() {
+    let mut bus = bus_with_bios_empty();
+    let mut cpu = Cpu::new();
+    cpu.pc = 0;
+
+    cpu.regs[8] = 0x0000_003F;
+    bus.write32::<BusRead>(0x0000, mtc0(8, 12));
+    bus.write32::<BusRead>(0x0004, syscall());
+    bus.write32::<BusRead>(0x0080, rfe());
+
+    cpu.step(&mut bus); // MTC0 → SR=0x3F
+    cpu.step(&mut bus); // syscall → excecao, push, PC=0x8000_0080
+
+    assert_eq!(
+        cpu.cop0[12], 0x0000_003C,
+        "E2b: push de 0x3F deve dar 0x3C (bits 0-1→2-3=0xC, bits 2-3→4-5=0x30)"
+    );
+
+    cpu.step(&mut bus); // RFE no vetor
+
+    assert_eq!(
+        cpu.cop0[12] & 0x3F,
+        0x0000_003F,
+        "E2b: round-trip SR=0x3F → push → RFE → 0x3F nos bits 0-5. \
+         Confirma que empilhar e desempilhar sao simetricos."
+    );
+}
+
+// ============================================================================
+// E3 — Load delay nao e descartado pela excecao.
+// Comportamento ASSUMIDO: o acesso a memoria do lw ja ocorreu quando
+// a excecao da instrucao seguinte e reconhecida, entao o valor
+// pendente deve ser commitado antes de entrar na excecao.
+// Ponto de resolucao: Amidog psxtest_cpu (item 1.11).
+// ============================================================================
+#[test]
+fn load_pendente_e_commitado_antes_da_excecao_comportamento_assumido() {
+    let mut bus = bus_with_bios_empty();
+    let mut cpu = Cpu::new();
+    cpu.pc = 0;
+
+    bus.write32::<BusRead>(0x1000, 0xCAFE_BABEu32);
+    cpu.regs[4] = 0x1000;
+
+    // LW r5, 0(r4) → carrega 0xCAFE_BABE da RAM (pendente)
+    bus.write32::<BusRead>(0x0000, encode_i_type(0x23, 5, 4, 0x0000));
+    // syscall (dispara excecao)
+    bus.write32::<BusRead>(0x0004, syscall());
+
+    cpu.step(&mut bus); // LW → load_delay = Some((5, 0xCAFE_BABE))
+    cpu.step(&mut bus); // syscall → excecao
+
+    assert_eq!(
+        cpu.regs[5], 0xCAFE_BABEu32,
+        "E3: r5 deve valer 0xCAFE_BABE apos a excecao. \
+         Comportamento ASSUMIDO — o load delay e commitado antes do desvio para o handler. \
+         Verificar com Amidog psxtest_cpu no item 1.11 (nota 11 do STATUS)."
+    );
+    assert_eq!(
+        cpu.cop0[13], 0x0000_0020,
+        "E3: CAUSE = ExcCode(Sys=08h) << 2 = 0x20 (syscall no delay slot?)"
+    );
 }

@@ -1,28 +1,15 @@
 use psx_core::bus::{Bios, Bus, Ram};
 use psx_core::cpu::Cpu;
-use std::io::Write;
 use std::io::Read;
+use std::io::Write;
 
 const RUNNER_MAX_STEPS: usize = 50_000_000;
 
 fn run(cpu: &mut Cpu, bus: &mut Bus, max_steps: usize) -> usize {
     let mut steps = 0;
-    let mut prev_pc = cpu.pc;
-    let mut same_pc_count: u32 = 0;
-
     while steps < max_steps {
         cpu.step(bus);
         steps += 1;
-
-        if cpu.pc == prev_pc {
-            same_pc_count += 1;
-            if same_pc_count >= 2 {
-                break;
-            }
-        } else {
-            same_pc_count = 0;
-        }
-        prev_pc = cpu.pc;
     }
     steps
 }
@@ -51,8 +38,9 @@ fn main() {
                 eprintln!("Erro: '{}' requer um caminho", args[i]);
                 std::process::exit(1);
             }
-            _ => {
-                i += 1;
+            arg => {
+                eprintln!("Erro: argumento desconhecido: '{}'", arg);
+                std::process::exit(1);
             }
         }
     }
@@ -64,51 +52,57 @@ fn main() {
         std::process::exit(1);
     }
 
-    if bios_arg.is_some() && exe_arg.is_some() {
-        let bios_path = bios_arg.take().unwrap();
-        let exe_path = exe_arg.take().unwrap();
-        let bios_data = match std::fs::read(&bios_path) {
-            Ok(d) => d,
-            Err(e) => {
-                eprintln!("Erro: nao foi possivel ler BIOS '{}': {}", bios_path, e);
+    match (bios_arg.take(), exe_arg.take()) {
+        (Some(bios_path), Some(exe_path)) => {
+            let bios_data = match std::fs::read(&bios_path) {
+                Ok(d) => d,
+                Err(e) => {
+                    eprintln!("Erro: nao foi possivel ler BIOS '{}': {}", bios_path, e);
+                    std::process::exit(1);
+                }
+            };
+            let bios = match Bios::from_bytes(bios_data) {
+                Ok(b) => b,
+                Err(e) => {
+                    eprintln!("Erro: BIOS invalida: {}", e);
+                    std::process::exit(1);
+                }
+            };
+
+            let exe_data = match std::fs::read(&exe_path) {
+                Ok(d) => d,
+                Err(e) => {
+                    eprintln!("Erro: nao foi possivel ler EXE '{}': {}", exe_path, e);
+                    std::process::exit(1);
+                }
+            };
+
+            let ram = Ram::new();
+            let mut bus = Bus::new(ram, bios);
+            let mut cpu = Cpu::new();
+
+            if let Err(e) = psx_core::psexe::load_psexe(&exe_data, &mut bus, &mut cpu) {
+                eprintln!("Erro: falha ao carregar PS-EXE '{}': {}", exe_path, e);
                 std::process::exit(1);
             }
-        };
-        let bios = match Bios::from_bytes(bios_data) {
-            Ok(b) => b,
-            Err(e) => {
-                eprintln!("Erro: BIOS invalida: {}", e);
-                std::process::exit(1);
+
+            psx_core::psexe::install_return_stubs(&mut bus);
+
+            let steps = run(&mut cpu, &mut bus, RUNNER_MAX_STEPS);
+
+            let tty = bus.take_tty();
+            if !tty.is_empty() {
+                let _ = std::io::stdout().write_all(&tty);
+                std::io::stdout().flush().ok();
             }
-        };
 
-        let exe_data = match std::fs::read(&exe_path) {
-            Ok(d) => d,
-            Err(e) => {
-                eprintln!("Erro: nao foi possivel ler EXE '{}': {}", exe_path, e);
-                std::process::exit(1);
-            }
-        };
+            eprintln!("Runner: {} passos, TTY: {} bytes", steps, tty.len());
 
-        let ram = Ram::new();
-        let mut bus = Bus::new(ram, bios);
-        let mut cpu = Cpu::new();
-
-        if let Err(e) = psx_core::psexe::load_psexe(&exe_data, &mut bus, &mut cpu) {
-            eprintln!("Erro: falha ao carregar PS-EXE '{}': {}", exe_path, e);
-            std::process::exit(1);
+            return;
         }
-
-        let steps = run(&mut cpu, &mut bus, RUNNER_MAX_STEPS);
-        let _ = steps;
-
-        let tty = bus.take_tty();
-        if !tty.is_empty() {
-            let _ = std::io::stdout().write_all(&tty);
-            std::io::stdout().flush().ok();
+        (bios_restored, _exe_restored) => {
+            bios_arg = bios_restored;
         }
-
-        return;
     }
 
     if let Some(path) = bios_arg {

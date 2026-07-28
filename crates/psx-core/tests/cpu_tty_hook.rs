@@ -33,7 +33,11 @@ fn putchar_por_a0h() {
 
     step_n(&mut cpu, &mut bus, 3);
 
-    assert_eq!(bus.take_tty(), b"X", "D1: putchar via A0h com R9=3Ch deve emitir 'X'");
+    assert_eq!(
+        bus.take_tty(),
+        b"X",
+        "D1: putchar via A0h com R9=3Ch deve emitir 'X'"
+    );
 }
 
 // ===== D2 — putchar por B0h usa outro número =====
@@ -51,7 +55,11 @@ fn putchar_por_b0h() {
 
     step_n(&mut cpu, &mut bus, 3);
 
-    assert_eq!(bus.take_tty(), b"Y", "D2a: putchar via B0h com R9=3Dh deve emitir 'Y'");
+    assert_eq!(
+        bus.take_tty(),
+        b"Y",
+        "D2a: putchar via B0h com R9=3Dh deve emitir 'Y'"
+    );
 }
 
 #[test]
@@ -92,7 +100,11 @@ fn puts_le_ate_zero() {
 
     step_n(&mut cpu, &mut bus, 3);
 
-    assert_eq!(bus.take_tty(), b"oi", "D3: puts deve ler ate o terminador 00h, sem emiti-lo");
+    assert_eq!(
+        bus.take_tty(),
+        b"oi",
+        "D3: puts deve ler ate o terminador 00h, sem emiti-lo"
+    );
 }
 
 // ===== D4 — puts(0) emite <NULL> =====
@@ -110,7 +122,11 @@ fn puts_null_emite_texto_null() {
 
     step_n(&mut cpu, &mut bus, 3);
 
-    assert_eq!(bus.take_tty(), b"<NULL>", "D4: puts(0) deve emitir '<NULL>' sem CR/LF");
+    assert_eq!(
+        bus.take_tty(),
+        b"<NULL>",
+        "D4: puts(0) deve emitir '<NULL>' sem CR/LF"
+    );
 }
 
 // ===== D5 — Número desconhecido é ignorado =====
@@ -132,9 +148,18 @@ fn numero_desconhecido_ignorado_sem_panico() {
         bus.take_tty().is_empty(),
         "D5: R9=FFh desconhecido deve ser ignorado, buffer vazio"
     );
-    assert_eq!(cpu.pc, 0x0000_00A4, "D5: execucao deve continuar apos o hook");
-    assert_eq!(cpu.regs[9], 0xFF, "D5: registradores nao devem ser alterados pelo hook");
-    assert_eq!(cpu.regs[4], 0x42, "D5: registradores nao devem ser alterados pelo hook");
+    assert_eq!(
+        cpu.pc, 0x0000_00A4,
+        "D5: execucao deve continuar apos o hook"
+    );
+    assert_eq!(
+        cpu.regs[9], 0xFF,
+        "D5: registradores nao devem ser alterados pelo hook"
+    );
+    assert_eq!(
+        cpu.regs[4], 0x42,
+        "D5: registradores nao devem ser alterados pelo hook"
+    );
 }
 
 // ===== D6 — Espelho KSEG0 =====

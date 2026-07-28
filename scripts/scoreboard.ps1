@@ -130,4 +130,8 @@ if (-not (Test-Path $OutFile)) {
 Add-Content $OutFile $rows
 $total = @($rows).Count
 $tty = @($rows | Where-Object { $_ -match ",tty," }).Count
-Write-Host "scoreboard: $tty/$total produziram saida (criterio: TTY nao vazio; veredito real fica para o 1.13) (commit $commit, bios=$haveBios) -> $OutFile"
+$pass = @($rows | Where-Object { $_ -match ",pass," }).Count
+$fail = @($rows | Where-Object { $_ -match ",fail," }).Count
+$comVeredito = $pass + $fail
+$semSaida = $total - $tty - $comVeredito
+Write-Host "scoreboard: $comVeredito com veredito ($($pass)p/$($fail)f), $tty so com saida, $semSaida sem saida, de $total arquivos (commit $commit, bios=$haveBios) -> $OutFile"

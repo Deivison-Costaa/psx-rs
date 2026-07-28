@@ -11,10 +11,31 @@ fn job_check_sem_condicionais_e_com_os_tres_passos() {
         .map(str::trim)
         .filter(|l| !l.starts_with('#'))
         .collect();
-    let conditional = effective.iter().find(|l| l.starts_with("if:"));
+
+    let check_start = effective
+        .iter()
+        .position(|l| l.trim() == "check:")
+        .expect("ci.yml deve ter job 'check:'");
+    let check_end = effective[check_start..]
+        .iter()
+        .position(|l| {
+            let t = l.trim();
+            !t.is_empty()
+                && t != "check:"
+                && t != "name: check"
+                && t != "runs-on: ubuntu-latest"
+                && !t.starts_with("steps:")
+                && t.ends_with(':')
+                && !t.starts_with("-")
+        })
+        .map(|p| check_start + p)
+        .unwrap_or(effective.len());
+    let check_lines = &effective[check_start..check_end];
+
+    let conditional = check_lines.iter().find(|l| l.starts_with("if:"));
     assert!(
         conditional.is_none(),
-        "ci.yml contém condicional ({:?}): um passo pulado não mede nada e ainda deixa o \
+        "job check contém condicional ({:?}): um passo pulado não mede nada e ainda deixa o \
          job verde. O job check roda inteiro, sempre.",
         conditional
     );

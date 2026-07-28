@@ -14,7 +14,12 @@ param(
     # troca o texto envoltorio, que senao manda "ao abrir o PR, PARE" — com o PR ja aberto,
     # o trabalhador le isso como "ja acabou" e devolve a rodada sem fazer nada. Aconteceu
     # duas vezes seguidas na iter 0038 (rodadas 4 e 5, US$ 0,056 e 4 min de parede).
-    [string]$ContinueBranch = ""
+    [string]$ContinueBranch = "",
+    # Task longa vem de ARQUIVO, nao da linha de comando: prompt grande em -TaskOverride
+    # esbarra nas armadilhas de quoting do Start-Process (ver comentario do $promptArg).
+    # Lido com -Raw e no caminho ABSOLUTO — arquivo escrito pelo Bash em /tmp o PowerShell
+    # le como C:\tmp, e uma rodada ja morreu no lancamento com zero tokens por isso.
+    [string]$TaskFile = ""
 )
 $ErrorActionPreference = "Stop"
 
@@ -48,6 +53,10 @@ if (-not $up) {
     }
 }
 
+if ($TaskFile) {
+    if (-not (Test-Path $TaskFile)) { Write-Error "TaskFile nao encontrado: $TaskFile" }
+    $TaskOverride = Get-Content $TaskFile -Raw
+}
 $task = if ($TaskOverride) { $TaskOverride } else { "a secao 'Proxima tarefa' do STATUS.md" }
 $prompt = if ($ContinueBranch) {
     "Voce e o trabalhador do projeto psx-rs. Esta e uma rodada de CONTINUACAO de um item que " +

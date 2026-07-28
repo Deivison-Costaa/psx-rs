@@ -91,6 +91,9 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 ## M10 — Precisão e compatibilidade
 - [ ] 10.1 Timings finos (ps1-tests de timing)
 - [ ] 10.2 Passe de compatibilidade (bugs viram itens 10.x)
+- [ ] 10.3 Bus error ao executar codigo do scratchpad (exposto por ps1-tests/cpu/code-in-io)
+- [ ] 10.4 CAUSE.CE nao preenchido nas excecoes de Coprocessor Unusable (02-cpu.md L681)
+- [ ] 10.5 Amidog psxtest_cpu para apos "args: 0" — causa nao investigada (medido na iter 0032)
 
 ## M11 — Apresentação (incremental desde o M1)
 - [ ] 11.1 Relatório consolidado (docs/relatorio.md — atualizado a cada marco)

@@ -9,6 +9,10 @@ pub struct Cpu {
     pub lo: u32,
     load_delay: Option<(usize, u32)>,
     branch_target: Option<u32>,
+    delay_slot_pending: bool,
+    branch_taken: bool,
+    pending_exception: Option<u8>,
+    exception_badvaddr: Option<u32>,
 }
 
 impl Cpu {
@@ -23,17 +27,66 @@ impl Cpu {
             lo: 0,
             load_delay: None,
             branch_target: None,
+            delay_slot_pending: false,
+            branch_taken: false,
+            pending_exception: None,
+            exception_badvaddr: None,
         }
     }
 
+    fn raise_exception(&mut self, exc_code: u8, bad_vaddr: Option<u32>) {
+        self.pending_exception = Some(exc_code);
+        self.exception_badvaddr = bad_vaddr;
+    }
+
     pub fn step(&mut self, bus: &mut Bus) {
-        let instr = bus.read32::<BusRead>(self.pc);
+        let instr_pc = self.pc;
+        let instr = bus.read32::<BusRead>(instr_pc);
+
+        let in_delay_slot = self.delay_slot_pending;
+        let was_taken = self.branch_taken;
+        self.delay_slot_pending = false;
+        self.branch_taken = false;
+
         if let Some(target) = self.branch_target.take() {
             self.pc = target;
         } else {
             self.pc = self.pc.wrapping_add(4);
         }
+
         let new_load = self.execute(instr, bus);
+
+        if let Some(exc_code) = self.pending_exception.take() {
+            let bad_vaddr = self.exception_badvaddr.take();
+            let mut cause = (exc_code as u32) << 2;
+            if in_delay_slot {
+                cause |= 1 << 31;
+                if was_taken {
+                    cause |= 1 << 30;
+                }
+            }
+            self.cop0[13] = cause;
+
+            if in_delay_slot {
+                self.cop0[14] = instr_pc.wrapping_sub(4);
+            } else {
+                self.cop0[14] = instr_pc;
+            }
+
+            if let Some(vaddr) = bad_vaddr {
+                self.cop0[8] = vaddr;
+            }
+
+            self.pc = if exc_code == 0x09 {
+                0x8000_0040
+            } else {
+                0x8000_0080
+            };
+
+            self.branch_target = None;
+            return;
+        }
+
         if let Some((reg, val)) = self.load_delay.take() {
             self.set_reg(reg, val);
         }
@@ -219,41 +272,59 @@ impl Cpu {
             0x11 => self.mthi(instr),
             0x12 => self.mflo(instr),
             0x13 => self.mtlo(instr),
-            0x0C => {}
-            0x0D => {}
+            0x0C => self.raise_exception(0x08, None),
+            0x0D => self.raise_exception(0x09, None),
             0x18 => self.mult(instr),
             0x19 => self.multu(instr),
             0x1A => self.div(instr),
             0x1B => self.divu(instr),
             0x20 => {
-                let val = self.reg(rs).wrapping_add(self.reg(rt));
-                self.set_reg(rd, val);
+                let a = self.reg(rs) as i32;
+                let b = self.reg(rt) as i32;
+                if let Some(result) = a.checked_add(b) {
+                    self.set_reg(rd, result as u32);
+                } else {
+                    self.raise_exception(0x0C, None);
+                }
             }
             0x22 => {
-                let val = self.reg(rs).wrapping_sub(self.reg(rt));
-                self.set_reg(rd, val);
+                let a = self.reg(rs) as i32;
+                let b = self.reg(rt) as i32;
+                if let Some(result) = a.checked_sub(b) {
+                    self.set_reg(rd, result as u32);
+                } else {
+                    self.raise_exception(0x0C, None);
+                }
             }
             _ => unimplemented!("secondary opcode={:02X} nao implementado", secondary),
         }
     }
 
     fn j(&mut self, instr: u32) {
+        self.delay_slot_pending = true;
+        self.branch_taken = true;
         let target = instr & 0x03FF_FFFF;
         self.branch_target = Some((self.pc & 0xF000_0000) | (target << 2));
     }
 
     fn jal(&mut self, instr: u32) {
+        self.delay_slot_pending = true;
+        self.branch_taken = true;
         let target = instr & 0x03FF_FFFF;
         self.set_reg(31, self.pc.wrapping_add(4));
         self.branch_target = Some((self.pc & 0xF000_0000) | (target << 2));
     }
 
     fn jr(&mut self, instr: u32) {
+        self.delay_slot_pending = true;
+        self.branch_taken = true;
         let rs = ((instr >> 21) & 0x1F) as usize;
         self.branch_target = Some(self.reg(rs));
     }
 
     fn jalr(&mut self, instr: u32) {
+        self.delay_slot_pending = true;
+        self.branch_taken = true;
         let rs = ((instr >> 21) & 0x1F) as usize;
         let rd = ((instr >> 11) & 0x1F) as usize;
         let target = self.reg(rs);
@@ -338,40 +409,54 @@ impl Cpu {
     }
 
     fn beq(&mut self, instr: u32) {
+        self.delay_slot_pending = true;
+        self.branch_taken = false;
         let rs = ((instr >> 21) & 0x1F) as usize;
         let rt = ((instr >> 16) & 0x1F) as usize;
         let imm = Self::sign_extend_imm(instr);
         if self.reg(rs) == self.reg(rt) {
+            self.branch_taken = true;
             self.branch_taken(imm);
         }
     }
 
     fn bne(&mut self, instr: u32) {
+        self.delay_slot_pending = true;
+        self.branch_taken = false;
         let rs = ((instr >> 21) & 0x1F) as usize;
         let rt = ((instr >> 16) & 0x1F) as usize;
         let imm = Self::sign_extend_imm(instr);
         if self.reg(rs) != self.reg(rt) {
+            self.branch_taken = true;
             self.branch_taken(imm);
         }
     }
 
     fn blez(&mut self, instr: u32) {
+        self.delay_slot_pending = true;
+        self.branch_taken = false;
         let rs = ((instr >> 21) & 0x1F) as usize;
         let imm = Self::sign_extend_imm(instr);
         if (self.reg(rs) as i32) <= 0 {
+            self.branch_taken = true;
             self.branch_taken(imm);
         }
     }
 
     fn bgtz(&mut self, instr: u32) {
+        self.delay_slot_pending = true;
+        self.branch_taken = false;
         let rs = ((instr >> 21) & 0x1F) as usize;
         let imm = Self::sign_extend_imm(instr);
         if (self.reg(rs) as i32) > 0 {
+            self.branch_taken = true;
             self.branch_taken(imm);
         }
     }
 
     fn bcondz(&mut self, instr: u32) {
+        self.delay_slot_pending = true;
+        self.branch_taken = false;
         let rs = ((instr >> 21) & 0x1F) as usize;
         let rt = ((instr >> 16) & 0x1F) as usize;
         let imm = Self::sign_extend_imm(instr);
@@ -388,6 +473,7 @@ impl Cpu {
             self.set_reg(31, self.pc.wrapping_add(4));
         }
         if cond {
+            self.branch_taken = true;
             self.branch_taken(imm);
         }
     }
@@ -408,8 +494,13 @@ impl Cpu {
         let rs = ((instr >> 21) & 0x1F) as usize;
         let rt = ((instr >> 16) & 0x1F) as usize;
         let imm = Self::sign_extend_imm(instr);
-        let val = self.reg(rs).wrapping_add(imm);
-        self.set_reg(rt, val);
+        let a = self.reg(rs) as i32;
+        let b = imm as i32;
+        if let Some(result) = a.checked_add(b) {
+            self.set_reg(rt, result as u32);
+        } else {
+            self.raise_exception(0x0C, None);
+        }
     }
 
     fn slti(&mut self, instr: u32) {
@@ -463,11 +554,15 @@ impl Cpu {
         let rt = ((instr >> 16) & 0x1F) as usize;
         let imm = Self::sign_extend_imm(instr);
         let addr = self.reg(rs).wrapping_add(imm);
+        if addr & 3 != 0 {
+            self.raise_exception(0x05, Some(addr));
+            return;
+        }
         let val = self.reg(rt);
         bus.write32::<BusRead>(addr, val);
     }
 
-    fn lb(&self, instr: u32, bus: &Bus) -> (usize, u32) {
+    fn lb(&mut self, instr: u32, bus: &Bus) -> (usize, u32) {
         let rt = ((instr >> 16) & 0x1F) as usize;
         let rs = ((instr >> 21) & 0x1F) as usize;
         let imm = Self::sign_extend_imm(instr);
@@ -476,7 +571,7 @@ impl Cpu {
         (rt, val)
     }
 
-    fn lbu(&self, instr: u32, bus: &Bus) -> (usize, u32) {
+    fn lbu(&mut self, instr: u32, bus: &Bus) -> (usize, u32) {
         let rt = ((instr >> 16) & 0x1F) as usize;
         let rs = ((instr >> 21) & 0x1F) as usize;
         let imm = Self::sign_extend_imm(instr);
@@ -485,29 +580,41 @@ impl Cpu {
         (rt, val)
     }
 
-    fn lh(&self, instr: u32, bus: &Bus) -> (usize, u32) {
+    fn lh(&mut self, instr: u32, bus: &Bus) -> (usize, u32) {
         let rt = ((instr >> 16) & 0x1F) as usize;
         let rs = ((instr >> 21) & 0x1F) as usize;
         let imm = Self::sign_extend_imm(instr);
         let addr = self.reg(rs).wrapping_add(imm);
+        if addr & 1 != 0 {
+            self.raise_exception(0x04, Some(addr));
+            return (rt, 0);
+        }
         let val = bus.read16::<BusRead>(addr) as i16 as u32;
         (rt, val)
     }
 
-    fn lhu(&self, instr: u32, bus: &Bus) -> (usize, u32) {
+    fn lhu(&mut self, instr: u32, bus: &Bus) -> (usize, u32) {
         let rt = ((instr >> 16) & 0x1F) as usize;
         let rs = ((instr >> 21) & 0x1F) as usize;
         let imm = Self::sign_extend_imm(instr);
         let addr = self.reg(rs).wrapping_add(imm);
+        if addr & 1 != 0 {
+            self.raise_exception(0x04, Some(addr));
+            return (rt, 0);
+        }
         let val = bus.read16::<BusRead>(addr) as u32;
         (rt, val)
     }
 
-    fn lw(&self, instr: u32, bus: &Bus) -> (usize, u32) {
+    fn lw(&mut self, instr: u32, bus: &Bus) -> (usize, u32) {
         let rt = ((instr >> 16) & 0x1F) as usize;
         let rs = ((instr >> 21) & 0x1F) as usize;
         let imm = Self::sign_extend_imm(instr);
         let addr = self.reg(rs).wrapping_add(imm);
+        if addr & 3 != 0 {
+            self.raise_exception(0x04, Some(addr));
+            return (rt, 0);
+        }
         let val = bus.read32::<BusRead>(addr);
         (rt, val)
     }
@@ -526,11 +633,15 @@ impl Cpu {
         let rs = ((instr >> 21) & 0x1F) as usize;
         let imm = Self::sign_extend_imm(instr);
         let addr = self.reg(rs).wrapping_add(imm);
+        if addr & 1 != 0 {
+            self.raise_exception(0x05, Some(addr));
+            return;
+        }
         let val = self.reg(rt) as u16;
         bus.write16::<BusRead>(addr, val);
     }
 
-    fn lwl(&self, instr: u32, bus: &Bus) -> (usize, u32) {
+    fn lwl(&mut self, instr: u32, bus: &Bus) -> (usize, u32) {
         let rt = ((instr >> 16) & 0x1F) as usize;
         let rs = ((instr >> 21) & 0x1F) as usize;
         let imm = Self::sign_extend_imm(instr);
@@ -548,7 +659,7 @@ impl Cpu {
         (rt, val)
     }
 
-    fn lwr(&self, instr: u32, bus: &Bus) -> (usize, u32) {
+    fn lwr(&mut self, instr: u32, bus: &Bus) -> (usize, u32) {
         let rt = ((instr >> 16) & 0x1F) as usize;
         let rs = ((instr >> 21) & 0x1F) as usize;
         let imm = Self::sign_extend_imm(instr);

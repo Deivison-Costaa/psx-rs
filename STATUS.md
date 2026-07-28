@@ -12,6 +12,9 @@ stores no CPU. 6 testes, 5/5 mutantes pegos, 1/1 controle verde. Armadilha conhe
 D3 precisou de testemunha RAM dupla porque o alias do range errado passava o readback
 simples. Ver `docs/iterations/0022-scratchpad-isc.md`.
 
+**0023** — Iteração de processo (sem código): incorporação das métricas pendentes da 0022 e
+registro do erro de escopo múltiplo em commit reprovado pelo `commit-lint`.
+
 ## Próxima tarefa
 
 **ROADMAP 1.10** — Hook de TTY (A0h/B0h) → BIOS imprimindo no console.
@@ -58,6 +61,9 @@ não crasha (ignora silenciosamente ou loga).
 
 - `main` protegida a partir da iter 0004; 1 PR por item; merge commit (nunca squash);
   commits test→feat→docs; título de PR validado pela CI.
+- **Escopo de commit é UM único identificador `[a-z0-9-]`.** `feat(bus,cpu)` reprova no
+  `commit-lint`; quando a mudança toca dois módulos, escolha o principal e cite o outro no
+  resumo. Custou uma reescrita de 4 mensagens no PR #36 (ver `0022-scratchpad-isc.md`).
 - Iterações são cronológicas e nem sempre na ordem dos itens (0003↔item 0.5, p.ex.);
   o vínculo real está no título do PR e no doc da iteração.
 

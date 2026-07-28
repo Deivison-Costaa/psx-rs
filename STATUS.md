@@ -5,81 +5,89 @@
 
 ## Última iteração concluída
 
-**0018** — LWL/LWR/SWL/SWR — SEGUNDA TENTATIVA (ROADMAP 1.7): 25 testes com golden
-values ancorados em bytes literais (não derivados da implementação), 7/7 mutantes pegos,
-1/1 controles verdes. Correção dos dois defeitos da PR #27: (1) vias de byte por
-deslocamento, não máscara; (2) `reg_with_pending` para o idioma LWL+LWR sem delay.
-Ver `docs/iterations/0018-cpu-unaligned-load-store.md`. PR #32 aberta para revisão
-adversarial.
+**0020** — COP0: banco de registradores + `MTC0`/`MFC0` + `RFE` (ROADMAP 1.8a): 10 testes,
+6/6 mutantes pegos, 2/2 controles verdes. Banco COP0 com 32 registradores inicializado
+(PRID=0x2), CAUSE com máscara de escrita nos bits 8-9, RFE com cópia correta dos campos
+IE/KU (bit2-3→bit0-1, bit4-5→bit2-3, bits 4-5 inalterados), MFC0 com load delay de 1
+opcode, MTC0 sem store delay. EPC e BadVaddr implementados como graváveis (comportamento
+ASSUMIDO, resolve no item 1.11). Registradores N/A e garbage não disparam exceção (dívida
+do 1.8b). Ver `docs/iterations/0020-cpu-cop0-regs.md`.
 
 ## Próxima tarefa
 
-**ROADMAP 1.8a** — COP0: banco de registradores + `MTC0`/`MFC0` + `RFE`. **SEM mecanismo de
-exceção** — isso é o 1.8b. Se um teste só faz sentido com uma exceção acontecendo, ele pertence
-ao 1.8b; não o escreva aqui.
+**ROADMAP 1.8b** — Mecanismo de exceção: overflow, syscall, break, AdEL/AdES, bit BD.
 
-O item 1.8 do ROADMAP foi dividido pelo orquestrador em 1.8a e 1.8b. Motivo registrado na
-iteração 0019: o 1.8 original juntava banco de registradores, três opcodes de move, RFE,
-mecanismo de entrada em exceção, cinco causas e o bit BD. A 1.7, com quatro opcodes de uma
-família só, custou US$ 0,16 e 23min e ainda saiu com a bateria de mutação irreproduzível. R4
-manda uma micro-funcionalidade por iteração.
+A base COP0 está pronta (1.8a). Este item conecta os gatilhos de exceção ao banco de
+registradores e implementa o fluxo de entrada em exceção.
 
-**Escopo:** registradores `r12` (SR), `r13` (CAUSE), `r14` (EPC), `r8` (BadVaddr), `r15` (PRID);
-opcodes `MFC0` (cop0cmd=00h), `MTC0` (cop0cmd=04h) e `RFE` (cop0cmd=10h).
+**Escopo:** `syscall` (primary 0x00, secondary 0x0C), `break` (primary 0x00, secondary
+0x0D), overflow trap em `ADD` (secondary 0x20) e `ADDI` (primary 0x08), address error
+(AdEL/AdES) em load/store desalinhados e acesso a KUSEG em user mode, bit BD no CAUSE
+para exceções em delay slot. **NÃO inclui:** interrupções externas (IRQ — M3), handler
+de exceção completo, nem os vetores de exceção em si (jump para 0x80000080/etc.).
 
-**Spec:** `docs/reference/02-cpu.md` — `COP0 - Register Summary` (L568), `cop0r13 - CAUSE`
-(L590), `cop0r12 - SR` (L624), `cop0r14 - EPC` (L670), `cop0cmd=10h - RFE opcode` (L712),
-`cop0r8 - BadVaddr` (L730), `Coprocessor Instructions` (L422), `Coprocessor Opcode/Parameter
-Encoding` (L127).
+**O que muda na CPU:**
+- `Cpu` ganha flag `in_delay_slot: bool` e `branch_pc: Option<u32>` para setar
+  `CAUSE.BD` e `EPC = branch_pc` (não `pc`) quando a exceção ocorre num delay slot.
+- `step()` detecta exceção e, em vez de executar a instrução, seta `CAUSE.ExcCode`,
+  `CAUSE.BD`, `CAUSE.CE` (se coprocessor), `EPC` (ou `EPC-4` se BD=1), e
+  `BadVaddr` (se AdEL/AdES), e desvia para o vetor de exceção (0x80000080 com BEV=0).
+- `ADD` (secondary 0x20) e `ADDI` (primary 0x08): overflow trap → ExcCode=0Ch (Ovf),
+  deixa `rt` intacto.
+- `syscall` (0x0C): ExcCode=08h.
+- `break` (0x0D): ExcCode=09h.
+- `COP0` command inválido (cop0cmd ≠ 0x10): ExcCode=0Ah (RI).
+- `MFC0`/`MTC0` para registrador N/A (r0-r2, r4, r10, r32-r63): ExcCode=0Ah (RI).
+- `COP1`/`COP3` (primary 0x11/0x13): ExcCode=0Bh (CpU).
+- `COP2` com SR.CU2=0: ExcCode=0Bh (CpU).
+- Load/store desalinhado e acesso KUSEG em user mode: ExcCode=04h (AdEL) / 05h (AdES).
+
+**Spec:** `docs/reference/02-cpu.md` — `exception opcodes` (L409), `COP0 - Exception
+Handling` (L589), `Exception Vectors` (L736), `Exception Priority` (L752),
+`Coprocessor Instructions` (L422), `arithmetic instructions` (L285), `Illegal Opcodes`
+(L148).
 
 ### Armadilhas nomeadas
 
-1. **CAUSE é quase todo read-only.** A spec titula: "Read-only, except, Bit8-9 are R/W". Um
-   `MTC0` em CAUSE só altera os bits 8-9 (Sw); ExcCode, IP, BD e CE ficam intactos. Tratar
-   CAUSE como registrador comum é o erro esperado neste item.
-2. **RFE não é um shift do campo.** A spec: "bit2-3 are copied to bit0-1, and bit4-5 are copied
-   to bit2-3, all other bits (**including bit4-5**) are left unchanged". Os bits 4-5 permanecem.
-3. **`MFC0` tem load delay de UM opcode; `MTC0` NÃO tem store delay.** `Caution - Load Delay`
-   (L438) diz que o próximo opcode não pode usar o registrador destino, e derruba
-   explicitamente o boato dos dois opcodes: "the PSX does finish both COP0 and COP2 reads after
-   ONE opcode". `Caution - Store Delay` (L446): "COP0 is more or less free of store delays (eg.
-   one can read from a cop0 register immediately after writing to it)". Não implemente delay no
-   MTC0 por simetria.
-4. **EPC e BadVaddr são marcados (R) na spec.** O que o hardware faz numa escrita via MTC0 não
-   está documentado localmente. Se implementar como gravável, registre como **comportamento
-   ASSUMIDO** nas Notas, no formato das notas 3 e 4, com ponto de resolução no Amidog
-   `psxtest_cpu` (item 1.11).
+1. **Ordem de prioridade de exceção importa.** A spec lista `Reset > AdEL > AdES > DBE >
+   ...`. Se duas condições de exceção ocorrerem na mesma instrução, a de maior
+   prioridade vence. Mas na prática do 1.8b, a maioria das exceções são mutuamente
+   exclusivas (não dá pra ter overflow E syscall na mesma instrução). Ainda assim,
+   implemente a cadeia de `if/else if` na ordem da spec.
+2. **BD: EPC aponta para o branch, não para o delay slot.** Quando `CAUSE.BD=1`, `EPC`
+   contém o endereço do branch (ou seja, `EPC = pc - 4` relativo ao delay slot). O
+   handler de exceção precisa dessa informação para decidir se re-executa o branch ou
+   avança. A nota 5 do STATUS já documenta a dívida do flag `in_delay_slot`.
+3. **Overflow trap: `rt` fica intacto.** Diferente de `ADDU`, o `ADD` e `ADDI` NÃO
+   escrevem `rt` quando há overflow. O registrador destino mantém o valor anterior. A
+   nota 2 do STATUS documenta a dívida atual (`ADDI` idêntico a `ADDIU`).
+4. **`MFC0`/`MTC0` para registrador N/A dispara RI, não CpU.** A spec é explícita:
+   "Trying to read any of these registers causes a Reserved Instruction Exception
+   (excode=0Ah)". Não confunda com COP1/COP3 que dão CpU (0Bh).
+5. **`syscall` e `break` estão no espaço `special` (primary 0x00).** Secondary 0x0C e
+   0x0D respectivamente. O `unimplemented!` atual em `special()` os pegaria — troque
+   por exceção.
 
 ### Testes de aceitação OBRIGATÓRIOS
 
-Derivados pelo orquestrador **por dois caminhos independentes**, conforme a regra da 0017e. A
-derivação vai abaixo justamente para você poder reprovar o orquestrador se ela estiver errada —
-foi o que faltou na 0017 e custou uma iteração inteira.
+**B1 — Overflow em ADD.** `r8 = 0x7FFF_FFFF`, `r9 = 0x7FFF_FFFF`. Executar `ADD r10, r8, r9`.
+Exigido: `r10` inalterado (era 0), `CAUSE.ExcCode = 0Ch`, `EPC` aponta para o ADD.
 
-**A1 — RFE.** `SR = 0x0000_0034` (binário `110100`). Executar `rfe`. Exigido: **`SR = 0x0000_003D`**.
-*Rota 1 (bit a bit):* bit0←bit2=1; bit1←bit3=0; bit2←bit4=1; bit3←bit5=1; bits 4-5 inalterados
-= 1,1. `bit5..bit0` = `111101` = `0x3D`.
-*Rota 2 (por campos):* bits 3:2 = `01` viram bits 1:0; bits 5:4 = `11` viram bits 3:2; bits 5:4
-seguem `11`. Concatenando `11 11 01` = `0x3D`.
-O literal é assimétrico de propósito: os dois erros prováveis — shift do campo inteiro, e copiar
-4-5 para 2-3 zerando 4-5 — dão ambos `0x0D`; inverter a ordem das cópias dá `0x3F`.
+**B2 — syscall.** Executar `syscall`. Exigido: `CAUSE.ExcCode = 08h`, `EPC` aponta para
+o syscall, PC salta para `0x80000080` (BEV=0).
 
-**A2 — CAUSE só aceita escrita nos bits 8-9.** Semeie `CAUSE = 0x0000_0020` direto no banco do
-COP0 (na 1.8a não há exceção que o produza) e execute `mtc0 rt, $13` com `rt = 0xFFFF_FFFF`.
-Exigido: **`CAUSE = 0x0000_0320`**.
-*Rota 2:* máscara gravável `0x300`; `(0x20 & !0x300) | (0xFFFF_FFFF & 0x300)` = `0x320`.
-Se o banco não for acessível ao teste, use `CAUSE = 0` e exija `0x0000_0300` — mais fraco, mas
-ainda pega "CAUSE é registrador comum".
+**B3 — BD flag no delay slot.** `JAL 0x...` seguido de `syscall` no delay slot. Exigido:
+`CAUSE.BD = 1`, `CAUSE.BT = 1`, `EPC = endereço do JAL` (não do syscall).
 
-**A3 — load delay do `MFC0`.** `mfc0 r2, $12` seguido **imediatamente** de uma instrução que leia
-`r2`: ela vê o valor **antigo**.
+**B4 — Load desalinhado dispara AdEL.** `LW` para endereço não alinhado a 4 bytes.
+Exigido: `CAUSE.ExcCode = 04h`, `rt` inalterado, `BadVaddr = endereço desalinhado`.
 
-### Regra nova da bateria de mutação (vale deste item em diante)
+### Dívidas que este item fecha
 
-Método auxiliar compartilhado por N pontos de chamada rende **N mutantes independentes**. Mutar
-só a definição do helper testa 1 deles. Na 0018 isso escondeu uma lacuna real: trocar
-`reg_with_pending` por `reg` apenas dentro de `fn lwl` não quebrava nenhum dos 25 testes.
-Mute cada ponto de chamada, não o helper.
+- Nota 2 do STATUS (overflow trap em ADDI/ADD/SUB)
+- Nota 5 do STATUS (flag `in_delay_slot` para bit BD)
+- Dívida dos registradores N/A do COP0 (1.8a nota 2)
+- `unimplemented!` em `special()` para opcodes 0x0C (syscall) e 0x0D (break)
 
 ## Repositório
 
@@ -90,7 +98,7 @@ Mute cada ponto de chamada, não o helper.
 
 ## Placar de testes
 
-Workspace: **178** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 27 cpu_unaligned_load_store).
+Workspace: **188** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 27 cpu_unaligned_load_store + 10 cpu_cop0_regs).
 
 ## Bloqueios
 
@@ -137,3 +145,15 @@ Workspace: **178** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version
    que o 1.8 precisa para setar `CAUSE.BD` e apontar `EPC` para o branch (e não para o
    delay slot) — a própria spec cita o caso em `§ JALR cautions`. Quem fizer o 1.8 tem de
    guardar esse flag junto com o endereço do branch, não deduzi-lo depois.
+6. **EPC e BadVaddr são graváveis via MTC0 — comportamento ASSUMIDO (resolve no item
+   1.11).** A spec marca ambos como (R), mas o comportamento sob escrita não está
+   documentado localmente. Implementados como R/W na 1.8a. Os testes
+   `epc_gravavel_comportamento_assumido` e `badvaddr_gravavel_comportamento_assumido`
+   fixam o comportamento atual. Se o Amidog `psxtest_cpu` reprovar, adicionar `if reg ==
+   8 || reg == 14 { return; }` em `cop0_write`.
+7. **TAR (cop0r6) é R/W — comportamento ASSUMIDO (resolve no item 1.11).** Mesmo
+   critério de EPC/BadVaddr: spec marca (R), implementado como R/W sem evidência
+   contrária.
+8. **Registradores N/A do COP0 (r0-r2, r4, r10, r32-r63) não disparam exceção — dívida
+   do 1.8b.** Leitura retorna 0, escrita é ignorada. O comportamento correto é Reserved
+   Instruction Exception (excode=0Ah).

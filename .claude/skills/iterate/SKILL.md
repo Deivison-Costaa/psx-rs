@@ -25,6 +25,16 @@ item novo (no gb-rs um item ficou pronto uma hora e três iterações passaram a
 (NNNN = número da iteração, sequencial ao último doc em `docs/iterations/`; slug curto em
 minúsculas). Árvore precisa estar limpa antes.
 
+**Se a branch JÁ EXISTIR, a rodada é de continuação e este passo muda inteiro:**
+`git checkout iter/NNNN-slug && git pull` — e mais nada. É **proibido** apagar, recriar,
+resetar, rebasear ou fazer force-push da branch, e proibido abrir PR novo se já houver um.
+Ela pode conter commits do orquestrador (correções, métricas, revisão) que não estão em
+lugar nenhum; recriá-la os destrói. Se o `git checkout -b` falhar com "already exists", a
+resposta é trocar para a branch, nunca removê-la.
+Medido na iter 0038 rodada 3: o trabalhador recriou a branch a partir da `main`, jogou fora
+quatro commits (dois deles do orquestrador) e reimplementou o item do zero, perdendo as
+correções G1–G4 que já estavam revisadas.
+
 ## Passo 3 — Spec primeiro (R1)
 
 Abra o arquivo de `docs/reference/` apontado pelo handoff, leia o **índice de seções** no

@@ -6,28 +6,28 @@ $OutDir = "logs"
 $OutFile = "$OutDir/scoreboard.csv"
 $BiosPath = "bios/SCPH1001.BIN"
 $TimeoutSec = 120
-$RunnerMaxSteps = "50000000"
 
 if (-not (Test-Path $ExeRoot)) {
     Write-Error "tests/exes/ nao existe — rode scripts/fetch-test-exes.ps1 antes."
 }
 New-Item -ItemType Directory -Force $OutDir | Out-Null
 
-$built = $false
 try {
-    $builtBin = cargo build --release -p psx-cli 2>&1 | Out-String
+    cargo build --release -p psx-cli 2>&1 | Out-Null
     if ($LASTEXITCODE -ne 0) {
-        Write-Warning "cargo build --release -p psx-cli falhou; usando binario existente (se disponivel)"
-        $cliBin = Get-ChildItem "target/release/psx-cli.exe" -ErrorAction SilentlyContinue
-        if (-not $cliBin) {
-            $cliBin = Get-ChildItem "target/release/psx-cli" -ErrorAction SilentlyContinue
-        }
-    } else {
-        $built = $true
-        $cliBin = "target/release/psx-cli"
+        throw "build failed"
     }
 } catch {
-    $cliBin = "target/release/psx-cli"
+    Write-Warning "cargo build --release -p psx-cli falhou; usando binario existente (se disponivel)"
+}
+
+if (Test-Path "target/release/psx-cli.exe") {
+    $cliBin = (Resolve-Path "target/release/psx-cli.exe").Path
+} elseif (Test-Path "target/release/psx-cli") {
+    $cliBin = (Resolve-Path "target/release/psx-cli").Path
+} else {
+    Write-Error "psx-cli binario nao encontrado em target/release/"
+    exit 1
 }
 
 $haveBios = Test-Path $BiosPath
@@ -48,7 +48,8 @@ foreach ($exe in $exeFiles) {
     }
 
     try {
-        $proc = Start-Process -FilePath $cliBin -ArgumentList "--bios", $BiosPath, "--exe", $exe.FullName -NoNewWindow -PassThru -RedirectStandardOutput "logs/tmp_stdout.txt" -RedirectStandardError "logs/tmp_stderr.txt"
+        $argString = "--bios `"$BiosPath`" --exe `"$($exe.FullName)`""
+        $proc = Start-Process -FilePath $cliBin -ArgumentList $argString -NoNewWindow -PassThru -RedirectStandardOutput "logs/tmp_stdout.txt" -RedirectStandardError "logs/tmp_stderr.txt"
         $finished = $proc.WaitForExit($TimeoutSec * 1000)
 
         if (-not $finished) {

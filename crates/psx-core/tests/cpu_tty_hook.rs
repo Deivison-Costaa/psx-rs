@@ -12,6 +12,10 @@ fn jalr(rs: u32, rd: u32) -> u32 {
     (rs << 21) | (rd << 11) | 0x09
 }
 
+fn lw(rt: u32, rs: u32, imm: i16) -> u32 {
+    (0x23 << 26) | (rs << 21) | (rt << 16) | (imm as u16 as u32)
+}
+
 fn step_n(cpu: &mut Cpu, bus: &mut psx_core::bus::Bus, n: usize) {
     for _ in 0..n {
         cpu.step(bus);
@@ -182,5 +186,54 @@ fn espelho_kseg0_dispara_hook() {
         bus.take_tty(),
         b"K",
         "D6: salto para 0x800000A0 (fisico = 0xA0) deve disparar o hook"
+    );
+}
+
+// ===== F1 — puts exige (0x3E,0xA0)|(0x3F,0xB0) estrito =====
+
+#[test]
+fn puts_b0h_com_numero_de_a0h_ignorado() {
+    let mut bus = bus_with_bios_empty();
+    let mut cpu = Cpu::new();
+    cpu.pc = 0x0000_0000;
+    cpu.regs[9] = 0x3E;
+    cpu.regs[4] = 0x100;
+
+    bus.write8::<BusRead>(0x100, b'h');
+    bus.write8::<BusRead>(0x101, b'i');
+    bus.write8::<BusRead>(0x102, 0x00);
+
+    bus.write32::<BusRead>(0x0000_0000, jal(0x0000_00B0));
+    bus.write32::<BusRead>(0x0000_0004, nop());
+
+    step_n(&mut cpu, &mut bus, 3);
+
+    assert!(
+        bus.take_tty().is_empty(),
+        "F1: puts via B0h com R9=3Eh (numero de A0h) nao deve emitir nada"
+    );
+}
+
+// ===== F2 — hook deve consultar load delay pendente =====
+
+#[test]
+fn putchar_com_lw_no_delay_slot_do_jal() {
+    let mut bus = bus_with_bios_empty();
+    let mut cpu = Cpu::new();
+    cpu.pc = 0x0000_0000;
+    cpu.regs[9] = 0x3C;
+    cpu.regs[16] = 0x200;
+
+    bus.write32::<BusRead>(0x200, b'Z' as u32);
+
+    bus.write32::<BusRead>(0x0000_0000, jal(0x0000_00A0));
+    bus.write32::<BusRead>(0x0000_0004, lw(4, 16, 0));
+
+    step_n(&mut cpu, &mut bus, 3);
+
+    assert_eq!(
+        bus.take_tty(),
+        b"Z",
+        "F2: lw $a0 no delay slot do jal deve carregar antes do hook ler R4"
     );
 }

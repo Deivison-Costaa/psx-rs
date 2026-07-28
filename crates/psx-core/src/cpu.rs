@@ -45,13 +45,13 @@ impl Cpu {
 
         let phys = instr_pc & 0x1FFF_FFFF;
         if phys == 0xA0 || phys == 0xB0 {
-            let fn_idx = self.regs[9];
+            let fn_idx = self.reg_with_pending(9);
             match (fn_idx, phys) {
                 (0x3C, 0xA0) | (0x3D, 0xB0) => {
-                    bus.tty_push((self.regs[4] & 0xFF) as u8);
+                    bus.tty_push((self.reg_with_pending(4) & 0xFF) as u8);
                 }
-                (0x3E, _) | (0x3F, _) => {
-                    let src = self.regs[4];
+                (0x3E, 0xA0) | (0x3F, 0xB0) => {
+                    let src = self.reg_with_pending(4);
                     if src == 0 {
                         for &b in b"<NULL>" {
                             bus.tty_push(b);

@@ -36,7 +36,7 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 
 ## M2 — GPU (rasterizador por software)
 - [x] 2.1 GPUSTAT + decodificação GP0/GP1 (iter 0035)
-- [x] 2.2 VRAM 1MB + transfers (fill, CPU↔VRAM) (iter 0038)
+- [ ] 2.2 VRAM 1MB + transfers (fill, CPU↔VRAM) — em revisao na iter 0038, PR #52
 - [ ] 2.3 Triângulos flat + gouraud
 - [ ] 2.4 Quads, retângulos, linhas
 - [ ] 2.5 Texturas 4/8/15bpp + CLUT + texture window

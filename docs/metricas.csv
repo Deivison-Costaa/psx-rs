@@ -65,3 +65,4 @@ ts,iter,resultado,custo_usd,tokens_in,tokens_out,steps,duracao_ms,head_antes,hea
 2026-07-28T18:59:00-03:00,0038,ok:revisor-c-teste,1.8701,586079,31008,10,414413,85307d4,85307d4,claude-opus-5,revisor
 2026-07-28T19:05:58-03:00,0038,falha:reescreveu-branch,0.132,80901,35118,95,1104419,796f9ce,1744e7d,deepseek/deepseek-v4-pro,trabalhador
 2026-07-28T19:29:05-03:00,0038,falha:parou-sem-fazer,0.0327,48683,1417,13,145833,796f9ce,796f9ce,deepseek/deepseek-v4-pro,trabalhador
+2026-07-28T19:34:36-03:00,0038,falha:parou-sem-fazer,0.0232,38355,2543,18,102809,796f9ce,949a05f,deepseek/deepseek-v4-pro,trabalhador

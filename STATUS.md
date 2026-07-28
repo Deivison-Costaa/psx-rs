@@ -5,24 +5,33 @@
 
 ## Última iteração concluída
 
-**0038** — **VRAM 1MB + transfers CPU↔VRAM** (ROADMAP 2.2). Fill GP0(02h), A0h copy CPU→VRAM,
-C0h copy VRAM→CPU. Quatro defeitos corrigidos pós-commit (G1: reset não limpa VRAM,
-G2: peek32 para byte/halfword no bus, G3: GP0(80h) consome 3 params, G4: stat privado).
-293 testes. Ver `docs/iterations/0038-vram-transfers.md`.
+**0037** — fechamento do M1 (PR #51).
 
 ## Próxima tarefa
 
-**ROADMAP 2.3** — Triângulos flat + gouraud.
+**ROADMAP 2.2 — VRAM 1MB + transfers. NÃO ESTÁ CONCLUÍDO: reprovado na revisão.**
+Rodada de continuação na branch `iter/0038-vram-transfers`, PR #52 já aberto (não abrir
+outro, não recriar a branch — a rodada 3 recriou e destruiu commits do orquestrador).
 
-Arquivo-alvo: `crates/psx-core/src/gpu.rs` (extensão do módulo GPU — máquina de estados
-de renderização de polígonos). Spec: `docs/reference/03-gpu.md` § GPU Render Polygon
-Commands (L253..L312, offset CORPO:114 + 139), § GPU Rendering Attributes (L324),
-§ Vertex parameter (L325), § Color Attribute (L342).
+A implementação de hardware está certa e foi conferida máscara por máscara contra
+`docs/reference/03-gpu.md` — não mexer no que está certo. O que reprovou:
 
-Armadilha: vértices usam coordenadas signed 16-bit (XxxxYyyy), cores são 24-bit
-packed (BBGGRR), e o contador de palavras varia conforme os bits de shading (flat vs
-gouraud), número de vértices (3 vs 4), e textura (on/off). O comando é decodificado
-pelos bits 31-24 da primeira palavra GP0, com top3=1 (001).
+1. **Sete mutações aplicadas e rodadas pelo orquestrador sobreviveram** — os testes estão
+   verdes e não medem: Ypos nunca ≠ 0 em nenhum dos 19 testes; stride da VRAM pode virar 512
+   nos caminhos de cópia; wrap em X pode ser removido do A0h e do C0h; a fórmula Ysiz do COPY
+   pode ser deletada; o fill pode ser abortado pelo mask-bit; e `GP1(00h)` pode encher a VRAM
+   de `0xFFFF` — o defeito G1 de volta — que `gp1_00h_reset_preserva_vram` continua passando,
+   porque usa `assert_ne!(pixel, 0)`.
+2. **Quatro defeitos de código**: GP1(01h) não limpa a máquina de estado (L767-771);
+   bit 26 não cai durante os params do GP0(80h) (L1051-1053); `region_read_byte` ignora o
+   parâmetro `offset` no braço da GPU (`lhu` do GPUSTAT dá 0x8080, não 0x1480);
+   `swl`/`swr` leem o bus antes do `is_isc()` e consomem GPUREAD num store.
+3. **Doc**: controles da bateria não foram rodados; mutante (c) é equivalente, não gap;
+   créditos de (g) e (d) inflados; e a explicação do placar 4→5 vereditos inventa uma causa
+   que o próprio `logs/scoreboard.csv` desmente.
+
+Handoff do 2.3 (triângulos flat + gouraud) fica guardado em
+`docs/iterations/0038-vram-transfers.md` e volta para cá quando o 2.2 fechar.
 
 ## Repositório
 

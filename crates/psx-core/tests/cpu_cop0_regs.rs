@@ -1,18 +1,8 @@
-use psx_core::bus::{Bios, Bus, BusRead, Ram};
+use psx_core::bus::BusRead;
 use psx_core::cpu::Cpu;
 
 mod support;
-
-fn bus_with_bios_empty() -> Bus {
-    let ram = Ram::new();
-    let bios_bytes = vec![0u8; 0x80000];
-    let bios = Bios::from_bytes(bios_bytes).unwrap();
-    Bus::new(ram, bios)
-}
-
-fn nop() -> u32 {
-    0x00
-}
+use support::asm::{bus_with_bios_empty, encode_i_type, nop};
 
 fn mfc0(rt: u32, cop0_reg: u32) -> u32 {
     (0x10 << 26) | (rt << 16) | (cop0_reg << 11)
@@ -26,37 +16,65 @@ fn rfe() -> u32 {
     (0x10 << 26) | (1 << 25) | 0x10
 }
 
-fn ori(rt: u32, rs: u32, imm: u16) -> u32 {
-    (0x0D << 26) | (rs << 21) | (rt << 16) | (imm as u32)
-}
-
 // ============================================================================
 // A1 — RFE: SR com 0x34 → RFE → SR deve valer 0x3D
+//         SR com 0x0C → RFE → SR deve valer 0x03
 // Spec: bit2-3 → bit0-1, bit4-5 → bit2-3, bits 4-5 inalterados
 // SR=0x34=110100b →  bit0←bit2=1, bit1←bit3=0, bit2←bit4=1, bit3←bit5=1,
 // bits4-5=11 → 111101b = 0x3D
+// SR=0x0C=001100b →  bit0←bit2=1, bit1←bit3=1, bit2←bit4=0, bit3←bit5=0,
+// bits4-5=00 → 000011b = 0x03
+// O literal 0x34 nao distingue a implementacao correta de uma que limpa
+// apenas os bits 0-1 antes do OR — mutar (sr & !0xF) para (sr & !0x3)
+// escapa com 0x34 (OR da 0x3D por acaso), mas 0x0C pega (0x03 vs 0x0F).
 // ============================================================================
 #[test]
 fn sr_rfe_move_campos_ie_ku_corretamente() {
-    let mut bus = bus_with_bios_empty();
-    let mut cpu = Cpu::new();
-    cpu.pc = 0;
+    // Caso 1: SR=0x34 → 0x3D
+    {
+        let mut bus = bus_with_bios_empty();
+        let mut cpu = Cpu::new();
+        cpu.pc = 0;
 
-    cpu.regs[8] = 0x0000_0034;
-    bus.write32::<BusRead>(0x0000, mtc0(8, 12));
-    bus.write32::<BusRead>(0x0004, rfe());
-    bus.write32::<BusRead>(0x0008, mfc0(10, 12));
-    bus.write32::<BusRead>(0x000C, nop());
+        cpu.regs[8] = 0x0000_0034;
+        bus.write32::<BusRead>(0x0000, mtc0(8, 12));
+        bus.write32::<BusRead>(0x0004, rfe());
+        bus.write32::<BusRead>(0x0008, mfc0(10, 12));
+        bus.write32::<BusRead>(0x000C, nop());
 
-    cpu.step(&mut bus);
-    cpu.step(&mut bus);
-    cpu.step(&mut bus);
-    cpu.step(&mut bus);
+        cpu.step(&mut bus);
+        cpu.step(&mut bus);
+        cpu.step(&mut bus);
+        cpu.step(&mut bus);
 
-    assert_eq!(
-        cpu.regs[10], 0x0000_003D,
-        "RFE: SR=0x34 → 0x3D (bit2→0, bit3→1, bit4→2, bit5→3, bits4-5 intactos)"
-    );
+        assert_eq!(
+            cpu.regs[10], 0x0000_003D,
+            "RFE: SR=0x34 → 0x3D (bit2→0, bit3→1, bit4→2, bit5→3, bits4-5 intactos)"
+        );
+    }
+
+    // Caso 2: SR=0x0C → 0x03 (pega o mutante (sr & !0x3) no lugar de (sr & !0xF))
+    {
+        let mut bus = bus_with_bios_empty();
+        let mut cpu = Cpu::new();
+        cpu.pc = 0;
+
+        cpu.regs[8] = 0x0000_000C;
+        bus.write32::<BusRead>(0x0000, mtc0(8, 12));
+        bus.write32::<BusRead>(0x0004, rfe());
+        bus.write32::<BusRead>(0x0008, mfc0(10, 12));
+        bus.write32::<BusRead>(0x000C, nop());
+
+        cpu.step(&mut bus);
+        cpu.step(&mut bus);
+        cpu.step(&mut bus);
+        cpu.step(&mut bus);
+
+        assert_eq!(
+            cpu.regs[10], 0x0000_0003,
+            "RFE: SR=0x0C → 0x03 (pega mutante que usa (sr & !0x3) em vez de (sr & !0xF))"
+        );
+    }
 }
 
 // ============================================================================
@@ -99,7 +117,7 @@ fn mfc0_tem_load_delay_de_um_opcode() {
     cpu.cop0[15] = 0x0000_0002;
 
     bus.write32::<BusRead>(0x0000, mfc0(2, 15));
-    bus.write32::<BusRead>(0x0004, ori(3, 2, 0x0000));
+    bus.write32::<BusRead>(0x0004, encode_i_type(0x0D, 3, 2, 0x0000));
     bus.write32::<BusRead>(0x0008, nop());
 
     cpu.step(&mut bus);

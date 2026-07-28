@@ -639,9 +639,6 @@ impl Cpu {
     }
 
     fn cop0_write(&mut self, reg: usize, val: u32) {
-        if reg >= 32 {
-            return;
-        }
         if reg == 15 {
             return;
         }
@@ -653,9 +650,6 @@ impl Cpu {
     }
 
     fn cop0_read(&self, reg: usize) -> u32 {
-        if reg >= 32 {
-            return 0;
-        }
         self.cop0[reg]
     }
 

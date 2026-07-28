@@ -5,6 +5,12 @@ pub struct Gpu {
     interlace: bool,
 }
 
+impl Default for Gpu {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Gpu {
     pub fn new() -> Self {
         Gpu {
@@ -43,16 +49,16 @@ impl Gpu {
         let cmd = (val >> 24) as u8;
         match cmd {
             0x00 | 0x04..=0x1E | 0xE0 | 0xE7..=0xEF => {}
+            0xE6 => {
+                let param = val & 0xFF_FFFF;
+                let mask = (1 << 11) | (1 << 12);
+                let bits = (param & 0x3) << 11;
+                self.stat = (self.stat & !mask) | bits;
+            }
             0xE1 => {
                 let param = val & 0xFF_FFFF;
                 let mask = (0x7FF) | (1 << 15);
                 let bits = (param & 0x7FF) | (((param >> 11) & 1) << 15);
-                self.stat = (self.stat & !mask) | bits;
-            }
-            0xE6 => {
-                let param = val & 0xFF_FFFF;
-                let mask = (1 << 11) | (1 << 12);
-                let bits = ((param & 0x3) << 11) as u32;
                 self.stat = (self.stat & !mask) | bits;
             }
             _ => {}
@@ -86,9 +92,9 @@ impl Gpu {
             0x08 => {
                 let param = val & 0xFF;
                 self.interlace = (param >> 5) & 1 != 0;
-                let bits: u32 = ((param & 0x80) as u32) << 7
-                    | ((param & 0x40) as u32) << 10
-                    | ((param & 0x3F) as u32) << 17;
+                let bits: u32 = (param & 0x80) << 7
+                    | (param & 0x40) << 10
+                    | (param & 0x3F) << 17;
                 let mask: u32 = (1 << 14) | (0x7F << 16);
                 self.stat = (self.stat & !mask) | bits;
             }

@@ -25,7 +25,7 @@ fn gp1_08h_display_mode_mapeia_para_gpustat() {
 
     let gp1_addr: u32 = 0xBF80_1814;
 
-    bus.write32::<BusRead>(gp1_addr, (0x08 << 24) | 0x00);
+    bus.write32::<BusRead>(gp1_addr, 0x08 << 24);
     let mut stat = bus.read32::<BusRead>(gp1_addr);
     assert_eq!((stat >> 16) & 1, 0, "A2 modo=00h: HR2(bit16)=0");
     assert_eq!((stat >> 17) & 3, 0, "A2 modo=00h: HR1(bits17-18)=0");
@@ -58,7 +58,7 @@ fn gp0_e1h_draw_mode_escreve_gpustat_0_10_e_15() {
     bus.write32::<BusRead>(gp0_addr, (0xE1 << 24) | 0xFFF);
     let stat = bus.read32::<BusRead>(gp1_addr);
 
-    assert_eq!((stat >> 0) & 0xF, 0xF, "A3: GPUSTAT.0-3 (TexPage X)=0xF");
+    assert_eq!(stat & 0xF, 0xF, "A3: GPUSTAT.0-3 (TexPage X)=0xF");
     assert_eq!((stat >> 4) & 1, 1, "A3: GPUSTAT.4 (TexPage Y1)=1");
     assert_eq!((stat >> 5) & 3, 3, "A3: GPUSTAT.5-6 (SemiTransp)=3");
     assert_eq!((stat >> 7) & 3, 3, "A3: GPUSTAT.7-8 (TexColors)=3");
@@ -91,7 +91,7 @@ fn gp1_03h_alterna_bit_23_display() {
 
     let gp1_addr: u32 = 0xBF80_1814;
 
-    bus.write32::<BusRead>(gp1_addr, (0x03 << 24) | 0x00);
+    bus.write32::<BusRead>(gp1_addr, 0x03 << 24);
     let stat = bus.read32::<BusRead>(gp1_addr);
     assert_eq!(
         (stat >> 23) & 1,
@@ -116,7 +116,7 @@ fn gp1_04h_dma_direction_escreve_bits_29_30() {
 
     let gp1_addr: u32 = 0xBF80_1814;
 
-    bus.write32::<BusRead>(gp1_addr, (0x04 << 24) | 0x00);
+    bus.write32::<BusRead>(gp1_addr, 0x04 << 24);
     let stat = bus.read32::<BusRead>(gp1_addr);
     assert_eq!((stat >> 29) & 3, 0, "A4: DMA direction 0 → bits 29-30=0");
 
@@ -141,7 +141,7 @@ fn gpustat_bit_25_espelha_dma_direction() {
 
     let gp1_addr: u32 = 0xBF80_1814;
 
-    bus.write32::<BusRead>(gp1_addr, (0x04 << 24) | 0x00);
+    bus.write32::<BusRead>(gp1_addr, 0x04 << 24);
     let stat = bus.read32::<BusRead>(gp1_addr);
     assert_eq!(
         (stat >> 25) & 1,
@@ -271,19 +271,7 @@ fn reset_gpustat_bits_de_pronto() {
     bus.write32::<BusRead>(gp1_addr, 0x00 << 24);
     let stat = bus.read32::<BusRead>(gp1_addr);
 
-    assert_eq!(
-        (stat >> 26) & 1,
-        1,
-        "Reset: bit 26 (Ready Cmd) = 1"
-    );
-    assert_eq!(
-        (stat >> 28) & 1,
-        1,
-        "Reset: bit 28 (Ready DMA) = 1"
-    );
-    assert_eq!(
-        (stat >> 27) & 1,
-        0,
-        "Reset: bit 27 (Ready VRAM→CPU) = 0"
-    );
+    assert_eq!((stat >> 26) & 1, 1, "Reset: bit 26 (Ready Cmd) = 1");
+    assert_eq!((stat >> 28) & 1, 1, "Reset: bit 28 (Ready DMA) = 1");
+    assert_eq!((stat >> 27) & 1, 0, "Reset: bit 27 (Ready VRAM→CPU) = 0");
 }

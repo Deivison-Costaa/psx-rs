@@ -5,6 +5,11 @@
 
 ## Última iteração concluída
 
+**0037** — **Fechamento do M1** (sem código): relatório consolidado com os números medidos
+(59 execuções, US$ 1,87, 20,3% de retrabalho, 92 erros de primeira tentativa por categoria,
+placar com veredito) e os três achados soltos viraram itens 10.3–10.5. Ver
+`docs/iterations/0037-fechamento-m1.md` e `docs/relatorio.md` §5.
+
 **0036** — Veredito real no scoreboard: parser de pass/fail com dedup (ROADMAP 1.13). 274 testes.
 Bateria 7/7, 2/2.
 Ver `docs/iterations/0036-scoreboard-veredito.md`.

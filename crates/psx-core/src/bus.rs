@@ -112,6 +112,10 @@ pub struct Bus {
 }
 
 impl Bus {
+    pub fn gpu(&self) -> &Gpu {
+        &self.gpu
+    }
+
     pub fn new(ram: Ram, bios: Bios) -> Self {
         Bus {
             ram,

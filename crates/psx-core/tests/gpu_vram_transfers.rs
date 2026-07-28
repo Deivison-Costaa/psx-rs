@@ -66,14 +66,22 @@ fn a4_fill_nao_respeita_mask_bit() {
     gpu.write32(gp0_addr, (0xE6u32 << 24) | 0x3);
     let stat = gpu.read32(gp1_addr);
     assert_eq!((stat >> 11) & 1, 1, "A4: GP0(E6h) bit0-1=3 -> bit11=1");
+    assert_eq!((stat >> 12) & 1, 1, "A4: GP0(E6h) bit1 -> bit12=1 (write-protect)");
 
-    gpu.write32(0, (0x02u32 << 24) | 0x00FF_FFFF);
+    gpu.write32(0, 0xA0u32 << 24);
+    gpu.write32(0, 0x0000_0000);
+    gpu.write32(0, 0x0001_0002);
+    gpu.write32(0, 0x8000_8000);
+    assert_eq!(gpu.vram_pixel(0, 0), 0x8000, "A4: pixel com bit15=1 pre-carregado");
+
+    gpu.write32(0, (0x02u32 << 24) | 0x00F81820);
     gpu.write32(0, 0x0000_0000);
     gpu.write32(0, 0x0001_0010);
 
-    let pixel = gpu.vram_pixel(0, 0);
-    assert_eq!(pixel & 0x8000, 0,
-        "A4: fill nao respeita mask, bit15=0, obtido 0x{:04X}", pixel);
+    assert_eq!(gpu.vram_pixel(0, 0), 0x7C64,
+        "A4: fill sobrescreve pixel protegido e nao liga bit15, obtido 0x{:04X}",
+        gpu.vram_pixel(0, 0));
+    assert_eq!(gpu.vram_pixel(15, 0), 0x7C64, "A4: fim da area tambem");
 }
 
 #[test]
@@ -214,12 +222,16 @@ fn a9_wrap_copy_comecando_em_x_1020_sem_carry_para_proxima_linha() {
         gpu.write32(0, (high << 16) | low);
     }
 
-    for i in 0..4 {
-        let px = (1020 + i) & 0x3FF;
-        assert_eq!(gpu.vram_pixel(px, 0), i,
-            "A9-copy: pixel({},0) deve ser {}, obtido {}", px, i, gpu.vram_pixel(px, 0));
+    for i in 0..4u16 {
+        assert_eq!(gpu.vram_pixel(1020 + i, 0), i,
+            "A9-copy: pixel({},0) antes do wrap deve ser {}", 1020 + i, i);
     }
-    assert_eq!(gpu.vram_pixel(4, 0) & 0x3FF, 0, "A9-copy: pixel(4,0)=0");
+    for i in 0..4u16 {
+        assert_eq!(gpu.vram_pixel(i, 0), i + 4,
+            "A9-copy: pixel({},0) DEPOIS do wrap deve ser {}, obtido {}",
+            i, i + 4, gpu.vram_pixel(i, 0));
+    }
+    assert_eq!(gpu.vram_pixel(4, 0), 0, "A9-copy: pixel(4,0)=0");
     assert_eq!(gpu.vram_pixel(0, 1), 0, "A9-copy: sem carry X->Y");
 }
 
@@ -321,10 +333,18 @@ fn gp1_00h_reset_preserva_vram() {
     gpu.write32(0, (0x02u32 << 24) | 0x00F81820);
     gpu.write32(0, 0x0000_0000);
     gpu.write32(0, 0x0001_0010);
-    assert_ne!(gpu.vram_pixel(0, 0), 0, "antes do reset, pixel nao-zero");
+    gpu.write32(0, (0x02u32 << 24) | 0x00F81820);
+    gpu.write32(0, (300u32 << 16) | 0x40);
+    gpu.write32(0, 0x0001_0010);
+    assert_eq!(gpu.vram_pixel(0, 0), 0x7C64, "antes do reset, (0,0)");
+    assert_eq!(gpu.vram_pixel(0x40, 300), 0x7C64, "antes do reset, (0x40,300)");
+    assert_eq!(gpu.vram_pixel(0x4F, 300), 0x7C64, "fill na linha 300 chega ao fim");
+    assert_eq!(gpu.vram_pixel(0x40, 0), 0, "linha 0 nao recebeu o 2o fill");
 
     gpu.write32(4, 0x00 << 24);
-    assert_ne!(gpu.vram_pixel(0, 0), 0, "GP1(00h) preserva VRAM");
+    assert_eq!(gpu.vram_pixel(0, 0), 0x7C64, "GP1(00h) preserva (0,0)");
+    assert_eq!(gpu.vram_pixel(15, 0), 0x7C64, "GP1(00h) preserva (15,0)");
+    assert_eq!(gpu.vram_pixel(0x40, 300), 0x7C64, "GP1(00h) preserva (0x40,300)");
     assert_eq!(gpu.stat(), 0x1480_2000, "GP1(00h): stat = 14802000h");
 }
 
@@ -335,16 +355,27 @@ fn a0h_ysiz_513_mascara_para_1_linha() {
     let cmd_a0: u32 = (0xA0u32) << 24;
     gpu.write32(0, cmd_a0);
     gpu.write32(0, 0x0000_0000);
-    gpu.write32(0, 0x0201_0001);
+    gpu.write32(0, 0x0201_0002);
 
-    gpu.write32(0, 0x0000_00AA);
+    gpu.write32(0, 0x00BB_00AA);
 
-    assert_eq!(
-        gpu.vram_pixel(0, 0),
-        0x00AA,
-        "Ysiz=513 -> 1 linha: pixel(0,0)"
-    );
+    assert_eq!(gpu.vram_pixel(0, 0), 0x00AA, "Ysiz=513 -> 1 linha: pixel(0,0)");
+    assert_eq!(gpu.vram_pixel(1, 0), 0x00BB, "Ysiz=513 -> 1 linha: pixel(1,0)");
     assert_eq!(gpu.vram_pixel(0, 1), 0, "Ysiz=513 -> 1 linha: pixel(0,1)=0");
+    assert_eq!(
+        (gpu.read32(4) >> 26) & 1,
+        1,
+        "Ysiz=513 -> 1 linha: transferencia terminou com UMA palavra, bit26=1"
+    );
+
+    gpu.write32(0, (0x02u32 << 24) | 0x00FF_FFFF);
+    gpu.write32(0, 0x0000_0000);
+    gpu.write32(0, 0x0001_0010);
+    assert_eq!(
+        gpu.vram_pixel(5, 0),
+        0x7FFF,
+        "comando seguinte executa como comando, nao e engolido como dado"
+    );
 }
 
 #[test]
@@ -398,6 +429,54 @@ fn peek32_nao_consome_transferencia_c0h() {
 
     let stat = gpu.read32(4);
     assert_eq!((stat >> 27) & 1, 0, "leitura final, bit27=0");
+}
+
+#[rustfmt::skip]
+#[test]
+fn a0h_com_ypos_nao_zero_endereca_linha_absoluta() {
+    let mut gpu = Gpu::new();
+
+    gpu.write32(0, 0xA0u32 << 24);
+    gpu.write32(0, (100u32 << 16) | 5);
+    gpu.write32(0, (2u32 << 16) | 3);
+    gpu.write32(0, 0x0002_0001);
+    gpu.write32(0, 0x0004_0003);
+    gpu.write32(0, 0x0006_0005);
+
+    for (i, col) in (5u16..8).enumerate() {
+        assert_eq!(gpu.vram_pixel(col, 100), i as u16 + 1,
+            "pixel({},100) deve ser {}, obtido {}", col, i + 1, gpu.vram_pixel(col, 100));
+        assert_eq!(gpu.vram_pixel(col, 101), i as u16 + 4,
+            "pixel({},101) deve ser {}, obtido {}", col, i + 4, gpu.vram_pixel(col, 101));
+    }
+    assert_eq!(gpu.vram_pixel(5, 0), 0, "linha 0 intacta");
+    assert_eq!(gpu.vram_pixel(5, 50), 0, "linha 50 intacta (stride correto)");
+}
+
+#[rustfmt::skip]
+#[test]
+fn c0h_le_da_linha_absoluta_e_com_wrap_em_x() {
+    let mut gpu = Gpu::new();
+
+    gpu.write32(0, 0xA0u32 << 24);
+    gpu.write32(0, (200u32 << 16) | 0x3FE);
+    gpu.write32(0, 0x0001_0004);
+    gpu.write32(0, 0x0002_0001);
+    gpu.write32(0, 0x0004_0003);
+
+    assert_eq!(gpu.vram_pixel(1022, 200), 0x0001, "escrita (1022,200)");
+    assert_eq!(gpu.vram_pixel(1023, 200), 0x0002, "escrita (1023,200)");
+    assert_eq!(gpu.vram_pixel(0, 200), 0x0003, "escrita apos wrap (0,200)");
+    assert_eq!(gpu.vram_pixel(1, 200), 0x0004, "escrita apos wrap (1,200)");
+    assert_eq!(gpu.vram_pixel(0, 201), 0, "wrap em X nao carrega para Y");
+
+    gpu.write32(0, 0xC0u32 << 24);
+    gpu.write32(0, (200u32 << 16) | 0x3FE);
+    gpu.write32(0, 0x0001_0004);
+    let w0 = gpu.read32(0);
+    let w1 = gpu.read32(0);
+    assert_eq!(w0, 0x0002_0001, "C0h w0 da linha 200, obtida 0x{:08X}", w0);
+    assert_eq!(w1, 0x0004_0003, "C0h w1 apos wrap em X, obtida 0x{:08X}", w1);
 }
 
 #[test]

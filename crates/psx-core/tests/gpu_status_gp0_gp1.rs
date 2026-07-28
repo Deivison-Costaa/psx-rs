@@ -275,3 +275,81 @@ fn reset_gpustat_bits_de_pronto() {
     assert_eq!((stat >> 28) & 1, 1, "Reset: bit 28 (Ready DMA) = 1");
     assert_eq!((stat >> 27) & 1, 0, "Reset: bit 27 (Ready VRAM→CPU) = 0");
 }
+
+fn bus_zerado() -> Bus {
+    let bios = Bios::from_bytes(vec![0u8; 0x80000]).expect("BIOS de teste");
+    Bus::new(Ram::new(), bios)
+}
+
+#[test]
+fn gp1_01h_reseta_command_buffer_e_libera_o_gp0() {
+    let mut bus = bus_zerado();
+    let gp0: u32 = 0xBF80_1810;
+    let gp1: u32 = 0xBF80_1814;
+
+    bus.write32::<BusRead>(gp0, 0xA0u32 << 24);
+    bus.write32::<BusRead>(gp0, 0x0000_0000);
+    assert_eq!(
+        (bus.read32::<BusRead>(gp1) >> 26) & 1,
+        0,
+        "cabecalho A0h incompleto: bit26=0"
+    );
+
+    bus.write32::<BusRead>(gp1, 0x01u32 << 24);
+    assert_eq!(
+        (bus.read32::<BusRead>(gp1) >> 26) & 1,
+        1,
+        "GP1(01h) limpa o buffer de comando e religa bit26 (L767-771)"
+    );
+
+    bus.write32::<BusRead>(gp0, (0x02u32 << 24) | 0x00FF_FFFF);
+    bus.write32::<BusRead>(gp0, 0x0000_0000);
+    bus.write32::<BusRead>(gp0, 0x0001_0010);
+    assert_eq!(
+        bus.gpu().vram_pixel(0, 0),
+        0x7FFF,
+        "fill apos GP1(01h) executa como comando"
+    );
+}
+
+#[test]
+fn bit26_cai_durante_os_parametros_do_gp0_80h() {
+    let mut bus = bus_zerado();
+    let gp0: u32 = 0xBF80_1810;
+    let gp1: u32 = 0xBF80_1814;
+
+    bus.write32::<BusRead>(gp0, 0x80u32 << 24);
+    assert_eq!(
+        (bus.read32::<BusRead>(gp1) >> 26) & 1,
+        0,
+        "GP0(80h) recebido, faltam 3 params: bit26=0 (L1051-1053)"
+    );
+    bus.write32::<BusRead>(gp0, 0x0000_0000);
+    assert_eq!(
+        (bus.read32::<BusRead>(gp1) >> 26) & 1,
+        0,
+        "1o param do 80h: bit26=0"
+    );
+    bus.write32::<BusRead>(gp0, 0x0000_0000);
+    bus.write32::<BusRead>(gp0, 0x0001_0001);
+    assert_eq!(
+        (bus.read32::<BusRead>(gp1) >> 26) & 1,
+        1,
+        "params completos: bit26=1"
+    );
+}
+
+#[test]
+fn leitura_de_16_bits_alcanca_o_halfword_alto_do_gpustat() {
+    let bus = bus_zerado();
+
+    let lo = bus.read16::<BusRead>(0xBF80_1814);
+    let hi = bus.read16::<BusRead>(0xBF80_1816);
+    assert_eq!(lo, 0x2000, "GPUSTAT=14802000h: halfword baixo 0x2000");
+    assert_eq!(
+        hi, 0x1480,
+        "GPUSTAT=14802000h: halfword alto 0x1480, obtido 0x{:04X} — \
+         region_read_byte tem que somar o parametro offset",
+        hi
+    );
+}

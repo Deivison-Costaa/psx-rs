@@ -21,13 +21,20 @@ fn write_str(bus: &mut psx_core::bus::Bus, addr: u32, s: &str) {
     bus.write8::<BusRead>(addr + s.len() as u32, 0);
 }
 
-fn setup_printf(cpu: &mut Cpu, bus: &mut psx_core::bus::Bus, fmt_str: &str, fmt_addr: u32, args: &[u32], sp_arg_base: u32) {
+fn setup_printf(
+    cpu: &mut Cpu,
+    bus: &mut psx_core::bus::Bus,
+    fmt_str: &str,
+    fmt_addr: u32,
+    args: &[u32],
+    sp_arg_base: u32,
+) {
     cpu.pc = 0x0000_0000;
     cpu.regs[9] = 0x3F;
     cpu.regs[4] = fmt_addr;
     write_str(bus, fmt_addr, fmt_str);
 
-    if args.len() > 0 {
+    if !args.is_empty() {
         cpu.regs[5] = args[0];
     }
     if args.len() > 1 {
@@ -133,7 +140,14 @@ fn printf_x_hexadecimal() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
 
-    setup_printf(&mut cpu, &mut bus, "%x %X\n", 0x100, &[0xDEAD_BEEF], 0x1FF0);
+    setup_printf(
+        &mut cpu,
+        &mut bus,
+        "%x %X\n",
+        0x100,
+        &[0xDEAD_BEEF, 0xDEAD_BEEF],
+        0x1FF0,
+    );
 
     step_n(&mut cpu, &mut bus, 3);
 

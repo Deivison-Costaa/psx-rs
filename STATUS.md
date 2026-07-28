@@ -5,15 +5,7 @@
 
 ## Última iteração concluída
 
-**0021** — Mecanismo de exceção: overflow, syscall, break, AdEL/AdES, bit BD (ROADMAP 1.8b):
-10 testes, 6/6 mutantes pegos, 2/2 controles verdes. ADD/ADDI com overflow trap (`i32::checked_add`),
-`syscall` (ExcCode 08h) e `break` (ExcCode 09h) via `raise_exception()`, load/store desalinhados
-disparam AdEL/AdES com BadVaddr escrito, delay slot com BD (bit31) + BT (bit30) + EPC apontando
-para o branch. Flags `delay_slot_pending` e `branch_taken` separados de `branch_target` para
-cobrir branches condicionais não tomados. ExcCode escrito direto em `self.cop0[13]` sem passar
-por `cop0_write` (armadilha 4 do handoff). Break desvia para vetor próprio (0x80000040). Dívidas
-fechadas: nota 2 (overflow), nota 5 (delay slot). Dívidas abertas: Reserved Instruction (0Ah),
-Coprocessor Unusable (0Bh), IRQ (M3). Ver `docs/iterations/0021-cpu-exception-mechanism.md`.
+**0021 (revisão adversarial)** — Correções do PR #35: CAUSE preserva bits Sw (máscara de escrita só nos campos ExcCode/BD/BT), empilhamento de SR na entrada da exceção (bits 0-1→2-3, 2-3→4-5, 0-1 zerados — inverso do RFE), load delay commitado antes da exceção (o acesso à memória já ocorreu). +4 testes, 4/4 mutantes novos pegos, 1/1 controles verdes. Ver `docs/iterations/0021-cpu-exception-mechanism.md`.
 
 ## Próxima tarefa
 
@@ -59,7 +51,7 @@ por região de memória inválida).
 
 ## Placar de testes
 
-Workspace: **198** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 27 cpu_unaligned_load_store + 10 cpu_cop0_regs + 10 cpu_exception_mechanism).
+Workspace: **202** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 27 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism).
 
 ## Bloqueios
 
@@ -112,3 +104,21 @@ Workspace: **198** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version
    COP0 disabled (SR.bit1=1 e SR.bit28=0) gera Coprocessor Unusable Exception (excode=0Bh).
    Os registradores garbage r16-r31 podem ser acessados nesse estado sem exceção. Fonte:
    `docs/reference/02-cpu.md`, seção cop0r16-r31 - Garbage (L805).
+8. **E1 — Entrada de exceção preserva bits Sw (8-9) e IP (10-15) do CAUSE.** A escrita
+   do ExcCode agora usa máscara: `self.cop0[13] = (self.cop0[13] & !0xC000_007C) | cause`,
+   gravando apenas BD (bit31), BT (bit30) e ExcCode (bits 2-6). O erro original
+   (`self.cop0[13] = cause`) zerava os bits Sw, contradizendo a spec que diz "clear them
+   before returning from the exception handler" — instrução de software que só faz sentido
+   se o hardware não limpar sozinho. Corrigido na revisão adversarial do PR #35.
+9. **E2 — Empilhamento de SR na entrada da exceção: comportamento ASSUMIDO (resolve no
+   item 1.11).** O inverso exato do RFE: bits 0-1 (IEc/KUc) → bits 2-3 (IEp/KUp), bits 2-3
+   (IEp/KUp) → bits 4-5 (IEo/KUo), bits 0-1 zerados. A spec local NÃO documenta o push,
+   apenas o RFE que desempilha. Sem o push, um handler que execute RFE restaura lixo nos
+   bits IEc/KUc. Ponto de resolução: Amidog `psxtest_cpu`. Testes:
+   `sr_e_empilhado_na_entrada_da_excecao` e `sr_push_seguido_de_rfe_restaura_os_bits_0_3`.
+10. **E3 — Load delay commitado antes da exceção: comportamento ASSUMIDO (resolve no
+   item 1.11).** O acesso à memória do `lw` já ocorreu quando a exceção da instrução
+   seguinte é reconhecida; o valor pendente é commitado antes do desvio para o handler.
+   A spec local não tem evidência sobre este caso (R1). Escolha (a) entre duas opções
+   igualmente plausíveis. Teste:
+   `load_pendente_e_commitado_antes_da_excecao_comportamento_assumido`.

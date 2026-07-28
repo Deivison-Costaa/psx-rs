@@ -3,6 +3,7 @@ use crate::bus::{Bus, BusRead};
 #[derive(Debug, Clone)]
 pub struct Cpu {
     pub regs: [u32; 32],
+    pub cop0: [u32; 32],
     pub pc: u32,
     pub hi: u32,
     pub lo: u32,
@@ -12,8 +13,11 @@ pub struct Cpu {
 
 impl Cpu {
     pub fn new() -> Self {
+        let mut cop0 = [0u32; 32];
+        cop0[15] = 0x0000_0002;
         Cpu {
             regs: [0u32; 32],
+            cop0,
             pc: 0xBFC0_0000,
             hi: 0,
             lo: 0,
@@ -134,6 +138,7 @@ impl Cpu {
                 self.swr(instr, bus);
                 None
             }
+            0x10 => self.cop0_op(instr),
             _ => unimplemented!("opcode primary={:02X} nao implementado", primary),
         }
     }
@@ -598,6 +603,10 @@ impl Cpu {
 
     fn reg(&self, idx: usize) -> u32 {
         self.regs[idx]
+    }
+
+    fn cop0_op(&mut self, _instr: u32) -> Option<(usize, u32)> {
+        None
     }
 
     fn set_reg(&mut self, idx: usize, val: u32) {

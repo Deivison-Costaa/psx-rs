@@ -36,10 +36,28 @@ captura `$Matches[2]` (bytes TTY) do stderr do runner. O stdout do psx-cli (L94-
 todas como eventos independentes infla o placar em 3×. A dedup deve ser por texto da linha,
 não por contagem de ocorrências.
 
-**Teste de aceitação:** `scripts/scoreboard.ps1` deve produzir CSV com coluna `status` = `pass:N`
-ou `fail:N` (N = vereditos únicos pós-dedup) em vez de `tty`/`sem-saida`. Comando de prova:
-`pwsh scripts/scoreboard.ps1` e conferir que as suítes `cop` e `code-in-io` têm status
-`pass:2` e `fail:2` (as 2 falhas do scratchpad), respectivamente.
+**Esquema do CSV — decidido, não deixar a cargo da implementação.** Uma suíte pode ter pass
+**e** fail ao mesmo tempo: o `code-in-io`, pós-dedup, tem 1 pass (`testCodeInRam`) e 2 fails
+(`testCodeInScratchpad:40` e `:41`). Um `status` do tipo `pass:N` *ou* `fail:N` não representa
+isso. Portanto:
+
+- `status` continua sendo **um rótulo**, com o vocabulário estendido: `pass` (≥1 veredito e
+  zero falhas), `fail` (≥1 falha), e os já existentes `tty` (produziu saída mas nenhum
+  veredito), `sem-saida`, `host-bin`, `sem-bios`, `timeout`, `fail-erro`.
+- A **sexta coluna**, hoje chamada `ciclos` e vazia em todas as linhas, passa a se chamar
+  `detalhe` e carrega as contagens pós-dedup no formato `<n>p/<n>f` (ex.: `1p/2f`). A aridade
+  do CSV não muda, então as linhas já publicadas em `scoreboard-data` continuam válidas com o
+  campo vazio — **não reescreva o histórico**.
+
+**Testes de aceitação:**
+
+- A1: `pwsh scripts/scoreboard.ps1` e conferir no CSV que `amidog/cpu` … `cop.exe` sai como
+  `pass` com detalhe `2p/0f`, e `code-in-io.exe` como `fail` com detalhe `1p/2f`. **Cole a
+  saída no doc.**
+- A2: nenhuma suíte sem veredito muda de rótulo — as que hoje são `tty` continuam `tty`.
+  Compare a distribuição antes/depois e cole as duas.
+- A3: o `host-bin` do `diffvram` e o comportamento sem BIOS (`sem-bios`) continuam intactos.
+- A4: `cargo test --all` verde, com meta-teste novo cobrindo o parser (dedup + suíte mista).
 
 **Escopo (R4):** parser de pass/fail com dedup no scoreboard.ps1, coluna `status` com
 contagem. **Fora do escopo:** corrigir o bug do scratchpad, alterar o psx-cli, formatar

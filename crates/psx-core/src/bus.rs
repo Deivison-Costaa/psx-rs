@@ -233,7 +233,7 @@ impl Bus {
                 true
             }
             0x1F80_1000..=0x1F80_1023 | 0x1F80_1060 | 0xFFFE_0130 => true,
-            0x1F80_1810..=0x1F80_1817 => true, // GPU registers are 32-bit; byte writes are discarded
+            0x1F80_1810..=0x1F80_1817 => true, // Registradores da GPU sao de 32 bits; escrita de byte e descartada
             0x1F80_1024..=0x1F80_105F | 0x1F80_1061..=0x1F80_1FFF => true,
             _ => false,
         }

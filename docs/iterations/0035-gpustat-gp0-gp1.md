@@ -57,7 +57,54 @@ Workspace: 258 → **271** testes (13 novos: `gpu_status_gp0_gp1`).
 
 ## Revisão cruzada (orquestrador)
 
-<!-- Preenchido pelo Claude na revisão do PR. -->
+Duas rodadas. A primeira entregou o item; a segunda foi acabamento.
+
+### O teste que fecha o item, verificado sem andaime
+
+```
+$ psx-cli --bios bios/SCPH1001.BIN --exe tests/exes/ps1-tests/cpu/cop/cop.exe
+cpu/cop
+pass - testCop0Disabled
+pass - testCop0Enabled
+```
+
+Conferi o diff do `bus.rs`: a janela da GPU e real, nao ha valor de GPUSTAT hardcoded no
+catch-all. O andaime que a 0032 mandou usar como muleta de medicao nao vazou para o codigo.
+
+Conferi tambem o mapeamento do GP1(08h) bit a bit contra L885-893: `(param & 0x80) << 7` poe
+o bit 7 em 14, `(param & 0x40) << 10` poe o 6 em 16, `(param & 0x3F) << 17` poe 0-5 em 17-22.
+Correto. Os tres erros de bit-mapping da tabela de erros sao do tipo que so quem abriu a
+tabela comete — e o de numero 1 (bit 11 do parametro, nao bit 15) tinha passado por um teste
+cujo valor de entrada, `0x87FF`, tinha os dois bits setados. Teste que nao distingue as duas
+hipoteses nao mede nenhuma; foi pego pela comparacao com a spec, nao pelo verde.
+
+### Achados (K1-K4), todos corrigidos na 2a rodada
+
+- **K1, bloqueador:** `cargo fmt` nao rodado, CI vermelha (`check` failure, `scoreboard`
+  skipped). Terceira vez na sessao (0027, 0029, esta).
+- **K2:** a nota sobre comandos GP0 multi-palavra registrava a lacuna mas nao a consequencia —
+  as palavras de parametro seguem sendo decodificadas como comandos, entao um vertice cujo
+  byte alto caia em `E1h`/`E6h` reescreve o GPUSTAT sem nada indicar.
+- **K3:** campo `interlace` escrito em tres lugares e nunca lido; nao virava warning de
+  `dead_code` porque `#[derive(Debug)]` conta como leitura. Estado morto disfarcado pelo
+  derive — removido.
+- **K4:** escrita de byte na janela da GPU retornava `true` sem escrever nada. Aceitar e dizer
+  que funcionou e pior que recusar; agora ha uma linha dizendo por que descarta.
+
+### Verificado executando, em `8137219`
+
+`cargo fmt --check` e `cargo clippy -D warnings` limpos; `cargo test --all` = **271**;
+`./scripts/scoreboard.ps1` = `50/51 produziram saida` (inalterado — esperado, porque o
+criterio ainda e "produziu saida" e as suites ja imprimiam o banner antes).
+
+### Correcao minha nesta branch
+
+O handoff do 1.13 propunha `status` = `pass:N` **ou** `fail:N`. Nao representa suite mista: o
+`code-in-io`, pos-dedup, tem 1 pass e 2 fails. Reescrevi o esquema no handoff — `status`
+continua rotulo (vocabulario estendido com `pass`/`fail`) e a sexta coluna, hoje `ciclos` e
+vazia em todas as linhas, passa a `detalhe` com `<n>p/<n>f`. A aridade do CSV nao muda, entao
+as linhas ja publicadas em `scoreboard-data` seguem validas. Decidir isso no handoff, e nao na
+implementacao, evita que a serie historica ganhe um esquema novo no meio.
 
 ## Decisões e notas
 

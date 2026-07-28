@@ -27,25 +27,36 @@ iter 0024 foi essencial: A0h/B0h como endereços de `jal`, não como códigos de
 putchar grava byte cru (sem expansão TAB/LF) — decisão deliberada. Ver
 `docs/iterations/0025-cpu-tty-hook.md`.
 
+**0026** — Iteração de processo (sem código): baixado o capítulo `16-cdrom-file-formats.md`,
+que traz o layout do header PS-EXE e faltava no repositório; handoff do 1.11 reescrito com os
+offsets citados linha a linha. Ver `docs/iterations/0026-spec-formato-psexe.md`.
+
 ## Próxima tarefa
 
 **ROADMAP 1.11** — Sideload de PS-EXE no psx-cli + Amidog psxtest_cpu no scoreboard.
 
-**PASSO ZERO, OBRIGATÓRIO (R1): a spec deste item NÃO está no repositório.** As seções abaixo
-descrevem as *funções* da BIOS que carregam um EXE, mas o **layout do header PS-EXE** (magic
-`PS-X EXE`, offsets de pc0/gp0/t_addr/t_size/b_addr/b_size/s_addr/s_size) não existe em
-`docs/reference/` — `grep -r "PS-X EXE" docs/reference/` não devolve nada. Antes de escrever
-qualquer código: acrescente o capítulo do psx-spx que documenta o formato do executável ao
-`scripts/fetch-reference-docs.ps1`, rode o script, commite (`chore(scripts)` +
-`docs(reference)`) e só então implemente, citando as linhas reais. Não deduza os offsets do
-header a partir de outro emulador nem da memória.
+**Spec — layout do header (baixado na iter 0026):**
+`docs/reference/16-cdrom-file-formats.md` **L1162-1184**. Header de 800h bytes, código/dados
+logo depois. Campos, **exatamente como a spec os lista** (não renomeie para t_addr/b_addr —
+esses nomes vêm de outras ferramentas, não do psx-spx):
 
-**Spec (funções da BIOS, já local):** `docs/reference/13-kernel-bios.md` — A(41h) LoadTest
-(L1041), A(43h) Exec (L1054-1063), A(51h) LoadExec (L1065-1095), Executable Memory Allocation
-(L1150-1157). O 1.11 não lê setores de CD-ROM; o sideloader carrega o .psexe inteiro de um
-arquivo no disco e extrai do header (800h bytes) os campos: entrypoint (PC), GP, SP
-base+offset, t_addr/t_size (código), b_addr/b_size (BSS zerado). Não implementa LoadExec — só
-o sideload mínimo para rodar um EXE.
+| Offset | Campo |
+|---|---|
+| `000h-007h` | ID ASCII `PS-X EXE` |
+| `010h` | Initial PC (tipicamente `80010000h`) |
+| `014h` | Initial GP/R28 (tipicamente 0) |
+| `018h` | **Destination Address in RAM** — para onde o corpo é carregado |
+| `01Ch` | Filesize, múltiplo de 800h, **sem** contar o header |
+| `020h`/`024h` | Data section addr/size (tipicamente 0) |
+| `028h`/`02Ch` | BSS addr/size (`0` = nenhuma) |
+| `030h`/`034h` | SP/R29 e FP/R30: base (tipicamente `801FFFF0h`, `0` = não mexer) e offset somado à base |
+| `038h-04Bh` | Reservado para A(43h); a BIOS guarda RA,SP,R30,R28,R16 do chamador aqui |
+| `800h...` | Código/dados, carregados no endereço de `018h` |
+
+**Spec — funções da BIOS:** `docs/reference/13-kernel-bios.md` — A(41h) LoadTest (L1041),
+A(43h) Exec (L1054-1063), A(51h) LoadExec (L1065-1095), Executable Memory Allocation
+(L1150-1157). O 1.11 não lê setores de CD-ROM nem implementa LoadExec: é o sideload mínimo
+para rodar um EXE de arquivo local.
 
 **Arquivos-alvo:** `crates/psx-cli/src/main.rs` (args: `psx-cli --bios <BIOS> --exe <PS-EXE>`),
 `crates/psx-core/src/cpu.rs` (estado do step após halt), `crates/psx-cli/tests/cli_runner.rs`
@@ -56,17 +67,21 @@ o sideload mínimo para rodar um EXE.
 1. **O header de PS-EXE tem 800h bytes, mas os campos relevantes estão em [10h..4Bh].**
    O headerbuf que Exec recebe tem só 3Ch bytes. O offset no arquivo .psexe é diferente
    do offset no headerbuf — não confundir.
-2. **O endereço de destino do header é virtual — traduza antes de escrever na RAM.**
-   (A versão anterior desta armadilha afirmava que "o PC inicial do header é KSEG1
-   `0xBFC0_xxxx`". Isso está errado e foi removido na revisão do PR #39: `BFC00000h` é o
-   *reset entrypoint da BIOS ROM* — `14-io-map.md` L275 — não o PC de um executável, que
-   carrega em RAM. O valor real do campo vem do capítulo de formato do EXE que o passo zero
-   manda baixar; **não** assuma nada sobre ele antes de ler.)
+2. **Os endereços do header são VIRTUAIS (KSEG0, `8001xxxx`), não físicos.** O destino em
+   `018h` é tipicamente `80010000h`; escrever esse valor direto como índice de RAM estoura.
+   Passe pela tradução do Bus. (A versão anterior desta armadilha dizia que o PC inicial era
+   KSEG1 `0xBFC0_xxxx` — errado, e removido na revisão do PR #39: `BFC00000h` é o reset
+   entrypoint da BIOS ROM, `14-io-map.md` L275. A spec agora local diz `80010000h`,
+   `16-cdrom-file-formats.md` L1166.)
+2b. **Zerofill do BSS é word-a-word: endereço e tamanho são múltiplos de 4** (L1195). E
+   `02Ch` = 0 significa *nenhuma* BSS — não zere nada nesse caso.
 3. **BSS zerofill: b_addr pode ser > t_addr+t_size.** Zerar b_size bytes a partir de b_addr
    depois de carregar o código.
-4. **Registradores iniciais:** PC, GP (r28), SP=r29, FP=r30 — todos do header. R0=0 sempre.
-   Demais registradores = 0 (a spec não especifica, mas é o que faz sentido para o estado
-   limpo do sideload).
+4. **Registradores iniciais:** PC (`010h`), GP/R28 (`014h`), SP/R29 e FP/R30 = base
+   (`030h`) + offset (`034h`). **Base `0` significa "não mexa no SP/FP"** (L1188), não
+   "SP=0". A spec ainda diz que o executável recebe R4 e R5 como parâmetros, "usually R4=1 e
+   R5=0" (L1200-1202) — adote esses valores e registre como escolha. Demais registradores = 0
+   (a spec não especifica; é o estado limpo que faz sentido no sideload).
 5. **Critério de parada do runner — NÃO VERIFICADO.** A proposta é parar quando o PC repete o
    mesmo endereço (`JMP $`), mas nada na spec local diz que o Amidog termina assim; é palpite
    de quem escreveu este handoff. Trate como hipótese: implemente um teto de passos como

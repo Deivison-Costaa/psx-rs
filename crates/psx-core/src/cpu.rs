@@ -848,6 +848,9 @@ impl Cpu {
         let mut i = 0u32;
 
         loop {
+            if i >= 1_048_576 {
+                break;
+            }
             let byte = bus.read8::<BusRead>(fmt.wrapping_add(i));
             i = i.wrapping_add(1);
             if byte == 0 {
@@ -856,6 +859,9 @@ impl Cpu {
             if byte != b'%' {
                 bus.tty_push(byte);
                 continue;
+            }
+            if i >= 1_048_576 {
+                break;
             }
             let spec = bus.read8::<BusRead>(fmt.wrapping_add(i));
             i = i.wrapping_add(1);

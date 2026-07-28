@@ -5,27 +5,24 @@
 
 ## Última iteração concluída
 
-**0037** — **Fechamento do M1** (sem código): relatório consolidado com os números medidos
-(59 execuções, US$ 1,87, 20,3% de retrabalho, 92 erros de primeira tentativa por categoria,
-placar com veredito) e os três achados soltos viraram itens 10.3–10.5. Ver
-`docs/iterations/0037-fechamento-m1.md` e `docs/relatorio.md` §5.
-
-**0036** — Veredito real no scoreboard: parser de pass/fail com dedup (ROADMAP 1.13). 274 testes.
-Bateria 7/7, 2/2.
-Ver `docs/iterations/0036-scoreboard-veredito.md`.
+**0038** — **VRAM 1MB + transfers CPU↔VRAM** (ROADMAP 2.2). Fill GP0(02h), A0h copy CPU→VRAM,
+C0h copy VRAM→CPU. Quatro defeitos corrigidos pós-commit (G1: reset não limpa VRAM,
+G2: peek32 para byte/halfword no bus, G3: GP0(80h) consome 3 params, G4: stat privado).
+293 testes. Ver `docs/iterations/0038-vram-transfers.md`.
 
 ## Próxima tarefa
-**ROADMAP 2.2** — VRAM 1MB + transfers (fill, CPU VRAM).
 
-Arquivos-alvo: `crates/psx-core/src/gpu.rs` (extensão do módulo GPU), `crates/psx-core/src/bus.rs`
-(janela de VRAM no mapa de memória). Spec: `docs/reference/03-gpu.md` § VRAM, § GP0 commands
-(C0h fill, A0h copy rectangle CPU→VRAM, C0h copy rectangle VRAM→CPU).
+**ROADMAP 2.3** — Triângulos flat + gouraud.
 
-Armadilha: VRAM é 1024×512 pixels de 16 bits = 1 MB, mas o espaço de endereçamento do bus é
-2 MB — a janela de 2 MB espelha a VRAM. Coordenadas X são módulo 1024, Y módulo 512.
-Transfers usam palavras de 16 bits; o fill usa uma cor de 24 bits com máscara de pixel.
-Cada comando GP0 pode ser multi-palavra — o protocolo de recebimento da iter 0035 já suporta
-isso, mas o fill (C0h) e os rectangles (A0h/C0h) vão precisar de máquina de estado.
+Arquivo-alvo: `crates/psx-core/src/gpu.rs` (extensão do módulo GPU — máquina de estados
+de renderização de polígonos). Spec: `docs/reference/03-gpu.md` § GPU Render Polygon
+Commands (L253..L312, offset CORPO:114 + 139), § GPU Rendering Attributes (L324),
+§ Vertex parameter (L325), § Color Attribute (L342).
+
+Armadilha: vértices usam coordenadas signed 16-bit (XxxxYyyy), cores são 24-bit
+packed (BBGGRR), e o contador de palavras varia conforme os bits de shading (flat vs
+gouraud), número de vértices (3 vs 4), e textura (on/off). O comando é decodificado
+pelos bits 31-24 da primeira palavra GP0, com top3=1 (001).
 
 ## Repositório
 
@@ -39,7 +36,7 @@ isso, mas o fill (C0h) e os rectangles (A0h/C0h) vão precisar de máquina de es
 
 ## Placar de testes
 
-Workspace: **274** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 27 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 11 cpu_opcode_reservado + 13 gpu_status_gp0_gp1 + 9 ci_scoreboard + 9 cli_runner).
+Workspace: **293** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 27 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 11 cpu_opcode_reservado + 13 gpu_status_gp0_gp1 + 9 ci_scoreboard + 9 cli_runner + 19 gpu_vram_transfers).
 
 ## Bloqueios
 

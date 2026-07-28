@@ -55,7 +55,7 @@ fn gp0_e1h_draw_mode_escreve_gpustat_0_10_e_15() {
     let gp0_addr: u32 = 0xBF80_1810;
     let gp1_addr: u32 = 0xBF80_1814;
 
-    bus.write32::<BusRead>(gp0_addr, (0xE1 << 24) | 0x87FF);
+    bus.write32::<BusRead>(gp0_addr, (0xE1 << 24) | 0xFFF);
     let stat = bus.read32::<BusRead>(gp1_addr);
 
     assert_eq!((stat >> 0) & 0xF, 0xF, "A3: GPUSTAT.0-3 (TexPage X)=0xF");

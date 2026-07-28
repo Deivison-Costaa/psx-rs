@@ -388,3 +388,46 @@ fn swr_endereco_forca_alinhado_armazena_no_offset_0() {
     let result = bus.read32::<BusRead>(DATA_BASE + 4);
     assert_eq!(result, 0x1234_5678);
 }
+
+#[test]
+fn round_trip_swl_swr_seguido_de_lwl_lwr() {
+    let mut bus = bus_with_bios_empty();
+    bus.write32::<BusRead>(DATA_BASE, 0xAABB_CCDD);
+    bus.write32::<BusRead>(DATA_BASE + 4, 0x1122_3344);
+    let mut cpu = Cpu::new();
+    cpu.regs[8] = DATA_BASE + 1;
+    cpu.regs[2] = 0x1122_3344;
+    cpu.pc = 0;
+    bus.write32::<BusRead>(0, encode_ual(SWL, 2, 8, 3));
+    bus.write32::<BusRead>(4, encode_ual(SWR, 2, 8, 0));
+    bus.write32::<BusRead>(8, encode_ual(LWL, 2, 8, 3));
+    bus.write32::<BusRead>(12, encode_ual(LWR, 2, 8, 0));
+    bus.write32::<BusRead>(16, nop());
+    cpu.step(&mut bus);
+    cpu.step(&mut bus);
+    assert_eq!(bus.read32::<BusRead>(DATA_BASE), 0x2233_44DD);
+    assert_eq!(bus.read32::<BusRead>(DATA_BASE + 4), 0x1122_3311);
+    cpu.step(&mut bus);
+    cpu.step(&mut bus);
+    cpu.step(&mut bus);
+    assert_eq!(cpu.regs[2], 0x1122_3344);
+}
+
+#[test]
+fn lwl_enxerga_load_delay_de_lw_no_mesmo_registrador() {
+    let mut bus = bus_with_bios_empty();
+    bus.write32::<BusRead>(DATA_BASE, 0xAAAA_BBBB);
+    bus.write32::<BusRead>(DATA_BASE + 8, 0x0000_00DD);
+    let mut cpu = Cpu::new();
+    cpu.regs[8] = DATA_BASE;
+    cpu.regs[9] = DATA_BASE + 8;
+    cpu.regs[2] = 0xDEAD_BEEF;
+    cpu.pc = 0;
+    bus.write32::<BusRead>(0, encode_i_type(0x23, 2, 8, 0));
+    bus.write32::<BusRead>(4, encode_ual(LWL, 2, 9, 0));
+    bus.write32::<BusRead>(8, nop());
+    cpu.step(&mut bus);
+    cpu.step(&mut bus);
+    cpu.step(&mut bus);
+    assert_eq!(cpu.regs[2], 0xDDAA_BBBB);
+}

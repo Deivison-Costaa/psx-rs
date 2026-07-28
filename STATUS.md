@@ -5,120 +5,44 @@
 
 ## Última iteração concluída
 
-**0027** — Sideload de PS-EXE no psx-cli + Amidog psxtest_cpu no scoreboard (ROADMAP 1.11).
-Terceira rodada de correção após duas revisões adversariais. A4 agora executa de verdade
-(dois `..` em `exe_dir()`), afirma PC em KSEG0 sem mentir sobre TTY (printf A(3Fh) pendente).
-Scoreboard funcional (quoting de caminhos com espaço corrigido), `amidog/cpu` = `fail`.
-ROADMAP 1.11b adicionado para printf A(3Fh). Bateria de mutação refeita do zero (7/7, 3/3).
-230 testes no workspace. Ver `docs/iterations/0027-sideload-psexe.md`.
-
-**0028** — Passo zero do 1.11b (sem código): medido, com instrumentação descartável, que o
-`psxtest_cpu` chama `printf` A(3Fh) uma única vez (`"args: %d\n"`) e depois trava esperando
-GPUSTAT.26, que é o item 2.1. Handoff do 1.11b reescrito com as linhas de spec citadas e com
-o critério de sucesso corrigido. Ver `docs/iterations/0028-spec-printf.md`.
-
-**0023** — Iteração de processo (sem código): incorporação das métricas pendentes da 0022 e
-registro do erro de escopo múltiplo em commit reprovado pelo `commit-lint`.
-
-**0024** — Iteração de processo (sem código): o handoff do 1.10 descrevia A0h/B0h como
-códigos de `syscall`; a spec diz que são endereços de chamada (`jal 0xA0`) com o número da
-função em R9. Corrigido contra `13-kernel-bios.md` antes de despachar o trabalhador. Ver
-`docs/iterations/0024-handoff-1.10-corrigido.md`.
-
-**0025** — Hook de TTY (A0h/B0h) (ROADMAP 1.10): hook no `Cpu::step` que detecta PC físico
-`A0h`/`B0h`, lê R9 e emite putchar/puts para buffer no Bus (`tty_push`/`take_tty`). 7
-testes (D1-D6 + D2b), 5/5 mutantes pegos, 2/2 controles verdes. O handoff corrigido pela
-iter 0024 foi essencial: A0h/B0h como endereços de `jal`, não como códigos de syscall.
-putchar grava byte cru (sem expansão TAB/LF) — decisão deliberada. Ver
-`docs/iterations/0025-cpu-tty-hook.md`.
-
-**0026** — Iteração de processo (sem código): baixado o capítulo `16-cdrom-file-formats.md`,
-que traz o layout do header PS-EXE e faltava no repositório; handoff do 1.11 reescrito com os
-offsets citados linha a linha. Ver `docs/iterations/0026-spec-formato-psexe.md`.
+**0029** — Hook de printf A(3Fh) com expansão de % → Amidog imprimindo no TTY (ROADMAP 1.11b).
+Suporte a `%%`, `%c`, `%s`, `%d`/`%i`, `%u`, `%x`/`%X` com argumentos de A1/A2/A3 e pilha em
+`[SP+10h..]`. Teto de 1 MiB no laço principal de varredura da string de formato (correção H2
+da revisão adversarial). Especificadores fora do escopo (`%o`, `%n`, etc.) emitidos como
+literal. `%` no fim da string emitido antes do break. Bateria 8/8, 3/3. Scoreboard 50/51
+produziram saída (rótulo `tty`/`sem-saida`, veredito real no 1.12). 241 testes no workspace.
+Ver `docs/iterations/0029-cpu-printf-hook.md`.
 
 ## Próxima tarefa
 
-**ROADMAP 1.11b** — Hook de `printf` A(3Fh) com expansão de `%` → Amidog imprimindo no TTY.
+**ROADMAP 1.12** — CI: job scoreboard ligado + primeiro placar real no histórico.
 
-O 1.11 fechou com o `psxtest_cpu` rodando e registrado como `fail` no placar: TTY de zero
-bytes. A causa foi medida, não suposta — ver `docs/iterations/0028-spec-printf.md`.
+**Spec:** O item não tem spec de hardware. Os arquivos de referência são:
 
-**Spec:** `docs/reference/13-kernel-bios.md` **L2703-2740** — A(3Fh) Printf.
+| Fonte | Seção | Arquivo local |
+|---|---|---|
+| ROADMAP | Item 1.12 (L32) | `ROADMAP.md` |
+| Scoreboard | script completo (L1-96) | `scripts/scoreboard.ps1` |
+| CI workflow | job check (L1-24) | `.github/workflows/ci.yml` |
+| Fetch de EXEs | script de download (L1-67) | `scripts/fetch-test-exes.ps1` |
+| BIOS | nota 1: local e hash | `STATUS.md` L52-53 |
 
-| Fato | Linha |
-|---|---|
-| `in: A0` = ponteiro para string terminada em 0; argumentos em `A1,A2,A3,[SP+10h..]` | L2705-2706 |
-| Usa `putchar` internamente e expande os chars `09h` e `0Ah` | L2709-2710 |
-| Códigos de escape (`c s i d D u U o O p x X n`) | L2712-2719 |
-| Prefixos entre `%` e o código (`+`, espaço, `NNN`, `.NNN`, `*`, `-`, `#`, `0`, `L`, `h`, `l`) | L2721-2733 |
-| Só octal/decimal/hex; **não** tem binário | L2739 |
-| `puts` A(3Eh)/B(3Fh) é função DIFERENTE (não resolve `%`) | L2742-2746 |
-| `putchar` A(3Ch)/B(3Dh) | L2776 |
+**Arquivos-alvo:**
+- `.github/workflows/ci.yml` — novo job `scoreboard` após `check`, com steps: checkout → rust → cache → fetch-test-exes → build psx-cli → roda `scripts/scoreboard.ps1` → commita `logs/scoreboard.csv` na branch `scoreboard-data`.
+- `scripts/scoreboard.ps1` — já invoca `psx-cli --bios --exe` de verdade (resolvido na 0029); o job de CI só precisa chamá-lo.
 
-**Arquivos-alvo:** `crates/psx-core/src/cpu.rs` (o `match (fn_idx, phys)` do hook do 1.10 —
-hoje cobre `(0x3C,0xA0)|(0x3D,0xB0)` putchar e `(0x3E,0xA0)|(0x3F,0xB0)` puts; falta
-`(0x3F,0xA0)` printf), `crates/psx-core/tests/cpu_printf_hook.rs` (arquivo novo).
+**Armadilhas:**
+1. **BIOS é gitignored** (`STATUS.md` L52-53). O scoreboard já emite `sem-bios` quando `bios/SCPH1001.BIN` não existe. O job de CI precisa ou baixar a BIOS de um secret, ou aceitar `sem-bios` como estado legítimo.
+2. **EXEs são gitignored** — `scripts/fetch-test-exes.ps1` baixa do GitHub Releases. O job de CI precisa rodá-lo antes do scoreboard, e se falhar (sem token, rate-limit), o scoreboard roda vazio (0/0) sem quebrar o job.
+3. **Branch `scoreboard-data` é órfã.** Commits nela são append-only (`logs/scoreboard.csv`), nunca force-push. O job precisa de `actions/checkout` com `fetch-depth: 0` ou checkout separado da branch de dados. Documente o mecanismo no doc da iteração.
+4. **Timeout:** o Amidog `psxtest_cpu` roda ~0,3 s com step-limit de 50M. O timeout do job por EXE em `scripts/scoreboard.ps1` está em 120s — se um EXE travar, o job pode levar `N * 120s`. Considere timeout de job no workflow (`timeout-minutes`).
+5. **Nem todo `.exe` em `tests/exes/` é um PS-EXE.** O zip do ps1-tests traz utilitários de host (`ps1-tests/tools/diffvram-windows-amd64.exe`); o glob `-Include *.exe` os pega, o `load_psexe` reprova no magic e o placar registra `fail-erro`, poluindo a série. Filtrar pelos 8 primeiros bytes (`PS-X EXE`, `16-cdrom-file-formats.md` L1163) em vez da extensão, ou dar status próprio a esse caso. Medido em 28/07: 51 arquivos varridos, 1 é binário de host.
+6. **O status `tty`/`sem-saida` NÃO é veredito de teste.** O scoreboard hoje mede "produziu saída no TTY", não se o EXE passou ou falhou. O critério de veredito real (ler a saída de cada suite e extrair `pass`/`fail`) é trabalho do 1.12 — não "conserte" o placar mexendo no limiar de bytes do TTY.
 
-### O que o Amidog realmente chama — medido em 28/07
-
-Instrumentando 50M passos do `psxtest_cpu.exe`, ele chama `printf` **exatamente uma vez**:
-
-```
-printf #1 fmt="args: %d\n" a1=00000000 a2=00000000 a3=00000000
-```
-
-Ou seja: para o placar sair de `fail`, basta `%d` — mas implemente o conjunto abaixo, que é
-uma feature coerente, não só o caso do teste.
-
-**Escopo desta iteração (R4):** `%%`, `%c`, `%s`, `%d`/`%i`, `%u`, `%x`/`%X`, e os argumentos
-vindos de A1/A2/A3 e depois da pilha em `[SP+10h..]`. **Fora do escopo:** `%o`, `%n`, `%p`,
-larguras, `.precisão`, `*`, e os prefixos de sinal/padding — para um especificador não
-suportado, emita a sequência literal (`%o` sai como `%o`) e **liste no doc da iteração o que
-ficou de fora**. Não silencie: especificador engolido em silêncio vira bug invisível depois.
-
-### Armadilhas
-
-1. **`printf` é A(3Fh); `puts` é A(3Eh) — e B(3Fh) também é `puts`.** O `match` do hook casa
-   `(fn_idx, phys)`: `(0x3F, 0xA0)` é printf, `(0x3F, 0xB0)` é puts. Errar isso foi o achado
-   F1 da iteração 0025; o `match` atual já está certo, só falta o braço novo.
-2. **Ler registrador com `reg_with_pending`, nunca `self.regs[n]` direto.** O hook roda antes
-   do commit do load delay slot; ler cru dá o valor velho quando o argumento vem de um `lw`
-   no delay slot do `jal` (achado F2 da 0025, já com teste).
-3. **Argumento nº 4 em diante vem da pilha do chamador em `[SP+10h..]`** (L2706), não de um
-   registrador. Se não for implementar, não finja que foi: hoje o Amidog só usa A1.
-4. **A varredura da string tem que ter teto**, como o `puts` do 1.10 (1 MiB). Ponteiro
-   inválido não pode virar laço infinito.
-5. **`%d` é decimal com sinal de 32 bits; `%u` é sem sinal.** `-1` sai `-1` em `%d` e
-   `4294967295` em `%u`. Teste os dois com o mesmo valor de entrada.
-6. **Depois do printf, o Amidog trava esperando a GPU — e isso NÃO é bug desta iteração.**
-   Medido: ele entra num laço em `80014DF0` (`lw r2,[1F801814h]` / `and r2,r2,0400_0000h` /
-   `beq r2,r0,-4`), isto é, espera **GPUSTAT.26 "Ready to receive Cmd Word"**
-   (`03-gpu.md` L1028; porta em L147). O bus devolve `0` para todo o range `1F801024h..1F801FFFh`
-   (catch-all da iter 0022), então o bit nunca acende. Isso é o item **2.1** do ROADMAP.
-   O sucesso desta iteração é o TTY conter `args: 0\n` — **não** o `psxtest_cpu` completar.
-
-### Testes de aceitação
-
-**A1 — `%d`.** `jal 0xA0` com R9=3Fh, R4 → `"n=%d\n"`, R5 = 42. `take_tty()` = `b"n=42\n"`.
-
-**A2 — sinal.** Mesma string com R5 = `0xFFFF_FFFF`: `%d` dá `n=-1`, e com `"%u"` dá
-`n=4294967295`.
-
-**A3 — `%s` e `%c` e `%%`.** `"%s=%c 100%%\n"` com R5 apontando para `"ok"` e R6 = `b'X'` →
-`b"ok=X 100%\n"`.
-
-**A4 — hex.** `"%x %X\n"` com R5 = `0xDEAD_BEEF` → `b"deadbeef DEADBEEF\n"`.
-
-**A5 — especificador fora do escopo sai literal.** `"%o\n"` → `b"%o\n"` (e a limitação
-registrada no doc).
-
-**A6 — o EXE real.** `cargo test -p psx-cli --test cli_runner -- --nocapture` e o
-`psxtest_cpu` passa a imprimir `args: 0`. Ajuste o teste do 1.11
-(`psxtest_cpu_sideload_executa_sem_panico`) para afirmar isso, e rode
-`./scripts/scoreboard.ps1` — `amidog/cpu` tem que virar `pass`. **Cole a saída dos dois
-comandos no doc da iteração**: nesta casa, afirmação sem comando que a prove não vale (foi o
-que custou três rodadas no 1.11).
-
+**Testes de aceitação:**
+- A1: `cargo test -p psx-cli --test cli_runner psxtest_cpu_sideload_executa_sem_panico` passa quando `psxtest_cpu.exe` existe (sideload + execução sem pânico, PC em KSEG0).
+- A2: `scripts/scoreboard.ps1` roda sem erro e produz `logs/scoreboard.csv` com header + pelo menos 1 linha.
+- A3: O job `scoreboard` no `ci.yml` está verde em PRs que não quebram o core (roda com `if: success()` após `check`).
 
 ## Repositório
 
@@ -132,7 +56,7 @@ que custou três rodadas no 1.11).
 
 ## Placar de testes
 
-Workspace: **230** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 27 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 10 cli_runner).
+Workspace: **241** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 27 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 10 cli_runner).
 
 ## Bloqueios
 

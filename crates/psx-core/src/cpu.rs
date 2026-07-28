@@ -66,6 +66,7 @@ impl Cpu {
                         }
                     }
                 }
+                (0x3F, 0xA0) => self.do_printf(bus),
                 _ => {}
             }
         }
@@ -833,6 +834,115 @@ impl Cpu {
             return;
         }
         self.regs[idx] = val;
+    }
+
+    fn do_printf(&self, bus: &mut Bus) {
+        let fmt = self.reg_with_pending(4);
+        let sp = self.reg_with_pending(29);
+        let regs = [
+            self.reg_with_pending(5),
+            self.reg_with_pending(6),
+            self.reg_with_pending(7),
+        ];
+        let mut arg_idx = 0u32;
+        let mut i = 0u32;
+
+        loop {
+            if i >= 1_048_576 {
+                break;
+            }
+            let byte = bus.read8::<BusRead>(fmt.wrapping_add(i));
+            i = i.wrapping_add(1);
+            if byte == 0 {
+                break;
+            }
+            if byte != b'%' {
+                bus.tty_push(byte);
+                continue;
+            }
+            if i >= 1_048_576 {
+                break;
+            }
+            let spec = bus.read8::<BusRead>(fmt.wrapping_add(i));
+            i = i.wrapping_add(1);
+            if spec == 0 {
+                bus.tty_push(b'%');
+                break;
+            }
+            match spec {
+                b'%' => bus.tty_push(b'%'),
+                b'c' => {
+                    let val = self.next_printf_arg(&regs, sp, &mut arg_idx, bus);
+                    bus.tty_push((val & 0xFF) as u8);
+                }
+                b's' => {
+                    let ptr = self.next_printf_arg(&regs, sp, &mut arg_idx, bus);
+                    for off in 0..1_048_576u32 {
+                        let b = bus.read8::<BusRead>(ptr.wrapping_add(off));
+                        if b == 0 {
+                            break;
+                        }
+                        bus.tty_push(b);
+                    }
+                }
+                b'd' | b'i' => {
+                    let val = self.next_printf_arg(&regs, sp, &mut arg_idx, bus) as i32;
+                    emit_signed(bus, val);
+                }
+                b'u' => {
+                    let val = self.next_printf_arg(&regs, sp, &mut arg_idx, bus);
+                    emit_unsigned(bus, val);
+                }
+                b'x' => {
+                    let val = self.next_printf_arg(&regs, sp, &mut arg_idx, bus);
+                    emit_hex(bus, val, false);
+                }
+                b'X' => {
+                    let val = self.next_printf_arg(&regs, sp, &mut arg_idx, bus);
+                    emit_hex(bus, val, true);
+                }
+                _ => {
+                    bus.tty_push(b'%');
+                    bus.tty_push(spec);
+                }
+            }
+        }
+    }
+
+    fn next_printf_arg(&self, regs: &[u32; 3], sp: u32, idx: &mut u32, bus: &Bus) -> u32 {
+        let i = *idx;
+        *idx += 1;
+        if i < 3 {
+            regs[i as usize]
+        } else {
+            let addr = sp.wrapping_add(0x10).wrapping_add((i - 3) * 4);
+            bus.read32::<BusRead>(addr)
+        }
+    }
+}
+
+fn emit_signed(bus: &mut Bus, val: i32) {
+    let s = format!("{}", val);
+    for b in s.bytes() {
+        bus.tty_push(b);
+    }
+}
+
+fn emit_unsigned(bus: &mut Bus, val: u32) {
+    let s = format!("{}", val);
+    for b in s.bytes() {
+        bus.tty_push(b);
+    }
+}
+
+fn emit_hex(bus: &mut Bus, val: u32, upper: bool) {
+    let s = if upper {
+        format!("{:X}", val)
+    } else {
+        format!("{:x}", val)
+    };
+    for b in s.bytes() {
+        bus.tty_push(b);
     }
 }
 

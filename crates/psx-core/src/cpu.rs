@@ -43,6 +43,33 @@ impl Cpu {
         let instr_pc = self.pc;
         let instr = bus.read32::<BusRead>(instr_pc);
 
+        let phys = instr_pc & 0x1FFF_FFFF;
+        if phys == 0xA0 || phys == 0xB0 {
+            let fn_idx = self.reg_with_pending(9);
+            match (fn_idx, phys) {
+                (0x3C, 0xA0) | (0x3D, 0xB0) => {
+                    bus.tty_push((self.reg_with_pending(4) & 0xFF) as u8);
+                }
+                (0x3E, 0xA0) | (0x3F, 0xB0) => {
+                    let src = self.reg_with_pending(4);
+                    if src == 0 {
+                        for &b in b"<NULL>" {
+                            bus.tty_push(b);
+                        }
+                    } else {
+                        for offset in 0..1_048_576u32 {
+                            let byte = bus.read8::<BusRead>(src.wrapping_add(offset));
+                            if byte == 0 {
+                                break;
+                            }
+                            bus.tty_push(byte);
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+
         let in_delay_slot = self.delay_slot_pending;
         let was_taken = self.branch_taken;
         self.delay_slot_pending = false;

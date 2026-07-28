@@ -115,3 +115,12 @@ PR como draft (`gh pr ready --undo`), e pare. Decisão sobe para o orquestrador/
 ## Passo 11 — FIM
 
 Uma iteração = um item = um PR aberto. Não comece o próximo item "já que está aqui" (R4).
+
+**Este passo proíbe COMEÇAR item novo — ele não diz que um PR aberto significa item pronto.**
+Se a rodada é de continuação (a branch já existe, o PR já está aberto e o `STATUS.md` descreve
+o item como reprovado na revisão), o trabalho é TERMINAR este item: acrescente commits à
+branch, `git push`, e pare. Não abra PR, não feche o existente, não recrie a branch.
+Medido na iter 0038, rodadas 4 e 5: as duas leram o PR aberto, concluíram "já foi concluída" e
+devolveram a rodada sem escrever uma linha — US$ 0,056 e 4 min de parede em nada. O texto que
+as induziu vinha do envoltório do `oc-iter.ps1` ("ao abrir o PR, PARE"), hoje corrigido pelo
+modo `-ContinueBranch`.

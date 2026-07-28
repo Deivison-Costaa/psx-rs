@@ -35,7 +35,7 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [x] 1.14 Opcode nao implementado gera excecao (RI 0Ah / CpU 0Bh) em vez de panic (iter 0033)
 
 ## M2 — GPU (rasterizador por software)
-- [ ] 2.1 GPUSTAT + decodificação GP0/GP1
+- [x] 2.1 GPUSTAT + decodificação GP0/GP1 (iter 0035)
 - [ ] 2.2 VRAM 1MB + transfers (fill, CPU↔VRAM)
 - [ ] 2.3 Triângulos flat + gouraud
 - [ ] 2.4 Quads, retângulos, linhas

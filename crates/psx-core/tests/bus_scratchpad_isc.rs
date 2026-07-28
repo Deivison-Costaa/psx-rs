@@ -70,7 +70,13 @@ fn scratchpad_kseg0_mirror_kseg1_nao() {
 #[test]
 fn scratchpad_limite_superior() {
     let mut bus = bus_with_bios_empty();
+    bus.write32::<BusRead>(0x0000_03FC, 0xAAAA_AAAA);
     bus.write32::<BusRead>(0x1F80_03FC, 0x1234_5678);
+    assert_eq!(
+        bus.read32::<BusRead>(0x0000_03FC),
+        0xAAAA_AAAA,
+        "D3: RAM em 0x03FC nao foi sobrescrita pelo scratchpad alias"
+    );
     assert_eq!(
         bus.read32::<BusRead>(0x1F80_03FC),
         0x1234_5678,

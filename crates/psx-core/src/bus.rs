@@ -189,9 +189,7 @@ impl Bus {
                 self.scratchpad.data[(phys - 0x1F80_0000 + offset) as usize] = val;
                 true
             }
-            0x1F80_1000..=0x1F80_1023
-            | 0x1F80_1060
-            | 0xFFFE_0130 => true,
+            0x1F80_1000..=0x1F80_1023 | 0x1F80_1060 | 0xFFFE_0130 => true,
             _ => false,
         }
     }
@@ -241,10 +239,7 @@ impl Bus {
         let phys = Self::to_physical(addr);
         if (0x1FC0_0000..0x1FC0_0000 + 0x80000).contains(&phys) {
             let offset = (phys - 0x1FC0_0000) as usize;
-            return u16::from_le_bytes([
-                self.bios.raw()[offset],
-                self.bios.raw()[offset + 1],
-            ]);
+            return u16::from_le_bytes([self.bios.raw()[offset], self.bios.raw()[offset + 1]]);
         }
         if let (Some(lo), Some(hi)) = (
             self.region_read_byte(phys, Self::kseg(addr), 0),
@@ -282,7 +277,7 @@ impl Bus {
 
     fn to_physical(addr: u32) -> u32 {
         match addr >> 29 {
-            0b010 => addr & 0x1FFF_FFFF,
+            0b010 => addr & 0x1FFF_FFFF, // 0x4000_0000..0x5FFF_FFFF
             0b100 => addr & 0x1FFF_FFFF,
             0b101 => addr & 0x1FFF_FFFF,
             _ => addr,

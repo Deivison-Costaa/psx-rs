@@ -289,3 +289,88 @@ Três consequências, e nenhuma delas é "abandonar a regra":
 Custo da noite até aqui, sem uma linha de emulador entregue: duas rodadas do trabalhador
 abortadas (~24 min de execução) e três PRs de processo (#28, #29, #30). Registrado como está:
 o projeto mede o processo, e o processo hoje gastou mais do que produziu.
+
+## 2026-07-27 (noite, fechamento) — o primeiro PR de CPU que passou, e o que ele custou
+
+O item 1.7 fechou na **terceira** tentativa, a primeira em `deepseek/deepseek-v4-pro`. É o
+primeiro PR de CPU que passa na revisão adversarial sem defeito de emulação.
+
+| | `deepseek-chat` (PR #27) | `deepseek-v4-pro` (PR #32) |
+|---|---|---|
+| Custo | US$ 0,0192 | US$ 0,1595 |
+| Tempo / steps | 5min17 / 48 | 23min / 106 |
+| Testes entregues | 20 | 25 (27 após correção) |
+| Usou `tests/support/asm.rs` | não | sim |
+| Nomes de teste em português | não | sim |
+| Implementação | errada nos 4 opcodes | correta nos 16 casos |
+
+**8,3× o custo por rodada. Mas a comparação por rodada é a errada:** o `chat` produziu duas
+rodadas descartadas (uma reprovada, uma abortada), então o custo por iteração *aproveitada*
+dele até aqui é infinito. Somando a rodada de correção (US$ 0,0524), o 1.7 custou **US$ 0,2119**
+no `pro` contra **US$ 0,0192 jogados fora** no `chat`. Ainda é a fração de uma iteração do
+Claude como trabalhador (US$ 5–8 medidos no gb-rs). A troca de modelo se paga.
+
+O que o `pro` fez diferente e não foi sorte: seguiu as duas instruções explícitas do handoff
+que o `chat` ignorou (usar os helpers existentes, nomear testes em português), e escreveu um
+teste para o caso que a spec documenta como idioma — que era o defeito 2 da rejeição anterior.
+
+### O código estava certo; o registro, não
+
+Reprovei o registro e mandei corrigir na mesma branch. Três achados:
+
+1. **Bateria de mutação irreproduzível.** Os 7 nomes de teste da tabela não existiam no
+   arquivo. O placar `7/7` provavelmente estava certo — mas ninguém consegue reproduzi-lo
+   pelos nomes publicados. Num projeto cuja segunda entrega é o registro empírico, isso é
+   defeito de primeira classe, não detalhe de formatação.
+2. **Lacuna de cobertura que a bateria não podia achar.** Ao re-executar os 7 mutantes, apliquei
+   o mutante 5 (`reg_with_pending` → `reg`) só dentro de `fn lwl` — e nenhum dos 25 testes
+   quebrou. Nenhum caso cobria o LWL lendo um load pendente; só o LWR era exercitado.
+   Comportamento certo, não testado. Daí sai regra permanente: **helper compartilhado por N
+   chamadores rende N mutantes independentes; mutar a definição testa 1 deles.** A bateria
+   muta cada ponto de chamada.
+3. **Teste de aceitação obrigatório ausente**, e o doc afirmando que existia. O trabalhador,
+   ao corrigir, diagnosticou sozinho por que a soma fechava em 25 com um teste inexistente
+   (tinha contado dois testes como um). Auto-auditoria de verdade.
+
+### Três retratações do revisor no mesmo PR
+
+Na sequência 0017→0018 o orquestrador errou três vezes e as três estão registradas:
+
+1. **0017e** — o literal do teste de aceitação obrigatório estava errado (`0x44DDCCBB` por
+   `0x44AABBCC`). Custou uma rodada abortada.
+2. **A6 da revisão da #32** — acusei a citação de spec do PR (`L240`) de estar errada. `L235`
+   é a seção-pai; `L240` é a seção certa. A citação do trabalhador era **mais precisa que a do
+   meu próprio doc da 0017**.
+3. **A2 da revisão da #32** — escrevi que o mutante 5 da tabela escapava. Não escapava: o
+   mutante que escapava era o meu, mais fino. A acusação estava mal formulada e a lição, uma
+   vez corrigida, ficou melhor (ver item 2 acima).
+
+Taxa de erro do revisor nesta janela: 3 achados retratados. Vale dizer sem rodeio — o
+orquestrador não é uma instância confiável, é só uma instância **independente**. O valor da
+revisão cruzada vem da independência, não da autoridade.
+
+### A tensão que este PR expôs: correção com rastro × limpeza de handoff
+
+O teste de aceitação do trabalhador asseria `0x44DD_CCBB` — exatamente o literal errado que eu
+publiquei e corrigi na 0017e. A asserção dele estava **certa** (o setup de memória era
+invertido, e sob ele o valor bate), então não houve defeito. Mas o valor errado continuava
+visível 6× no repositório porque corrigi "com rastro", deixando o erro registrado ao lado da
+correção. Ancoragem plausível.
+
+Os dois objetivos do projeto colidem aqui: manter o erro visível serve ao registro empírico;
+tirá-lo de circulação serve à qualidade do handoff. Não resolvi por decreto. O que passa a
+valer é uma separação de lugar: **o erro fica no doc da iteração (memória longa, que o
+trabalhador não lê por R8); o STATUS (memória curta, que ele lê sempre) carrega só o valor
+correto.** Isso preserva o registro sem deixar o literal errado no caminho de quem trabalha.
+
+### Papercuts de infraestrutura pagos nesta sessão
+
+- `Test-Connection -TargetName localhost -TcpPort 4096 -Quiet` devolve `False` mesmo com o
+  `opencode serve` escutando (confirmado por `Get-NetTCPConnection`). O `oc-iter.ps1` tenta
+  subir um segundo servidor toda rodada e perde ~60s. **Não corrigido** — vira iteração de
+  infra própria, deliberadamente não mexido no meio de execução.
+- Arquivo de tarefa escrito pelo Bash em `/tmp/...` e lido pelo PowerShell como `C:\tmp\...`:
+  a rodada morreu na largada sem gastar token. Caminho absoluto do Windows resolve. Custo real:
+  uma rodada perdida e a descoberta de que `oc-iter.ps1` faz `git checkout main` incondicional
+  na linha 19 — o que só não quebrou a correção porque a tarefa mandava o trabalhador fazer
+  checkout da branch do PR.

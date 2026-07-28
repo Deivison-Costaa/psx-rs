@@ -45,7 +45,10 @@ existirem:
 ```
 
 Sonda do orquestrador com `[0..3] = DD CC BB AA`, `[4..7] = 44 33 22 11`, `t0 = 1` — a
-palavra desalinhada em 1 é `0x44DDCCBB`. Resultado obtido: **`0x00CCBBAA`**. O `lwr` faz o
+palavra desalinhada em 1 é `0x44AABBCC` (bytes `[1][2][3][4]` = `CC BB AA 44`; este documento
+dizia `0x44DDCCBB` até 2026-07-27, erro do orquestrador corrigido na 0017e). Resultado
+obtido: **`0x00CCBBAA`**. O achado não depende do valor esperado: falta o `0x44` no topo, ou
+seja, a contribuição do `lwl` sumiu inteira. O `lwr` faz o
 merge contra `self.reg(rt)`, que ainda é o valor antigo enquanto o resultado do `lwl` está
 no load delay; o `lwl` é commitado depois e em seguida sobrescrito. A contribuição dele some
 inteira.

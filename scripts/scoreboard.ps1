@@ -67,16 +67,16 @@ foreach ($exe in $exeFiles) {
         if ($stderr -match "Runner: (\d+) passos, TTY: (\d+) bytes") {
             $ttyBytes = [int]$Matches[2]
             if ($ttyBytes -gt 0) {
-                $rows += "$ts,$commit,$suite,$($exe.Name),pass,"
+                $rows += "$ts,$commit,$suite,$($exe.Name),tty,"
             } else {
-                $rows += "$ts,$commit,$suite,$($exe.Name),fail,"
+                $rows += "$ts,$commit,$suite,$($exe.Name),sem-saida,"
             }
         } else {
             $stdout = Get-Content "logs/tmp_stdout.txt" -Raw -ErrorAction SilentlyContinue
             if ($stdout -and $stdout.Length -gt 0) {
-                $rows += "$ts,$commit,$suite,$($exe.Name),pass,"
+                $rows += "$ts,$commit,$suite,$($exe.Name),tty,"
             } else {
-                $rows += "$ts,$commit,$suite,$($exe.Name),fail,"
+                $rows += "$ts,$commit,$suite,$($exe.Name),sem-saida,"
             }
         }
     } catch {
@@ -92,5 +92,5 @@ if (-not (Test-Path $OutFile)) {
 }
 Add-Content $OutFile $rows
 $total = @($rows).Count
-$pass = @($rows | Where-Object { $_ -match ",pass," }).Count
-Write-Host "scoreboard: $pass/$total passando (commit $commit, bios=$haveBios) -> $OutFile"
+$tty = @($rows | Where-Object { $_ -match ",tty," }).Count
+Write-Host "scoreboard: $tty/$total produziram saida (criterio: TTY nao vazio; veredito real fica para o 1.12) (commit $commit, bios=$haveBios) -> $OutFile"

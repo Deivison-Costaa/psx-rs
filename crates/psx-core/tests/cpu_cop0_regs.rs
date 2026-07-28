@@ -11,7 +11,7 @@ fn bus_with_bios_empty() -> Bus {
 }
 
 fn nop() -> u32 {
-    (0 << 21) | (0 << 16) | (0 << 11) | 0x00
+    0x00
 }
 
 fn mfc0(rt: u32, cop0_reg: u32) -> u32 {

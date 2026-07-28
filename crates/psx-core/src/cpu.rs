@@ -611,7 +611,8 @@ impl Cpu {
             0x00 => {
                 let rt = ((instr >> 16) & 0x1F) as usize;
                 let rd = ((instr >> 11) & 0x1F) as usize;
-                Some((rt, self.cop0_read(rd)))
+                let val = self.cop0_read(rd);
+                Some((rt, val))
             }
             0x04 => {
                 let rt = ((instr >> 16) & 0x1F) as usize;
@@ -637,13 +638,6 @@ impl Cpu {
         }
     }
 
-    fn cop0_read(&self, reg: usize) -> u32 {
-        if reg >= 32 {
-            return 0;
-        }
-        self.cop0[reg]
-    }
-
     fn cop0_write(&mut self, reg: usize, val: u32) {
         if reg >= 32 {
             return;
@@ -656,6 +650,13 @@ impl Cpu {
             return;
         }
         self.cop0[reg] = val;
+    }
+
+    fn cop0_read(&self, reg: usize) -> u32 {
+        if reg >= 32 {
+            return 0;
+        }
+        self.cop0[reg]
     }
 
     fn set_reg(&mut self, idx: usize, val: u32) {

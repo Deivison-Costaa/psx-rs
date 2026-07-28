@@ -5,15 +5,12 @@
 
 ## Última iteração concluída
 
-**0027-correcao** — Rodada de correção da iter 0027 após revisão adversarial no PR #41.
-Bloco F1+F2: sideload agora instala stubs `jr $ra` em A0h/B0h/C0h (`psexe::install_return_stubs`)
-antes de entregar controle ao EXE; A2 parou de escrever `jr $ra` à mão. A4 usa o nome correto
-(`psxtest_cpu.exe`, não `.psexe`) e exercita o EXE real com stubs, afirmando TTY não vazio.
-Bloco F3: zero `unwrap()`/`expect()` em produção. Bloco F4: corpo truncado rejeitado com `Err`.
-Bloco F5: `cargo fmt` rodado. Bloco F6: detecção de halt removida (step-limit único), asserção
-de A1 ajustada para afirmar passos executados. Bloco F7: handoff do 1.12 reescrito no padrão.
-Scoreboard adaptado para invocar psx-cli real com `--bios --exe`, registrando `sem-bios` se a
-BIOS estiver ausente. 11 testes (10 cli_runner + 1 bios_flag), 230 no workspace.
+**0027** — Sideload de PS-EXE no psx-cli + Amidog psxtest_cpu no scoreboard (ROADMAP 1.11).
+Terceira rodada de correção após duas revisões adversariais. A4 agora executa de verdade
+(dois `..` em `exe_dir()`), afirma PC em KSEG0 sem mentir sobre TTY (printf A(3Fh) pendente).
+Scoreboard funcional (quoting de caminhos com espaço corrigido), `amidog/cpu` = `fail`.
+ROADMAP 1.11b adicionado para printf A(3Fh). Bateria de mutação refeita do zero (7/7, 3/3).
+230 testes no workspace. Ver `docs/iterations/0027-sideload-psexe.md`.
 
 **0023** — Iteração de processo (sem código): incorporação das métricas pendentes da 0022 e
 registro do erro de escopo múltiplo em commit reprovado pelo `commit-lint`.
@@ -56,10 +53,10 @@ offsets citados linha a linha. Ver `docs/iterations/0026-spec-formato-psexe.md`.
 1. **BIOS é gitignored** (`STATUS.md` L71-72). O scoreboard já emite `sem-bios` quando `bios/SCPH1001.BIN` não existe. O job de CI precisa ou baixar a BIOS de um secret, ou aceitar `sem-bios` como estado legítimo.
 2. **EXEs são gitignored** — `scripts/fetch-test-exes.ps1` baixa do GitHub Releases. O job de CI precisa rodá-lo antes do scoreboard, e se falhar (sem token, rate-limit), o scoreboard roda vazio (0/0) sem quebrar o job.
 3. **Branch `scoreboard-data` é órfã.** Commits nela são append-only (`logs/scoreboard.csv`), nunca force-push. O job precisa de `actions/checkout` com `fetch-depth: 0` ou checkout separado da branch de dados. Documente o mecanismo no doc da iteração.
-4. **Timeout:** o Amidog `psxtest_cpu` roda ~5 segundos com step-limit de 50M. O timeout do job por EXE (`scoreboard.ps1` L120) está em 120s — se um EXE travar, o job pode levar `N * 120s`. Considere timeout de job no workflow (`timeout-minutes`).
+4. **Timeout:** o Amidog `psxtest_cpu` roda ~0,3 s com step-limit de 50M. O timeout do job por EXE em `scripts/scoreboard.ps1` está em 120s — se um EXE travar, o job pode levar `N * 120s`. Considere timeout de job no workflow (`timeout-minutes`).
 
 **Testes de aceitação:**
-- A1: `cargo test -p psx-cli --test cli_runner psxtest_cpu_sideload_real` passa quando `psxtest_cpu.exe` existe (TTY não vazio).
+- A1: `cargo test -p psx-cli --test cli_runner psxtest_cpu_sideload_executa_sem_panico` passa quando `psxtest_cpu.exe` existe (sideload + execução sem pânico, PC em KSEG0; TTY depende de printf A(3Fh) — ROADMAP 1.11b).
 - A2: `scripts/scoreboard.ps1` roda sem erro e produz `logs/scoreboard.csv` com header + pelo menos 1 linha.
 - A3: O job `scoreboard` no `ci.yml` está verde em PRs que não quebram o core (roda com `if: success()` após `check`).
 

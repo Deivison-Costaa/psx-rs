@@ -5,12 +5,12 @@
 
 ## Última iteração concluída
 
-**0022** — Cache isolation + scratchpad + memory control (ROADMAP 1.9): decodificação
-de região no Bus para Scratchpad 1KB (`1F800000h..1F8003FFh`), memory control stubs
-(`1F801000h..1F801023h` + `1F801060h`), BCC (`FFFE0130h`) e `SR.Isc` (bit 16) suprimindo
-stores no CPU. 6 testes, 5/5 mutantes pegos, 1/1 controle verde. Armadilha conhecida:
-D3 precisou de testemunha RAM dupla porque o alias do range errado passava o readback
-simples. Ver `docs/iterations/0022-scratchpad-isc.md`.
+**0027** — Sideload de PS-EXE no psx-cli + Amidog psxtest_cpu no scoreboard (ROADMAP 1.11).
+Terceira rodada de correção após duas revisões adversariais. A4 agora executa de verdade
+(dois `..` em `exe_dir()`), afirma PC em KSEG0 sem mentir sobre TTY (printf A(3Fh) pendente).
+Scoreboard funcional (quoting de caminhos com espaço corrigido), `amidog/cpu` = `fail`.
+ROADMAP 1.11b adicionado para printf A(3Fh). Bateria de mutação refeita do zero (7/7, 3/3).
+230 testes no workspace. Ver `docs/iterations/0027-sideload-psexe.md`.
 
 **0023** — Iteração de processo (sem código): incorporação das métricas pendentes da 0022 e
 registro do erro de escopo múltiplo em commit reprovado pelo `commit-lint`.
@@ -33,81 +33,36 @@ offsets citados linha a linha. Ver `docs/iterations/0026-spec-formato-psexe.md`.
 
 ## Próxima tarefa
 
-**ROADMAP 1.11** — Sideload de PS-EXE no psx-cli + Amidog psxtest_cpu no scoreboard.
+**ROADMAP 1.12** — CI: job scoreboard ligado + primeiro placar real no histórico.
 
-**Spec — layout do header (baixado na iter 0026):**
-`docs/reference/16-cdrom-file-formats.md` **L1162-1184**. Header de 800h bytes, código/dados
-logo depois. Campos, **exatamente como a spec os lista** (não renomeie para t_addr/b_addr —
-esses nomes vêm de outras ferramentas, não do psx-spx):
+**Spec:** O item não tem spec de hardware. Os arquivos de referência são:
 
-| Offset | Campo |
-|---|---|
-| `000h-007h` | ID ASCII `PS-X EXE` |
-| `010h` | Initial PC (tipicamente `80010000h`) |
-| `014h` | Initial GP/R28 (tipicamente 0) |
-| `018h` | **Destination Address in RAM** — para onde o corpo é carregado |
-| `01Ch` | Filesize, múltiplo de 800h, **sem** contar o header |
-| `020h`/`024h` | Data section addr/size (tipicamente 0) |
-| `028h`/`02Ch` | BSS addr/size (`0` = nenhuma) |
-| `030h`/`034h` | SP/R29 e FP/R30: base (tipicamente `801FFFF0h`, `0` = não mexer) e offset somado à base |
-| `038h-04Bh` | Reservado para A(43h); a BIOS guarda RA,SP,R30,R28,R16 do chamador aqui |
-| `800h...` | Código/dados, carregados no endereço de `018h` |
+| Fonte | Seção | Arquivo local |
+|---|---|---|
+| ROADMAP | Item 1.12 (L32) | `ROADMAP.md` |
+| Scoreboard | script completo (L1-88) | `scripts/scoreboard.ps1` |
+| CI workflow | job check (L1-24) | `.github/workflows/ci.yml` |
+| Fetch de EXEs | script de download (L1-67) | `scripts/fetch-test-exes.ps1` |
+| BIOS | nota 1: local e hash | `STATUS.md` L71-72 |
 
-**Spec — funções da BIOS:** `docs/reference/13-kernel-bios.md` — A(41h) LoadTest (L1041),
-A(43h) Exec (L1054-1063), A(51h) LoadExec (L1065-1095), Executable Memory Allocation
-(L1150-1157). O 1.11 não lê setores de CD-ROM nem implementa LoadExec: é o sideload mínimo
-para rodar um EXE de arquivo local.
+**Arquivos-alvo:**
+- `.github/workflows/ci.yml` — novo job `scoreboard` após `check`, com steps: checkout → rust → cache → fetch-test-exes → build psx-cli → roda `scripts/scoreboard.ps1` → commita `logs/scoreboard.csv` na branch `scoreboard-data`.
+- `scripts/scoreboard.ps1` — já adaptado nesta rodada para invocar `psx-cli --bios --exe`; o job de CI só precisa chamá-lo.
 
-**Arquivos-alvo:** `crates/psx-cli/src/main.rs` (args: `psx-cli --bios <BIOS> --exe <PS-EXE>`),
-`crates/psx-core/src/cpu.rs` (estado do step após halt), `crates/psx-cli/tests/cli_runner.rs`
-(teste de integração novo).
+**Armadilhas:**
+1. **BIOS é gitignored** (`STATUS.md` L71-72). O scoreboard já emite `sem-bios` quando `bios/SCPH1001.BIN` não existe. O job de CI precisa ou baixar a BIOS de um secret, ou aceitar `sem-bios` como estado legítimo.
+2. **EXEs são gitignored** — `scripts/fetch-test-exes.ps1` baixa do GitHub Releases. O job de CI precisa rodá-lo antes do scoreboard, e se falhar (sem token, rate-limit), o scoreboard roda vazio (0/0) sem quebrar o job.
+3. **Branch `scoreboard-data` é órfã.** Commits nela são append-only (`logs/scoreboard.csv`), nunca force-push. O job precisa de `actions/checkout` com `fetch-depth: 0` ou checkout separado da branch de dados. Documente o mecanismo no doc da iteração.
+4. **Timeout:** o Amidog `psxtest_cpu` roda ~0,3 s com step-limit de 50M. O timeout do job por EXE em `scripts/scoreboard.ps1` está em 120s — se um EXE travar, o job pode levar `N * 120s`. Considere timeout de job no workflow (`timeout-minutes`).
+5. **Nem todo `.exe` em `tests/exes/` é um PS-EXE.** O zip do ps1-tests traz utilitários de host (`ps1-tests/tools/diffvram-windows-amd64.exe`); o glob `-Include *.exe` os pega, o `load_psexe` reprova no magic e o placar registra `fail-erro`, poluindo a série. Filtrar pelos 8 primeiros bytes (`PS-X EXE`, `16-cdrom-file-formats.md` L1163) em vez da extensão, ou dar status próprio a esse caso. Medido em 28/07: 51 arquivos varridos, 1 é binário de host.
+6. **`psx-cli` não distingue "rodou e não imprimiu" de "0 passos".** Hoje `pass`/`fail` sai de TTY vazio ou não; enquanto o printf A(3Fh) não existir (item 1.11b), **todos** os EXEs reais dão `fail`. Isso é o placar honesto do estado atual, não um bug do job — não "conserte" mexendo no critério.
 
-### Armadilhas
+**Testes de aceitação:**
+- A1: `cargo test -p psx-cli --test cli_runner psxtest_cpu_sideload_executa_sem_panico` passa quando `psxtest_cpu.exe` existe (sideload + execução sem pânico, PC em KSEG0; TTY depende de printf A(3Fh) — ROADMAP 1.11b).
+- A2: `scripts/scoreboard.ps1` roda sem erro e produz `logs/scoreboard.csv` com header + pelo menos 1 linha.
+- A3: O job `scoreboard` no `ci.yml` está verde em PRs que não quebram o core (roda com `if: success()` após `check`).
 
-1. **O header de PS-EXE tem 800h bytes, mas os campos relevantes estão em [10h..4Bh].**
-   O headerbuf que Exec recebe tem só 3Ch bytes. O offset no arquivo .psexe é diferente
-   do offset no headerbuf — não confundir.
-2. **Os endereços do header são VIRTUAIS (KSEG0, `8001xxxx`), não físicos.** O destino em
-   `018h` é tipicamente `80010000h`; escrever esse valor direto como índice de RAM estoura.
-   Passe pela tradução do Bus. (A versão anterior desta armadilha dizia que o PC inicial era
-   KSEG1 `0xBFC0_xxxx` — errado, e removido na revisão do PR #39: `BFC00000h` é o reset
-   entrypoint da BIOS ROM, `14-io-map.md` L275. A spec agora local diz `80010000h`,
-   `16-cdrom-file-formats.md` L1166.)
-2b. **Zerofill do BSS é word-a-word: endereço e tamanho são múltiplos de 4** (L1195). E
-   `02Ch` = 0 significa *nenhuma* BSS — não zere nada nesse caso.
-3. **BSS zerofill: b_addr pode ser > t_addr+t_size.** Zerar b_size bytes a partir de b_addr
-   depois de carregar o código.
-4. **Registradores iniciais:** PC (`010h`), GP/R28 (`014h`), SP/R29 e FP/R30 = base
-   (`030h`) + offset (`034h`). **Base `0` significa "não mexa no SP/FP"** (L1188), não
-   "SP=0". A spec ainda diz que o executável recebe R4 e R5 como parâmetros, "usually R4=1 e
-   R5=0" (L1200-1202) — adote esses valores e registre como escolha. Demais registradores = 0
-   (a spec não especifica; é o estado limpo que faz sentido no sideload).
-5. **Critério de parada do runner — NÃO VERIFICADO.** A proposta é parar quando o PC repete o
-   mesmo endereço (`JMP $`), mas nada na spec local diz que o Amidog termina assim; é palpite
-   de quem escreveu este handoff. Trate como hipótese: implemente um teto de passos como
-   parada primária (sempre correta) e, se for adotar a detecção de auto-loop, confirme com a
-   saída real do `psxtest_cpu` e registre no doc da iteração.
-6. **`scripts/fetch-test-exes.ps1` precisa ser rodado antes** para baixar `tests/exes/amidog/cpu/psxtest_cpu.psexe`.
-   Verifique pré-existência no teste e pule com `#[ignore]` se faltar.
 
-### Testes de aceitação
-
-**A1 — Sideload de EXE mínimo.** Um .psexe sintético (montado no teste via bytes): magic "PS-X EXE",
-PC=0x8000_0000, GP=0, SP base/offset em RAM, t_addr=0x8000_0000, t_size=4, código = `JMP $`.
-Runner executa e detecta halt em ≤1000 steps.
-
-**A2 — print "OK" via TTY.** EXE sintético com `jal 0xA0` + R9=0x3C + R4='O' + R4='K'`, seguido
-de `JMP $`. `take_tty()` devolve `b"OK"`.
-
-**A3 — Zero-fill do BSS.** EXE com b_size=8, b_addr logo após o código. Verifica que os 8 bytes
-de RAM em b_addr são zero após o load.
-
-**A4 — `psxtest_cpu` executa e o scoreboard registra o resultado.** `scripts/scoreboard.ps1`
-roda com o runner funcional; o EXE do Amidog não precisa passar todos os testes (vai falhar
-nos assumidos), mas o placar deve listar o EXE com status `pass` ou `fail` (não `sem-runner`).
-
-**A5 — `--bios` ausente ou BIOS inválida → erro claro.** `psx-cli --exe foo.psexe` sem `--bios`
-imprime mensagem de erro e sai com código ≠ 0.
 
 ## Repositório
 
@@ -121,7 +76,7 @@ imprime mensagem de erro e sai com código ≠ 0.
 
 ## Placar de testes
 
-Workspace: **221** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 27 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook).
+Workspace: **230** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 27 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 10 cli_runner).
 
 ## Bloqueios
 

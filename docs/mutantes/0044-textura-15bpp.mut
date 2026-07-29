@@ -72,8 +72,14 @@ controle: K1
 rotulo: renomeia variavel local tex_colors para mode em sample_texel (cosmetico)
 @@DE
         let tex_colors = (stat >> 7) & 3;
+        let u_clamped = u.clamp(0, 255) as u16;
+        let v_clamped = v.clamp(0, 255) as u16;
+        if tex_colors == 2 || tex_colors == 3 {
 @@PARA
         let mode = (stat >> 7) & 3;
+        let u_clamped = u.clamp(0, 255) as u16;
+        let v_clamped = v.clamp(0, 255) as u16;
+        if mode == 2 || mode == 3 {
 @@FIM
 
 controle: K2

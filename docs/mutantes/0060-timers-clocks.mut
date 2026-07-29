@@ -1,0 +1,189 @@
+# Manifesto de mutação da iteração 0060 — timers-clocks
+formato: 1
+iteracao: 0060
+item: 3.4c
+alvo: crates/psx-core/src/timers.rs
+teste: timers_dotclock_hblank
+
+mutante: m1
+rotulo: dotclock usa numerador errado (1 em vez de 11)
+@@DE
+            0 if clock_src == 1 || clock_src == 3 => {
+                let cpp = self.gpu_cycles_per_pix.get() as u64;
+                (11, 7 * cpp)
+@@PARA
+            0 if clock_src == 1 || clock_src == 3 => {
+                let cpp = self.gpu_cycles_per_pix.get() as u64;
+                (1, cpp)
+@@FIM
+
+mutante: m2
+rotulo: hblank usa denominador errado (sem 7x)
+@@DE
+            1 if clock_src == 1 || clock_src == 3 => {
+                let vcs = self.gpu_video_cycles_per_scanline.get() as u64;
+                (11, 7 * vcs)
+@@PARA
+            1 if clock_src == 1 || clock_src == 3 => {
+                let vcs = self.gpu_video_cycles_per_scanline.get() as u64;
+                (11, vcs)
+@@FIM
+
+mutante: m3
+rotulo: dotclock ativado no timer errado (idx==0 trocado por idx==1)
+@@DE
+            0 if clock_src == 1 || clock_src == 3 => {
+@@PARA
+            1 if clock_src == 1 || clock_src == 3 => {
+@@FIM
+
+mutante: m4
+rotulo: sync_enable=0 ainda verifica clock_src (regressao para o codigo antigo)
+@@DE
+            true
+        };
+
+        if !increment {
+@@PARA
+            match idx {
+                0 | 1 => clock_src == 0 || clock_src == 2,
+                2 => true,
+                _ => false,
+            }
+        };
+
+        if !increment {
+@@FIM
+
+mutante: m5
+rotulo: escrever MODE nao reseta cycle_acc (so reseta counter)
+@@DE
+    pub fn write32(&mut self, offset: u32, val: u32) {
+        let base = offset & !0xF;
+        let reg = offset & 0xF;
+        let idx = Self::timer_index(base);
+        match reg {
+            0x0 => {
+                self.timers[idx].counter.set((val & 0xFFFF) as u16);
+            }
+            0x4 => {
+                let t = &self.timers[idx];
+                let prev = t.mode.get();
+                let mut mode = (prev & 0x7C00) | (val & 0x3FF);
+                mode |= 1 << 10;
+                t.mode.set(mode);
+                t.counter.set(0);
+                t.cycle_acc.set(0);
+@@PARA
+    pub fn write32(&mut self, offset: u32, val: u32) {
+        let base = offset & !0xF;
+        let reg = offset & 0xF;
+        let idx = Self::timer_index(base);
+        match reg {
+            0x0 => {
+                self.timers[idx].counter.set((val & 0xFFFF) as u16);
+            }
+            0x4 => {
+                let t = &self.timers[idx];
+                let prev = t.mode.get();
+                let mut mode = (prev & 0x7C00) | (val & 0x3FF);
+                mode |= 1 << 10;
+                t.mode.set(mode);
+                t.counter.set(0);
+@@FIM
+
+mutante: m6
+rotulo: modo sync 0 nao pausa (ignora hblank/vblank)
+@@DE
+                    0 => !sync_signal,
+@@PARA
+                    0 => true,
+@@FIM
+
+mutante: m7
+rotulo: timer 2 divisor /8 ignorado (tratado como /1)
+@@DE
+            2 if clock_src == 2 || clock_src == 3 => (1, 8),
+@@PARA
+            2 if clock_src == 2 || clock_src == 3 => (1, 1),
+@@FIM
+
+controle: K1
+rotulo: extrair denominador em variavel local (equivalente semantico)
+@@DE
+            if !increment {
+            return;
+        }
+
+        let (numer, denom): (u64, u64) = match idx {
+            0 if clock_src == 1 || clock_src == 3 => {
+                let cpp = self.gpu_cycles_per_pix.get() as u64;
+                (11, 7 * cpp)
+            }
+            1 if clock_src == 1 || clock_src == 3 => {
+                let vcs = self.gpu_video_cycles_per_scanline.get() as u64;
+                (11, 7 * vcs)
+            }
+            2 if clock_src == 2 || clock_src == 3 => (1, 8),
+            _ => (1, 1),
+        };
+
+        let prev_acc = t.cycle_acc.get() as u64;
+        let total = prev_acc * denom + (cycles as u64) * numer;
+        let effective = (total / denom) as u32;
+        t.cycle_acc.set((total % denom) as u32);
+@@PARA
+            if !increment {
+            return;
+        }
+
+        let n: u64;
+        let d: u64;
+        match idx {
+            0 if clock_src == 1 || clock_src == 3 => {
+                let cpp = self.gpu_cycles_per_pix.get() as u64;
+                n = 11;
+                d = 7 * cpp;
+            }
+            1 if clock_src == 1 || clock_src == 3 => {
+                let vcs = self.gpu_video_cycles_per_scanline.get() as u64;
+                n = 11;
+                d = 7 * vcs;
+            }
+            2 if clock_src == 2 || clock_src == 3 => {
+                n = 1;
+                d = 8;
+            }
+            _ => {
+                n = 1;
+                d = 1;
+            }
+        }
+        let numer = n;
+        let denom = d;
+
+        let prev_acc = t.cycle_acc.get() as u64;
+        let total = prev_acc * denom + (cycles as u64) * numer;
+        let effective = (total / denom) as u32;
+        t.cycle_acc.set((total % denom) as u32);
+@@FIM
+
+controle: K2
+rotulo: reordenar match arms do increment por idx (logica identica)
+@@DE
+                _ => return,
+            }
+        } else {
+            true
+        };
+@@PARA
+                _ => return,
+            }
+        } else {
+            if !sync_enable {
+                true
+            } else {
+                false
+            }
+        };
+@@FIM

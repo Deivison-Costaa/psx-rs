@@ -10,7 +10,7 @@
 ## Próxima tarefa
 
 **ROADMAP 2.5 — Texturas 4/8/15bpp + CLUT + texture window.** Spec: `docs/reference/03-gpu.md`,
-seções Texture Caching (L138-L206), Texpage Attribute (L471-478), Clut Attribute (L481-489),
+seções Texture Caching (L1349-L1557), Texpage Attribute (L471-478), Clut Attribute (L481-489),
 GP0(E1h) Draw Mode (L492-519), GP0(E2h) Texture Window (L521-549).
 Arquivos-alvo: `crates/psx-core/src/gpu.rs` e `docs/reference/03-gpu.md`.
 Armadilha: retângulos texturizados já consomem UV (`RectRender::AwaitUV`) mas não desenham
@@ -80,7 +80,7 @@ Workspace: **338** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version
    registrador do COP0 que não seja garbage (r16-r31), ou executar RFE, em User mode com
    COP0 disabled (SR.bit1=1 e SR.bit28=0) gera Coprocessor Unusable Exception (excode=0Bh).
    Os registradores garbage r16-r31 podem ser acessados nesse estado sem exceção. Fonte:
-   `docs/reference/02-cpu.md`, seção cop0r16-r31 - Garbage (L805).
+   `docs/reference/02-cpu.md`, seção cop0r16-r31 - Garbage (L885).
 8. **E1 — Entrada de exceção preserva bits Sw (8-9) e IP (10-15) do CAUSE.** A escrita
    do ExcCode agora usa máscara: `self.cop0[13] = (self.cop0[13] & !0xC000_007C) | cause`,
    gravando apenas BD (bit31), BT (bit30) e ExcCode (bits 2-6). O erro original

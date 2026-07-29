@@ -5,12 +5,12 @@
 
 ## Última iteração concluída
 
-**0042** — Linhas e retângulos (ROADMAP 2.4).
+**0043** — Verificador de citações de spec (ROADMAP 0.12).
 
 ## Próxima tarefa
 
 **ROADMAP 2.5 — Texturas 4/8/15bpp + CLUT + texture window.** Spec: `docs/reference/03-gpu.md`,
-seções Texture Caching (L138-L206), Texpage Attribute (L471-478), Clut Attribute (L481-489),
+seções Texture Caching (L1349-L1557), Texpage Attribute (L471-478), Clut Attribute (L481-489),
 GP0(E1h) Draw Mode (L492-519), GP0(E2h) Texture Window (L521-549).
 Arquivos-alvo: `crates/psx-core/src/gpu.rs` e `docs/reference/03-gpu.md`.
 Armadilha: retângulos texturizados já consomem UV (`RectRender::AwaitUV`) mas não desenham
@@ -28,7 +28,7 @@ textura — o 2.5 completa os caminhos de textura de polígono e retângulo.
 
 ## Placar de testes
 
-Workspace: **338** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 29 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 11 cpu_opcode_reservado + 16 gpu_status_gp0_gp1 + 9 ci_scoreboard + 9 cli_runner + 21 gpu_vram_transfers + 20 gpu_triangulos_flat_gouraud + 17 gpu_linhas_retangulos + 2 mutation_manifest + 2 mutation_anchors + 5 mutation_battery).
+Workspace: **339** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 29 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 11 cpu_opcode_reservado + 16 gpu_status_gp0_gp1 + 9 ci_scoreboard + 9 cli_runner + 21 gpu_vram_transfers + 20 gpu_triangulos_flat_gouraud + 21 gpu_linhas_retangulos + 1 spec_citations + 2 mutation_manifest + 2 mutation_anchors + 5 mutation_battery).
 
 ## Bloqueios
 
@@ -80,7 +80,7 @@ Workspace: **338** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version
    registrador do COP0 que não seja garbage (r16-r31), ou executar RFE, em User mode com
    COP0 disabled (SR.bit1=1 e SR.bit28=0) gera Coprocessor Unusable Exception (excode=0Bh).
    Os registradores garbage r16-r31 podem ser acessados nesse estado sem exceção. Fonte:
-   `docs/reference/02-cpu.md`, seção cop0r16-r31 - Garbage (L805).
+   `docs/reference/02-cpu.md`, seção cop0r16-r31 - Garbage (L885).
 8. **E1 — Entrada de exceção preserva bits Sw (8-9) e IP (10-15) do CAUSE.** A escrita
    do ExcCode agora usa máscara: `self.cop0[13] = (self.cop0[13] & !0xC000_007C) | cause`,
    gravando apenas BD (bit31), BT (bit30) e ExcCode (bits 2-6). O erro original
@@ -111,7 +111,7 @@ Workspace: **338** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version
 12. **`file_size.rs`: `cpu_exception_mechanism.rs` está em 487 linhas de 500.** O próximo
     teste de exceção vai para `cpu_exception_estado_previo.rs`, criado na segunda rodada de
     revisão do PR #35, ou para um arquivo novo com nome próprio. Não corte casos existentes.
-13. **Linhas INCLUEM a coordenada inferior-direita (L361-362); polígonos EXCLUEM (L323).**
+13. **Linhas INCLUEM a coordenada inferior-direita (`docs/reference/03-gpu.md` L361-362); polígonos EXCLUEM (`docs/reference/03-gpu.md` L323).**
     As duas funções de rasterização têm regras de borda OPOSTAS. `render_single_line` usa
     Bresenham com break em `x==x1 && y==y1` (inclusivo); `render_triangle` usa
     `xr.min(area_x2 + 1)` (exclusivo). Não reusa uma na outra.

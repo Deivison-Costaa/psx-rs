@@ -312,18 +312,11 @@ function Invoke-CargoTest {
 
     $testNames = @()
     if ($testFailed -and $output) {
-        $inFailures = $false
-        foreach ($line in ($output -split "`n")) {
-            if ($line -match '^failures:') {
-                $inFailures = $true
-                continue
-            }
-            if ($inFailures) {
-                if ($line.Trim() -eq "") { break }
-                $name = $line.TrimStart()
-                if ($name -match '^    (.+)') {
-                    $testNames += $Matches[1]
-                } elseif ($name -and $name -notmatch '^test result:') {
+        if ($output -match 'failures:\r?\n((?:    [a-zA-Z_]\w+.+\r?\n)+)\r?\ntest result: FAILED') {
+            $namesBlock = $Matches[1]
+            foreach ($n in ($namesBlock -split "`n")) {
+                $name = $n.Trim()
+                if ($name -and $name -notmatch '----') {
                     $testNames += $name
                 }
             }
@@ -397,9 +390,9 @@ foreach ($manifestPath in $manifestPaths) {
 
         Write-Host -NoNewline "  $($rec.id) ($($rec.kind)) ... "
 
-        $isControleOrEquiv = ($rec.kind -eq "controle" -or $rec.kind -eq "equivalente")
+        $isControle = ($rec.kind -eq "controle")
         $isEquivalente = ($rec.kind -eq "equivalente")
-        if ($isControleOrEquiv) {
+        if ($isControle) {
             $controlesTotal++
         }
         if ($isEquivalente) {

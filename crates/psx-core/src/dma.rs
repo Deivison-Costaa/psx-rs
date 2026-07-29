@@ -65,7 +65,7 @@ impl Dma {
     }
 
     pub fn try_execute_otc(&mut self, ram: &mut [u8]) {
-        if self.chcr[6] & (1 << 24) == 0 {
+        if (self.chcr[6] & ((1 << 24) | (1 << 28))) != ((1 << 24) | (1 << 28)) {
             return;
         }
         let madr = self.madr[6] & 0x00FF_FFFC;

@@ -22,9 +22,9 @@ Revisão do PR anterior (0056): sem achados.
 | psx-spx | DMA Register Summary (L27) | docs/reference/04-dma.md |
 | psx-spx | D#\_MADR (L43) | docs/reference/04-dma.md |
 | psx-spx | D#\_BCR (L61) | docs/reference/04-dma.md |
-| psx-spx | D#\_CHCR (L84) | docs/reference/04-dma.md |
-| psx-spx | Commonly used values (L159) | docs/reference/04-dma.md |
-| psx-spx | Linked List DMA (L173) | docs/reference/04-dma.md |
+| psx-spx | D#\_CHCR | docs/reference/04-dma.md |
+| psx-spx | Commonly used values (L184) | docs/reference/04-dma.md |
+| psx-spx | Linked List DMA (L198) | docs/reference/04-dma.md |
 | psx-spx | KSEG2 I/O region (L534) | docs/reference/02-cpu.md |
 
 ## Erros de primeira tentativa

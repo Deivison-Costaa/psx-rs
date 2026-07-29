@@ -30,10 +30,11 @@ Revisão do PR anterior: sem achados
 | 1 | timing | Que o cálculo do acumulado do teste `timer1_hblank_ntsc` daria 6 após duas chamadas de tick | O correto é 7224 — fração acumulada 7218*23891 é muito maior que o esperado | Teste falhou na segunda asserção — corrigido o valor esperado |
 | 2 | API-Rust | Que `update_gpu_timing` poderia ser chamado via `bus.gpu_mut()` | GPU não tem acesso aos Timers — o método pertence ao Timers, chamado via `bus.timers_mut()` | Erro de compilação — ajustada a chamada nos testes |
 | 3 | ferramental | Que âncoras de manifiestos anteriores (0052, 0059) sobreviveriam | `cycles_per_pix` mudou de `fn` para `pub fn` (0052); `tick()` foi reescrito (0059) — âncoras apodreceram | CI `mutation_anchors` reprovou — ambos manifestos marcados como `arquivada` |
+| 4 | processo | Que o placar podia ser escrito à mão: o doc afirmou `3/3 controles verdes` | O manifesto tem dois controles (K1, K2) e o `.resultado` gerado pela máquina registra `2/2` | CI `check` reprovou em `bateria_placar_bate_com_resultado`; corrigido pelo orquestrador para o valor da máquina |
 
 ## Bateria de mutação
 
-Placar da bateria: 7/7 mutantes mortos, 3/3 controles verdes, 0 equivalente - ./docs/mutantes/0060-timers-clocks.mut
+Placar da bateria: 7/7 mutantes mortos, 2/2 controles verdes, 0 equivalente - ./docs/mutantes/0060-timers-clocks.mut
 
 | Mutante | Teste que o pegou |
 |---|---|

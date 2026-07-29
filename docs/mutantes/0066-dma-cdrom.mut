@@ -87,16 +87,10 @@ rotulo: usar match em vez de if/else na verificacao de bits do CHCR (equivalente
 @@FIM
 
 controle: K2
-rotulo: usar if/else em vez de match para limpar CHCR (equivalente semântico)
+rotulo: extrair madr mascarado em variavel local (equivalente semântico)
 @@DE
-        self.chcr[3] &= !((1 << 24) | (1 << 28));
-    }
-
-    pub fn try_execute_dma2
+        let mut addr = self.madr[3] & 0x00FF_FFFC;
 @@PARA
-        self.chcr[3] &= !(1 << 24);
-        self.chcr[3] &= !(1 << 28);
-    }
-
-    pub fn try_execute_dma2
+        let madr_val = self.madr[3] & 0x00FF_FFFC;
+        let mut addr = madr_val;
 @@FIM

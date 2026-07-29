@@ -245,6 +245,10 @@ impl Gpu {
         self.vram[yi * 1024 + xi]
     }
 
+    pub fn vram_raw_mut(&mut self) -> &mut [u16] {
+        &mut self.vram
+    }
+
     pub fn stat(&self) -> u32 {
         self.stat.get()
     }
@@ -887,9 +891,17 @@ impl Gpu {
     }
 
     fn write_pixel(&mut self, idx: usize, pixel: u16, semi_transparent: bool) {
+        let stat = self.stat.get();
+        if (stat & (1 << 12)) != 0 && (self.vram[idx] & 0x8000) != 0 {
+            return;
+        }
+        let mut pixel = pixel;
+        if (stat & (1 << 11)) != 0 {
+            pixel |= 0x8000;
+        }
         if semi_transparent && (pixel & 0x8000) != 0 {
             let back = self.vram[idx];
-            let mode = (self.stat.get() >> 5) & 3;
+            let mode = (stat >> 5) & 3;
             let r_b = back & 0x1F;
             let g_b = (back >> 5) & 0x1F;
             let b_b = (back >> 10) & 0x1F;

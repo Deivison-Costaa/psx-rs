@@ -175,6 +175,13 @@ pub struct Gpu {
     odd_line: Cell<bool>,
 }
 
+#[derive(Clone)]
+pub struct Framebuffer {
+    pub width: u16,
+    pub height: u16,
+    pub data: Vec<u8>,
+}
+
 impl Default for Gpu {
     fn default() -> Self {
         Self::new()
@@ -337,6 +344,30 @@ impl Gpu {
 
     pub fn exit_vblank(&mut self) {
         self.in_vblank.set(false);
+    }
+
+    fn cycles_per_pix(&self) -> u16 {
+        10
+    }
+
+    fn display_width(&self) -> u16 {
+        let range = self.display_range_x2.get().wrapping_sub(self.display_range_x1.get());
+        range / self.cycles_per_pix() + 2
+    }
+
+    fn display_height(&self) -> u16 {
+        self.display_range_y2.get().wrapping_sub(self.display_range_y1.get())
+    }
+
+    pub fn framebuffer(&self) -> Framebuffer {
+        let w = self.display_width();
+        let h = self.display_height();
+        let data = vec![0u8; (w as usize) * (h as usize) * 4];
+        Framebuffer {
+            width: w,
+            height: h,
+            data,
+        }
     }
 
     fn write_gp0(&mut self, val: u32) {

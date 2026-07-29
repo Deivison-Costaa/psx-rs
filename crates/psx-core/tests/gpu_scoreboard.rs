@@ -103,3 +103,23 @@ fn scoreboard_cabecalho_generico_suporta_suite_gpu() {
          suite, incluindo GPU, sem precisar de coluna dedicada."
     );
 }
+
+#[test]
+fn scoreboard_primeiro_tty_vem_antes_de_primeiro_sem_saida() {
+    let script =
+        fs::read_to_string(support::repo_root().join("scripts/scoreboard.ps1"))
+            .expect("scripts/scoreboard.ps1 deve existir");
+
+    let first_tty = script.find("tty,\"").unwrap_or(usize::MAX);
+    let first_sem_saida = script.find("sem-saida,\"").unwrap_or(usize::MAX);
+    assert!(
+        first_tty < first_sem_saida,
+        "scripts/scoreboard.ps1: a primeira ocorrencia de 'tty,\"' (pos {}) deve vir \
+         antes da primeira ocorrencia de 'sem-saida,\"' (pos {}). \
+         O bloco principal de classificacao TTY (if ttyBytes -gt 0) deve usar status \
+         'tty', nao 'sem-saida'. Se o status 'tty' for removido deste bloco, suites \
+         GPU sem veredito textual (maioria do ps1-tests) seriam incorretamente \
+         classificadas como 'sem-saida'.",
+        first_tty, first_sem_saida,
+    );
+}

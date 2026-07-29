@@ -164,6 +164,12 @@ pub struct Gpu {
     tex_window_mask_y: Cell<u8>,
     tex_window_offset_x: Cell<u8>,
     tex_window_offset_y: Cell<u8>,
+    display_vram_x: Cell<u16>,
+    display_vram_y: Cell<u16>,
+    display_x1: Cell<u16>,
+    display_x2: Cell<u16>,
+    display_y1: Cell<u16>,
+    display_y2: Cell<u16>,
 }
 
 impl Default for Gpu {
@@ -190,6 +196,12 @@ impl Gpu {
             tex_window_mask_y: Cell::new(0),
             tex_window_offset_x: Cell::new(0),
             tex_window_offset_y: Cell::new(0),
+            display_vram_x: Cell::new(0),
+            display_vram_y: Cell::new(0),
+            display_x1: Cell::new(0x260),
+            display_x2: Cell::new(0x260 + 320 * 8),
+            display_y1: Cell::new(0x88 - 120),
+            display_y2: Cell::new(0x88 + 120),
         }
     }
 
@@ -251,6 +263,30 @@ impl Gpu {
 
     pub fn stat(&self) -> u32 {
         self.stat.get()
+    }
+
+    pub fn display_vram_x(&self) -> u16 {
+        self.display_vram_x.get()
+    }
+
+    pub fn display_vram_y(&self) -> u16 {
+        self.display_vram_y.get()
+    }
+
+    pub fn display_x1(&self) -> u16 {
+        self.display_x1.get()
+    }
+
+    pub fn display_x2(&self) -> u16 {
+        self.display_x2.get()
+    }
+
+    pub fn display_y1(&self) -> u16 {
+        self.display_y1.get()
+    }
+
+    pub fn display_y2(&self) -> u16 {
+        self.display_y2.get()
     }
 
     fn write_gp0(&mut self, val: u32) {
@@ -1509,6 +1545,12 @@ impl Gpu {
                 self.tex_window_mask_y.set(0);
                 self.tex_window_offset_x.set(0);
                 self.tex_window_offset_y.set(0);
+                self.display_vram_x.set(0);
+                self.display_vram_y.set(0);
+                self.display_x1.set(0x260);
+                self.display_x2.set(0x260 + 320 * 8);
+                self.display_y1.set(0x88 - 120);
+                self.display_y2.set(0x88 + 120);
             }
             0x01 => {
                 self.vram_state.set(VramState::Idle);
@@ -1531,6 +1573,18 @@ impl Gpu {
                 self.dma_direction.set((val & 0x3) as u8);
                 let s = self.stat.get();
                 self.stat.set((s & !(3 << 29)) | ((val & 0x3) << 29));
+            }
+            0x05 => {
+                self.display_vram_x.set((val & 0x3FF) as u16);
+                self.display_vram_y.set(((val >> 10) & 0x1FF) as u16);
+            }
+            0x06 => {
+                self.display_x1.set((val & 0xFFF) as u16);
+                self.display_x2.set(((val >> 12) & 0xFFF) as u16);
+            }
+            0x07 => {
+                self.display_y1.set((val & 0x3FF) as u16);
+                self.display_y2.set(((val >> 10) & 0x3FF) as u16);
             }
             0x08 => {
                 let param = val & 0xFF;

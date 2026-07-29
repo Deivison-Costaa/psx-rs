@@ -41,7 +41,7 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [x] 2.1 GPUSTAT + decodificação GP0/GP1 (iter 0035)
 - [x] 2.2 VRAM 1MB + transfers (fill, CPU↔VRAM) (iter 0038)
 - [x] 2.3 Triângulos flat + gouraud (iter 0039)
-- [ ] 2.4 Quads, retângulos, linhas (parcial: quads na iter 0039)
+- [x] 2.4 Quads, retângulos, linhas (iter 0042)
 - [ ] 2.5 Texturas 4/8/15bpp + CLUT + texture window
 - [ ] 2.6 Semi-transparência + dithering + mask bit
 - [ ] 2.7 Display regs, timing NTSC/PAL, vblank IRQ
@@ -101,6 +101,9 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [ ] 10.7 Mask setting GP0(E6h) aplicado a CPU->VRAM e VRAM->VRAM (03-gpu.md L590-592)
 - [ ] 10.8 SWL/SWR fazem read-modify-write e leem portas de I/O de leitura destrutiva
 - [ ] 10.9 UV/CLUT dos polígonos texturizados (hoje consumidos e ignorados)
+- [ ] 10.10 Drawing Area GP0(E3h/E4h) e Drawing Offset GP0(E5h) sem suite de hardware que os meça
+- [ ] 10.11 Textura e Texpage de retângulos (hoje UV consumido e ignorado)
+- [ ] 10.12 Meta-teste do placar pula em silêncio quando o doc não é legível (`Err(_) => continue`) — passou local e reprovou na CI na iter 0042
 
 ## M11 — Apresentação (incremental desde o M1)
 - [ ] 11.1 Relatório consolidado (docs/relatorio.md — atualizado a cada marco)

@@ -39,6 +39,13 @@ enum VramCmd {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
+enum RectStage {
+    AwaitVertex,
+    AwaitUV,
+    AwaitDims,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
 enum VramState {
     Idle,
     Header {
@@ -74,6 +81,28 @@ enum VramState {
         total_vertices: u8,
         awaiting_color: bool,
         awaiting_uv: bool,
+    },
+    LineRender {
+        gouraud: bool,
+        polyline: bool,
+        color0: u32,
+        vertex0: (i16, i16),
+        prev_vertex: (i16, i16),
+        prev_color: u32,
+        pending_color: u32,
+        has_prev: bool,
+        vertex_count: u8,
+        expecting_vertex: bool,
+    },
+    RectRender {
+        size: u8,
+        textured: bool,
+        color: u32,
+        vertex: (i16, i16),
+        uv: u32,
+        width: u16,
+        height: u16,
+        stage: RectStage,
     },
 }
 
@@ -245,6 +274,40 @@ impl Gpu {
                                 awaiting_uv: false,
                             }
                         }
+                        0x40..=0x5F => {
+                            self.stat.set(self.stat.get() & !(1 << 26));
+                            let gouraud = (cmd & 0x10) != 0;
+                            let polyline = (cmd & 0x08) != 0;
+                            let color0 = val & 0x00FF_FFFF;
+                            VramState::LineRender {
+                                gouraud,
+                                polyline,
+                                color0,
+                                vertex0: (0, 0),
+                                prev_vertex: (0, 0),
+                                prev_color: color0,
+                                pending_color: 0,
+                                has_prev: false,
+                                vertex_count: 0,
+                                expecting_vertex: true,
+                            }
+                        }
+                        0x60..=0x7F => {
+                            self.stat.set(self.stat.get() & !(1 << 26));
+                            let size = (cmd >> 3) & 0x03;
+                            let textured = (cmd & 0x04) != 0;
+                            let color = val & 0x00FF_FFFF;
+                            VramState::RectRender {
+                                size,
+                                textured,
+                                color,
+                                vertex: (0, 0),
+                                uv: 0,
+                                width: 0,
+                                height: 0,
+                                stage: RectStage::AwaitVertex,
+                            }
+                        }
                         0xE6 => {
                             let param = val & 0xFF_FFFF;
                             let mask = (1 << 11) | (1 << 12);
@@ -397,6 +460,220 @@ impl Gpu {
                     awaiting_uv,
                 });
             }
+            VramState::LineRender {
+                gouraud,
+                polyline,
+                color0,
+                mut vertex0,
+                mut prev_vertex,
+                mut prev_color,
+                mut pending_color,
+                mut has_prev,
+                mut vertex_count,
+                mut expecting_vertex,
+            } => {
+                let is_terminator = (val & 0xF000F000) == 0x50005000;
+                if expecting_vertex {
+                    if polyline && !gouraud && is_terminator {
+                        self.stat.set(self.stat.get() | (1 << 26));
+                        self.vram_state.set(VramState::Idle);
+                        return;
+                    }
+                    let raw_x = ((val & 0xFFFF) << 5) as i16 >> 5;
+                    let raw_y = (((val >> 16) & 0xFFFF) << 5) as i16 >> 5;
+                    let off_x = self.drawing_offset_x.get();
+                    let off_y = self.drawing_offset_y.get();
+                    let x = raw_x.wrapping_add(off_x);
+                    let y = raw_y.wrapping_add(off_y);
+
+                    if polyline {
+                        if !gouraud {
+                            if has_prev {
+                                let c = color24_to_16(color0);
+                                self.draw_line_segment(prev_vertex, (x, y), c, c, false);
+                            }
+                            prev_vertex = (x, y);
+                            has_prev = true;
+                        } else {
+                            if has_prev {
+                                self.draw_line_segment(
+                                    prev_vertex,
+                                    (x, y),
+                                    color24_to_16(prev_color),
+                                    color24_to_16(pending_color),
+                                    true,
+                                );
+                                prev_color = pending_color;
+                            }
+                            prev_vertex = (x, y);
+                            has_prev = true;
+                            expecting_vertex = false;
+                        }
+                    } else {
+                        if gouraud {
+                            if vertex_count == 0 {
+                                vertex0 = (x, y);
+                                vertex_count = 1;
+                                expecting_vertex = false;
+                            } else {
+                                let dx = (vertex0.0 as i32 - x as i32).abs();
+                                let dy = (vertex0.1 as i32 - y as i32).abs();
+                                if dx > 1023 || dy > 511 {
+                                    self.stat.set(self.stat.get() | (1 << 26));
+                                    self.vram_state.set(VramState::Idle);
+                                    return;
+                                }
+                                self.render_single_line(
+                                    vertex0,
+                                    (x, y),
+                                    color24_to_16(color0),
+                                    color24_to_16(prev_color),
+                                    true,
+                                );
+                                self.stat.set(self.stat.get() | (1 << 26));
+                                self.vram_state.set(VramState::Idle);
+                                return;
+                            }
+                        } else {
+                            if vertex_count == 0 {
+                                vertex0 = (x, y);
+                                vertex_count = 1;
+                            } else {
+                                let dx = (vertex0.0 as i32 - x as i32).abs();
+                                let dy = (vertex0.1 as i32 - y as i32).abs();
+                                if dx > 1023 || dy > 511 {
+                                    self.stat.set(self.stat.get() | (1 << 26));
+                                    self.vram_state.set(VramState::Idle);
+                                    return;
+                                }
+                                let c = color24_to_16(color0);
+                                self.render_single_line(vertex0, (x, y), c, c, false);
+                                self.stat.set(self.stat.get() | (1 << 26));
+                                self.vram_state.set(VramState::Idle);
+                                return;
+                            }
+                        }
+                    }
+                } else {
+                    if polyline && gouraud && is_terminator {
+                        self.stat.set(self.stat.get() | (1 << 26));
+                        self.vram_state.set(VramState::Idle);
+                        return;
+                    }
+                    pending_color = val & 0x00FF_FFFF;
+                    if !gouraud || !polyline {
+                        prev_color = val & 0x00FF_FFFF;
+                    }
+                    expecting_vertex = true;
+                }
+                self.vram_state.set(VramState::LineRender {
+                    gouraud,
+                    polyline,
+                    color0,
+                    vertex0,
+                    prev_vertex,
+                    prev_color,
+                    pending_color,
+                    has_prev,
+                    vertex_count,
+                    expecting_vertex,
+                });
+            }
+            VramState::RectRender {
+                size,
+                textured,
+                color,
+                mut vertex,
+                mut uv,
+                mut width,
+                mut height,
+                stage,
+            } => match stage {
+                RectStage::AwaitVertex => {
+                    let raw_x = ((val & 0xFFFF) << 5) as i16 >> 5;
+                    let raw_y = (((val >> 16) & 0xFFFF) << 5) as i16 >> 5;
+                    let off_x = self.drawing_offset_x.get();
+                    let off_y = self.drawing_offset_y.get();
+                    vertex = (raw_x.wrapping_add(off_x), raw_y.wrapping_add(off_y));
+                    if textured {
+                        self.vram_state.set(VramState::RectRender {
+                            size,
+                            textured,
+                            color,
+                            vertex,
+                            uv,
+                            width,
+                            height,
+                            stage: RectStage::AwaitUV,
+                        });
+                        return;
+                    } else if size == 0 {
+                        self.vram_state.set(VramState::RectRender {
+                            size,
+                            textured,
+                            color,
+                            vertex,
+                            uv,
+                            width,
+                            height,
+                            stage: RectStage::AwaitDims,
+                        });
+                        return;
+                    }
+                    self.render_rect(size, color, vertex, width, height);
+                    self.stat.set(self.stat.get() | (1 << 26));
+                    self.vram_state.set(VramState::Idle);
+                }
+                RectStage::AwaitUV => {
+                    uv = val;
+                    if textured {
+                        if size == 0 {
+                            self.vram_state.set(VramState::RectRender {
+                                size,
+                                textured,
+                                color,
+                                vertex,
+                                uv,
+                                width,
+                                height,
+                                stage: RectStage::AwaitDims,
+                            });
+                        } else {
+                            self.stat.set(self.stat.get() | (1 << 26));
+                            self.vram_state.set(VramState::Idle);
+                        }
+                        return;
+                    }
+                    if size == 0 {
+                        self.vram_state.set(VramState::RectRender {
+                            size,
+                            textured,
+                            color,
+                            vertex,
+                            uv,
+                            width,
+                            height,
+                            stage: RectStage::AwaitDims,
+                        });
+                        return;
+                    }
+                    self.render_rect(size, color, vertex, width, height);
+                    self.stat.set(self.stat.get() | (1 << 26));
+                    self.vram_state.set(VramState::Idle);
+                }
+                RectStage::AwaitDims => {
+                    width = (val & 0xFFFF) as u16;
+                    height = ((val >> 16) & 0xFFFF) as u16;
+                    if textured {
+                        self.stat.set(self.stat.get() | (1 << 26));
+                        self.vram_state.set(VramState::Idle);
+                        return;
+                    }
+                    self.render_rect(size, color, vertex, width, height);
+                    self.stat.set(self.stat.get() | (1 << 26));
+                    self.vram_state.set(VramState::Idle);
+                }
+            },
         }
     }
 
@@ -583,6 +860,115 @@ impl Gpu {
                 };
                 let idx = y as usize * 1024 + x as usize;
                 self.vram[idx] = pixel;
+            }
+        }
+    }
+
+    fn render_single_line(
+        &mut self,
+        v0: (i16, i16),
+        v1: (i16, i16),
+        c0: u16,
+        c1: u16,
+        gouraud: bool,
+    ) {
+        let x0 = v0.0 as i32;
+        let y0 = v0.1 as i32;
+        let x1 = v1.0 as i32;
+        let y1 = v1.1 as i32;
+
+        let dx = (x1 - x0).abs();
+        let dy = -(y1 - y0).abs();
+        let sx = if x0 < x1 { 1 } else { -1 };
+        let sy = if y0 < y1 { 1 } else { -1 };
+        let mut err = dx + dy;
+        let mut x = x0;
+        let mut y = y0;
+        let steps = dx.max(-dy);
+
+        let area_x1 = self.drawing_x1.get() as i32;
+        let area_y1 = self.drawing_y1.get() as i32;
+        let area_x2 = self.drawing_x2.get() as i32;
+        let area_y2 = self.drawing_y2.get() as i32;
+
+        let mut step = 0i32;
+        loop {
+            let pixel = if gouraud && steps > 0 {
+                lerp_color(c0, c1, step, steps)
+            } else {
+                c0
+            };
+            if x >= area_x1
+                && x <= area_x2
+                && y >= area_y1
+                && y <= area_y2
+                && (0..1024).contains(&x)
+                && (0..512).contains(&y)
+            {
+                self.vram[y as usize * 1024 + x as usize] = pixel;
+            }
+            step += 1;
+            if x == x1 && y == y1 {
+                break;
+            }
+            let e2 = 2 * err;
+            if e2 >= dy {
+                err += dy;
+                x += sx;
+            }
+            if e2 <= dx {
+                err += dx;
+                y += sy;
+            }
+        }
+    }
+
+    fn draw_line_segment(
+        &mut self,
+        v0: (i16, i16),
+        v1: (i16, i16),
+        c0: u16,
+        c1: u16,
+        gouraud: bool,
+    ) {
+        let dx = (v0.0 as i32 - v1.0 as i32).abs();
+        let dy = (v0.1 as i32 - v1.1 as i32).abs();
+        if dx > 1023 || dy > 511 {
+            return;
+        }
+        self.render_single_line(v0, v1, c0, c1, gouraud);
+    }
+
+    fn render_rect(&mut self, size: u8, color: u32, vertex: (i16, i16), w: u16, h: u16) {
+        let (w_actual, h_actual) = match size {
+            0 => (w as u32, h as u32),
+            1 => (1, 1),
+            2 => (8, 8),
+            3 => (16, 16),
+            _ => return,
+        };
+
+        if w_actual == 0 || h_actual == 0 {
+            return;
+        }
+
+        let pixel = color24_to_16(color);
+        let x_start = vertex.0 as i32;
+        let y_start = vertex.1 as i32;
+
+        let area_x1 = self.drawing_x1.get() as i32;
+        let area_y1 = self.drawing_y1.get() as i32;
+        let area_x2 = self.drawing_x2.get() as i32;
+        let area_y2 = self.drawing_y2.get() as i32;
+
+        let draw_x0 = x_start.max(area_x1).max(0);
+        let draw_x1 = (x_start + w_actual as i32).min(area_x2 + 1).min(1024);
+        let draw_y0 = y_start.max(area_y1).max(0);
+        let draw_y1 = (y_start + h_actual as i32).min(area_y2 + 1).min(512);
+
+        for py in draw_y0..draw_y1 {
+            for px in draw_x0..draw_x1 {
+                self.vram[py as usize * 1024 + px as usize] = pixel;
             }
         }
     }
@@ -797,6 +1183,41 @@ impl fmt::Debug for VramState {
                     x, y, width, height, remaining
                 )
             }
+            VramState::LineRender {
+                vertex_count,
+                expecting_vertex,
+                gouraud,
+                polyline,
+                ..
+            } => {
+                write!(
+                    f,
+                    "LineRender(v={}, g={}, pl={}, exp_v={})",
+                    vertex_count, gouraud, polyline, expecting_vertex
+                )
+            }
+            VramState::RectRender {
+                size,
+                textured,
+                stage,
+                ..
+            } => {
+                write!(
+                    f,
+                    "RectRender(sz={}, tex={}, stage={:?})",
+                    size, textured, stage
+                )
+            }
+        }
+    }
+}
+
+impl fmt::Debug for RectStage {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            RectStage::AwaitVertex => write!(f, "AwaitVertex"),
+            RectStage::AwaitUV => write!(f, "AwaitUV"),
+            RectStage::AwaitDims => write!(f, "AwaitDims"),
         }
     }
 }

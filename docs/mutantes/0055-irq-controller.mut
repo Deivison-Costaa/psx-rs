@@ -8,17 +8,17 @@ teste: cpu_irq
 mutante: m1
 rotulo: SR.IEc ignorado (interrupcao dispara mesmo sem IEc=1)
 @@DE
-        if (sr & 0x1) != 0
+        if (sr & 0x1) != 0 && (sr & (1 << 10)) != 0 && (self.cop0[13] & (1 << 10)) != 0 {
 @@PARA
-        if true
+        if true && (sr & (1 << 10)) != 0 && (self.cop0[13] & (1 << 10)) != 0 {
 @@FIM
 
 mutante: m2
 rotulo: SR.Im bit10 ignorado (interrupcao dispara mesmo sem mascarar bit10)
 @@DE
-            && (sr & (1 << 10)) != 0
+        if (sr & 0x1) != 0 && (sr & (1 << 10)) != 0 && (self.cop0[13] & (1 << 10)) != 0 {
 @@PARA
-            && true
+        if (sr & 0x1) != 0 && true && (self.cop0[13] & (1 << 10)) != 0 {
 @@FIM
 
 mutante: m3
@@ -61,18 +61,13 @@ rotulo: adicionar comentario nao altera comportamento
 controle: K2
 rotulo: extrair condicao para variavel (refatoracao equivalente)
 @@DE
-        if (sr & 0x1) != 0
-            && (sr & (1 << 10)) != 0
-            && (self.cop0[13] & (1 << 10)) != 0
-        {
+        if (sr & 0x1) != 0 && (sr & (1 << 10)) != 0 && (self.cop0[13] & (1 << 10)) != 0 {
             if let Some((reg, val)) = self.load_delay.take() {
                 self.set_reg(reg, val);
             }
             let ie_ku_shifted = ((sr & 0x3) << 2) | ((sr & 0xC) << 2);
 @@PARA
-        let deve_interromper = (sr & 0x1) != 0
-            && (sr & (1 << 10)) != 0
-            && (self.cop0[13] & (1 << 10)) != 0;
+        let deve_interromper = (sr & 0x1) != 0 && (sr & (1 << 10)) != 0 && (self.cop0[13] & (1 << 10)) != 0;
         if deve_interromper {
             if let Some((reg, val)) = self.load_delay.take() {
                 self.set_reg(reg, val);

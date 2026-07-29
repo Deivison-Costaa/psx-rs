@@ -100,103 +100,10 @@ rotulo: adicionar let binding descartavel (equivalente semantico)
 @@FIM
 
 controle: K2
-rotulo: inverter ordem das flags target/ffff (ambas independentes, ordem nao altera semantica)
+rotulo: extrair reset_on_target em binding local duplicado (equivalente semantico)
 @@DE
-            if t.counter.get() == t.target {
-                mode_now |= 1 << 11;
-                mode_changed = true;
-                if irq_enable_target
-                    && (!irq_once || !t.irq_fired_oneshot.get())
-                {
-                    let old_bit10 = (mode_now >> 10) & 1;
-                    if irq_toggle {
-                        mode_now ^= 1 << 10;
-                    } else {
-                        mode_now &= !(1 << 10);
-                    }
-                    mode_changed = true;
-                    let new_bit10 = (mode_now >> 10) & 1;
-                    if old_bit10 == 1 && new_bit10 == 0 {
-                        irq_raised = true;
-                    }
-                    if irq_once {
-                        t.irq_fired_oneshot.set(true);
-                    }
-                }
-                if reset_on_target {
-                    t.counter.set(0);
-                }
-            }
-
-            if prev == 0xFFFF && t.counter.get() == 0 {
-                mode_now |= 1 << 12;
-                mode_changed = true;
-                if irq_enable_ffff
-                    && (!irq_once || !t.irq_fired_oneshot.get())
-                {
-                    let old_bit10 = (mode_now >> 10) & 1;
-                    if irq_toggle {
-                        mode_now ^= 1 << 10;
-                    } else {
-                        mode_now &= !(1 << 10);
-                    }
-                    mode_changed = true;
-                    let new_bit10 = (mode_now >> 10) & 1;
-                    if old_bit10 == 1 && new_bit10 == 0 {
-                        irq_raised = true;
-                    }
-                    if irq_once {
-                        t.irq_fired_oneshot.set(true);
-                    }
-                }
-            }
+        let reset_on_target = (mode >> 3) & 1 != 0;
 @@PARA
-            if prev == 0xFFFF && t.counter.get() == 0 {
-                mode_now |= 1 << 12;
-                mode_changed = true;
-                if irq_enable_ffff
-                    && (!irq_once || !t.irq_fired_oneshot.get())
-                {
-                    let old_bit10 = (mode_now >> 10) & 1;
-                    if irq_toggle {
-                        mode_now ^= 1 << 10;
-                    } else {
-                        mode_now &= !(1 << 10);
-                    }
-                    mode_changed = true;
-                    let new_bit10 = (mode_now >> 10) & 1;
-                    if old_bit10 == 1 && new_bit10 == 0 {
-                        irq_raised = true;
-                    }
-                    if irq_once {
-                        t.irq_fired_oneshot.set(true);
-                    }
-                }
-            }
-
-            if t.counter.get() == t.target {
-                mode_now |= 1 << 11;
-                mode_changed = true;
-                if irq_enable_target
-                    && (!irq_once || !t.irq_fired_oneshot.get())
-                {
-                    let old_bit10 = (mode_now >> 10) & 1;
-                    if irq_toggle {
-                        mode_now ^= 1 << 10;
-                    } else {
-                        mode_now &= !(1 << 10);
-                    }
-                    mode_changed = true;
-                    let new_bit10 = (mode_now >> 10) & 1;
-                    if old_bit10 == 1 && new_bit10 == 0 {
-                        irq_raised = true;
-                    }
-                    if irq_once {
-                        t.irq_fired_oneshot.set(true);
-                    }
-                }
-                if reset_on_target {
-                    t.counter.set(0);
-                }
-            }
+        let reset_on_target = (mode >> 3) & 1 != 0;
+        let _rot = reset_on_target;
 @@FIM

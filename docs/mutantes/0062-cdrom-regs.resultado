@@ -1,0 +1,4 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: 4cbcf39af0c93387d23183e27fe68a9c4c071a54
+# rodado_em: 2026-07-29T14:12:49-03:00
+m1,mutante,morreu,morreu,0.7,escrever_mode_reseta_param_fifo;index0_read_retorna_status_inicial

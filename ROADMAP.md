@@ -49,7 +49,7 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [x] 2.6b Dithering 24→15 bit (matriz 4x4) (iter 0048)
 - [x] 2.6c Mask bit (proteção de pixel bit15=1) (iter 0049)
 - [x] 2.7a Display registers GP1(05h-07h) (iter 0050)
-- [ ] 2.7b Timing NTSC/PAL, vblank IRQ (dividido da 2.7 por R4 — display regs ja implementado)
+- [x] 2.7b Timing NTSC/PAL, vblank IRQ (dividido da 2.7 por R4 — display regs ja implementado) (iter 0051)
 - [ ] 2.8 psx-desktop mínimo (eframe/egui) → logo do BIOS na tela
 - [ ] 2.9 Suíte GPU do ps1-tests no scoreboard
 

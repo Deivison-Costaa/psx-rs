@@ -224,6 +224,28 @@ fn polyline_gouraud_terminador_na_palavra_de_cor_a6() {
 
 #[rustfmt::skip]
 #[test]
+fn polyline_flat_vertice_com_bits_28_a_31_iguais_a_5_nao_e_terminador() {
+    let mut gpu = Gpu::new();
+
+    let cmd: u32 = 0x48FF_FFFF;
+    gpu.write32(0, cmd);
+    gpu.write32(0, 0x0000_0000);
+    gpu.write32(0, 0x0000_000A);
+    gpu.write32(0, 0x5005_000A);
+    gpu.write32(0, 0x5000_5000);
+
+    for x in 1..10 {
+        assert_eq!(gpu.vram_pixel(x, 0), 0x7FFF,
+            "m7: pixel({},0) segmento horizontal deve ser pintado", x);
+    }
+    for y in 1..5 {
+        assert_eq!(gpu.vram_pixel(10, y), 0x7FFF,
+            "m7: pixel(10,{}) segmento vertical deve ser pintado", y);
+    }
+}
+
+#[rustfmt::skip]
+#[test]
 fn retangulo_1x1_um_pixel_a7() {
     let mut gpu = Gpu::new();
 

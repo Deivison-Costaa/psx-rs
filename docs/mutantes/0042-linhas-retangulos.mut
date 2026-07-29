@@ -1,0 +1,98 @@
+# Manifesto de mutação da iteração 0042 — linhas e retângulos
+formato: 1
+iteracao: 0042
+item: 2.4
+alvo: crates/psx-core/src/gpu.rs
+teste: gpu_linhas_retangulos
+
+mutante: m1
+rotulo: regra de borda da linha de inclusiva para exclusiva (troca break por step >= steps)
+@@DE
+            if x == x1 && y == y1 {
+                break;
+            }
+@@PARA
+            if step >= steps {
+                break;
+            }
+@@FIM
+
+mutante: m2
+rotulo: retangulo de tamanho fixo (size 1=1x1) consome Width+Height que nao deveria existir
+@@DE
+                    } else if size == 0 {
+@@PARA
+                    } else if size != 3 {
+@@FIM
+
+mutante: m3
+rotulo: troca R e B em color24_to_16 (na borda, C1 da 0038 indicou essa classe de mutante)
+@@DE
+    let r = (color24 & 0xFF) as u8;
+    let g = ((color24 >> 8) & 0xFF) as u8;
+    let b = ((color24 >> 16) & 0xFF) as u8;
+@@PARA
+    let b = (color24 & 0xFF) as u8;
+    let g = ((color24 >> 8) & 0xFF) as u8;
+    let r = ((color24 >> 16) & 0xFF) as u8;
+@@FIM
+
+mutante: m4
+rotulo: regressao do flat polyline — segmentos alem do primeiro usam colors[i]=0 em vez de flat_c0
+@@DE
+            let c0 = if gouraud {
+                color24_to_16(colors[i])
+            } else {
+                flat_c0
+            };
+@@PARA
+            let c0 = color24_to_16(colors[i]);
+@@FIM
+
+mutante: m5
+rotulo: enum de tamanho de retangulo mapeia 1x1 para 8x8 em vez de 1x1
+@@DE
+            1 => (1, 1),
+@@PARA
+            1 => (8, 8),
+@@FIM
+
+mutante: m6
+rotulo: t_max da interpolacao de linha errado — steps+1 em vez de steps
+@@DE
+        let steps = dx.max(-dy);
+@@PARA
+        let steps = dx.max(-dy) + 1;
+@@FIM
+
+mutante: m7
+rotulo: terminador de polyline ignora mascara dos bits 12-15 so confere bits 28-31
+@@DE
+                let is_terminator = (val & 0xF000F000) == 0x50005000;
+@@PARA
+                let is_terminator = (val & 0xF0000000) == 0x50000000;
+@@FIM
+
+controle: K1
+rotulo: inverte ordem das ligacoes let dx e let dy em render_single_line
+@@DE
+        let dx = (x1 - x0).abs();
+        let dy = -(y1 - y0).abs();
+@@PARA
+        let dy = -(y1 - y0).abs();
+        let dx = (x1 - x0).abs();
+@@FIM
+
+controle: K2
+rotulo: renomeia flat_c0 para base_color no render_polyline, duas edicoes atomicas
+@@DE
+        let flat_c0 = color24_to_16(colors[0]);
+@@PARA
+        let base_color = color24_to_16(colors[0]);
+@@FIM
+ocorrencias: 2
+@@DE
+                flat_c0
+@@PARA
+                base_color
+@@FIM

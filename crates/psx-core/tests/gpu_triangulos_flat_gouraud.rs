@@ -443,3 +443,22 @@ fn drawing_offset_desloca_triangulo() {
         "E5: pixel interior deslocado (112,112) deve ser pintado, obtido 0x{:04X}",
         middle);
 }
+
+#[rustfmt::skip]
+#[test]
+fn drawing_area_y1_mascara_para_9_bits() {
+    let mut gpu = Gpu::new();
+
+    gpu.write32(0, 0xE308_0000);
+
+    let cmd: u32 = 0x2000_F818;
+    gpu.write32(0, cmd);
+    gpu.write32(0, 0x000A_0000);
+    gpu.write32(0, 0x000F_000F);
+    gpu.write32(0, 0x0000_000F);
+
+    assert_ne!(gpu.vram_pixel(8, 10), 0,
+        "D2-Y1: Y1=0x200 mascarado por 9 bits vira 0, o triangulo desenha; \
+         com 10 bits viraria 512 e nada seria desenhado. obtido 0x{:04X}",
+        gpu.vram_pixel(8, 10));
+}

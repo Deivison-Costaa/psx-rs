@@ -73,3 +73,8 @@ ts,iter,resultado,custo_usd,tokens_in,tokens_out,steps,duracao_ms,head_antes,hea
 2026-07-29T00:20:00-03:00,0039,ok:revisor-a-spec,1.3178,462671,22169,12,297667,8829135,8829135,claude-opus-5,revisor
 2026-07-29T00:21:00-03:00,0039,ok:revisor-b-consequencia,2.7891,1994139,31574,30,456697,8829135,8829135,claude-opus-5,revisor
 2026-07-29T00:22:00-03:00,0039,ok:revisor-c-teste,1.6512,390614,34437,9,450439,8829135,8829135,claude-opus-5,revisor
+2026-07-28T21:06:25-03:00,0039,falha:exit-1,0.0149,31327,854,4,55826,c069e77,c069e77,deepseek/deepseek-v4-pro,trabalhador
+2026-07-28T21:09:06-03:00,0039,ok,0.0846,62735,9441,31,712854,c069e77,c069e77,deepseek/deepseek-v4-pro,trabalhador
+2026-07-28T21:09:25-03:00,0039,falha:exit-1,0.0583,40663,12153,11,703784,c069e77,c069e77,deepseek/deepseek-v4-pro,trabalhador
+2026-07-28T21:25:43-03:00,0039,ok,0.1424,63485,14815,55,1540997,ee8562c,94b9b64,deepseek/deepseek-v4-pro,trabalhador
+2026-07-28T21:55:49-03:00,0039,ok,0.1067,79937,19237,78,890919,94b9b64,0d87da9,deepseek/deepseek-v4-pro,trabalhador

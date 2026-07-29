@@ -1,0 +1,78 @@
+# Manifesto de mutação da iteração 0045 — texturas 4bpp e 8bpp + CLUT
+formato: 1
+iteracao: 0045
+item: 2.5b
+alvo: crates/psx-core/src/gpu.rs
+teste: gpu_texturas_4bpp_8bpp
+
+mutante: m1
+rotulo: 4bpp nibble shift errado (×8 em vez de ×4) — amostra nibble errado
+@@DE
+                let nibble = (hw >> ((u_clamped % 4) * 4)) & 0xF;
+@@PARA
+                let nibble = (hw >> ((u_clamped % 4) * 8)) & 0xF;
+@@FIM
+
+mutante: m2
+rotulo: 8bpp sempre usa low byte — pixel ímpar (right) amostra índice errado
+@@DE
+                let byte = if u_clamped % 2 == 0 {
+                    hw & 0xFF
+                } else {
+                    (hw >> 8) & 0xFF
+                };
+@@PARA
+                let byte = hw & 0xFF;
+@@FIM
+
+mutante: m3
+rotulo: CLUT X sem multiplicar por 16 — posição errada da tabela CLUT
+@@DE
+        let clut_x = (attr & 0x3F) * 16;
+@@PARA
+        let clut_x = attr & 0x3F;
+@@FIM
+
+mutante: m4
+rotulo: CLUT Y com shift errado (>>4 em vez de >>6)
+@@DE
+        let clut_y = (attr >> 6) & 0x1FF;
+@@PARA
+        let clut_y = (attr >> 4) & 0x1FF;
+@@FIM
+
+mutante: m5
+rotulo: tex_active exclui 4bpp e 8bpp — só 15bpp ativa textura
+@@DE
+            tex_colors <= 3
+@@PARA
+            tex_colors == 2 || tex_colors == 3
+@@FIM
+
+mutante: m6
+rotulo: CLUT lido do vértice 1 (texpage) em vez do vértice 0 — tabela no endereço errado
+@@DE
+        if vertex_idx == 0 {
+@@PARA
+        if vertex_idx == 1 {
+@@FIM
+
+controle: K1
+rotulo: renomeia variavel nibble para idx em sample_texel (cosmetico)
+@@DE
+                let nibble = (hw >> ((u_clamped % 4) * 4)) & 0xF;
+                self.lookup_clut(nibble)
+@@PARA
+                let idx = (hw >> ((u_clamped % 4) * 4)) & 0xF;
+                self.lookup_clut(idx)
+@@FIM
+
+controle: K2
+rotulo: inverte ordem de declaracao de clut_x e clut_y (linhas independentes)
+@@DE
+        let clut_x = (attr & 0x3F) * 16;
+        let clut_y = (attr >> 6) & 0x1FF;
+@@PARA
+        let clut_y = (attr >> 6) & 0x1FF;
+        let clut_x = (attr & 0x3F) * 16;
+@@FIM

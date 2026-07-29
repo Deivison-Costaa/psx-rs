@@ -40,6 +40,21 @@ impl Cpu {
     }
 
     pub fn step(&mut self, bus: &mut Bus) {
+        self.cop0[13] = if bus.irq().pending() {
+            self.cop0[13] | (1 << 10)
+        } else {
+            self.cop0[13] & !(1 << 10)
+        };
+
+        let sr = self.cop0[12];
+        if (sr & 0x1) != 0
+            && (sr & (1 << 10)) != 0
+            && (self.cop0[13] & (1 << 10)) != 0
+            && self.pending_exception.is_none()
+        {
+            self.raise_exception(0x00, None);
+        }
+
         let instr_pc = self.pc;
         let instr = bus.read32::<BusRead>(instr_pc);
 

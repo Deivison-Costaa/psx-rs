@@ -66,7 +66,7 @@ rotulo: write_pixel ignora o blend — sempre escreve o pixel cru
 @@DE
         if semi_transparent && (pixel & 0x8000) != 0 {
             let back = self.vram[idx];
-            let mode = (self.stat.get() >> 5) & 3;
+            let mode = (stat >> 5) & 3;
             let r_b = back & 0x1F;
             let g_b = (back >> 5) & 0x1F;
             let b_b = (back >> 10) & 0x1F;

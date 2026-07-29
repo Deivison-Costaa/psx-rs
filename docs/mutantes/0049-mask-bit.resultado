@@ -1,11 +1,12 @@
 # gerado por scripts/mutantes.ps1 — NAO editar a mao
-# commit: 0060c01219765436672e5affa6c615faaa6cc152
-# rodado_em: 2026-07-29T05:14:31-03:00
-m1,mutante,morreu,morreu,0.7,t3_gp0_e6h_bit1_protege_pixel_com_bit15_1;t5_mask_bit_aplica_a_linhas;t6_mask_bit_aplica_a_retangulos
+# commit: 256d6d1c383b181b22e9204e647693208f315aa7
+# rodado_em: 2026-07-29T05:15:00-03:00
+m1,mutante,morreu,morreu,0.6,t3_gp0_e6h_bit1_protege_pixel_com_bit15_1;t5_mask_bit_aplica_a_linhas;t6_mask_bit_aplica_a_retangulos
 m2,mutante,morreu,morreu,0.6,t1_gp0_e6h_bit0_liga_bit15_do_pixel_escrito
-m3,mutante,morreu,morreu,0.5,t3_gp0_e6h_bit1_protege_pixel_com_bit15_1;t5_mask_bit_aplica_a_linhas;t6_mask_bit_aplica_a_retangulos
-m4,mutante,morreu,morreu,0.7,t1_gp0_e6h_bit0_liga_bit15_do_pixel_escrito
-m5,mutante,morreu,morreu,0.6,t3_gp0_e6h_bit1_protege_pixel_com_bit15_1;t5_mask_bit_aplica_a_linhas;t6_mask_bit_aplica_a_retangulos
+m3,mutante,morreu,morreu,0.6,t3_gp0_e6h_bit1_protege_pixel_com_bit15_1;t5_mask_bit_aplica_a_linhas;t6_mask_bit_aplica_a_retangulos
+m4,mutante,morreu,morreu,0.6,t1_gp0_e6h_bit0_liga_bit15_do_pixel_escrito
+m5,mutante,morreu,morreu,0.7,t3_gp0_e6h_bit1_protege_pixel_com_bit15_1;t5_mask_bit_aplica_a_linhas;t6_mask_bit_aplica_a_retangulos
 m6,mutante,morreu,morreu,0.6,t1_gp0_e6h_bit0_liga_bit15_do_pixel_escrito
 m7,mutante,morreu,morreu,0.7,t7_fill_nao_respeita_mask_bit
 K1,controle,sobreviveu,sobreviveu,0.6,
+K2,controle,sobreviveu,sobreviveu,0.6,

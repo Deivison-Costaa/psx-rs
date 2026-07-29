@@ -1,0 +1,8 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: 6d96069418e8bdc7cdda67265636f8b503a4ccae
+# rodado_em: 2026-07-29T03:57:00-03:00
+m1,mutante,morreu,morreu,0.7,t1_u_0_7_amostra_16_23_com_mask_31_offset_2;t2_mask_x_7_offset_x_6_janela_48_55
+m2,mutante,morreu,morreu,0.6,t1_u_0_7_amostra_16_23_com_mask_31_offset_2;t2_mask_x_7_offset_x_6_janela_48_55;t4_janela_com_offset_maior_que_mask
+m3,mutante,morreu,morreu,0.6,t4_janela_com_offset_maior_que_mask
+m4,mutante,morreu,morreu,0.7,t1_u_0_7_amostra_16_23_com_mask_31_offset_2;t2_mask_x_7_offset_x_6_janela_48_55;t4_janela_com_offset_maior_que_mask
+m5,mutante,morreu,morreu,0.6,t5_offset_y_independente_de_offset_x

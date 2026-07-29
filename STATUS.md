@@ -10,7 +10,10 @@
 ## Próxima tarefa
 
 **ROADMAP 4.3 — CDROM — DMA canal 3 + entrega de setores.**
-Conectar o DMA canal 3 ao drive de CDROM: transferir dados do setor (RDDATA) para RAM via DMA, coordenado pelo BFRD/DRQSTS. Acoplar `DiscLayout` + dados do .bin à entrega de setores do ReadN/ReadS. Armadilha: DMA3 precisa de trigger via DRQSTS; o canal 3 tem prioridade e comportamento próprio de parada. Spec: `docs/reference/06-cdrom.md` seção "DMA" (L480+) e `docs/reference/04-dma.md`. Arquivos-alvo: `crates/psx-core/src/dma.rs` (adicionar canal 3), `crates/psx-core/src/cdrom.rs` (acoplar BFRD/DRQSTS ao DMA, fornecer dados do BIN), `crates/psx-core/src/bus.rs` (conectar trigger DMA3↔CDROM).
+Conectar o DMA canal 3 ao drive de CDROM: transferir dados do setor (RDDATA) para RAM via DMA, coordenado pelo BFRD/DRQSTS. Acoplar `DiscLayout` + dados do .bin à entrega de setores do ReadN/ReadS. Armadilha: DMA3 precisa de trigger via DRQSTS; o canal 3 tem prioridade e comportamento próprio de parada.
+Spec do canal, em `docs/reference/04-dma.md`: "DMA3 channel 3" (L32), SyncMode=0 para OTC e CDROM (L62), prioridade e master enable (L129-130), valor de CHCR (L189).
+Spec da entrega do setor, em `docs/reference/06-cdrom.md`: "Copy Data to Main RAM" (L940).
+Arquivos-alvo: `crates/psx-core/src/dma.rs` (adicionar canal 3), `crates/psx-core/src/cdrom.rs` (acoplar BFRD/DRQSTS ao DMA, fornecer dados do BIN), `crates/psx-core/src/bus.rs` (conectar trigger DMA3↔CDROM).
 
 ## Repositório
 

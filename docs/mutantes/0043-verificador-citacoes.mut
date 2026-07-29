@@ -39,54 +39,54 @@ rotulo: hardcoda offset em 115 em vez de computar da linha CORPO
 @@FIM
 ocorrencias: 1
 
-# Mutante 2: desabilita o diagnostico A4
+# Mutante 2: inverte checagem A2 causando falso erro em toda citacao
 mutante: m2
-rotulo: torna falso o in_index_range
+rotulo: inverte checagem de linha fora dos limites
 
 @@DE
-                    if in_index_range {
+            if cit.num as usize > ref_doc.total_lines || cit.num < 1 {
 @@PARA
-                    if false {
+            if cit.num as usize <= ref_doc.total_lines && cit.num >= 1 {
 @@FIM
 ocorrencias: 1
 
-# Mutante 3: remove extracao de titulo por palavra-chave
+# Mutante 3: remove guarda cit.num == 0
 mutante: m3
-rotulo: remove extracao de titulo por palavra-chave secao
+rotulo: remove o continue para cit.num zero
 
 @@DE
-    if let Some(title) = extract_after_section_keyword(before) {
-        return Some(title);
-    }
+            if cit.num == 0 {
+                continue;
+            }
 @@PARA
-    if false {
-        return None;
-    }
+            if false {
+                continue;
+            }
 @@FIM
 ocorrencias: 1
 
-# Mutante 4: remove deteccao de simbolo de secao
+# Mutante 4: remove continue do corpo_line zero
 mutante: m4
-rotulo: remove extracao de titulo apos simbolo de secao
+rotulo: remove guarda de corpo_line zerado
 
 @@DE
-    if let Some(title) = extract_after_section_sign_before_ref(before) {
-        return Some(title);
-    }
+            if ref_doc.corpo_line == 0 {
+                continue;
+            }
 @@PARA
-    if false {
-        return None;
-    }
+            if false {
+                continue;
+            }
 @@FIM
 ocorrencias: 1
 
-# Mutante 5: quebra checagem de faixa
+# Mutante 5: expande escopo para incluir a proprio doc 0043
 mutante: m5
-rotulo: aumenta teto de faixa de 400 para 40000
+rotulo: muda escopo de n > 43 para n >= 43 incluindo doc com erros
 
 @@DE
-                if end - cit.num > 400 {
+                    return n > 43;
 @@PARA
-                if end - cit.num > 40000 {
+                    return n >= 43;
 @@FIM
 ocorrencias: 1

@@ -106,6 +106,8 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [ ] 10.10 Drawing Area GP0(E3h/E4h) e Drawing Offset GP0(E5h) sem suite de hardware que os meça
 - [ ] 10.11 Textura e Texpage de retângulos (hoje UV consumido e ignorado)
 - [ ] 10.12 Meta-teste do placar pula em silêncio quando o doc não é legível (`Err(_) => continue`) — passou local e reprovou na CI na iter 0042
+- [ ] 10.13 GP0(24h) é modulação, não raw texture: bit 24 do comando não é lido e o texel vai cru (03-gpu.md L264 e L1610)
+- [ ] 10.14 U/V e cor gouraud são reinterpolados sobre o span já recortado pela drawing area — a textura estica em vez de só perder os pixels de fora (03-gpu.md L452-454)
 
 ## M11 — Apresentação (incremental desde o M1)
 - [ ] 11.1 Relatório consolidado (docs/relatorio.md — atualizado a cada marco)

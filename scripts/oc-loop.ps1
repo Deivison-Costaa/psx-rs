@@ -19,7 +19,14 @@
 param(
     [int]$N = 1,
     [switch]$AutoMerge,
-    [string]$Model = "deepseek/deepseek-v4-pro"
+    [string]$Model = "deepseek/deepseek-v4-pro",
+    # Instrucao permanente passada a TODA iteracao do encadeamento. Sem ela cada rodada usa
+    # a "Proxima tarefa" do STATUS.md e nada olha para tras; com ela, a rodada N comeca
+    # revisando o PR da rodada N-1 e consertando o que achar. Substitui a revisao externa.
+    [string]$TaskFile = "",
+    # Nao para o encadeamento quando UMA rodada falha. Uma rodada ruim vira insumo da
+    # seguinte, que tem instrucao de achar e consertar o defeito da anterior.
+    [switch]$ContinuarAposFalha
 )
 $ErrorActionPreference = "Stop"
 
@@ -57,8 +64,18 @@ foreach ($i in 1..$N) {
         break
     }
     Write-Host "[oc-loop] iteracao $i de $N"
-    pwsh -NoProfile -File scripts/oc-iter.ps1 -Model $Model
+    if ($TaskFile) {
+        pwsh -NoProfile -File scripts/oc-iter.ps1 -Model $Model -TaskFile $TaskFile
+    } else {
+        pwsh -NoProfile -File scripts/oc-iter.ps1 -Model $Model
+    }
     if ($LASTEXITCODE -ne 0) {
+        if ($ContinuarAposFalha) {
+            Write-Host "[oc-loop] iteracao $i falhou - seguindo (a proxima recebe o estado como insumo)."
+            git reset --hard HEAD 2>&1 | Out-Null
+            git checkout main 2>&1 | Out-Null
+            continue
+        }
         Write-Host "[oc-loop] iteracao falhou - parando o loop."
         break
     }

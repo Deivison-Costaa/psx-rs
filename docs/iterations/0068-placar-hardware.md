@@ -138,12 +138,13 @@ Workspace: **548** testes, inalterado. Scoreboard: reexecutado no `465192e` (ant
 1. **O placar não é rodado por ninguém automaticamente na `main`.** A CI tem job `scoreboard`,
    mas quem escreve o CSV é o script local, e ele ficou 13 merges atrás. Enquanto isso não mudar,
    todo número de hardware é histórico, não corrente.
-2. **`logs/` está no `.gitignore` (linha 13), então `logs/scoreboard.csv` nunca esteve no
-   repositório.** As 18 execuções que este doc usa como série histórica existem apenas nesta
-   máquina; um `git clone` limpo não tem uma única medição contra hardware. Para um projeto cujo
-   segundo objetivo é o registro empírico, isso é o pior lugar possível para guardar o único dado
-   que não foi produzido pelo próprio trabalhador. Virou o item 10.24, e é por isso que as tabelas
-   acima estão no corpo deste doc em vez de referenciarem o CSV.
+2. **CORRIGIDO NA ITERAÇÃO 0072 — esta nota estava errada.** Eu escrevi aqui que, por `logs/`
+   estar no `.gitignore`, o placar "nunca esteve no repositório". Está no `.gitignore`, e as
+   tabelas acima realmente moram no corpo deste doc por isso — mas a conclusão era falsa: o job
+   `scoreboard` da CI **publica** o placar numa branch órfã `scoreboard-data` a cada push na
+   `main`. O que eu não tinha visto é pior do que a ausência: das 1982 linhas publicadas lá,
+   **1981 têm status `sem-bios`**, porque a CI não tem BIOS e o script encerra sem rodar nada.
+   Ver `docs/iterations/0072-correcao-registro.md`. O item 10.24 foi reescrito.
 3. **`gpu_scoreboard.rs` é o exemplo mais limpo do projeto de teste que satisfaz o portão sem
    medir o objeto.** Seis testes verdes, todos sobre o texto de um `.ps1`. Nenhum é falso; todos
    juntos não excluem um emulador completamente quebrado. Vale citar no relatório final ao lado

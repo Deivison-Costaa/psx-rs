@@ -15,7 +15,8 @@ Nenhuma — item de infraestrutura de CI.
 |---|---|---|---|---|
 | 1 | processo | Que `logs/` estar no `.gitignore` bastasse para concluir que o placar "não está no repositório" (nota 2 da 0068) | O job `scoreboard` da CI publica o placar numa branch órfã `scoreboard-data` a cada push na `main`. A afirmação foi publicada num PR mergeado antes de eu conferir o remoto | Ao relançar o loop, o `git fetch` imprimiu `9f56efc..3179fe9 scoreboard-data -> origin/scoreboard-data`. Eu não tinha listado as branches remotas antes de concluir |
 | 2 | processo | Que descobrir a branch invalidasse o achado | Invalida a **razão**, não o achado, e o substitui por um pior: das 1982 linhas de `scoreboard-data.csv`, **1981 têm status `sem-bios`** | `git show origin/scoreboard-data:scoreboard-data.csv` e contagem por status |
-| 4 | processo | Que `spec_citations.rs` aceitaria a citação certa da seção do CHCR em `04-dma.md` | Ele reprovou `(L84)` — a linha REAL — dizendo "L84 é o offset do ÍNDICE" e no mesmo diagnóstico calculando que a seção começa em L84. `in_index_range` era testado ANTES de `in_real`, e em `04-dma.md`, onde o offset do `CORPO:` é só +25 e as seções distam ~37 linhas, a linha real cai dentro da faixa de índice da própria seção | O portão reprovou uma citação que eu havia conferido à mão contra o arquivo. Consertado neste PR: `if !in_real && in_index_range` |
+| 4 | processo | Que `spec_citations.rs` aceitaria a citação certa da seção do CHCR em `docs/reference/04-dma.md` (L84) | Ele reprovou a linha REAL dizendo que era o offset do índice e, no mesmo diagnóstico, calculando que a seção começa naquela mesma linha. `in_index_range` era testado ANTES de `in_real`, e nesse arquivo, onde o offset do `CORPO:` é só +25 e as seções distam ~37 linhas, a linha real cai dentro da faixa de índice da própria seção | O portão reprovou uma citação que eu havia conferido à mão contra o arquivo. Consertado neste PR: `if !in_real && in_index_range` |
+| 5 | processo | Que eu pudesse escrever prosa sobre números de linha depois de rodar a suíte | O verificador lê qualquer `(L<n>)` como citação e exige o arquivo na mesma linha; as notas 7 e 8 que eu acrescentei DEPOIS do último `cargo test --all` reprovaram na CI em três pontos. Segunda vez no mesmo dia (a primeira está na linha 5 da tabela da 0068) | `gh run view --job <id> --log-failed`. A causa raiz não é o portão: é eu ter commitado sem refazer o passo 7 do protocolo depois de editar |
 | 3 | processo | Que matar o `oc-loop`, o `oc-iter` e o `opencode.exe` da rodada parasse o trabalhador. Vi sobrar só o daemon `opencode serve` e concluí que estava parado | O agente roda **dentro** do daemon; o `oc-iter.ps1` é só um cliente HTTP. A sessão server-side continuou, deu `git stash -u` na minha árvore, voltou para `main`, resetou e criou `iter/0071-dma-dpcr-gate` | O commit desta iteração falhou com "nothing to commit, working tree clean" **na branch errada**. O reflog mostrou o `stash` e o `checkout` que eu não tinha feito. Nada foi perdido: as edições estavam em `stash@{0}` |
 
 ## O que está acontecendo
@@ -103,8 +104,8 @@ subtestes que a iteração 0068 havia previsto.
    a 10.16 dá diagnóstico errado, esta forçava escrever a citação **errada** para ficar verde. A
    ordem dos testes foi invertida para `if !in_real && in_index_range`, de modo que "a linha cai
    dentro da seção real" ganha de "a linha cai dentro da faixa de índice". Falsifiquei o conserto
-   como a regra do TaskFile agora exige: com a citação trocada para `(L59)`, que é de fato o valor
-   do índice, o portão continua acusando "L59 é o offset do ÍNDICE"; com `(L84)`, passa.
+   como a regra do TaskFile agora exige: trocando o número citado para o valor que aparece no
+   índice, o portão continua acusando cópia do índice; com o número real da seção, passa.
 8. **Falsifiquei o portão antes de commitar e quase paguei por isso.** Rodei o `sed` de
    falsificação sobre o `STATUS.md` com as edições desta iteração ainda não commitadas, e desfiz
    com `git checkout -- STATUS.md`. O arquivo estava em estado `UU` (merge não resolvido, herdado

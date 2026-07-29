@@ -1,0 +1,96 @@
+# Manifesto de mutação da iteração 0066 — dma-cdrom
+formato: 1
+iteracao: 0066
+item: 4.3a
+alvo: crates/psx-core/src/dma.rs
+teste: cdrom_dma
+
+mutante: m1
+rotulo: DMA3 nao verifica DRQSTS — faz transferencia mesmo sem BFRD
+@@DE
+        if !cdrom.drqsts_active() {
+            return;
+        }
+@@PARA
+        let _ = cdrom.drqsts_active();
+@@FIM
+
+mutante: m2
+rotulo: DMA3 nao verifica bit 28 — executa so com bit 24
+@@DE
+        if (self.chcr[3] & ((1 << 24) | (1 << 28))) != ((1 << 24) | (1 << 28)) {
+@@PARA
+        if (self.chcr[3] & (1 << 24)) == 0 {
+@@FIM
+
+mutante: m3
+rotulo: DMA3 nao limpa bit 24 apos transferencia — CHCR fica com start setado
+@@DE
+        self.chcr[3] &= !((1 << 24) | (1 << 28));
+@@PARA
+        self.chcr[3] &= !(1 << 28);
+@@FIM
+
+mutante: m4
+rotulo: DMA3 le byte do offset errado no RDDATA — offset 0 em vez de 2
+@@DE
+            let b0 = cdrom.read8(2) as u32;
+@@PARA
+            let b0 = cdrom.read8(0) as u32;
+@@FIM
+
+mutante: m5
+rotulo: DMA3 escreve na RAM com endian errado — big-endian em vez de little-endian
+@@DE
+                ram[offset..offset + 4].copy_from_slice(&word.to_le_bytes());
+@@PARA
+                ram[offset..offset + 4].copy_from_slice(&word.to_be_bytes());
+@@FIM
+
+mutante: m6
+rotulo: BCR zero tratado como 0 palavras em vez de 10000h
+@@DE
+        let word_count = if (bcr & 0xFFFF) == 0 {
+            0x10000
+        } else {
+            (bcr & 0xFFFF) as usize
+        };
+@@PARA
+        let word_count = (bcr & 0xFFFF) as usize;
+@@FIM
+
+mutante: m7
+rotulo: DMA3 incrementa MADR com step -4 em vez de +4
+@@DE
+            addr = addr.wrapping_add(4);
+@@PARA
+            addr = addr.wrapping_sub(4);
+@@FIM
+
+controle: K1
+rotulo: extrair word_count em variavel local antes do loop (equivalente semântico)
+@@DE
+        let mut addr = self.madr[3] & 0x00FF_FFFC;
+
+        for _ in 0..word_count {
+@@PARA
+        let mut addr = self.madr[3] & 0x00FF_FFFC;
+        let total = word_count;
+
+        for _ in 0..total {
+@@FIM
+
+controle: K2
+rotulo: usar if/else em vez de match para limpar CHCR (equivalente semântico)
+@@DE
+        self.chcr[3] &= !((1 << 24) | (1 << 28));
+    }
+
+    pub fn try_execute_dma2
+@@PARA
+        self.chcr[3] &= !(1 << 24);
+        self.chcr[3] &= !(1 << 28);
+    }
+
+    pub fn try_execute_dma2
+@@FIM

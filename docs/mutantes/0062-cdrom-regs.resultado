@@ -1,12 +1,12 @@
 # gerado por scripts/mutantes.ps1 — NAO editar a mao
-# commit: ec8f894b10b264619037ea2db037e9d61717a061
-# rodado_em: 2026-07-29T14:14:00-03:00
+# commit: e15534dbe1374986d0a64681afd338b5d0634ca9
+# rodado_em: 2026-07-29T14:14:35-03:00
 m1,mutante,morreu,morreu,0.7,escrever_mode_reseta_param_fifo;index0_read_retorna_status_inicial
-m2,mutante,morreu,morreu,0.7,getstat_20h_retorna_data_e_versao
-m3,mutante,morreu,morreu,0.7,init_command_dispara_int3_e_depois_int2;result_fifo_esvaziado_apos_acknowledge_e_leitura_da_segunda_resposta
+m2,mutante,morreu,morreu,0.8,getstat_20h_retorna_data_e_versao
+m3,mutante,morreu,morreu,0.8,init_command_dispara_int3_e_depois_int2;result_fifo_esvaziado_apos_acknowledge_e_leitura_da_segunda_resposta
 m4,mutante,morreu,morreu,0.7,getid_sem_disco_retorna_int5
 m5,mutante,morreu,morreu,0.7,getstat_20h_retorna_data_e_versao;result_fifo_esvaziado_apos_acknowledge_e_leitura_da_segunda_resposta;result_fifo_leitura_retorna_padding_zero_apos_esvaziar
 m6,mutante,morreu,morreu,0.7,escrever_mode_reseta_param_fifo
-m7,mutante,morreu,sobreviveu,0.7,
+m7,mutante,morreu,morreu,0.7,irq_nao_pendente_quando_intmsk_nao_cobre_intsts
 K1,controle,sobreviveu,sobreviveu,0.7,
 K2,controle,sobreviveu,sobreviveu,0.7,

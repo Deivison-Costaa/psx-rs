@@ -153,7 +153,10 @@ fn irq_pendente_quando_intsts_e_intmsk_se_sobrepoem() {
     set_bank(&mut bus, 0);
     intmsk_write(&mut bus, 0x1F);
     cd_write(&mut bus, 1, 0x0A);
-    assert!(bus.cdrom().irq_pending(), "IRQ pendente quando INTMSK cobre INTSTS");
+    assert!(
+        bus.cdrom().irq_pending(),
+        "IRQ pendente quando INTMSK cobre INTSTS"
+    );
 }
 
 #[test]
@@ -162,7 +165,10 @@ fn irq_nao_pendente_quando_intmsk_nao_cobre_intsts() {
     set_bank(&mut bus, 0);
     intmsk_write(&mut bus, 0x00);
     cd_write(&mut bus, 1, 0x0A);
-    assert!(!bus.cdrom().irq_pending(), "IRQ nao pendente quando INTMSK=0 mesmo com INTSTS=3");
+    assert!(
+        !bus.cdrom().irq_pending(),
+        "IRQ nao pendente quando INTMSK=0 mesmo com INTSTS=3"
+    );
 }
 
 #[test]

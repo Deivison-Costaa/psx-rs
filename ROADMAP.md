@@ -64,7 +64,7 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [x] 3.4d Timers — conexão de IRQ4/IRQ5/IRQ6 ao controlador (deferido da 3.4) (iter 0061)
 
 ## M4 — CDROM
-- [ ] 4.1 Regs/FIFOs/IRQs + GetStat/GetID/Test
+- [x] 4.1 Regs/FIFOs/IRQs + GetStat/GetID/Test (iter 0062)
 - [ ] 4.2 Parser BIN/CUE + Setloc/SeekL/ReadN/ReadS/Pause/Init
 - [ ] 4.3 DMA canal 3 + entrega de setores
 - [ ] 4.4 Boot de jogo 2D/menu

@@ -166,14 +166,14 @@ fn t3_window_reseta_com_gp1_00h() {
 
 #[rustfmt::skip]
 #[test]
-fn t4_repeticao_janela_a_cada_32_pixels_mask_3() {
+fn t4_janela_com_offset_maior_que_mask() {
     let mut gpu = Gpu::new();
 
     for i in 0..8u16 {
-        escreve_vram_halfword(&mut gpu, 16 + i, 0, 0x0A00 | i);
+        escreve_vram_halfword(&mut gpu, 8 + i, 0, 0x0A00 | i);
     }
 
-    escreve_e2h(&mut gpu, 3, 0, 2, 0);
+    escreve_e2h(&mut gpu, 3, 0, 5, 0);
 
     stat_com_e1h(&mut gpu, 2 << 7);
 
@@ -197,17 +197,17 @@ fn t4_repeticao_janela_a_cada_32_pixels_mask_3() {
 
     assert_eq!(
         gpu.vram_pixel(10, 10), 0x0A00,
-        "T4: U=8, Mask=3 Offset=2 → (8&~24)|((2&3)*8)=16, cor 0x0A00, obtido 0x{:04X}",
+        "T4: U=8, Mask=3 Offset=5 → (8&~24)|((5&3)*8)=8, cor 0x0A00, obtido 0x{:04X}",
         gpu.vram_pixel(10, 10)
     );
     assert_eq!(
         gpu.vram_pixel(11, 10), 0x0A01,
-        "T4: U=9 → 17, cor 0x0A01, obtido 0x{:04X}",
+        "T4: U=9 → 9, cor 0x0A01, obtido 0x{:04X}",
         gpu.vram_pixel(11, 10)
     );
     assert_eq!(
         gpu.vram_pixel(12, 10), 0x0A02,
-        "T4: U=10 → 18, cor 0x0A02, obtido 0x{:04X}",
+        "T4: U=10 → 10, cor 0x0A02, obtido 0x{:04X}",
         gpu.vram_pixel(12, 10)
     );
 }

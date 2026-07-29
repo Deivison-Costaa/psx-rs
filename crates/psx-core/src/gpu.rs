@@ -170,6 +170,9 @@ pub struct Gpu {
     display_range_x2: Cell<u16>,
     display_range_y1: Cell<u16>,
     display_range_y2: Cell<u16>,
+    video_mode: Cell<bool>,
+    in_vblank: Cell<bool>,
+    odd_line: Cell<bool>,
 }
 
 impl Default for Gpu {
@@ -202,6 +205,9 @@ impl Gpu {
             display_range_x2: Cell::new(0xC00),
             display_range_y1: Cell::new(0x10),
             display_range_y2: Cell::new(0x100),
+            video_mode: Cell::new(false),
+            in_vblank: Cell::new(false),
+            odd_line: Cell::new(false),
         }
     }
 
@@ -210,7 +216,7 @@ impl Gpu {
             0x0 => self.gpuread_word(),
             0x4 => {
                 let dir = self.dma_direction.get();
-                let stat = self.stat.get();
+                let mut stat = self.stat.get();
                 let bit25 = match dir {
                     0 => 0,
                     1 => 1 << 25,
@@ -218,7 +224,15 @@ impl Gpu {
                     3 => ((stat >> 27) & 1) << 25,
                     _ => 0,
                 };
-                (stat & !(1 << 25)) | bit25
+                stat = (stat & !(1 << 25)) | bit25;
+                if self.in_vblank.get() {
+                    stat &= !(1 << 31);
+                } else if self.odd_line.get() {
+                    stat |= 1 << 31;
+                } else {
+                    stat &= !(1 << 31);
+                }
+                stat
             }
             _ => 0,
         }
@@ -229,7 +243,7 @@ impl Gpu {
             0x0 => self.peek_gpuread(),
             0x4 => {
                 let dir = self.dma_direction.get();
-                let stat = self.stat.get();
+                let mut stat = self.stat.get();
                 let bit25 = match dir {
                     0 => 0,
                     1 => 1 << 25,
@@ -237,7 +251,15 @@ impl Gpu {
                     3 => ((stat >> 27) & 1) << 25,
                     _ => 0,
                 };
-                (stat & !(1 << 25)) | bit25
+                stat = (stat & !(1 << 25)) | bit25;
+                if self.in_vblank.get() {
+                    stat &= !(1 << 31);
+                } else if self.odd_line.get() {
+                    stat |= 1 << 31;
+                } else {
+                    stat &= !(1 << 31);
+                }
+                stat
             }
             _ => 0,
         }
@@ -287,6 +309,27 @@ impl Gpu {
 
     pub fn display_range_y2(&self) -> u16 {
         self.display_range_y2.get()
+    }
+
+    pub fn video_mode(&self) -> bool {
+        false
+    }
+
+    pub fn in_vblank(&self) -> bool {
+        false
+    }
+
+    pub fn frame_cycles(&self) -> u64 {
+        0
+    }
+
+    pub fn set_odd_line(&mut self, _odd: bool) {
+    }
+
+    pub fn enter_vblank(&mut self) {
+    }
+
+    pub fn exit_vblank(&mut self) {
     }
 
     fn write_gp0(&mut self, val: u32) {
@@ -1551,6 +1594,9 @@ impl Gpu {
                 self.display_range_x2.set(0xC00);
                 self.display_range_y1.set(0x10);
                 self.display_range_y2.set(0x100);
+                self.video_mode.set(false);
+                self.in_vblank.set(false);
+                self.odd_line.set(false);
             }
             0x01 => {
                 self.vram_state.set(VramState::Idle);
@@ -1595,6 +1641,7 @@ impl Gpu {
                 let mask: u32 = (1 << 14) | (0x7F << 16);
                 let s = self.stat.get();
                 self.stat.set((s & !mask) | bits);
+                self.video_mode.set((param & 0x08) != 0);
             }
             _ => {}
         }

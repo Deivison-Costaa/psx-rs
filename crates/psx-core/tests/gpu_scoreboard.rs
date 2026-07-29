@@ -4,9 +4,8 @@ use std::fs;
 
 #[test]
 fn fetch_test_exes_inclui_fonte_ps1_tests_que_prove_gpu() {
-    let script =
-        fs::read_to_string(support::repo_root().join("scripts/fetch-test-exes.ps1"))
-            .expect("scripts/fetch-test-exes.ps1 deve existir");
+    let script = fs::read_to_string(support::repo_root().join("scripts/fetch-test-exes.ps1"))
+        .expect("scripts/fetch-test-exes.ps1 deve existir");
 
     let tem_ps1_tests = script.contains("ps1-tests");
     assert!(
@@ -26,9 +25,8 @@ fn fetch_test_exes_inclui_fonte_ps1_tests_que_prove_gpu() {
 
 #[test]
 fn scoreboard_varre_recursivamente_para_incluir_gpu() {
-    let script =
-        fs::read_to_string(support::repo_root().join("scripts/scoreboard.ps1"))
-            .expect("scripts/scoreboard.ps1 deve existir");
+    let script = fs::read_to_string(support::repo_root().join("scripts/scoreboard.ps1"))
+        .expect("scripts/scoreboard.ps1 deve existir");
 
     let varre_recursivo = script.contains("-Recurse");
     assert!(
@@ -50,9 +48,8 @@ fn scoreboard_varre_recursivamente_para_incluir_gpu() {
 
 #[test]
 fn fetch_test_exes_ja_inclui_gpu_sem_precisar_de_nova_fonte() {
-    let script =
-        fs::read_to_string(support::repo_root().join("scripts/fetch-test-exes.ps1"))
-            .expect("scripts/fetch-test-exes.ps1 deve existir");
+    let script = fs::read_to_string(support::repo_root().join("scripts/fetch-test-exes.ps1"))
+        .expect("scripts/fetch-test-exes.ps1 deve existir");
 
     let fontes = script.matches("Url = ").count();
     assert!(
@@ -66,9 +63,8 @@ fn fetch_test_exes_ja_inclui_gpu_sem_precisar_de_nova_fonte() {
 
 #[test]
 fn scoreboard_aceita_status_tty_para_gpu_sem_veredito_textual() {
-    let script =
-        fs::read_to_string(support::repo_root().join("scripts/scoreboard.ps1"))
-            .expect("scripts/scoreboard.ps1 deve existir");
+    let script = fs::read_to_string(support::repo_root().join("scripts/scoreboard.ps1"))
+        .expect("scripts/scoreboard.ps1 deve existir");
 
     let tem_tty = script.contains("tty");
     assert!(
@@ -91,9 +87,8 @@ fn scoreboard_aceita_status_tty_para_gpu_sem_veredito_textual() {
 
 #[test]
 fn scoreboard_cabecalho_generico_suporta_suite_gpu() {
-    let script =
-        fs::read_to_string(support::repo_root().join("scripts/scoreboard.ps1"))
-            .expect("scripts/scoreboard.ps1 deve existir");
+    let script = fs::read_to_string(support::repo_root().join("scripts/scoreboard.ps1"))
+        .expect("scripts/scoreboard.ps1 deve existir");
 
     let tem_cabecalho = script.contains("ts,commit,suite,exe,status,detalhe");
     assert!(
@@ -106,9 +101,8 @@ fn scoreboard_cabecalho_generico_suporta_suite_gpu() {
 
 #[test]
 fn scoreboard_primeiro_tty_vem_antes_de_primeiro_sem_saida() {
-    let script =
-        fs::read_to_string(support::repo_root().join("scripts/scoreboard.ps1"))
-            .expect("scripts/scoreboard.ps1 deve existir");
+    let script = fs::read_to_string(support::repo_root().join("scripts/scoreboard.ps1"))
+        .expect("scripts/scoreboard.ps1 deve existir");
 
     let first_tty = script.find("tty,\"").unwrap_or(usize::MAX);
     let first_sem_saida = script.find("sem-saida,\"").unwrap_or(usize::MAX);
@@ -120,6 +114,7 @@ fn scoreboard_primeiro_tty_vem_antes_de_primeiro_sem_saida() {
          'tty', nao 'sem-saida'. Se o status 'tty' for removido deste bloco, suites \
          GPU sem veredito textual (maioria do ps1-tests) seriam incorretamente \
          classificadas como 'sem-saida'.",
-        first_tty, first_sem_saida,
+        first_tty,
+        first_sem_saida,
     );
 }

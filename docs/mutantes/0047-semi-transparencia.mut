@@ -1,0 +1,149 @@
+# Manifesto de mutação da iteração 0047 — semi-transparência
+formato: 1
+iteracao: 0047
+item: 2.6a
+alvo: crates/psx-core/src/gpu.rs
+teste: gpu_semi_transparencia
+
+mutante: m1
+rotulo: modo 1 vira modo 2 — blend aditivo vira subtrativo
+@@DE
+                1 => (
+                    (r_b + r_f).min(31),
+                    (g_b + g_f).min(31),
+                    (b_b + b_f).min(31),
+                ),
+@@PARA
+                1 => (
+                    (r_b as i32 - r_f as i32).max(0) as u16,
+                    (g_b as i32 - g_f as i32).max(0) as u16,
+                    (b_b as i32 - b_f as i32).max(0) as u16,
+                ),
+@@FIM
+
+mutante: m2
+rotulo: semi_transparent sempre true — ignora bit 25 do comando
+@@DE
+        if semi_transparent && (pixel & 0x8000) != 0 {
+@@PARA
+        if true && (pixel & 0x8000) != 0 {
+@@FIM
+
+mutante: m3
+rotulo: modo 0 vira modo 1 — blend avg vira aditivo
+@@DE
+                0 => (
+                    (r_b >> 1) + (r_f >> 1),
+                    (g_b >> 1) + (g_f >> 1),
+                    (b_b >> 1) + (b_f >> 1),
+                ),
+@@PARA
+                0 => (
+                    (r_b + r_f).min(31),
+                    (g_b + g_f).min(31),
+                    (b_b + b_f).min(31),
+                ),
+@@FIM
+
+mutante: m4
+rotulo: modo 3 vira mode 1 — blend B+F/4 vira B+F
+@@DE
+                3 => (
+                    (r_b + (r_f >> 2)).min(31),
+                    (g_b + (g_f >> 2)).min(31),
+                    (b_b + (b_f >> 2)).min(31),
+                ),
+@@PARA
+                3 => (
+                    (r_b + r_f).min(31),
+                    (g_b + g_f).min(31),
+                    (b_b + b_f).min(31),
+                ),
+@@FIM
+
+mutante: m5
+rotulo: write_pixel ignora o blend — sempre escreve o pixel cru
+@@DE
+        if semi_transparent && (pixel & 0x8000) != 0 {
+            let back = self.vram[idx];
+            let mode = (self.stat.get() >> 5) & 3;
+            let r_b = back & 0x1F;
+            let g_b = (back >> 5) & 0x1F;
+            let b_b = (back >> 10) & 0x1F;
+            let r_f = pixel & 0x1F;
+            let g_f = (pixel >> 5) & 0x1F;
+            let b_f = (pixel >> 10) & 0x1F;
+            let (r, g, b) = match mode {
+                0 => (
+                    (r_b >> 1) + (r_f >> 1),
+                    (g_b >> 1) + (g_f >> 1),
+                    (b_b >> 1) + (b_f >> 1),
+                ),
+                1 => (
+                    (r_b + r_f).min(31),
+                    (g_b + g_f).min(31),
+                    (b_b + b_f).min(31),
+                ),
+                2 => (
+                    (r_b as i32 - r_f as i32).max(0) as u16,
+                    (g_b as i32 - g_f as i32).max(0) as u16,
+                    (b_b as i32 - b_f as i32).max(0) as u16,
+                ),
+                3 => (
+                    (r_b + (r_f >> 2)).min(31),
+                    (g_b + (g_f >> 2)).min(31),
+                    (b_b + (b_f >> 2)).min(31),
+                ),
+                _ => (r_f, g_f, b_f),
+            };
+            self.vram[idx] = r | (g << 5) | (b << 10);
+        } else {
+            self.vram[idx] = pixel;
+        }
+@@PARA
+        self.vram[idx] = pixel;
+@@FIM
+
+mutante: m6
+rotulo: LSB do bit 15 é ignorado — máscara 0x4000 em vez de 0x8000
+@@DE
+        if semi_transparent && (pixel & 0x8000) != 0 {
+@@PARA
+        if semi_transparent && (pixel & 0x4000) != 0 {
+@@FIM
+
+mutante: m7
+rotulo: semi_transparent bit 1 do cmd lido de bit 4 em vez de bit 1 (0x10 vs 0x02)
+@@DE
+                            let semi_transparent = (cmd & 0x02) != 0;
+                            let total = if quad { 4 } else { 3 };
+@@PARA
+                            let semi_transparent = (cmd & 0x10) != 0;
+                            let total = if quad { 4 } else { 3 };
+@@FIM
+
+controle: K1
+rotulo: inverte ordem das extrações r_b e g_b (independentes, cosmético)
+@@DE
+            let r_b = back & 0x1F;
+            let g_b = (back >> 5) & 0x1F;
+@@PARA
+            let g_b = (back >> 5) & 0x1F;
+            let r_b = back & 0x1F;
+@@FIM
+
+controle: K2
+rotulo: inverte ordem de r_f e r_b em modo 0 (comutativo — é media aritmética)
+@@DE
+                0 => (
+                    (r_b >> 1) + (r_f >> 1),
+                    (g_b >> 1) + (g_f >> 1),
+                    (b_b >> 1) + (b_f >> 1),
+                ),
+@@PARA
+                0 => (
+                    (r_f >> 1) + (r_b >> 1),
+                    (g_f >> 1) + (g_b >> 1),
+                    (b_f >> 1) + (b_b >> 1),
+                ),
+@@FIM

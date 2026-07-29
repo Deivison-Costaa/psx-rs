@@ -227,8 +227,8 @@ fn io_catch_all_nao_corrompe_ram() {
     );
     assert_eq!(
         bus.read32::<BusRead>(0x1F80_1080),
-        0,
-        "F2: DMA stub devolve 0"
+        0x00FF_FFFF,
+        "F2: D0_MADR reflete valor escrito (bits 0-23)"
     );
     bus.write16::<BusRead>(0x1F80_1074, 0x0FFF);
     bus.write8::<BusRead>(0x1F80_1074, 0xFF);

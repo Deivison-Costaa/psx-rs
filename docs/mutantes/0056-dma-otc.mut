@@ -1,0 +1,74 @@
+# Manifesto de mutação da iteração 0056 — dma-otc
+formato: 1
+iteracao: 0056
+item: 3.2
+alvo: crates/psx-core/src/dma.rs
+teste: dma_otc
+
+mutante: m1
+rotulo: end marker errado (0xFFFFFF → 0x00000000)
+@@DE
+        let mut next_val: u32 = 0x00FF_FFFF;
+@@PARA
+        let mut next_val: u32 = 0x0000_0000;
+@@FIM
+
+mutante: m2
+rotulo: BC=0 nao tratado como 0x10000
+@@DE
+        let count = if bcr == 0 { 0x10000 } else { bcr as usize };
+@@PARA
+        let count = bcr as usize;
+@@FIM
+
+mutante: m3
+rotulo: bits 24 e 28 nao limpos apos OTC
+@@DE
+        self.chcr[6] &= !((1 << 24) | (1 << 28));
+@@PARA
+        // bits 24 e 28 nao sao limpos apos OTC (mutante)
+@@FIM
+
+mutante: m4
+rotulo: OTC incremento +4 em vez de -4 (ordem invertida)
+@@DE
+            addr = addr.wrapping_sub(4);
+@@PARA
+            addr = addr.wrapping_add(4);
+@@FIM
+
+mutante: m5
+rotulo: CHCR canal 6 sem restricao de bits (todos gravaveis)
+@@DE
+        if ch == 6 {
+            self.chcr[6] = (self.chcr[6] & !0x5100_0000) | (val & 0x5100_0000);
+@@PARA
+        if ch == 6 {
+            self.chcr[6] = val;
+@@FIM
+
+mutante: m6
+rotulo: OTC executa sem verificar bit 28 (forca start ignorado)
+@@DE
+        if (self.chcr[6] & ((1 << 24) | (1 << 28))) != ((1 << 24) | (1 << 28)) {
+@@PARA
+        if self.chcr[6] & (1 << 24) == 0 {
+@@FIM
+
+controle: K1
+rotulo: adicionar comentario nao altera comportamento
+@@DE
+        let mut next_val: u32 = 0x00FF_FFFF;
+@@PARA
+        // end-of-table marker para OTC
+        let mut next_val: u32 = 0x00FF_FFFF;
+@@FIM
+
+controle: K2
+rotulo: extrair mascara de bits 24+28 para constante (refatoracao)
+@@DE
+        self.chcr[6] &= !((1 << 24) | (1 << 28));
+@@PARA
+        let mascara_start = (1 << 24) | (1 << 28);
+        self.chcr[6] &= !mascara_start;
+@@FIM

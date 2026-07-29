@@ -1,3 +1,4 @@
+use crate::dma::Dma;
 use crate::gpu::Gpu;
 use crate::irq::Irq;
 
@@ -107,6 +108,7 @@ pub struct Bus {
     bios: Bios,
     gpu: Gpu,
     irq: Irq,
+    dma: Dma,
     scratchpad: Scratchpad,
     mem_ctrl: MemCtrl,
     bcc: Bcc,
@@ -124,6 +126,7 @@ impl Bus {
             bios,
             gpu: Gpu::new(),
             irq: Irq::new(),
+            dma: Dma::new(),
             scratchpad: Scratchpad::new(),
             mem_ctrl: MemCtrl::new(),
             bcc: Bcc::new(),
@@ -169,6 +172,18 @@ impl Bus {
             0x1F80_1060 => Some(self.mem_ctrl.read32(phys)),
             0x1F80_1070 => Some(self.irq.read_stat()),
             0x1F80_1074 => Some(self.irq.read_mask()),
+            0x1F80_1080..=0x1F80_10EC => {
+                let offset = phys - 0x1F80_1080;
+                let ch = (offset / 0x10) as usize;
+                match offset % 0x10 {
+                    0x0 => Some(self.dma.read_madr(ch)),
+                    0x4 => Some(self.dma.read_bcr(ch)),
+                    0x8 => Some(self.dma.read_chcr(ch)),
+                    _ => Some(0),
+                }
+            }
+            0x1F80_10F0 => Some(self.dma.read_dpcr()),
+            0x1F80_10F4 => Some(self.dma.read_dicr()),
             0xFFFE_0130 => Some(self.bcc.0),
             0x1F80_1810 | 0x1F80_1814 => Some(self.gpu.read32(phys - 0x1F80_1810)),
             0x1F80_1024..=0x1F80_105F | 0x1F80_1061..=0x1F80_1FFF => Some(0),
@@ -200,6 +215,28 @@ impl Bus {
             }
             0x1F80_1074 => {
                 self.irq.write_mask(val);
+                true
+            }
+            0x1F80_1080..=0x1F80_10EC => {
+                let offset = phys - 0x1F80_1080;
+                let ch = (offset / 0x10) as usize;
+                match offset % 0x10 {
+                    0x0 => self.dma.write_madr(ch, val),
+                    0x4 => self.dma.write_bcr(ch, val),
+                    0x8 => {
+                        self.dma.write_chcr(ch, val);
+                        self.dma.try_execute_otc(&mut self.ram.data);
+                    }
+                    _ => {}
+                }
+                true
+            }
+            0x1F80_10F0 => {
+                self.dma.write_dpcr(val);
+                true
+            }
+            0x1F80_10F4 => {
+                self.dma.write_dicr(val);
                 true
             }
             0xFFFE_0130 => {

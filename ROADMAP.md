@@ -116,7 +116,8 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [x] 10.9 UV/CLUT dos polígonos texturizados (hoje consumidos e ignorados) (iter 0045)
 - [ ] 10.10 Drawing Area GP0(E3h/E4h) e Drawing Offset GP0(E5h) sem suite de hardware que os meça
 - [ ] 10.11 Textura e Texpage de retângulos (hoje UV consumido e ignorado)
-- [ ] 10.12 Meta-teste do placar pula em silêncio quando o doc não é legível (`Err(_) => continue`) — passou local e reprovou na CI na iter 0042
+- [x] 10.12 Meta-teste do placar pula em silêncio quando o doc não é legível (`Err(_) => continue`) — passou local e reprovou na CI na iter 0042. Causa real: `relative()` devolvia separador nativo, então o portão pulava os 25 manifestos na máquina local desde a 0041 (iter 0069)
+- [ ] 10.25 Varrer os outros `unwrap_or("")` sobre caminho nos meta-testes: foi o que transformou a falha de `strip_prefix` em silêncio na 10.12, e o separador foi só o gatilho
 - [ ] 10.13 GP0(24h) é modulação, não raw texture: bit 24 do comando não é lido e o texel vai cru (03-gpu.md L264 e L1610)
 - [ ] 10.14 U/V e cor gouraud são reinterpolados sobre o span já recortado pela drawing area — a textura estica em vez de só perder os pixels de fora (03-gpu.md L452-454)
 - [ ] 10.16 `spec_citations.rs` casa mal título e referência quando a mesma linha tem 2+ títulos entre aspas e 2+ refs: ele usa o primeiro título para todos os refs em vez de parear pelo mais próximo. Na iteração 0066 isso produziu o diagnóstico "L940 não corresponde à seção 'ReadN/ReadS'" quando a L940 pertencia à seção seguinte e estava citada com o texto certo ao lado. Diagnóstico errado é pior que ambiguidade declarada — ou pareia por proximidade, ou falha como ambíguo, como já faz quando há 2+ arquivos na linha

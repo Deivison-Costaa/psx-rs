@@ -51,4 +51,5 @@ pub fn relative(path: &Path) -> String {
         .unwrap_or(path)
         .display()
         .to_string()
+        .replace('\\', "/")
 }

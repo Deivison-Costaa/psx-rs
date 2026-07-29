@@ -28,10 +28,12 @@ rotulo: retangulo de tamanho fixo (size 1=1x1) consome Width+Height que nao deve
 mutante: m3
 rotulo: troca R e B em color24_to_16 (na borda, C1 da 0038 indicou essa classe de mutante)
 @@DE
+fn color24_to_16(color24: u32) -> u16 {
     let r = (color24 & 0xFF) as u8;
     let g = ((color24 >> 8) & 0xFF) as u8;
     let b = ((color24 >> 16) & 0xFF) as u8;
 @@PARA
+fn color24_to_16(color24: u32) -> u16 {
     let b = (color24 & 0xFF) as u8;
     let g = ((color24 >> 8) & 0xFF) as u8;
     let r = ((color24 >> 16) & 0xFF) as u8;
@@ -41,10 +43,18 @@ mutante: m4
 rotulo: flat polyline usa pending_color em vez de color0 (cor zero em vez da cor do comando)
 @@DE
                             if has_prev {
-                                let c = color24_to_16(color0);
+                                self.draw_line_segment(
+                                    prev_vertex,
+                                    (x, y),
+                                    color0,
+                                    color0,
 @@PARA
                             if has_prev {
-                                let c = color24_to_16(pending_color);
+                                self.draw_line_segment(
+                                    prev_vertex,
+                                    (x, y),
+                                    pending_color,
+                                    pending_color,
 @@FIM
 
 mutante: m5
@@ -75,26 +85,26 @@ mutante: m8
 rotulo: D1 — polyline incremental nao desenha os segmentos flat (regressao do array)
 @@DE
                             if has_prev {
-                                let c = color24_to_16(color0);
                                 self.draw_line_segment(
                                     prev_vertex,
                                     (x, y),
-                                    c,
-                                    c,
+                                    color0,
+                                    color0,
                                     false,
                                     semi_transparent,
+                                    dither,
                                 );
                             }
 @@PARA
                             if false && has_prev {
-                                let c = color24_to_16(color0);
                                 self.draw_line_segment(
                                     prev_vertex,
                                     (x, y),
-                                    c,
-                                    c,
+                                    color0,
+                                    color0,
                                     false,
                                     semi_transparent,
+                                    dither,
                                 );
                             }
 @@FIM
@@ -112,6 +122,9 @@ rotulo: D2 — retangulo texturizado desenha com cor em vez de ignorar (AwaitUV)
 mutante: m10
 rotulo: D3 — linha simples flat sem checagem de distancia maxima entre vertices
 @@DE
+                            if vertex_count == 0 {
+                                vertex0 = (x, y);
+                                vertex_count = 1;
                             } else {
                                 let dx = (vertex0.0 as i32 - x as i32).abs();
                                 let dy = (vertex0.1 as i32 - y as i32).abs();
@@ -120,10 +133,21 @@ rotulo: D3 — linha simples flat sem checagem de distancia maxima entre vertice
                                     self.vram_state.set(VramState::Idle);
                                     return;
                                 }
-                                let c = color24_to_16(color0);
+                                self.render_single_line(
+                                    vertex0,
+                                    (x, y),
+                                    color0,
+                                    color0,
 @@PARA
+                            if vertex_count == 0 {
+                                vertex0 = (x, y);
+                                vertex_count = 1;
                             } else {
-                                let c = color24_to_16(color0);
+                                self.render_single_line(
+                                    vertex0,
+                                    (x, y),
+                                    color0,
+                                    color0,
 @@FIM
 
 mutante: m11
@@ -151,27 +175,27 @@ rotulo: inverte ordem das ligacoes let dx e let dy em render_single_line
 @@FIM
 
 controle: K2
-rotulo: renomeia variavel local c para seg_color no flat polyline (cosmetico)
+rotulo: renomeia parametro dither para dith no flat polyline (cosmetico)
 @@DE
                             if has_prev {
-                                let c = color24_to_16(color0);
                                 self.draw_line_segment(
                                     prev_vertex,
                                     (x, y),
-                                    c,
-                                    c,
+                                    color0,
+                                    color0,
                                     false,
                                     semi_transparent,
+                                    dither,
                                 );
 @@PARA
                             if has_prev {
-                                let seg_color = color24_to_16(color0);
                                 self.draw_line_segment(
                                     prev_vertex,
                                     (x, y),
-                                    seg_color,
-                                    seg_color,
+                                    color0,
+                                    color0,
                                     false,
                                     semi_transparent,
+                                    dith,
                                 );
 @@FIM

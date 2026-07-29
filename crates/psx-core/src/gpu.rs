@@ -8,6 +8,44 @@ fn color24_to_16(color24: u32) -> u16 {
     ((r >> 3) as u16) | (((g >> 3) as u16) << 5) | (((b >> 3) as u16) << 10)
 }
 
+const DITHER_MATRIX: [[i32; 4]; 4] = [
+    [-4, 0, -3, 1],
+    [2, -2, 3, -1],
+    [-3, 1, -4, 0],
+    [3, -1, 2, -2],
+];
+
+fn color24_to_16_dithered(color24: u32, x: i32, y: i32, dither_enabled: bool) -> u16 {
+    let r = (color24 & 0xFF) as u8;
+    let g = ((color24 >> 8) & 0xFF) as u8;
+    let b = ((color24 >> 16) & 0xFF) as u8;
+    if dither_enabled {
+        let offset = DITHER_MATRIX[(y & 3) as usize][(x & 3) as usize];
+        let r_d = ((r as i32) + offset).clamp(0, 255) as u16;
+        let g_d = ((g as i32) + offset).clamp(0, 255) as u16;
+        let b_d = ((b as i32) + offset).clamp(0, 255) as u16;
+        (r_d >> 3) | ((g_d >> 3) << 5) | ((b_d >> 3) << 10)
+    } else {
+        ((r >> 3) as u16) | (((g >> 3) as u16) << 5) | (((b >> 3) as u16) << 10)
+    }
+}
+
+fn lerp_color24(a: u32, b: u32, t: i32, t_max: i32) -> u32 {
+    if t_max == 0 {
+        return a;
+    }
+    let ar = (a & 0xFF) as i32;
+    let ag = ((a >> 8) & 0xFF) as i32;
+    let ab = ((a >> 16) & 0xFF) as i32;
+    let br = (b & 0xFF) as i32;
+    let bg = ((b >> 8) & 0xFF) as i32;
+    let bb = ((b >> 16) & 0xFF) as i32;
+    let r = (ar + (br - ar) * t / t_max).clamp(0, 255) as u32;
+    let g = (ag + (bg - ag) * t / t_max).clamp(0, 255) as u32;
+    let b = (ab + (bb - ab) * t / t_max).clamp(0, 255) as u32;
+    r | (g << 8) | (b << 16)
+}
+
 fn lerp_i32(a: i32, b: i32, t: i32, t_max: i32) -> i32 {
     if t_max == 0 {
         return a;
@@ -543,17 +581,18 @@ impl Gpu {
                     let x = raw_x.wrapping_add(off_x);
                     let y = raw_y.wrapping_add(off_y);
 
+                    let dither = (self.stat.get() & (1 << 9)) != 0;
                     if polyline {
                         if !gouraud {
                             if has_prev {
-                                let c = color24_to_16(color0);
                                 self.draw_line_segment(
                                     prev_vertex,
                                     (x, y),
-                                    c,
-                                    c,
+                                    color0,
+                                    color0,
                                     false,
                                     semi_transparent,
+                                    dither,
                                 );
                             }
                             prev_vertex = (x, y);
@@ -563,10 +602,11 @@ impl Gpu {
                                 self.draw_line_segment(
                                     prev_vertex,
                                     (x, y),
-                                    color24_to_16(prev_color),
-                                    color24_to_16(pending_color),
+                                    prev_color,
+                                    pending_color,
                                     true,
                                     semi_transparent,
+                                    dither,
                                 );
                                 prev_color = pending_color;
                             }
@@ -591,10 +631,11 @@ impl Gpu {
                                 self.render_single_line(
                                     vertex0,
                                     (x, y),
-                                    color24_to_16(color0),
-                                    color24_to_16(prev_color),
+                                    color0,
+                                    prev_color,
                                     true,
                                     semi_transparent,
+                                    dither,
                                 );
                                 self.stat.set(self.stat.get() | (1 << 26));
                                 self.vram_state.set(VramState::Idle);
@@ -612,14 +653,14 @@ impl Gpu {
                                     self.vram_state.set(VramState::Idle);
                                     return;
                                 }
-                                let c = color24_to_16(color0);
                                 self.render_single_line(
                                     vertex0,
                                     (x, y),
-                                    c,
-                                    c,
+                                    color0,
+                                    color0,
                                     false,
                                     semi_transparent,
+                                    dither,
                                 );
                                 self.stat.set(self.stat.get() | (1 << 26));
                                 self.vram_state.set(VramState::Idle);
@@ -966,11 +1007,13 @@ impl Gpu {
             let tex_colors = (self.stat.get() >> 7) & 3;
             tex_colors <= 3
         };
+        let dither = gouraud && !tex_active && (self.stat.get() & (1 << 9)) != 0;
         if quad {
             self.render_triangle(
                 gouraud,
                 tex_active,
                 semi_transparent,
+                dither,
                 [vertices[0], vertices[1], vertices[2]],
                 [colors[0], colors[1], colors[2]],
                 [uvs[0], uvs[1], uvs[2]],
@@ -979,6 +1022,7 @@ impl Gpu {
                 gouraud,
                 tex_active,
                 semi_transparent,
+                dither,
                 [vertices[1], vertices[2], vertices[3]],
                 [colors[1], colors[2], colors[3]],
                 [uvs[1], uvs[2], uvs[3]],
@@ -988,6 +1032,7 @@ impl Gpu {
                 gouraud,
                 tex_active,
                 semi_transparent,
+                dither,
                 [vertices[0], vertices[1], vertices[2]],
                 [colors[0], colors[1], colors[2]],
                 [uvs[0], uvs[1], uvs[2]],
@@ -1000,10 +1045,19 @@ impl Gpu {
         gouraud: bool,
         textured: bool,
         semi_transparent: bool,
+        dither: bool,
         verts: [(i16, i16); 3],
         colors: [u32; 3],
         uvs: [(u8, u8); 3],
     ) {
+        if dither && gouraud && !textured {
+            self.render_triangle_dithered(
+                verts,
+                colors,
+                semi_transparent,
+            );
+            return;
+        }
         let (v0, v1, v2) = (verts[0], verts[1], verts[2]);
         let (c0, c1, c2) = (colors[0], colors[1], colors[2]);
         let (uv0, uv1, uv2) = (uvs[0], uvs[1], uvs[2]);
@@ -1132,14 +1186,91 @@ impl Gpu {
         }
     }
 
+    fn render_triangle_dithered(
+        &mut self,
+        verts: [(i16, i16); 3],
+        colors: [u32; 3],
+        semi_transparent: bool,
+    ) {
+        let (v0, v1, v2) = (verts[0], verts[1], verts[2]);
+        let (c0, c1, c2) = (colors[0], colors[1], colors[2]);
+        let mut sorted = [
+            (v0.0 as i32, v0.1 as i32, c0),
+            (v1.0 as i32, v1.1 as i32, c1),
+            (v2.0 as i32, v2.1 as i32, c2),
+        ];
+        sorted.sort_by_key(|v| v.1);
+
+        let (xm, ym, pcm) = sorted[1];
+        let (xb, yb, pcb) = sorted[2];
+        let (xt, yt, pct) = sorted[0];
+
+        let dy_mt = ym - yt;
+        let dy_bt = yb - yt;
+        let dy_bm = yb - ym;
+
+        if dy_bt <= 0 {
+            return;
+        }
+
+        let area_x1 = self.drawing_x1.get() as i32;
+        let area_y1 = self.drawing_y1.get() as i32;
+        let area_x2 = self.drawing_x2.get() as i32;
+        let area_y2 = self.drawing_y2.get() as i32;
+        let y_start = yt.max(area_y1).max(0);
+        let y_end = yb.min(area_y2 + 1).min(512);
+
+        for y in y_start..y_end {
+            let x_edge_tb = lerp_i32(xt, xb, y - yt, dy_bt);
+            let (x_edge_short, color_short) = if y < ym {
+                (
+                    lerp_i32(xt, xm, y - yt, dy_mt),
+                    lerp_color24(pct, pcm, y - yt, dy_mt),
+                )
+            } else {
+                (
+                    lerp_i32(xm, xb, y - ym, dy_bm),
+                    lerp_color24(pcm, pcb, y - ym, dy_bm),
+                )
+            };
+
+            let color_tb = lerp_color24(pct, pcb, y - yt, dy_bt);
+
+            let (xl, xr, cl, cr) = if x_edge_tb < x_edge_short {
+                (x_edge_tb, x_edge_short, color_tb, color_short)
+            } else {
+                (x_edge_short, x_edge_tb, color_short, color_tb)
+            };
+
+            let xl = xl.max(area_x1).max(0);
+            let xr = xr.max(0).min(area_x2 + 1).min(1024);
+            if xl >= xr {
+                continue;
+            }
+
+            let dx = xr - xl;
+            for x in xl..xr {
+                let color24 = if dx > 0 {
+                    lerp_color24(cl, cr, x - xl, dx)
+                } else {
+                    pct
+                };
+                let pixel = color24_to_16_dithered(color24, x, y, true);
+                let idx = y as usize * 1024 + x as usize;
+                self.write_pixel(idx, pixel, semi_transparent);
+            }
+        }
+    }
+
     fn render_single_line(
         &mut self,
         v0: (i16, i16),
         v1: (i16, i16),
-        c0: u16,
-        c1: u16,
+        c0: u32,
+        c1: u32,
         gouraud: bool,
         semi_transparent: bool,
+        dither: bool,
     ) {
         let x0 = v0.0 as i32;
         let y0 = v0.1 as i32;
@@ -1162,11 +1293,12 @@ impl Gpu {
 
         let mut step = 0i32;
         loop {
-            let pixel = if gouraud && steps > 0 {
-                lerp_color(c0, c1, step, steps)
+            let color24 = if gouraud && steps > 0 {
+                lerp_color24(c0, c1, step, steps)
             } else {
                 c0
             };
+            let pixel = color24_to_16_dithered(color24, x, y, dither);
             if x >= area_x1
                 && x <= area_x2
                 && y >= area_y1
@@ -1196,17 +1328,18 @@ impl Gpu {
         &mut self,
         v0: (i16, i16),
         v1: (i16, i16),
-        c0: u16,
-        c1: u16,
+        c0: u32,
+        c1: u32,
         gouraud: bool,
         semi_transparent: bool,
+        dither: bool,
     ) {
         let dx = (v0.0 as i32 - v1.0 as i32).abs();
         let dy = (v0.1 as i32 - v1.1 as i32).abs();
         if dx > 1023 || dy > 511 {
             return;
         }
-        self.render_single_line(v0, v1, c0, c1, gouraud, semi_transparent);
+        self.render_single_line(v0, v1, c0, c1, gouraud, semi_transparent, dither);
     }
 
     fn render_rect(

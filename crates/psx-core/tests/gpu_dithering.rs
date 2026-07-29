@@ -176,8 +176,8 @@ fn t6_saturacao_dither_nao_ultrapassa_255() {
     espera_idle(&mut gpu);
 
     assert_eq!(
-        gpu.vram_pixel(1, 1), 0x7BDF,
-        "T6: offset -2, R=252-2=250>>3=31, G=31, B=31, esperado 0x7BDF (31,31,31)",
+        gpu.vram_pixel(1, 1), 0x7FFF,
+        "T6: offset -2, R=252-2=250>>3=31, G=31, B=31, esperado 0x7FFF (31,31,31)",
     );
 }
 

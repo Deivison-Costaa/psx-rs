@@ -57,11 +57,11 @@ rotulo: linha nao aplica dither (spec diz que sempre aplica)
 @@FIM
 
 mutante: m6
-rotulo: poligono flat aplica dither (spec diz que so gouraud/modulation aplicam)
+rotulo: matriz linha 2 trocada pela linha 0 — offset errado para y&3=2
 @@DE
-        let dither = gouraud && !tex_active && (self.stat.get() & (1 << 9)) != 0;
+    [-3, 1, -4, 0],
 @@PARA
-        let dither = !tex_active && (self.stat.get() & (1 << 9)) != 0;
+    [-4, 0, -3, 1],
 @@FIM
 
 mutante: m7

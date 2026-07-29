@@ -284,3 +284,25 @@ fn dma2_linked_list_madr_contem_end_marker_apos_transferencia() {
         "MADR deve conter end-marker 0x00FFFFFF apos transferencia linked-list"
     );
 }
+
+#[test]
+fn dma2_block_bs_zero_equivale_a_10000h() {
+    let mut bus = bus_com_dma();
+
+    bus.write32::<BusRead>(0x1F80_1810, 0xA000_0000);
+    bus.write32::<BusRead>(0x1F80_1810, 0x0000_0000);
+    bus.write32::<BusRead>(0x1F80_1810, 0x0001_0001);
+
+    let data_addr: u32 = 0x0000_0100;
+    write_ram32(&mut bus, data_addr, 0xDEAD_BEEF);
+
+    bus.write32::<BusRead>(D2_MADR, data_addr);
+    bus.write32::<BusRead>(D2_BCR, 0x0001_0000);
+    bus.write32::<BusRead>(D2_CHCR, 0x1100_0201);
+
+    let pixel = bus.gpu().vram_pixel(0, 0);
+    assert_eq!(
+        pixel, 0xBEEF,
+        "VRAM (0,0) contem metade inferior de DEADBEEF — BS=0 tratado como 0x10000"
+    );
+}

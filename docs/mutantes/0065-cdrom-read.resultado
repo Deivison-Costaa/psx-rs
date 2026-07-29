@@ -1,0 +1,12 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: 30373d47380f24cfdf4970482ff962b3cfd38612
+# rodado_em: 2026-07-29T16:05:34-03:00
+m1,mutante,morreu,morreu,0.8,read_n_sem_disco_retorna_int5
+m2,mutante,morreu,morreu,0.8,read_s_sem_disco_retorna_int5
+m3,mutante,morreu,morreu,0.8,read_n_continua_apos_primeiro_acknowledge;read_n_retorna_int3_depois_int1_com_dados;read_s_retorna_int3_depois_int1_com_dados;setloc_consumido_pelo_read_n
+m4,mutante,morreu,morreu,0.8,read_n_continua_apos_primeiro_acknowledge;setloc_consumido_pelo_read_n
+m5,mutante,morreu,morreu,0.7,rddata_retorna_sequencia_de_bytes;read_n_retorna_int3_depois_int1_com_dados;read_s_retorna_int3_depois_int1_com_dados
+m6,mutante,morreu,morreu,0.7,hsts_drqsts_setado_quando_dados_disponiveis;rddata_retorna_sequencia_de_bytes;read_n_retorna_int3_depois_int1_com_dados;read_s_retorna_int3_depois_int1_com_dados
+m7,mutante,morreu,morreu,0.7,read_n_retorna_int3_depois_int1_com_dados
+K1,controle,sobreviveu,sobreviveu,0.8,
+K2,controle,sobreviveu,sobreviveu,0.8,

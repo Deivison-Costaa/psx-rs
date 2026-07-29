@@ -47,7 +47,6 @@ rotulo: bit24 nao limpo apos linked-list
             addr = next_addr & 0x00FF_FFFC;
         }
 @@FIM
-@@FIM
 
 mutante: m5
 rotulo: block mode step ignorado (sempre incrementa +4)

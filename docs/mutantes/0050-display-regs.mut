@@ -78,13 +78,22 @@ rotulo: inverte ordem de set de Y1 e Y2 em GP1(07h) (independentes, cosmetico)
 controle: K2
 rotulo: declara variavel local nao usada _nop dentro de write_gp1 (cosmetico)
 @@DE
-            _ => {}
-        }
-    }
-@@PARA
-            _ => {
-                let _nop = 0;
+            0x08 => {
+                let param = val & 0xFF;
+                let bits: u32 = (param & 0x80) << 7 | (param & 0x40) << 10 | (param & 0x3F) << 17;
+                let mask: u32 = (1 << 14) | (0x7F << 16);
+                let s = self.stat.get();
+                self.stat.set((s & !mask) | bits);
             }
-        }
-    }
+            _ => {}
+@@PARA
+            0x08 => {
+                let _nop = 0;
+                let param = val & 0xFF;
+                let bits: u32 = (param & 0x80) << 7 | (param & 0x40) << 10 | (param & 0x3F) << 17;
+                let mask: u32 = (1 << 14) | (0x7F << 16);
+                let s = self.stat.get();
+                self.stat.set((s & !mask) | bits);
+            }
+            _ => {}
 @@FIM

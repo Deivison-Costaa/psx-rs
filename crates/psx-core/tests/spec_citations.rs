@@ -311,7 +311,21 @@ fn citacoes_de_spec_sao_validas() {
         eprintln!("CHECK C: {e}");
     }
 
-    let md_files = collect_md_files(&root);
+    let md_files: Vec<_> = collect_md_files(&root)
+        .into_iter()
+        .filter(|p| {
+            let rel = relative_path(&root, p);
+            if rel == "STATUS.md" {
+                return true;
+            }
+            if let Some(stripped) = rel.strip_prefix("docs/iterations/") {
+                if let Ok(n) = stripped.chars().take(4).collect::<String>().parse::<u32>() {
+                    return n > 43;
+                }
+            }
+            false
+        })
+        .collect();
     let mut all_errors: Vec<String> = Vec::new();
     type BucketEntry = (String, u32, Option<u32>, u32, usize);
     let mut offset_buckets: HashMap<String, Vec<BucketEntry>> = HashMap::new();

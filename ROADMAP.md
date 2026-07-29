@@ -37,8 +37,8 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 ## M2 — GPU (rasterizador por software)
 - [x] 2.1 GPUSTAT + decodificação GP0/GP1 (iter 0035)
 - [x] 2.2 VRAM 1MB + transfers (fill, CPU↔VRAM) (iter 0038)
-- [ ] 2.3 Triângulos flat + gouraud — reprovado na revisao, iter 0039 em correcao (PR #53)
-- [ ] 2.4 Quads, retângulos, linhas
+- [x] 2.3 Triângulos flat + gouraud (iter 0039)
+- [ ] 2.4 Quads, retângulos, linhas (parcial: quads na iter 0039)
 - [ ] 2.5 Texturas 4/8/15bpp + CLUT + texture window
 - [ ] 2.6 Semi-transparência + dithering + mask bit
 - [ ] 2.7 Display regs, timing NTSC/PAL, vblank IRQ
@@ -97,6 +97,7 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [ ] 10.6 GP0(80h) VRAM->VRAM blit (hoje consumido e ignorado)
 - [ ] 10.7 Mask setting GP0(E6h) aplicado a CPU->VRAM e VRAM->VRAM (03-gpu.md L590-592)
 - [ ] 10.8 SWL/SWR fazem read-modify-write e leem portas de I/O de leitura destrutiva
+- [ ] 10.9 UV/CLUT dos polígonos texturizados (hoje consumidos e ignorados)
 
 ## M11 — Apresentação (incremental desde o M1)
 - [ ] 11.1 Relatório consolidado (docs/relatorio.md — atualizado a cada marco)

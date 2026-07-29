@@ -65,9 +65,9 @@ fn bateria_existencia_manifestos_ou_opt_out() {
 struct ResultadoRow {
     id: String,
     tipo: String,
-    esperado: String,
+    _esperado: String,
     obtido: String,
-    segundos: String,
+    _segundos: String,
     testes: String,
 }
 
@@ -99,9 +99,9 @@ fn parse_resultado(content: &str) -> Result<(String, Vec<ResultadoRow>), Vec<Str
         rows.push(ResultadoRow {
             id: parts[0].to_string(),
             tipo: parts[1].to_string(),
-            esperado: parts[2].to_string(),
+            _esperado: parts[2].to_string(),
             obtido: parts[3].to_string(),
-            segundos: parts[4].to_string(),
+            _segundos: parts[4].to_string(),
             testes: parts[5..].join(",").to_string(),
         });
     }
@@ -125,22 +125,12 @@ fn bateria_resultados_consistem_com_manifestos() {
     let mut errs = Vec::new();
 
     for (_path, rel, manifest) in &manifests {
-        let resultado_path = mutantes_dir.join(format!(
-            "{}-{}.resultado",
-            manifest.iteracao,
-            rel.rsplit('-').collect::<Vec<&str>>()[0].trim_matches(|c: char| {
-                c == '.' || c == 'm' || c == 'u' || c == 't'
-            })
-        ));
-
-        let stem = _path.file_stem().and_then(|s| s.to_str()).unwrap_or("");
-        let mut candidates: Vec<_> = match fs::read_dir(&mutantes_dir) {
+        let candidates: Vec<_> = match fs::read_dir(&mutantes_dir) {
             Ok(entries) => entries
                 .filter_map(|e| {
                     let p = e.ok()?.path();
                     (p.extension().is_some_and(|e| e == "resultado")
-                        && p
-                            .file_stem()
+                        && p.file_stem()
                             .and_then(|s| s.to_str())
                             .is_some_and(|s| s.starts_with(&format!("{:04}", manifest.iteracao))))
                     .then_some(p)
@@ -247,13 +237,12 @@ fn bateria_nomes_de_teste_existem() {
     let mut errs = Vec::new();
 
     for (_path, rel, manifest) in &manifests {
-        let mut candidates: Vec<_> = match fs::read_dir(&mutantes_dir) {
+        let candidates: Vec<_> = match fs::read_dir(&mutantes_dir) {
             Ok(entries) => entries
                 .filter_map(|e| {
                     let p = e.ok()?.path();
                     (p.extension().is_some_and(|e| e == "resultado")
-                        && p
-                            .file_stem()
+                        && p.file_stem()
                             .and_then(|s| s.to_str())
                             .is_some_and(|s| s.starts_with(&format!("{:04}", manifest.iteracao))))
                     .then_some(p)
@@ -294,10 +283,7 @@ fn bateria_nomes_de_teste_existem() {
                          corrija no .resultado e rode a bateria de novo. Se acha que o \
                          credito e correto mas o nome nao existe, o .resultado foi \
                          adulterado — o script NAO inventa nomes.",
-                        rel,
-                        row.id,
-                        name,
-                        manifest.teste
+                        rel, row.id, name, manifest.teste
                     ));
                 }
             }
@@ -316,7 +302,8 @@ fn bateria_placar_bate_com_resultado() {
 
     for (_path, rel, manifest) in &manifests {
         let iter_doc = iter_dir.join(format!("{:04}-{}.md", manifest.iteracao, {
-            let stem = rel.strip_prefix("docs/mutantes/")
+            let stem = rel
+                .strip_prefix("docs/mutantes/")
                 .and_then(|s| s.strip_suffix(".mut"))
                 .unwrap_or("");
             if stem.len() > 5 && stem[4..].starts_with('-') {
@@ -347,13 +334,12 @@ fn bateria_placar_bate_com_resultado() {
             }
         };
 
-        let mut candidates: Vec<_> = match fs::read_dir(&mutantes_dir) {
+        let candidates: Vec<_> = match fs::read_dir(&mutantes_dir) {
             Ok(entries) => entries
                 .filter_map(|e| {
                     let p = e.ok()?.path();
                     (p.extension().is_some_and(|e| e == "resultado")
-                        && p
-                            .file_stem()
+                        && p.file_stem()
                             .and_then(|s| s.to_str())
                             .is_some_and(|s| s.starts_with(&format!("{:04}", manifest.iteracao))))
                     .then_some(p)
@@ -403,29 +389,9 @@ fn bateria_placar_bate_com_resultado() {
         if ctrl_sobreviveu != ctrl_count_manifest {
             errs.push(format!(
                 "{}: placar diz {}/{} controles verdes, mas numerador ({}) != denominador ({})",
-                rel,
-                ctrl_sobreviveu,
-                ctrl_count_manifest,
-                ctrl_sobreviveu,
-                ctrl_count_manifest
+                rel, ctrl_sobreviveu, ctrl_count_manifest, ctrl_sobreviveu, ctrl_count_manifest
             ));
         }
-
-        let expected_placar = format!(
-            "Placar da bateria: {}/{}/{} mutantes mortos, {}/{}/{} controles verdes, {} equivalente",
-            mut_morreu,
-            mut_count_manifest,
-            mut_morreu,
-            ctrl_sobreviveu,
-            ctrl_count_manifest,
-            ctrl_sobreviveu,
-            eq_count
-        );
-
-        let has_expected = expected_placar.contains(&format!(
-            "{}/{} mutantes mortos, {}/{} controles verdes",
-            mut_morreu, mut_count_manifest, ctrl_sobreviveu, ctrl_count_manifest
-        ));
 
         if !placar_line.contains(&format!(
             "{}/{} mutantes mortos, {}/{} controles verdes",
@@ -435,20 +401,9 @@ fn bateria_placar_bate_com_resultado() {
                 "{}: a linha 'Placar da bateria:' no doc nao confere com .resultado.\n\
                  Doc:    {placar_line}\n\
                  Esperado conter: {}/{} mutantes mortos, {}/{} controles verdes, {} equivalente",
-                rel,
-                mut_morreu,
-                mut_count_manifest,
-                ctrl_sobreviveu,
-                ctrl_count_manifest,
-                eq_count,
+                rel, mut_morreu, mut_count_manifest, ctrl_sobreviveu, ctrl_count_manifest, eq_count,
             ));
         }
-
-        let expected_line = format!(
-            "Placar da bateria: {}/{} mutantes mortos, {}/{} controles verdes, {} equivalente — {}",
-            mut_morreu, mut_count_manifest, ctrl_sobreviveu, ctrl_count_manifest, eq_count, rel
-        );
-        let _ = expected_line;
     }
     assert!(errs.is_empty(), "{errs:#?}");
 }
@@ -472,8 +427,7 @@ fn bateria_protocolo_e_ferramenta_nao_driftam() {
     }
 
     let ci_path = root.join(".github/workflows/ci.yml");
-    let ci_content =
-        fs::read_to_string(&ci_path).expect(".github/workflows/ci.yml deve existir");
+    let ci_content = fs::read_to_string(&ci_path).expect(".github/workflows/ci.yml deve existir");
     if !ci_content.contains("mutantes:") {
         errs.push(
             "ci.yml nao tem o job 'mutantes'. \
@@ -482,21 +436,16 @@ fn bateria_protocolo_e_ferramenta_nao_driftam() {
                 .to_string(),
         );
     }
-    if ci_content.contains("mutantes:")
-        && ci_content.contains("continue-on-error")
-    {
+    if ci_content.contains("mutantes:") {
         let section_start = ci_content.find("mutantes:").unwrap_or(0);
-        let section = &ci_content[section_start..];
-        let next_job = section.find('\n').map(|n| n + 1).unwrap_or(section.len());
-        let job_section = &section[..next_job.min(section.len())];
-        let rest_section = &ci_content[section_start + next_job..];
-        let end_marker = rest_section
+        let rest = &ci_content[section_start..];
+        let has_ce = rest
             .lines()
-            .position(|l| l.trim().ends_with(':') && !l.trim().starts_with('-') && !l.trim().starts_with('#'))
-            .map(|p| p + next_job)
-            .unwrap_or(ci_content.len());
-        let full_job = &ci_content[section_start..section_start + end_marker];
-        if full_job.contains("continue-on-error") {
+            .take_while(|l| {
+                !l.trim().ends_with(':') || l.trim().starts_with('-') || l.trim().starts_with('#')
+            })
+            .any(|l| l.contains("continue-on-error"));
+        if has_ce {
             errs.push(
                 "ci.yml: job 'mutantes' tem 'continue-on-error'. \
                  Passo pulado nao mede nada e deixa o job verde. \

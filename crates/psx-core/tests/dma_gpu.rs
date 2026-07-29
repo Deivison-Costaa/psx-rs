@@ -263,3 +263,24 @@ fn dma2_linked_list_multiplos_nos() {
         "primeiro no foi sobrescrito pelo segundo"
     );
 }
+
+#[test]
+fn dma2_linked_list_madr_contem_end_marker_apos_transferencia() {
+    let mut bus = bus_com_dma();
+
+    let list_addr: u32 = 0x0000_0100;
+    let header = 0x00FF_FFFF | (2 << 24);
+    write_ram32(&mut bus, list_addr, header);
+    write_ram32(&mut bus, list_addr + 4, 0xE100_0005);
+    write_ram32(&mut bus, list_addr + 8, 0xE100_000A);
+
+    bus.write32::<BusRead>(D2_MADR, list_addr);
+    bus.write32::<BusRead>(D2_BCR, 0);
+    bus.write32::<BusRead>(D2_CHCR, 0x1100_0401);
+
+    let madr = bus.read32::<BusRead>(D2_MADR);
+    assert_eq!(
+        madr, 0x00FF_FFFF,
+        "MADR deve conter end-marker 0x00FFFFFF apos transferencia linked-list"
+    );
+}

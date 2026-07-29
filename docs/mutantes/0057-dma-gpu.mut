@@ -20,6 +20,7 @@ rotulo: SyncMode ignorado (qualquer modo executa linked-list)
             1 => self.execute_block(ram, gpu),
             2 => self.execute_linked_list(ram, gpu),
             _ => {}
+        }
 @@PARA
         self.execute_linked_list(ram, gpu);
 @@FIM

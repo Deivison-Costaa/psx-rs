@@ -61,13 +61,11 @@ rotulo: bit11 setado mesmo sem reset_on_target (bit3)
 @@FIM
 
 controle: K1
-rotulo: inverter ordem de CNT e TARGET no match de read32 (independentes)
+rotulo: trocar 0xFFFF por 65535 (valor identico)
 @@DE
-            0x0 => t.counter.get() as u32,
-            0x4 => {
+                self.timers[idx].counter.set((val & 0xFFFF) as u16);
 @@PARA
-            0x8 => t.target as u32,
-            0x4 => {
+                self.timers[idx].counter.set((val & 65535) as u16);
 @@FIM
 
 controle: K2

@@ -118,6 +118,7 @@ pub struct Gpu {
     drawing_y2: Cell<u16>,
     drawing_offset_x: Cell<i16>,
     drawing_offset_y: Cell<i16>,
+    clut_attribute: Cell<u16>,
 }
 
 impl Default for Gpu {
@@ -139,6 +140,7 @@ impl Gpu {
             drawing_y2: Cell::new(511),
             drawing_offset_x: Cell::new(0),
             drawing_offset_y: Cell::new(0),
+            clut_attribute: Cell::new(0),
         }
     }
 
@@ -418,6 +420,7 @@ impl Gpu {
                     awaiting_uv = false;
                     let uv_idx = vertex_count.saturating_sub(1) as usize;
                     uvs[uv_idx] = ((val & 0xFF) as u8, ((val >> 8) & 0xFF) as u8);
+                    self.apply_clut_if_first(uv_idx, val);
                     self.apply_texpage_if_second(uv_idx, val);
                     if vertex_count >= total_vertices {
                         self.render_polygon(
@@ -770,6 +773,13 @@ impl Gpu {
         }
     }
 
+    fn apply_clut_if_first(&mut self, vertex_idx: usize, uv_word: u32) {
+        if vertex_idx == 0 {
+            let clut_attr = (uv_word >> 16) & 0xFFFF;
+            self.clut_attribute.set(clut_attr as u16);
+        }
+    }
+
     fn apply_texpage_if_second(&mut self, vertex_idx: usize, uv_word: u32) {
         if vertex_idx == 1 {
             let texpage = (uv_word >> 16) & 0xFFFF;
@@ -785,15 +795,44 @@ impl Gpu {
         let tex_colors = (stat >> 7) & 3;
         let u_clamped = u.clamp(0, 255) as u16;
         let v_clamped = v.clamp(0, 255) as u16;
-        if tex_colors == 2 || tex_colors == 3 {
-            let page_x = ((stat & 0xF) as u16) * 64;
-            let page_y = (((stat >> 4) & 1) as u16) * 256;
-            let addr = (page_y.wrapping_add(v_clamped) as usize & 0x1FF) * 1024
-                + (page_x.wrapping_add(u_clamped) as usize & 0x3FF);
-            self.vram[addr]
-        } else {
-            0
+        let page_x = ((stat & 0xF) as u16) * 64;
+        let page_y = (((stat >> 4) & 1) as u16) * 256;
+
+        match tex_colors {
+            0 => {
+                let pixel_index = v_clamped as usize * 256 + u_clamped as usize;
+                let hw_x = page_x.wrapping_add((pixel_index / 4) as u16) as usize & 0x3FF;
+                let hw_y = page_y.wrapping_add(v_clamped) as usize & 0x1FF;
+                let hw = self.vram[hw_y * 1024 + hw_x];
+                let nibble = (hw >> ((u_clamped % 4) * 4)) & 0xF;
+                self.lookup_clut(nibble)
+            }
+            1 => {
+                let pixel_index = v_clamped as usize * 256 + u_clamped as usize;
+                let hw_x = page_x.wrapping_add((pixel_index / 2) as u16) as usize & 0x3FF;
+                let hw_y = page_y.wrapping_add(v_clamped) as usize & 0x1FF;
+                let hw = self.vram[hw_y * 1024 + hw_x];
+                let byte = if u_clamped % 2 == 0 {
+                    hw & 0xFF
+                } else {
+                    (hw >> 8) & 0xFF
+                };
+                self.lookup_clut(byte)
+            }
+            _ => {
+                let addr = (page_y.wrapping_add(v_clamped) as usize & 0x1FF) * 1024
+                    + (page_x.wrapping_add(u_clamped) as usize & 0x3FF);
+                self.vram[addr]
+            }
         }
+    }
+
+    fn lookup_clut(&self, index: u16) -> u16 {
+        let attr = self.clut_attribute.get();
+        let clut_x = (attr & 0x3F) * 16;
+        let clut_y = (attr >> 6) & 0x1FF;
+        let addr = (clut_y as usize & 0x1FF) * 1024 + (clut_x.wrapping_add(index) as usize & 0x3FF);
+        self.vram[addr]
     }
 
     fn render_polygon(
@@ -823,7 +862,7 @@ impl Gpu {
         }
         let tex_active = textured && {
             let tex_colors = (self.stat.get() >> 7) & 3;
-            tex_colors == 2 || tex_colors == 3
+            tex_colors <= 3
         };
         if quad {
             self.render_triangle(
@@ -1205,6 +1244,7 @@ impl Gpu {
                 self.drawing_y2.set(511);
                 self.drawing_offset_x.set(0);
                 self.drawing_offset_y.set(0);
+                self.clut_attribute.set(0);
             }
             0x01 => {
                 self.vram_state.set(VramState::Idle);

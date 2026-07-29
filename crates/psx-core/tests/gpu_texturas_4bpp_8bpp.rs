@@ -86,7 +86,7 @@ fn b2_4bpp_amostra_4_pixels_por_halfword() {
     gpu.write32(0, 0x0001_0001);
     gpu.write32(0, hw);
 
-    stat_com_e1h(&mut gpu, 0 << 7);
+    stat_com_e1h(&mut gpu, 0);
 
     let cmd: u32 = 0x2400_0000;
     let verts = [
@@ -123,8 +123,8 @@ fn b2_4bpp_amostra_4_pixels_por_halfword() {
 fn b3_clut_em_posicao_arbitraria() {
     let mut gpu = Gpu::new();
 
-    escreve_vram_halfword(&mut gpu, 48, 50, 0x9ABC);
-    escreve_vram_halfword(&mut gpu, 49, 50, 0xDEF0);
+    escreve_vram_halfword(&mut gpu, 51, 50, 0x9ABC);
+    escreve_vram_halfword(&mut gpu, 53, 50, 0xDEF0);
 
     let texel_hw0: u32 = 3 | (5 << 8);
     gpu.write32(0, 0xA0u32 << 24);
@@ -134,7 +134,7 @@ fn b3_clut_em_posicao_arbitraria() {
 
     stat_com_e1h(&mut gpu, 1 << 7);
 
-    let clut_attr: u16 = (3 << 0) | (50 << 6);
+    let clut_attr: u16 = 3 | (50 << 6);
 
     let cmd: u32 = 0x2400_0000;
     let verts = [
@@ -146,12 +146,12 @@ fn b3_clut_em_posicao_arbitraria() {
 
     assert_eq!(
         gpu.vram_pixel(10, 10), 0x9ABC,
-        "B3: pixel(10,10) → idx3 → CLUT@(48,50) idx3=VRAM[50*1024+48+3]=0x9ABC, obtido 0x{:04X}",
+        "B3: pixel(10,10) → idx3 → CLUT@(48,50)[3]=0x9ABC, obtido 0x{:04X}",
         gpu.vram_pixel(10, 10)
     );
     assert_eq!(
         gpu.vram_pixel(11, 10), 0xDEF0,
-        "B3: pixel(11,10) → idx5 → CLUT@(48,50) idx5=VRAM[50*1024+48+5]=0xDEF0, obtido 0x{:04X}",
+        "B3: pixel(11,10) → idx5 → CLUT@(48,50)[5]=0xDEF0, obtido 0x{:04X}",
         gpu.vram_pixel(11, 10)
     );
 }
@@ -166,9 +166,9 @@ fn b4_clut_entry_0000h_nao_e_desenhado() {
     gpu.write32(0, 0x0000_0000);
     gpu.write32(0, 0x0050_0050);
 
-    escreve_vram_halfword(&mut gpu, 1, 0, 0x7FFF);
+    escreve_vram_halfword(&mut gpu, 33, 0, 0x7FFF);
 
-    let texel_hw0: u32 = 1 | (0 << 8);
+    let texel_hw0: u32 = 1;
     gpu.write32(0, 0xA0u32 << 24);
     gpu.write32(0, 0u32);
     gpu.write32(0, 0x0001_0001);
@@ -176,13 +176,15 @@ fn b4_clut_entry_0000h_nao_e_desenhado() {
 
     stat_com_e1h(&mut gpu, 1 << 7);
 
+    let clut_attr: u16 = 2;
+
     let cmd: u32 = 0x2400_0000;
     let verts = [
         ((10_i16, 10_i16), 0_u8, 0_u8),
         ((12_i16, 10_i16), 2_u8, 0_u8),
         ((10_i16, 12_i16), 0_u8, 2_u8),
     ];
-    prepara_triangulo_texturizado_clut(&mut gpu, cmd, 0x0000, &verts);
+    prepara_triangulo_texturizado_clut(&mut gpu, cmd, clut_attr, &verts);
 
     let bg_expected: u16 = ((bg_color >> 3) & 0x1F) as u16
         | (((bg_color >> 11) & 0x1F) as u16) << 5
@@ -210,11 +212,11 @@ fn b5_8bpp_com_page_nao_zero() {
     gpu.write32(0, 0xA0u32 << 24);
     gpu.write32(0, (256u32 << 16) | 64u32);
     gpu.write32(0, 0x0001_0001);
-    gpu.write32(0, (3 | (0 << 8)) as u32);
+    gpu.write32(0, 3u32);
 
     stat_com_e1h(
         &mut gpu,
-        (1 << 0) | (1 << 4) | 1 << 7,
+        1 | (1 << 4) | 1 << 7,
     );
 
     let cmd: u32 = 0x2400_0000;
@@ -238,17 +240,14 @@ fn b6_modos_misturados_8bpp_4bpp_15bpp() {
     let mut gpu = Gpu::new();
 
     escreve_vram_halfword(&mut gpu, 3, 0, 0xAAAA);
-    escreve_vram_halfword(&mut gpu, 4, 0, 0x9ABC);
 
-    let hw_4bpp: u32 = 3 | (0 << 4) | (0 << 8) | (0 << 12);
+    let texel_8bpp: u32 = 3;
     gpu.write32(0, 0xA0u32 << 24);
-    gpu.write32(0, (64u32 << 16) | 0u32);
+    gpu.write32(0, 0u32);
     gpu.write32(0, 0x0001_0001);
-    gpu.write32(0, hw_4bpp);
+    gpu.write32(0, texel_8bpp);
 
-    escreve_vram_halfword(&mut gpu, 128, 0, 0x5555);
-
-    stat_com_e1h(&mut gpu, (1 << 0) | 1 << 7);
+    stat_com_e1h(&mut gpu, 1 << 7);
     let cmd: u32 = 0x2400_0000;
     let verts_8bpp = [
         ((10_i16, 10_i16), 0_u8, 0_u8),
@@ -258,13 +257,22 @@ fn b6_modos_misturados_8bpp_4bpp_15bpp() {
     prepara_triangulo_texturizado_clut(&mut gpu, cmd, 0x0000, &verts_8bpp);
     assert_eq!(gpu.vram_pixel(10, 10), 0xAAAA, "B6-A: 8bpp ok");
 
-    stat_com_e1h(&mut gpu, (1 << 0) | 0 << 7);
+    escreve_vram_halfword(&mut gpu, 17, 0, 0x9ABC);
+
+    let texel_4bpp: u32 = 1;
+    gpu.write32(0, 0xA0u32 << 24);
+    gpu.write32(0, 256u32 << 16);
+    gpu.write32(0, 0x0001_0001);
+    gpu.write32(0, texel_4bpp);
+
+    stat_com_e1h(&mut gpu, 1 << 4);
     let verts_4bpp = [
         ((20_i16, 20_i16), 0_u8, 0_u8),
         ((21_i16, 20_i16), 0_u8, 0_u8),
         ((20_i16, 21_i16), 0_u8, 0_u8),
     ];
-    prepara_triangulo_texturizado_clut(&mut gpu, cmd, 0x0000, &verts_4bpp);
+    let clut_attr_4bpp: u16 = 1;
+    prepara_triangulo_texturizado_clut(&mut gpu, cmd, clut_attr_4bpp, &verts_4bpp);
     assert_eq!(gpu.vram_pixel(20, 20), 0x9ABC, "B6-B: 4bpp ok");
 
     escreve_vram_halfword(&mut gpu, 0, 0, 0x5555);
@@ -276,10 +284,14 @@ fn b6_modos_misturados_8bpp_4bpp_15bpp() {
     ];
     let cmd_15bpp: u32 = 0x2400_0000;
     gpu.write32(0, cmd_15bpp);
-    for &((sx, sy), u, v) in &verts_15bpp {
+    for (idx, &((sx, sy), u, v)) in verts_15bpp.iter().enumerate() {
         gpu.write32(0, ((sy as u16 as u32) << 16) | (sx as u16 as u32));
         let mut uv_word: u32 = ((v as u32) << 8) | (u as u32);
-        uv_word |= 0x0080_0000;
+        if idx == 1 {
+            let stat = gpu.stat();
+            let texpage: u32 = (stat & 0x3FF) | ((stat >> 15) & 1) << 11;
+            uv_word |= (texpage & 0xFF_FFFF) << 16;
+        }
         gpu.write32(0, uv_word);
     }
     assert_eq!(gpu.vram_pixel(30, 30), 0x5555, "B6-C: 15bpp ok");

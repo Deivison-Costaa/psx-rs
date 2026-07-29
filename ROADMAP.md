@@ -116,18 +116,23 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [x] 10.9 UV/CLUT dos polígonos texturizados (hoje consumidos e ignorados) (iter 0045)
 - [ ] 10.10 Drawing Area GP0(E3h/E4h) e Drawing Offset GP0(E5h) sem suite de hardware que os meça
 - [ ] 10.11 Textura e Texpage de retângulos (hoje UV consumido e ignorado)
-- [x] 10.12 Meta-teste do placar pula em silêncio quando o doc não é legível (`Err(_) => continue`) — passou local e reprovou na CI na iter 0042. Causa real: `relative()` devolvia separador nativo, então o portão pulava os 25 manifestos na máquina local desde a 0041 (iter 0069)
+- [x] 10.12 Meta-teste do placar pulava em silêncio: `relative()` devolvia separador nativo e o portão saltava os 25 manifestos na máquina local desde a 0041 (iter 0069)
+- [ ] 10.28 A tabela por registro nos docs não é conferida contra o `.resultado`, só a linha `Placar da bateria:`. A 0071 errou 3 de 9 linhas; a 0038 inflou dois créditos
+- [ ] 10.29 `dma_dpcr_gate.rs:141` usa `assert_ne!(val, 0xDEAD_BEEF)` numa correção de defeito, em vez de afirmar o valor que a transferência produz
+- [ ] 10.30 Habilitar um canal no DPCR não dispara transferência pendente: o modelo só dispara na escrita de CHCR
 - [ ] 10.25 Varrer os outros `unwrap_or("")` sobre caminho nos meta-testes: foi o que transformou a falha de `strip_prefix` em silêncio na 10.12, e o separador foi só o gatilho
 - [ ] 10.13 GP0(24h) é modulação, não raw texture: bit 24 do comando não é lido e o texel vai cru (03-gpu.md L264 e L1610)
 - [ ] 10.14 U/V e cor gouraud são reinterpolados sobre o span já recortado pela drawing area — a textura estica em vez de só perder os pixels de fora (03-gpu.md L452-454)
-- [ ] 10.16 `spec_citations.rs` casa mal título e referência quando a mesma linha tem 2+ títulos entre aspas e 2+ refs: ele usa o primeiro título para todos os refs em vez de parear pelo mais próximo. Na iteração 0066 isso produziu o diagnóstico "L940 não corresponde à seção 'ReadN/ReadS'" quando a L940 pertencia à seção seguinte e estava citada com o texto certo ao lado. Diagnóstico errado é pior que ambiguidade declarada — ou pareia por proximidade, ou falha como ambíguo, como já faz quando há 2+ arquivos na linha
-- [x] 10.15 Reparar as âncoras do manifesto 0059 (`timers-sync`), arquivado na 0060 quando o `tick()` foi reescrito: 4 dos 9 registros não casam mais, e a bateria daquele item está sem rodar. O 0052 foi reparado no mesmo dia com quatro caracteres (`fn` → `pub fn`), o que sugere que arquivar foi resposta cara demais para o problema (iter 0067)
+- [ ] 10.16 `spec_citations.rs` usa o primeiro título entre aspas para todos os refs da linha em vez de parear pelo mais próximo, e deu diagnóstico errado na 0066 — ou pareia por proximidade, ou falha como ambíguo
+- [x] 10.15 Reparar as âncoras do manifesto 0059, arquivado na 0060: 5 dos 9 registros ainda casavam (iter 0067)
 - [ ] 10.17 `mutantes.ps1` recusa árvore suja, então reparo de âncora só pode ser verificado depois de commitado às cegas — permitir sujeira restrita a `docs/mutantes/*.mut`
-- [x] 10.19 DPCR nunca é consultado: os três `try_execute_*` do DMA olham só CHCR bits 24/28 e transferem com o canal desabilitado — `otc-test` reprova 4 subtestes só por isso (iter 0071)
+- [x] 10.19 DPCR não era consultado por nenhum canal do DMA; gate posto nos três `try_execute_*`. `otc-test` foi de 6p/34f a 7p/30f (iter 0071)
 - [ ] 10.20 A lista que o OTC escreve é o espelho da do hardware (terminador e sentido dos ponteiros); `dma_otc.rs:79-81` afirma o espelho, então 13 testes verdes certificam o defeito
 - [ ] 10.21 GP0(E1h) escreve o bit 15 do GPUSTAT (Texture Disable) sem o gate de GP1(09h) — `gpu/gp0-e1` reprova 3 de 10
 - [ ] 10.22 `gpu/mask-bit` reprova 2 de 5 desde que passou a dar veredito; provável sobreposição com 10.7
-- [ ] 10.24 `logs/` é gitignored, então `scoreboard.csv` — a única medida contra hardware real — não está no repositório e some com a máquina. Versionar o placar (ou um digest por commit)
+- [ ] 10.24 O job `scoreboard` da CI sai VERDE medindo zero: sem BIOS o script rotula as 51 suítes `sem-bios` e encerra 0, e 1981 das 1982 linhas de `scoreboard-data` são isso. Ou BIOS de secret, ou declarar NÃO MEDIDO (medido na iter 0072)
+- [ ] 10.26 `ci_scoreboard.rs` tem 9 testes e nenhum afirma que o job mede algo — um deles aceita `sem-bios` como rótulo normal. Portão do portão: rodada sem nenhuma suíte executada não pode passar por placar
+- [ ] 10.27 O placar local (gitignored) é o único com veredito real e não é versionado. Some se o 10.24 for resolvido pela BIOS em secret
 - [ ] 10.23 45 das 51 suites do scoreboard não dão veredito porque renderizam na VRAM: 88% do placar não mede nada. A `diffvram` do ps1-tests já está baixada
 - [ ] 10.18 Nada torna `arquivada:` caro: em 0052 e 0059, arquivar descartou 17 registros dos quais 12 ainda casavam. Exigir no header quantos casam e falhar se algum casar
 

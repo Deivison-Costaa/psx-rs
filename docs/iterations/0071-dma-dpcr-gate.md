@@ -27,10 +27,10 @@ Placar da bateria: 7/7 mutantes mortos, 2/2 controles verdes, 0 equivalente — 
 | m1 | mutante | OTC sem gate DPCR | `otc_nao_transfere_com_canal_desabilitado_no_dpcr` |
 | m2 | mutante | DMA3 sem gate DPCR | `dma3_nao_transfere_com_canal_desabilitado_no_dpcr` |
 | m3 | mutante | DMA2 sem gate DPCR | `dma2_nao_transfere_com_canal_desabilitado_no_dpcr` |
-| m4 | mutante | OTC usa bit 26 em vez de 27 | `otc_transfere_com_canal_habilitado_no_dpcr` |
+| m4 | mutante | OTC usa bit 26 em vez de 27 | `otc_nao_transfere_com_canal_desabilitado_no_dpcr` |
 | m5 | mutante | DMA2 usa bit 10 em vez de 11 | `dma2_transfere_com_canal_habilitado_no_dpcr` |
-| m6 | mutante | DMA3 condição invertida | `dma3_nao_transfere_com_canal_desabilitado_no_dpcr` |
-| m7 | mutante | DMA3 usa bit 14 em vez de 15 | `dma3_transfere_com_canal_habilitado_no_dpcr` |
+| m6 | mutante | DMA3 condição invertida | `dma3_nao_transfere_com_canal_desabilitado_no_dpcr` e `dma3_transfere_com_canal_habilitado_no_dpcr` |
+| m7 | mutante | DMA3 usa bit 14 em vez de 15 | `dma3_nao_transfere_com_canal_desabilitado_no_dpcr` |
 | c1 | controle | `let _` no-op antes do for em try_execute_otc | nenhum (sobreviveu) |
 | c2 | controle | formatação numérica 0x0765_4321 → 0x07654321 | nenhum (sobreviveu) |
 
@@ -41,7 +41,40 @@ Testes existentes que precisaram de correção: todos os testes de `dma_otc.rs` 
 
 ## Revisão cruzada (orquestrador)
 
-<!-- Preenchido pelo Claude na revisão do PR: achados no formato de docs/prompts/review.md, ou "sem achados". -->
+Revisada e mergeada pelo PR #85. A implementação está certa e resolveu o que prometia; os achados
+abaixo são de registro e de teste, não de emulação.
+
+**Medição de hardware, que é o que justifica o item.** `ps1-tests/dma/otc-test` no `8d4267e`:
+`6p/34f` → **`7p/30f`**, e `testOtcStandardWithMasterDisabled` passou. Os quatro subtestes que a
+iteração 0068 previu, exatamente, sem regressão em nenhum outro. É a primeira correção do projeto
+guiada por suíte de hardware em vez de teste próprio.
+
+**A1 — a tabela de mutação deste doc não batia com o `.resultado` em 3 das 9 linhas.** O doc
+creditava m4 a `otc_transfere_com_canal_habilitado_no_dpcr` e m7 a
+`dma3_transfere_com_canal_habilitado_no_dpcr`; a máquina registrou os dois como mortos por
+`..._nao_transfere_com_canal_desabilitado_no_dpcr`, e m6 por dois testes, não um. Corrigido acima
+para o que a máquina diz. A linha `Placar da bateria:` estava certa — ela é conferida por
+meta-teste; a tabela por registro não é, e é justamente onde a iteração 0038 inflou dois créditos
+por inspeção. Virou o item 10.28.
+
+**A2 — `assert_ne!` numa correção de defeito.** `dma_dpcr_gate.rs:141` afirma
+`assert_ne!(val, 0xDEAD_BEEF)`, isto é, "o valor mudou", em vez do valor que a transferência
+deveria produzir. É o padrão 1 da lista de revisão, na rodada cujo passo A era conferir aquela
+lista. A bateria não pegou porque m6 morre também pelo teste do lado desabilitado. Não bloqueia o
+merge — o gate está provado pelos outros seis testes —, mas o teste precisa afirmar o valor.
+Virou o item 10.29.
+
+**A3 — habilitar o canal no DPCR não dispara transferência pendente.** O modelo só dispara na
+escrita de CHCR. A sequência real "escreve CHCR com o canal desabilitado, depois habilita no
+DPCR" deveria iniciar a transferência no hardware e não inicia aqui. Nenhum subteste do `otc-test`
+cobre isso hoje, e por isso não custou nada agora. Virou o item 10.30.
+
+**Conferidos e sem achado:** parâmetro não consumido (nenhum comando novo), regra de borda
+(nenhuma rasterização), campo de bit lido errado (bits 27/15/11 conferidos contra `04-dma.md`
+L136/L130/L128), panic ou laço ilimitado (só três `return` novos), citação de spec (a única do doc
+é a L121 do DPCR, correta), escopo transbordado (nada além do gate), portão que não mede (a
+bateria mata 7 de 7 com controles verdes e foi rodada pela máquina), manifesto arquivado
+(nenhum).
 
 ## Decisões e notas
 

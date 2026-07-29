@@ -5,11 +5,42 @@
 
 ## Última iteração concluída
 
-**0071** — DMA: DPCR como gate de habilitação (ROADMAP 10.19): os três `try_execute_*` agora consultam o DPCR antes de transferir. Canais nascem desabilitados (reset `07654321h` com Master Enable=0 em todos os nibbles). Testes existentes de `dma_otc`, `dma_gpu` e `cdrom_dma` passaram a habilitar o canal antes de disparar.
+**0072** — Correção de registro e revisão do PR #85 (ROADMAP 10.24): o job `scoreboard` da CI
+sai verde medindo zero, porque sem BIOS o script rotula as 51 suítes como `sem-bios` e encerra 0.
+Das 1982 linhas publicadas na branch `scoreboard-data`, 1981 são `sem-bios`. Corrige a nota 2 da
+iteração 0068 e preenche a revisão cruzada da 0071.
+
+Antes dela, **0071** — DPCR como gate de habilitação no DMA (ROADMAP 10.19). Medido no hardware:
+`ps1-tests/dma/otc-test` foi de `6p/34f` para `7p/30f`, e `testOtcStandardWithMasterDisabled`
+passou. Primeira correção do projeto guiada pela suíte de hardware.
 
 ## Próxima tarefa
 
-**Opção B — ROADMAP 4.3b — CDROM — Acoplar DiscLayout + dados do .bin.**
+**ROADMAP 10.20 — DMA — o que o OTC grava em cada endereço.**
+`ps1-tests/dma/otc-test` ainda reprova 30 subtestes e todos são o mesmo defeito. Para um buffer
+de 4 palavras, `testOtcStandard:28-31` espera `buf[0]=0xFFFFFF`, `buf[1]=&buf[0]`,
+`buf[2]=&buf[1]`, `buf[3]=&buf[2]`: terminador no índice mais BAIXO, cada palavra apontando para
+a de baixo. Nós gravamos o espelho — terminador em MADR, no índice mais alto, e ponteiros para
+cima.
+**O sentido de varredura já está certo e a spec confirma:** em `docs/reference/04-dma.md`, seção
+"1F801088h+N\*10h - D#\_CHCR - DMA Channel Control (Channel 0..6) (R/W)" (L84), as restrições do
+DMA6 dizem que o bit 1 do D6_CHCR é sempre 1, com `increment=-4` (L117-119). O OTC desce, e
+`try_execute_otc` já desce. O defeito é o VALOR gravado em cada endereço e a ponta onde vai o
+terminador: descendo a partir de MADR, cada palavra deve receber o endereço que será visitado a
+seguir (o de baixo), e o terminador cai na última palavra escrita, que é a mais baixa. A seção
+"DMA Register Summary" (L27) chama o canal 6 de "reverse clear OT" (L35).
+**Armadilha:** `crates/psx-core/tests/dma_otc.rs:79-81` afirma hoje o espelho, com as mensagens
+"ultimo slot = end marker" e "slot N-1 aponta para slot N". Esse teste é o que certificou o
+defeito, e TEM de mudar junto — o teste próprio não é o árbitro, a spec e o `otc-test` são.
+Confirme na mesma passagem a segunda diferença: gravamos o ponteiro dobrado em 21 bits
+(`& 0x1F_FFFC`), e os valores esperados pelo `otc-test` são de 24 bits.
+Arquivos-alvo: `crates/psx-core/src/dma.rs`, `crates/psx-core/tests/dma_otc.rs`.
+
+**Depois desta, em ordem de evidência de hardware:** 10.21 (bit 15 do GPUSTAT sem o gate de
+GP1(09h), 3 subtestes), 10.22 (mask bit, 2 subtestes), e o 4.3b abaixo, que não tem suíte de
+hardware medindo.
+
+**ROADMAP 4.3b — CDROM — Acoplar DiscLayout + dados do .bin.**
 Substituir o buffer stub (`data_buffer` preenchido com `(i+1) & 0xFF`) por dados reais do arquivo .bin, usando o `DiscLayout` (item 4.2b). ReadN/ReadS devem ler setores do BIN a partir da posição definida por Setloc. Armadilha: o `Cdrom` hoje não tem referência ao `DiscLayout` nem ao buffer `.bin`; `Bus` precisa injetá-los ou o `Cdrom` precisa guardar uma referência.
 Spec, em `docs/reference/06-cdrom.md`: seção "ReadN/ReadS" (L924).
 Sequência de entrega do setor, na seção "CDROM Incoming Data / Buffer Overrun Timings" (L928) do mesmo arquivo: "Copy Data to Main RAM" (L940).

@@ -1,12 +1,12 @@
 # gerado por scripts/mutantes.ps1 — NAO editar a mao
-# commit: 5f9f9c7decff99a91559b668d5b7b86ebdc2bc9b
-# rodado_em: 2026-07-29T09:27:08-03:00
-m1,mutante,morreu,morreu,0.8,dma2_linked_list_madr_contem_end_marker_apos_transferencia
+# commit: 4c2fca4b2eec1a4b99ae1d9488c049d25b4e5c1e
+# rodado_em: 2026-07-29T09:28:22-03:00
+m1,mutante,morreu,morreu,0.7,dma2_linked_list_madr_contem_end_marker_apos_transferencia
 m2,mutante,morreu,morreu,0.7,dma2_block_bs_zero_equivale_a_10000h;dma2_block_transfere_dados_para_vram;dma2_chcr_gravavel_e_legivel
-m3,mutante,morreu,morreu,0.8,dma2_block_bs_zero_equivale_a_10000h
-m4,mutante,morreu,morreu,0.7,dma2_chcr_bit24_e_limpo_apos_linked_list
-m5,mutante,morreu,sobreviveu,0.8,
-m6,mutante,morreu,morreu,0.6,dma2_linked_list_madr_contem_end_marker_apos_transferencia
-m7,mutante,morreu,morreu,0.6,dma2_chcr_bit24_e_limpo_apos_block
+m3,mutante,morreu,morreu,0.7,dma2_block_bs_zero_equivale_a_10000h
+m4,mutante,morreu,morreu,0.6,dma2_chcr_bit24_e_limpo_apos_linked_list
+m5,equivalente,sobreviveu,sobreviveu,0.7,
+m6,mutante,morreu,morreu,0.7,dma2_linked_list_madr_contem_end_marker_apos_transferencia
+m7,mutante,morreu,morreu,0.7,dma2_chcr_bit24_e_limpo_apos_block
 K1,controle,sobreviveu,sobreviveu,0.7,
-K2,controle,sobreviveu,sobreviveu,0.7,
+K2,controle,sobreviveu,sobreviveu,0.8,

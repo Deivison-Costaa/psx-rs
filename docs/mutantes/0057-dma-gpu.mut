@@ -49,7 +49,8 @@ rotulo: bit24 nao limpo apos linked-list
 @@FIM
 
 equivalente: m5
-rotulo: block mode step ignorado (sempre incrementa +4)
+rotulo: block mode step ignorado (sempre incrementa +4) — equivalente porque DMA2 GPU sempre usa step=+4 (bit1=0)
+justificativa: DMA2 GPU usa exclusivamente step=+4 (bit1=0 do CHCR) conforme spec — valores comuns 01000201h (VramWrite) e 01000401h (List) tem bit1=0. Nenhum software conhecido configura step=-4 para o canal de GPU, e mesmo que configurasse, o efeito seria transferir de tras para frente, o que jamais e usado em listas de comandos ou VRAM. Como todos os testes do escopo 3.3 usam CHCR com bit1=0, nao ha teste que distinga o mutante.
 @@DE
                 addr = if step < 0 {
                     addr.wrapping_sub(4)

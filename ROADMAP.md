@@ -119,7 +119,9 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [ ] 10.13 GP0(24h) é modulação, não raw texture: bit 24 do comando não é lido e o texel vai cru (03-gpu.md L264 e L1610)
 - [ ] 10.14 U/V e cor gouraud são reinterpolados sobre o span já recortado pela drawing area — a textura estica em vez de só perder os pixels de fora (03-gpu.md L452-454)
 - [ ] 10.16 `spec_citations.rs` casa mal título e referência quando a mesma linha tem 2+ títulos entre aspas e 2+ refs: ele usa o primeiro título para todos os refs em vez de parear pelo mais próximo. Na iteração 0066 isso produziu o diagnóstico "L940 não corresponde à seção 'ReadN/ReadS'" quando a L940 pertencia à seção seguinte e estava citada com o texto certo ao lado. Diagnóstico errado é pior que ambiguidade declarada — ou pareia por proximidade, ou falha como ambíguo, como já faz quando há 2+ arquivos na linha
-- [ ] 10.15 Reparar as âncoras do manifesto 0059 (`timers-sync`), arquivado na 0060 quando o `tick()` foi reescrito: 4 dos 9 registros não casam mais, e a bateria daquele item está sem rodar. O 0052 foi reparado no mesmo dia com quatro caracteres (`fn` → `pub fn`), o que sugere que arquivar foi resposta cara demais para o problema
+- [x] 10.15 Reparar as âncoras do manifesto 0059 (`timers-sync`), arquivado na 0060 quando o `tick()` foi reescrito: 4 dos 9 registros não casam mais, e a bateria daquele item está sem rodar. O 0052 foi reparado no mesmo dia com quatro caracteres (`fn` → `pub fn`), o que sugere que arquivar foi resposta cara demais para o problema (iter 0067)
+- [ ] 10.17 `mutantes.ps1` recusa árvore suja, então reparo de âncora só pode ser verificado depois de commitado às cegas — permitir sujeira restrita a `docs/mutantes/*.mut`
+- [ ] 10.18 Nada torna `arquivada:` caro: em 0052 e 0059, arquivar descartou 17 registros dos quais 12 ainda casavam. Exigir no header quantos casam e falhar se algum casar
 
 ## M11 — Apresentação (incremental desde o M1)
 - [ ] 11.1 Relatório consolidado (docs/relatorio.md — atualizado a cada marco)

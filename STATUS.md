@@ -5,7 +5,8 @@
 
 ## Última iteração concluída
 
-**0066** — CDROM — DMA canal 3 + gate BFRD no DRQSTS (ROADMAP 4.3a).
+**0067** — Reparo das âncoras do manifesto 0059 (ROADMAP 10.15) — cobertura de mutação do
+item 3.4b de volta a 9/9 registros.
 
 ## Próxima tarefa
 

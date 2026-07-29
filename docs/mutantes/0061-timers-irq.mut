@@ -1,0 +1,184 @@
+# Manifesto de mutação da iteração 0061 — timers-irq
+formato: 1
+iteracao: 0061
+item: 3.4d
+alvo: crates/psx-core/src/timers.rs
+teste: timers_irq
+
+mutante: m1
+rotulo: IRQ target enable (bit4) ignorado — nunca gera IRQ por target
+@@DE
+        let irq_enable_target = (mode >> 4) & 1 != 0;
+@@PARA
+        let irq_enable_target = false;
+@@FIM
+
+mutante: m2
+rotulo: IRQ FFFF enable (bit5) ignorado — nunca gera IRQ por overflow
+@@DE
+        let irq_enable_ffff = (mode >> 5) & 1 != 0;
+@@PARA
+        let irq_enable_ffff = false;
+@@FIM
+
+mutante: m3
+rotulo: one-shot nao suprime segunda IRQ (removeu a guarda)
+@@DE
+                    && (!irq_once || !t.irq_fired_oneshot.get())
+@@PARA
+                    && true
+@@FIM
+
+mutante: m4
+rotulo: pulse mode nao restaura bit10 a 1 apos pulso
+@@DE
+        if !irq_toggle {
+            let m = t.mode.get();
+            t.mode.set(m | (1 << 10));
+        }
+@@PARA
+        let _ = irq_toggle;
+@@FIM
+
+mutante: m5
+rotulo: toggle mode tambem restaura bit10 (como se fosse pulse)
+@@DE
+        if !irq_toggle {
+@@PARA
+        if true {
+@@FIM
+
+mutante: m6
+rotulo: flag target (bit11) ainda depende de reset_on_target (regressao)
+@@DE
+                if irq_enable_target
+                    && (!irq_once || !t.irq_fired_oneshot.get())
+@@PARA
+                if reset_on_target
+@@FIM
+
+mutante: m7
+rotulo: IRQ retorna bit fixo 4 em vez de 4+idx (timer 1 e 2 retornariam IRQ errada)
+@@DE
+        let irq_bit = 4 + idx as u32;
+@@PARA
+        let irq_bit = 4;
+@@FIM
+
+controle: K1
+rotulo: renomear variavel mode_now para m (equivalente semantico)
+@@DE
+            let mut mode_now = t.mode.get();
+            let mut mode_changed = false;
+
+            if t.counter.get() == t.target {
+                mode_now |= 1 << 11;
+@@PARA
+            let mut m = t.mode.get();
+            let mut mode_changed = false;
+
+            if t.counter.get() == t.target {
+                m |= 1 << 11;
+@@FIM
+
+controle: K2
+rotulo: inverter ordem das flags target/ffff (ambas independentes, ordem nao altera semantica)
+@@DE
+            if t.counter.get() == t.target {
+                mode_now |= 1 << 11;
+                mode_changed = true;
+                if irq_enable_target
+                    && (!irq_once || !t.irq_fired_oneshot.get())
+                {
+                    let old_bit10 = (mode_now >> 10) & 1;
+                    if irq_toggle {
+                        mode_now ^= 1 << 10;
+                    } else {
+                        mode_now &= !(1 << 10);
+                    }
+                    mode_changed = true;
+                    let new_bit10 = (mode_now >> 10) & 1;
+                    if old_bit10 == 1 && new_bit10 == 0 {
+                        irq_raised = true;
+                    }
+                    if irq_once {
+                        t.irq_fired_oneshot.set(true);
+                    }
+                }
+                if reset_on_target {
+                    t.counter.set(0);
+                }
+            }
+
+            if prev == 0xFFFF && t.counter.get() == 0 {
+                mode_now |= 1 << 12;
+                mode_changed = true;
+                if irq_enable_ffff
+                    && (!irq_once || !t.irq_fired_oneshot.get())
+                {
+                    let old_bit10 = (mode_now >> 10) & 1;
+                    if irq_toggle {
+                        mode_now ^= 1 << 10;
+                    } else {
+                        mode_now &= !(1 << 10);
+                    }
+                    mode_changed = true;
+                    let new_bit10 = (mode_now >> 10) & 1;
+                    if old_bit10 == 1 && new_bit10 == 0 {
+                        irq_raised = true;
+                    }
+                    if irq_once {
+                        t.irq_fired_oneshot.set(true);
+                    }
+                }
+            }
+@@PARA
+            if prev == 0xFFFF && t.counter.get() == 0 {
+                mode_now |= 1 << 12;
+                mode_changed = true;
+                if irq_enable_ffff
+                    && (!irq_once || !t.irq_fired_oneshot.get())
+                {
+                    let old_bit10 = (mode_now >> 10) & 1;
+                    if irq_toggle {
+                        mode_now ^= 1 << 10;
+                    } else {
+                        mode_now &= !(1 << 10);
+                    }
+                    mode_changed = true;
+                    let new_bit10 = (mode_now >> 10) & 1;
+                    if old_bit10 == 1 && new_bit10 == 0 {
+                        irq_raised = true;
+                    }
+                    if irq_once {
+                        t.irq_fired_oneshot.set(true);
+                    }
+                }
+            }
+
+            if t.counter.get() == t.target {
+                mode_now |= 1 << 11;
+                mode_changed = true;
+                if irq_enable_target
+                    && (!irq_once || !t.irq_fired_oneshot.get())
+                {
+                    let old_bit10 = (mode_now >> 10) & 1;
+                    if irq_toggle {
+                        mode_now ^= 1 << 10;
+                    } else {
+                        mode_now &= !(1 << 10);
+                    }
+                    mode_changed = true;
+                    let new_bit10 = (mode_now >> 10) & 1;
+                    if old_bit10 == 1 && new_bit10 == 0 {
+                        irq_raised = true;
+                    }
+                    if irq_once {
+                        t.irq_fired_oneshot.set(true);
+                    }
+                }
+                if reset_on_target {
+                    t.counter.set(0);
+                }
+            }
+@@FIM

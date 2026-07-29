@@ -35,12 +35,13 @@ Revisão do PR anterior (0055): sem achados.
 | 1 | API-Rust | Que podia usar um segundo bus (`bus_read`) para ler após escrita sem problemas de borrow | Rust permite `write32` (mut) e depois `read32` (shared) no mesmo bus — a segunda variável era desnecessária e o compilador avisou com `unused_mut` | warning do compilador na primeira rodada de testes |
 | 2 | endereçamento | Que o byte-write para DICR era tratado pelo handler de região | `region_write_byte` tem catch-all para `0x1F80_1061..=0x1F80_1FFF` que cobre os registradores DMA — byte-writes são silenciosamente engolidos | análise do código do bus; o teste `dicr_gravavel_e_legivel` usa `write32`, que funciona |
 | 3 | timing | Que o OTC executava antes do read32 seguinte — é imediato em burst mode | Spec confirma: SyncMode=0 (burst) executa tudo de uma vez, bit 28 limpo no BEGIN, bit 24 no COMPLETION | teste `dma6_chcr_bit24_e_limpo_apos_otc` passou de primeira |
+| 4 | campo-de-bit | Que bit24 bastava para disparar OTC — sem force-start (bit28=0) a DMA espera por DREQ que nunca chega | 04-dma.md L112: "this bit needs to be set only in SyncMode=0" — bit28 (force-start) é obrigatório para OTC em burst mode | Revisão adversarial da rodada 2: `try_execute_otc` só checava bit 24; OTC executava mesmo com bit28=0, o que travaria em hardware real |
 
 ## Bateria de mutação
 
-Bateria de mutação: 5/5 mutantes mortos, 2/2 controles verdes, 0 equivalente — docs/mutantes/0056-dma-otc.mut
+Bateria de mutação: 6/6 mutantes mortos, 2/2 controles verdes, 0 equivalente — docs/mutantes/0056-dma-otc.mut
 
-Placar da bateria: 5/5 mutantes mortos, 2/2 controles verdes, 0 equivalente - ./docs/mutantes/0056-dma-otc.mut
+Placar da bateria: 6/6 mutantes mortos, 2/2 controles verdes, 0 equivalente - ./docs/mutantes/0056-dma-otc.mut
 
 | Mutante | Teste que o pegou |
 |---|---|
@@ -49,10 +50,11 @@ Placar da bateria: 5/5 mutantes mortos, 2/2 controles verdes, 0 equivalente - ./
 | m3 (bits 24+28 não limpos após OTC) | `dma6_chcr_bit24_e_limpo_apos_otc`, `dma6_chcr_bit28_e_limpo_apos_otc` |
 | m4 (incremento +4 em vez de -4) | `dma6_otc_preenche_ram_com_linked_list` |
 | m5 (CHCR canal 6 sem restrição de bits) | `dma6_chcr_apenas_bits_24_28_30_e_1_sao_gravaveis` |
+| m6 (OTC executa sem verificar bit28) | `dma6_chcr_bit24_gravavel_sem_executar_otc`, `dma6_otc_nao_dispara_sem_bit28` |
 
 ## Placar antes → depois
 
-Workspace: **419** → **430** testes (419 existentes + 11 dma_otc).
+Workspace: **419** → **432** testes (419 existentes + 11 dma_otc originais + 2 da revisão adversarial).
 
 ## Revisão cruzada (orquestrador)
 
@@ -69,3 +71,4 @@ Workspace: **419** → **430** testes (419 existentes + 11 dma_otc).
 7. **DICR implementado como storage simples** — flags de interrupção e lógica de IRQ3 serão conectadas quando o scheduler de eventos e a conexão IRQ estiverem prontos (itens 3.3 e 3.4).
 8. **Canais 0-5 têm CHCR sem restrição de bits.** Apenas o canal 6 (OTC) tem bits fixos. Os outros canais aceitam qualquer valor escrito (comportamento será refinado quando cada canal for implementado).
 9. **Endereçamento descendente com wrap-around.** O decremento `addr.wrapping_sub(4)` faz wrap natural de u32. Endereços após wrap (> 0xFFFFFF) são truncados pelo `addr & 0x1F_FF_FF` e descartados se fora dos 2 MB de RAM.
+10. **OTC exige bit 24 E bit 28 (force-start).** Corrigido na rodada 2: `try_execute_otc` originalmente só checava bit 24, permitindo execução sem bit 28. A spec (`docs/reference/04-dma.md` L112) diz que bit 28 "needs to be set only in SyncMode=0", e OTC é SyncMode=0 sem DREQ — sem force-start, a DMA esperaria indefinidamente. Adicionada checagem conjunta `(1<<24)|(1<<28)` e dois testes (`dma6_otc_nao_dispara_sem_bit28`, `dma6_chcr_bit24_gravavel_sem_executar_otc`).

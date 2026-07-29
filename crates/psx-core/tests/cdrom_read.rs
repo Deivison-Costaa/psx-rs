@@ -34,11 +34,6 @@ fn hclrctl_write(bus: &mut Bus, val: u8) {
     set_bank(bus, 0);
 }
 
-fn hchpctl_write(bus: &mut Bus, val: u8) {
-    set_bank(bus, 0);
-    cd_write(bus, 3, val);
-}
-
 fn send_command(bus: &mut Bus, cmd: u8) {
     set_bank(bus, 0);
     cd_write(bus, 1, cmd);
@@ -153,7 +148,11 @@ fn read_n_continua_apos_primeiro_acknowledge() {
     hclrctl_write(&mut bus, 0x07);
 
     let hintsts3 = hintsts_read_bank1(&mut bus);
-    assert_eq!(hintsts3 & 0x7, 1, "INT1 apos segundo acknowledge — ReadN continua");
+    assert_eq!(
+        hintsts3 & 0x7,
+        1,
+        "INT1 apos segundo acknowledge — ReadN continua"
+    );
 }
 
 #[test]
@@ -259,7 +258,18 @@ fn pause_para_read_n() {
     hclrctl_write(&mut bus, 0x07);
 
     let hintsts_after = hintsts_read_bank1(&mut bus);
-    assert_eq!(hintsts_after & 0x7, 0, "INT0 — ReadN parado apos Pause");
+    assert_eq!(hintsts_after & 0x7, 2, "INT2 — segunda resposta do Pause");
+
+    let stat_after = result_read(&mut bus);
+    assert_eq!(stat_after & (1 << 5), 0, "stat bit5=0 — parou de ler");
+
+    hclrctl_write(&mut bus, 0x07);
+    let hintsts_final = hintsts_read_bank1(&mut bus);
+    assert_eq!(
+        hintsts_final & 0x7,
+        0,
+        "INT0 — ReadN parado apos Pause completo"
+    );
 }
 
 #[test]
@@ -278,8 +288,12 @@ fn hsts_drqsts_setado_quando_dados_disponiveis() {
     let _ = result_read(&mut bus);
 
     set_bank(&mut bus, 0);
-    let hsts = cd_read(&mut bus, 0);
-    assert_ne!(hsts & (1 << 6), 0, "DRQSTS=1 quando dados disponiveis no buffer");
+    let hsts = cd_read(&bus, 0);
+    assert_ne!(
+        hsts & (1 << 6),
+        0,
+        "DRQSTS=1 quando dados disponiveis no buffer"
+    );
 }
 
 fn setloc(disc: &mut Bus, mm: u8, ss: u8, ff: u8) {

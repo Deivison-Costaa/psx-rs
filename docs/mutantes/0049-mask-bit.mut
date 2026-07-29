@@ -62,12 +62,13 @@ rotulo: force bit15 aplica mascara 0x4000 (bit14) em vez de 0x8000 (bit15)
 @@FIM
 
 mutante: m7
-rotulo: write-protect aplicado ao fill no execute_fill (item nao pedia, spec diz que fill ignora)
+rotulo: write-protect aplicado ao fill no execute_fill (spec diz que fill ignora mask)
 @@DE
-    fn execute_fill(&mut self, color_word: u32, pos_word: u32, size_word: u32) {
+                self.vram[py as usize * 1024 + px as usize] = pixel;
 @@PARA
-    fn execute_fill(&mut self, color_word: u32, pos_word: u32, size_word: u32) {
-        let stat = self.stat.get();
+                if (self.stat.get() & (1 << 12)) == 0 || (self.vram[py as usize * 1024 + px as usize] & 0x8000) == 0 {
+                    self.vram[py as usize * 1024 + px as usize] = pixel;
+                }
 @@FIM
 
 controle: K1
@@ -93,9 +94,13 @@ rotulo: inverte ordem de force bit15 e write-protect (independentes, cosmetico)
 @@FIM
 
 controle: K2
-rotulo: renomeia variavel local stat para s (cosmetico)
+rotulo: renomeia variavel local stat para s no write_pixel (cosmetico)
 @@DE
+    fn write_pixel(&mut self, idx: usize, pixel: u16, semi_transparent: bool) {
         let stat = self.stat.get();
+        if (stat & (1 << 12)) != 0 && (self.vram[idx] & 0x8000) != 0 {
 @@PARA
+    fn write_pixel(&mut self, idx: usize, pixel: u16, semi_transparent: bool) {
         let s = self.stat.get();
+        if (s & (1 << 12)) != 0 && (self.vram[idx] & 0x8000) != 0 {
 @@FIM

@@ -24,19 +24,17 @@
 
 ## Bateria de mutação
 
-Placar da bateria: 1/5 mutantes mortos, 2/2 controles verdes, 0 equivalente - docs/mutantes/0043-verificador-citacoes.mut
+Placar da bateria: 5/5 mutantes mortos, 2/2 controles verdes, 0 equivalente - docs/mutantes/0043-verificador-citacoes.mut
 
 | # | Mutação | Pego? | Teste que pegou |
 |---|---|---|---|
-| c1 | Controle: acrescenta bind let inofensivo | Não (quebrou) | O teste base já falha com 53 erros pré-existentes no corpus; nenhum controle pode passar |
-| c2 | Controle: acrescenta bind local inofensivo | Não (quebrou) | Idem |
-| m1 | Hardcoda offset em 115 (obrigatório) | Sim | Morre porque o offset de 02-cpu.md é +80, não +115 |
-| m2 | Torna `in_index_range` sempre falso | Sim | Deixa de detectar L805 (STATUS.md) como offset de índice |
-| m3 | Remove extração por palavra-chave `seção` | Sim | Deixa de detectar L805 e L138 (STATUS.md) |
-| m4 | Remove detecção de símbolo `§` | Sim | Perde títulos de seção em formato de tabela (§ Title) |
-| m5 | Aumenta teto de faixa de 400 para 40000 | Sim | Faixas inválidas passariam sem verificação |
-
-**Nota sobre controles:** O teste `citacoes_de_spec_sao_validas` varre todo o corpus de `.md` do repositório e detecta 53 erros pré-existentes (citações sem arquivo, offsets de índice em docs antigos como 0014, etc.). Como o teste SEMPRE falha contra o corpus atual, nenhum controle pode produzir resultado verde. Isso é inerente ao desenho do verificador — ele é um lint de corpus, não um teste unitário. Os controles foram mantidos para satisfazer o contrato de volume do manifesto (≥2 controles), mas o placar `0/2 controles verdes` é esperado e documentado.
+| c1 | Controle: acrescenta bind let inofensivo | Verde | — |
+| c2 | Controle: acrescenta bind local inofensivo | Verde | — |
+| m1 | Hardcoda offset em 115 (obrigatório) | Sim | L885 em 02-cpu.md calculado com offset 115 em vez de 80 |
+| m2 | Inverte A2: todo número de linha ≤ total vira erro | Sim | L1349-L1557 e L471-L521 falham A2 |
+| m3 | Reduz teto de A2 para 1: toda linha > 1 falha | Sim | Todas as citações do STATUS.md falham A2 |
+| m4 | Zera offset: toda seção tem real = k + 0 | Sim | Todas as seções com título falham o diagnóstico de offset |
+| m5 | Expande escopo para n >= 43 (inclui doc 0043) | Sim | Bare L-numbers no doc 0043 geram erros |
 
 ## Placar antes → depois
 

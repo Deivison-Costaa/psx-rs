@@ -48,9 +48,9 @@ rotulo: Offset Y ignorado — V sempre inalterado
 mutante: m6
 rotulo: Offset X lido de bits 11-15 em vez de 10-14 na decodificação E2h
 @@DE
-                        let offset_x = ((val >> 10) & 0x1F) as u8;
+                            let offset_x = ((val >> 10) & 0x1F) as u8;
 @@PARA
-                        let offset_x = ((val >> 11) & 0x1F) as u8;
+                            let offset_x = ((val >> 11) & 0x1F) as u8;
 @@FIM
 
 controle: K1
@@ -70,9 +70,9 @@ rotulo: renomeia u_win para uw (cosmético)
 controle: K2
 rotulo: inverte ordem de tex_window_offset_x/y (linhas independentes)
 @@DE
-            self.tex_window_offset_x.set(offset_x);
-            self.tex_window_offset_y.set(offset_y);
+                            self.tex_window_offset_x.set(offset_x);
+                            self.tex_window_offset_y.set(offset_y);
 @@PARA
-            self.tex_window_offset_y.set(offset_y);
-            self.tex_window_offset_x.set(offset_x);
+                            self.tex_window_offset_y.set(offset_y);
+                            self.tex_window_offset_x.set(offset_x);
 @@FIM

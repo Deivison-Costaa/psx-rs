@@ -1,0 +1,87 @@
+# Manifesto de mutação da iteração 0055 — irq-controller
+formato: 1
+iteracao: 0055
+item: 3.1
+alvo: crates/psx-core/src/cpu.rs
+teste: cpu_irq
+
+mutante: m1
+rotulo: SR.IEc ignorado (interrupcao dispara mesmo sem IEc=1)
+@@DE
+        if (sr & 0x1) != 0
+@@PARA
+        if true
+@@FIM
+
+mutante: m2
+rotulo: SR.Im bit10 ignorado (interrupcao dispara mesmo sem mascarar bit10)
+@@DE
+            && (sr & (1 << 10)) != 0
+@@PARA
+            && true
+@@FIM
+
+mutante: m3
+rotulo: CAUSE.IP bit10 sempre zero (desacoplado do IRQ)
+@@DE
+        self.cop0[13] = if bus.irq().pending() {
+            self.cop0[13] | (1 << 10)
+        } else {
+            self.cop0[13] & !(1 << 10)
+        };
+@@PARA
+        self.cop0[13] &= !(1 << 10);
+@@FIM
+
+mutante: m4
+rotulo: ExcCode errado na interrupcao (MOD=01h em vez de INT=00h)
+@@DE
+            self.raise_exception(0x00, None);
+@@PARA
+            self.raise_exception(0x01, None);
+@@FIM
+
+mutante: m5
+rotulo: vetor de excecao errado (8000_0040h para INT em vez de 8000_0080h)
+@@DE
+            self.pc = if exc_code == 0x09 {
+                0x8000_0040
+            } else {
+                0x8000_0080
+            };
+@@PARA
+            self.pc = if exc_code == 0x09 || exc_code == 0x00 {
+                0x8000_0040
+            } else {
+                0x8000_0080
+            };
+@@FIM
+
+controle: K1
+rotulo: adicionar comentario nao altera comportamento
+@@DE
+        let sr = self.cop0[12];
+@@PARA
+        // Status Register para verificacao de interrupcao
+        let sr = self.cop0[12];
+@@FIM
+
+controle: K2
+rotulo: extrair condicao para funcao helper (refatoracao equivalente)
+@@DE
+        if (sr & 0x1) != 0
+            && (sr & (1 << 10)) != 0
+            && (self.cop0[13] & (1 << 10)) != 0
+            && self.pending_exception.is_none()
+        {
+            self.raise_exception(0x00, None);
+        }
+@@PARA
+        let deve_interromper = (sr & 0x1) != 0
+            && (sr & (1 << 10)) != 0
+            && (self.cop0[13] & (1 << 10)) != 0
+            && self.pending_exception.is_none();
+        if deve_interromper {
+            self.raise_exception(0x00, None);
+        }
+@@FIM

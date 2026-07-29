@@ -211,25 +211,41 @@ fn dma2_block_multiplas_palavras() {
 
     bus.write32::<BusRead>(0x1F80_1810, 0xA000_0000);
     bus.write32::<BusRead>(0x1F80_1810, 0x0000_0000);
-    bus.write32::<BusRead>(0x1F80_1810, 0x0003_0002);
+    bus.write32::<BusRead>(0x1F80_1810, 0x0002_0002);
 
     let data_addr: u32 = 0x0000_0100;
-    write_ram32(&mut bus, data_addr, 0x1111_1111);
-    write_ram32(&mut bus, data_addr + 4, 0x2222_2222);
-    write_ram32(&mut bus, data_addr + 8, 0x3333_3333);
-    write_ram32(&mut bus, data_addr + 12, 0x4444_4444);
-    write_ram32(&mut bus, data_addr + 16, 0x5555_5555);
-    write_ram32(&mut bus, data_addr + 20, 0x6666_6666);
+    write_ram32(&mut bus, data_addr, 0xAAAA_1111);
+    write_ram32(&mut bus, data_addr + 4, 0xBBBB_2222);
 
     bus.write32::<BusRead>(D2_MADR, data_addr);
-    bus.write32::<BusRead>(D2_BCR, 0x0002_0003);
+    bus.write32::<BusRead>(D2_BCR, 0x0001_0002);
     bus.write32::<BusRead>(D2_CHCR, 0x1100_0201);
 
     let gpustat = bus.read32::<BusRead>(GPUSTAT);
-    assert_ne!(
+    assert_eq!(
         gpustat & (1 << 26),
-        0,
-        "bit 26 (Ready) setado apos transferencia block de 6 palavras"
+        1 << 26,
+        "bit 26 (Ready) setado apos transferencia block de 2 palavras"
+    );
+    assert_eq!(
+        bus.gpu().vram_pixel(0, 0),
+        0x1111,
+        "VRAM (0,0) recebeu metade inferior da 1a palavra"
+    );
+    assert_eq!(
+        bus.gpu().vram_pixel(1, 0),
+        0xAAAA,
+        "VRAM (1,0) recebeu metade superior da 1a palavra"
+    );
+    assert_eq!(
+        bus.gpu().vram_pixel(0, 1),
+        0x2222,
+        "VRAM (0,1) recebeu metade inferior da 2a palavra"
+    );
+    assert_eq!(
+        bus.gpu().vram_pixel(1, 1),
+        0xBBBB,
+        "VRAM (1,1) recebeu metade superior da 2a palavra"
     );
 }
 

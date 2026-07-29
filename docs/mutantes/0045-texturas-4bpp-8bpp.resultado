@@ -1,0 +1,11 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: 7d897a5c978759dafcfb3c78dfff45bc79de4435
+# rodado_em: 2026-07-29T03:33:10-03:00
+m1,mutante,morreu,morreu,0.7,b2_4bpp_amostra_4_pixels_por_halfword
+m2,mutante,morreu,morreu,0.6,b1_8bpp_amostra_palette_index_e_clut;b3_clut_em_posicao_arbitraria;b4_clut_entry_0000h_nao_e_desenhado
+m3,mutante,morreu,morreu,0.7,b3_clut_em_posicao_arbitraria;b4_clut_entry_0000h_nao_e_desenhado;b6_modos_misturados_8bpp_4bpp_15bpp
+m4,mutante,morreu,morreu,0.6,b3_clut_em_posicao_arbitraria
+m5,mutante,morreu,morreu,0.6,b1_8bpp_amostra_palette_index_e_clut;b2_4bpp_amostra_4_pixels_por_halfword;b3_clut_em_posicao_arbitraria;b4_clut_entry_0000h_nao_e_desenhado;b5_8bpp_com_page_nao_zero;b6_modos_misturados_8bpp_4bpp_15bpp
+m6,mutante,morreu,morreu,0.6,b1_8bpp_amostra_palette_index_e_clut;b3_clut_em_posicao_arbitraria;b4_clut_entry_0000h_nao_e_desenhado;b5_8bpp_com_page_nao_zero;b6_modos_misturados_8bpp_4bpp_15bpp
+K1,controle,sobreviveu,sobreviveu,0.7,
+K2,controle,sobreviveu,sobreviveu,0.6,

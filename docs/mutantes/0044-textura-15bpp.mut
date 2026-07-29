@@ -4,6 +4,7 @@ iteracao: 0044
 item: 2.5a
 alvo: crates/psx-core/src/gpu.rs
 teste: gpu_textura_15bpp
+arquivada: código refatorado na iter 0045 — sample_texel reestruturado com match, tex_active agora cobre modos 0-3
 
 mutante: m1
 rotulo: Texpage attribute sobrescreve bits 9-10 do GPUSTAT (dither e display)

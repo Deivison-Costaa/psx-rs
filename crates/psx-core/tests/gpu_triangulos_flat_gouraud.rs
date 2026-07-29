@@ -322,8 +322,8 @@ fn polygon_texturizado_consome_palavras_de_uv_e_mantem_fifo_alinhado() {
     assert_eq!((gpu.read32(4) >> 26) & 1, 1,
         "GP0(24h) com 3 vertices+UV: poligono concluido, bit26=1");
 
-    assert_eq!(gpu.vram_pixel(6, 6), 0x03FF,
-        "triangulo (5,5)-(5,10)-(10,5) preenchido no interior");
+    assert_eq!(gpu.vram_pixel(6, 6), 0,
+        "triangulo texturizado sem CLUT/texel: pixel nao preenchido (4bpp sem dados)");
     assert_eq!(gpu.vram_pixel(0, 0), 0,
         "nenhum pixel em (0,0) — UV 0x0000 nao virou vertice");
 
@@ -352,8 +352,8 @@ fn gouraud_texturizado_consome_9_palavras_e_fifo_alinhado() {
 
     assert_eq!((gpu.read32(4) >> 26) & 1, 1,
         "GP0(34h) gouraud texturizado 3 vertices: 9 palavras (1+3+3+2), bit26=1");
-    assert_ne!(gpu.vram_pixel(6, 6), 0,
-        "triangulo interior preenchido");
+    assert_eq!(gpu.vram_pixel(6, 6), 0,
+        "triangulo texturizado sem CLUT/texel: pixel nao preenchido (4bpp sem dados)");
 
     gpu.write32(0, 0x0200_00F8);
     gpu.write32(0, (0x000F << 16) | 0x000F);

@@ -1,0 +1,121 @@
+# Manifesto de mutação da iteração 0038 — VRAM 1MB + transfers CPU↔VRAM
+formato: 1
+iteracao: 0038
+item: 2.2
+alvo: crates/psx-core/src/gpu.rs
+teste: gpu_vram_transfers
+
+mutante: a
+rotulo: mascara de Xpos do fill de 3F0h para 3FFh, Xpos nao fica mais arredondado para multiplo de 16
+@@DE
+        let xpos = raw_x & 0x3F0;
+@@PARA
+        let xpos = raw_x & 0x3FF;
+@@FIM
+
+mutante: b
+rotulo: remover arredondamento de Xsiz do fill, xsiz deixa de ser arredondado para multiplo de 16
+@@DE
+        let xsiz = ((raw_w as u32 & 0x3FF) + 0x0F) & !0x0F;
+@@PARA
+        let xsiz = raw_w as u32 & 0x3FF;
+@@FIM
+
+equivalente: c
+rotulo: mascara de Ypos do fill de 1FFh para 3FFh — equivalente porque subsumido por wrap no laco
+justificativa: ypos = raw_y & 0x1FF (gpu.rs) e subsumido por ypos.wrapping_add(row) & 0x1FF no laco de escrita. Como 512 divide 2^16, os 9 bits baixos da soma sao identicos com qualquer das duas mascaras (1FFh ou 3FFh), logo nenhum teste pode mata-lo. O buraco real em Y era o mutante C1 (ypos = 0) e foi fechado.
+@@DE
+        let ypos = raw_y & 0x1FF;
+@@PARA
+        let ypos = raw_y & 0x3FF;
+@@FIM
+
+mutante: d
+rotulo: inverter low/high na palavra de 32 bits simetricamente na escrita e na leitura de VRAM
+@@DE
+                let hw1 = (val & 0xFFFF) as u16;
+@@PARA
+                let hw1 = ((val >> 16) & 0xFFFF) as u16;
+@@FIM
+@@DE
+                    let hw2 = ((val >> 16) & 0xFFFF) as u16;
+@@PARA
+                    let hw2 = (val & 0xFFFF) as u16;
+@@FIM
+ocorrencias: 2
+@@DE
+                (hw1 as u32) | ((hw2 as u32) << 16)
+@@PARA
+                ((hw1 as u32) << 16) | (hw2 as u32)
+@@FIM
+
+mutante: e
+rotulo: escrever halfword extra em contagem impar removendo o guard do remaining maior que zero
+@@DE
+                if remaining > 0 {
+                    let processed2 = processed + 1;
+                    let col2 = (processed2 % width as u32) as u16;
+                    let row2 = (processed2 / width as u32) as u16;
+                    let hw2 = ((val >> 16) & 0xFFFF) as u16;
+                    let px2 = x.wrapping_add(col2) & 0x3FF;
+                    let py2 = y.wrapping_add(row2) & 0x1FF;
+                    self.vram[py2 as usize * 1024 + px2 as usize] = hw2;
+                    remaining = remaining.saturating_sub(1);
+                }
+@@PARA
+                    let processed2 = processed + 1;
+                    let col2 = (processed2 % width as u32) as u16;
+                    let row2 = (processed2 / width as u32) as u16;
+                    let hw2 = ((val >> 16) & 0xFFFF) as u16;
+                    let px2 = x.wrapping_add(col2) & 0x3FF;
+                    let py2 = y.wrapping_add(row2) & 0x1FF;
+                    self.vram[py2 as usize * 1024 + px2 as usize] = hw2;
+                    remaining = remaining.saturating_sub(1);
+@@FIM
+
+mutante: f
+rotulo: nao ligar o bit 27 no cabecalho do comando C0h, leitura de VRAM sem sinalizar ready
+@@DE
+                self.stat.set(self.stat.get() | (1 << 27));
+@@PARA
+                self.stat.set(self.stat.get());
+@@FIM
+
+mutante: g
+rotulo: formula de Xsiz do COPY sem wrapping_sub, xsiz zero vira zero em vez de maximo 0x400
+ocorrencias: 2
+@@DE
+                let xsiz = (((size & 0xFFFF) as u16).wrapping_sub(1) & 0x3FF) + 1;
+@@PARA
+                let xsiz = (size & 0xFFFF) as u16 & 0x3FF;
+@@FIM
+
+# O ysiz com wrapping_sub tem 2 ocorrencias (linhas 416 e 432), mas so o xsiz e mutado.
+# Se a intencao fosse mutar apenas uma ocorrencia, usar-se-ia ocorrencias: 1 com ancora mais longa.
+# As duas linhas sao identicas — ocorrencias: 2 e o correto.
+
+controle: K1
+rotulo: renomear local raw_w para w_raw no execute_fill, duas edicoes atomicas para compilar
+@@DE
+        let raw_w = (size_word & 0xFFFF) as u16;
+@@PARA
+        let w_raw = (size_word & 0xFFFF) as u16;
+@@FIM
+@@DE
+        let xsiz = ((raw_w as u32 & 0x3FF) + 0x0F) & !0x0F;
+@@PARA
+        let xsiz = ((w_raw as u32 & 0x3FF) + 0x0F) & !0x0F;
+@@FIM
+
+controle: K2
+rotulo: renomear fn privada gpuread_word para fetch_gpuread_word, duas edicoes atomicas
+@@DE
+            0x0 => self.gpuread_word(),
+@@PARA
+            0x0 => self.fetch_gpuread_word(),
+@@FIM
+@@DE
+    fn gpuread_word(&self) -> u32 {
+@@PARA
+    fn fetch_gpuread_word(&self) -> u32 {
+@@FIM

@@ -5,13 +5,13 @@
 
 ## Última iteração concluída
 
-**0058** — Timers 0/1/2 — registradores e contagem básica (ROADMAP 3.4).
+**0059** — Timers — modos de sync Hblank/Vblank (ROADMAP 3.4b).
 
 ## Próxima tarefa
 
-**ROADMAP 3.4b — Timers — modos de sync Hblank/Vblank.**
-Implementar os modos de sincronização dos timers 0 e 1 com Hblank e Vblank. Timer 0: modos 0 (pause during Hblank), 1 (reset at Hblank), 2 (reset+pause outside), 3 (pause until Hblank then free run). Timer 1: mesmo com Vblank. Expor sinais `hblank_active` e `vblank_active` para o módulo de timers. O timer 2 modos 0/3 (stop forever) já está implementado; verificar modos 1/2 (free run).
-Arquivos-alvo: `crates/psx-core/src/timers.rs`, `crates/psx-core/src/gpu.rs` (expor hblank/vblank). Armadilha: modo 3 é "Pause until Hblank occurs once, then switch to Free Run" — requer estado interno para lembrar se o primeiro Hblank já ocorreu.
+**ROADMAP 3.4c — Timers — fontes de clock Dotclock/Hblank.**
+Implementar fontes de clock alternativas para os timers. Timer 0: dotclock (clock_src 1 ou 3). Timer 1: Hblank (clock_src 1 ou 3). O contador incrementa a cada pulso da fonte selecionada, não a cada system clock. Timer 2 já suporta system clock/8 (clock_src 2 ou 3).
+Arquivos-alvo: `crates/psx-core/src/timers.rs`, `crates/psx-core/src/gpu.rs` (expor dotclock). Armadilha: dotclock varia com a resolução horizontal (256px: 10, 320px: 8, 512px: 5, 640px: 4 ciclos/pixel), e o número de dots visíveis por scanline muda — o timer conta apenas dots visíveis, não todo o scanline.
 
 ## Repositório
 
@@ -25,7 +25,7 @@ Arquivos-alvo: `crates/psx-core/src/timers.rs`, `crates/psx-core/src/gpu.rs` (ex
 
 ## Placar de testes
 
-Workspace: **459** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 29 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 11 cpu_opcode_reservado + 11 cpu_irq + 13 dma_otc + 14 dma_gpu + 13 timers + 16 gpu_status_gp0_gp1 + 9 ci_scoreboard + 9 cli_runner + 21 gpu_vram_transfers + 20 gpu_triangulos_flat_gouraud + 21 gpu_linhas_retangulos + 6 gpu_textura_15bpp + 6 gpu_texturas_4bpp_8bpp + 5 gpu_texture_window + 6 gpu_semi_transparencia + 7 gpu_dithering + 8 gpu_mask_bit + 7 gpu_display_regs + 9 gpu_timing_vblank + 6 gpu_framebuffer + 3 gpu_desktop_egui + 6 gpu_scoreboard + 1 spec_citations + 2 mutation_manifest + 2 mutation_anchors + 5 mutation_battery).
+Workspace: **470** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 29 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 11 cpu_opcode_reservado + 11 cpu_irq + 13 dma_otc + 14 dma_gpu + 13 timers + 11 timers_sync + 16 gpu_status_gp0_gp1 + 9 ci_scoreboard + 9 cli_runner + 21 gpu_vram_transfers + 20 gpu_triangulos_flat_gouraud + 21 gpu_linhas_retangulos + 6 gpu_textura_15bpp + 6 gpu_texturas_4bpp_8bpp + 5 gpu_texture_window + 6 gpu_semi_transparencia + 7 gpu_dithering + 8 gpu_mask_bit + 7 gpu_display_regs + 9 gpu_timing_vblank + 6 gpu_framebuffer + 3 gpu_desktop_egui + 6 gpu_scoreboard + 1 spec_citations + 2 mutation_manifest + 2 mutation_anchors + 5 mutation_battery).
 
 ## Bloqueios
 

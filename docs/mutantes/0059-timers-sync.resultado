@@ -1,0 +1,12 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: 9277d393c95c0014772cd23a9570f894f08d71af
+# rodado_em: 2026-07-29T10:38:13-03:00
+m1,mutante,morreu,morreu,0.8,timer0_sync_mode0_pausa_durante_hblank;timer1_sync_mode0_pausa_durante_vblank
+m2,mutante,morreu,morreu,0.7,timer0_sync_mode2_reseta_no_hblank_e_pausa_fora;timer1_sync_mode2_reseta_no_vblank_e_pausa_fora
+m3,mutante,morreu,morreu,0.7,escrever_mode_reseta_estado_de_sync;timer0_sync_mode1_reseta_no_hblank;timer0_sync_mode3_espera_primeiro_hblank_depois_free_run;timer1_sync_mode1_reseta_no_vblank;timer1_sync_mode3_espera_primeiro_vblank_depois_free_run
+m4,mutante,morreu,morreu,0.7,escrever_mode_reseta_estado_de_sync;timer0_sync_mode1_reseta_no_hblank;timer0_sync_mode3_espera_primeiro_hblank_depois_free_run;timer1_sync_mode1_reseta_no_vblank;timer1_sync_mode3_espera_primeiro_vblank_depois_free_run
+m5,mutante,morreu,morreu,0.7,timer2_modo_1_e_2_sao_free_run
+m6,mutante,morreu,morreu,0.8,escrever_mode_reseta_estado_de_sync
+m7,mutante,morreu,morreu,0.7,timer0_sync_mode3_espera_primeiro_hblank_depois_free_run;timer1_sync_mode3_espera_primeiro_vblank_depois_free_run
+K1,controle,sobreviveu,sobreviveu,0.8,
+K2,controle,sobreviveu,sobreviveu,0.7,

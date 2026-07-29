@@ -1,0 +1,76 @@
+# Manifesto de mutação da iteração 0055 — irq-controller
+formato: 1
+iteracao: 0055
+item: 3.1
+alvo: crates/psx-core/src/cpu.rs
+teste: cpu_irq
+
+mutante: m1
+rotulo: SR.IEc ignorado (interrupcao dispara mesmo sem IEc=1)
+@@DE
+        if (sr & 0x1) != 0 && (sr & (1 << 10)) != 0 && (self.cop0[13] & (1 << 10)) != 0 {
+@@PARA
+        if true && (sr & (1 << 10)) != 0 && (self.cop0[13] & (1 << 10)) != 0 {
+@@FIM
+
+mutante: m2
+rotulo: SR.Im bit10 ignorado (interrupcao dispara mesmo sem mascarar bit10)
+@@DE
+        if (sr & 0x1) != 0 && (sr & (1 << 10)) != 0 && (self.cop0[13] & (1 << 10)) != 0 {
+@@PARA
+        if (sr & 0x1) != 0 && true && (self.cop0[13] & (1 << 10)) != 0 {
+@@FIM
+
+mutante: m3
+rotulo: CAUSE.IP bit10 sempre zero (desacoplado do IRQ)
+@@DE
+        self.cop0[13] = if bus.irq().pending() {
+            self.cop0[13] | (1 << 10)
+        } else {
+            self.cop0[13] & !(1 << 10)
+        };
+@@PARA
+        self.cop0[13] &= !(1 << 10);
+@@FIM
+
+mutante: m4
+rotulo: EPC errado na interrupcao (aponta para pc+4 em vez de pc)
+@@DE
+            self.cop0[14] = self.pc;
+@@PARA
+            self.cop0[14] = self.pc.wrapping_add(4);
+@@FIM
+
+mutante: m5
+rotulo: vetor de excecao errado na INT (8000_0040h em vez de 8000_0080h)
+@@DE
+            self.pc = 0x8000_0080;
+@@PARA
+            self.pc = 0x8000_0040;
+@@FIM
+
+controle: K1
+rotulo: adicionar comentario nao altera comportamento
+@@DE
+        let sr = self.cop0[12];
+@@PARA
+        // Status Register para verificacao de interrupcao
+        let sr = self.cop0[12];
+@@FIM
+
+controle: K2
+rotulo: extrair condicao para variavel (refatoracao equivalente)
+@@DE
+        if (sr & 0x1) != 0 && (sr & (1 << 10)) != 0 && (self.cop0[13] & (1 << 10)) != 0 {
+            if let Some((reg, val)) = self.load_delay.take() {
+                self.set_reg(reg, val);
+            }
+            let ie_ku_shifted = ((sr & 0x3) << 2) | ((sr & 0xC) << 2);
+@@PARA
+        let deve_interromper = (sr & 0x1) != 0 && (sr & (1 << 10)) != 0 && (self.cop0[13] & (1 << 10)) != 0;
+        if deve_interromper {
+            if let Some((reg, val)) = self.load_delay.take() {
+                self.set_reg(reg, val);
+            }
+            let ie_ku_shifted = ((sr & 0x3) << 2) | ((sr & 0xC) << 2);
+@@FIM

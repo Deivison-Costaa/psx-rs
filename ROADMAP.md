@@ -55,7 +55,7 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [x] 2.9 Suíte GPU do ps1-tests no scoreboard (iter 0054)
 
 ## M3 — DMA, IRQ, timers
-- [ ] 3.1 Interrupt controller (I_STAT/I_MASK) + COP0
+- [x] 3.1 Interrupt controller (I_STAT/I_MASK) + COP0 (iter 0055)
 - [ ] 3.2 DMA regs + canal 6 (OTC)
 - [ ] 3.3 DMA canal 2 GPU (block + linked-list)
 - [ ] 3.4 Timers 0/1/2

@@ -1,0 +1,10 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: 286cc02018a94c3fbe5aab89478cbe94d220e476
+# rodado_em: 2026-07-29T07:50:56-03:00
+m1,mutante,morreu,morreu,0.8,interrupcao_nao_dispara_sem_sr_iec
+m2,mutante,morreu,morreu,0.7,interrupcao_nao_dispara_sem_sr_im_bit10
+m3,mutante,morreu,morreu,0.7,cause_bit10_reflete_irq_pendente;interrupcao_dispara_excecao_int;interrupcao_nao_executa_instrucao_corrente
+m4,mutante,morreu,morreu,0.7,interrupcao_dispara_excecao_int;interrupcao_nao_executa_instrucao_corrente
+m5,mutante,morreu,morreu,0.7,interrupcao_dispara_excecao_int;interrupcao_nao_executa_instrucao_corrente
+K1,controle,sobreviveu,sobreviveu,0.7,
+K2,controle,sobreviveu,sobreviveu,0.7,

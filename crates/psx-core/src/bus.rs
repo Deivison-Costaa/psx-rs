@@ -1,4 +1,5 @@
 use crate::gpu::Gpu;
+use crate::irq::Irq;
 
 const SCRATCHPAD_SIZE: usize = 1024;
 
@@ -105,6 +106,7 @@ pub struct Bus {
     ram: Ram,
     bios: Bios,
     gpu: Gpu,
+    irq: Irq,
     scratchpad: Scratchpad,
     mem_ctrl: MemCtrl,
     bcc: Bcc,
@@ -121,11 +123,20 @@ impl Bus {
             ram,
             bios,
             gpu: Gpu::new(),
+            irq: Irq::new(),
             scratchpad: Scratchpad::new(),
             mem_ctrl: MemCtrl::new(),
             bcc: Bcc::new(),
             tty_buffer: Vec::new(),
         }
+    }
+
+    pub fn irq(&self) -> &Irq {
+        &self.irq
+    }
+
+    pub fn irq_mut(&mut self) -> &mut Irq {
+        &mut self.irq
     }
 
     pub fn tty_push(&mut self, byte: u8) {
@@ -156,6 +167,8 @@ impl Bus {
             }
             0x1F80_1000..=0x1F80_1023 => Some(self.mem_ctrl.read32(phys)),
             0x1F80_1060 => Some(self.mem_ctrl.read32(phys)),
+            0x1F80_1070 => Some(self.irq.read_stat()),
+            0x1F80_1074 => Some(self.irq.read_mask()),
             0xFFFE_0130 => Some(self.bcc.0),
             0x1F80_1810 | 0x1F80_1814 => Some(self.gpu.read32(phys - 0x1F80_1810)),
             0x1F80_1024..=0x1F80_105F | 0x1F80_1061..=0x1F80_1FFF => Some(0),
@@ -179,6 +192,14 @@ impl Bus {
             }
             0x1F80_1060 => {
                 self.mem_ctrl.write32(phys, val);
+                true
+            }
+            0x1F80_1070 => {
+                self.irq.write_stat(val);
+                true
+            }
+            0x1F80_1074 => {
+                self.irq.write_mask(val);
                 true
             }
             0xFFFE_0130 => {

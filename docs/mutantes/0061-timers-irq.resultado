@@ -1,0 +1,12 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: 56632bab917438e00d6bcd1e218f42afa2809438
+# rodado_em: 2026-07-29T13:48:47-03:00
+m1,mutante,morreu,morreu,0.8,irq4_timer0_irq5_timer1_irq6_timer2;irq_oneshot_nao_dispara_segunda_vez;irq_oneshot_toggle_nao_dispara_segunda_vez;irq_repeat_dispara_multiplas_vezes;irq_target_pulse_retorna_irq_bit4;irq_toggle_inverte_bit10_e_so_retorna_irq_na_descida;irq_toggle_terceiro_disparo_retorna_irq
+m2,mutante,morreu,morreu,0.7,irq_ffff_pulse_retorna_irq_bit4
+m3,mutante,morreu,morreu,0.7,irq_oneshot_nao_dispara_segunda_vez
+m4,mutante,morreu,morreu,0.7,irq_repeat_dispara_multiplas_vezes;irq_target_pulse_retorna_irq_bit4
+m5,mutante,morreu,morreu,0.7,irq_toggle_inverte_bit10_e_so_retorna_irq_na_descida
+m6,mutante,morreu,morreu,0.7,irq4_timer0_irq5_timer1_irq6_timer2;irq_oneshot_nao_dispara_segunda_vez;irq_oneshot_toggle_nao_dispara_segunda_vez;irq_repeat_dispara_multiplas_vezes;irq_target_pulse_retorna_irq_bit4;irq_toggle_inverte_bit10_e_so_retorna_irq_na_descida;irq_toggle_terceiro_disparo_retorna_irq
+m7,mutante,morreu,morreu,0.7,irq4_timer0_irq5_timer1_irq6_timer2
+K1,controle,sobreviveu,sobreviveu,0.8,
+K2,controle,sobreviveu,sobreviveu,0.8,

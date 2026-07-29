@@ -76,12 +76,26 @@ rotulo: D1 — polyline incremental nao desenha os segmentos flat (regressao do 
 @@DE
                             if has_prev {
                                 let c = color24_to_16(color0);
-                                self.draw_line_segment(prev_vertex, (x, y), c, c, false, semi_transparent);
+                                self.draw_line_segment(
+                                    prev_vertex,
+                                    (x, y),
+                                    c,
+                                    c,
+                                    false,
+                                    semi_transparent,
+                                );
                             }
 @@PARA
                             if false && has_prev {
                                 let c = color24_to_16(color0);
-                                self.draw_line_segment(prev_vertex, (x, y), c, c, false, semi_transparent);
+                                self.draw_line_segment(
+                                    prev_vertex,
+                                    (x, y),
+                                    c,
+                                    c,
+                                    false,
+                                    semi_transparent,
+                                );
                             }
 @@FIM
 
@@ -141,9 +155,23 @@ rotulo: renomeia variavel local c para seg_color no flat polyline (cosmetico)
 @@DE
                             if has_prev {
                                 let c = color24_to_16(color0);
-                                self.draw_line_segment(prev_vertex, (x, y), c, c, false, semi_transparent);
+                                self.draw_line_segment(
+                                    prev_vertex,
+                                    (x, y),
+                                    c,
+                                    c,
+                                    false,
+                                    semi_transparent,
+                                );
 @@PARA
                             if has_prev {
                                 let seg_color = color24_to_16(color0);
-                                self.draw_line_segment(prev_vertex, (x, y), seg_color, seg_color, false, semi_transparent);
+                                self.draw_line_segment(
+                                    prev_vertex,
+                                    (x, y),
+                                    seg_color,
+                                    seg_color,
+                                    false,
+                                    semi_transparent,
+                                );
 @@FIM

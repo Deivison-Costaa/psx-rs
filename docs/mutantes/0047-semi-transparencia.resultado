@@ -1,0 +1,12 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: a1fae88233ce926d808beb6cbdb2a87fad61fd7a
+# rodado_em: 2026-07-29T04:23:36-03:00
+m1,mutante,morreu,morreu,0.7,t2_modo_1_aditivo_com_clamp
+m2,mutante,morreu,morreu,0.6,t5_semi_transparencia_desabilitada_bit25_zero
+m3,mutante,morreu,morreu,0.6,t1_modo_0_media_back_e_front
+m4,mutante,morreu,morreu,0.7,t4_modo_3_back_mais_um_quarto_de_front
+m5,mutante,morreu,morreu,0.6,t1_modo_0_media_back_e_front;t2_modo_1_aditivo_com_clamp;t3_modo_2_subtrativo_com_clamp_zero;t4_modo_3_back_mais_um_quarto_de_front
+m6,mutante,morreu,morreu,0.6,t1_modo_0_media_back_e_front;t2_modo_1_aditivo_com_clamp;t3_modo_2_subtrativo_com_clamp_zero;t4_modo_3_back_mais_um_quarto_de_front
+m7,mutante,morreu,morreu,0.6,t1_modo_0_media_back_e_front;t2_modo_1_aditivo_com_clamp;t3_modo_2_subtrativo_com_clamp_zero;t4_modo_3_back_mais_um_quarto_de_front
+K1,controle,sobreviveu,sobreviveu,0.6,
+K2,controle,sobreviveu,sobreviveu,0.6,

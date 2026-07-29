@@ -152,7 +152,8 @@ fn dma6_otc_bcr_zero_equivale_a_10000h() {
     bus.write32::<BusRead>(D6_BCR, 0);
     bus.write32::<BusRead>(DPCR, 0x0765_4321 | (1 << 27));
     bus.write32::<BusRead>(D6_CHCR, 0x1100_0002);
-    let mais_baixo = base.wrapping_sub(0xFFFC);
+    let count = 0x10000usize;
+    let mais_baixo = base.wrapping_sub((count as u32 - 1) * 4);
     let terminador = bus.read32::<BusRead>(mais_baixo);
     assert_eq!(
         terminador, 0x00FF_FFFF,

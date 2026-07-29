@@ -1,0 +1,102 @@
+# Manifesto de mutação da iteração 0051 — timing-vblank
+formato: 1
+iteracao: 0051
+item: 2.7b
+alvo: crates/psx-core/src/gpu.rs
+teste: gpu_timing_vblank
+
+mutante: m1
+rotulo: frame_cycles usa constante PAL (680659) para modo NTSC
+@@DE
+        if self.video_mode.get() {
+            680_659
+        } else {
+            566_187
+        }
+@@PARA
+        if self.video_mode.get() {
+            680_659
+        } else {
+            680_659
+        }
+@@FIM
+
+mutante: m2
+rotulo: frame_cycles usa constante NTSC (566187) para modo PAL
+@@DE
+        if self.video_mode.get() {
+            680_659
+        } else {
+            566_187
+        }
+@@PARA
+        if self.video_mode.get() {
+            566_187
+        } else {
+            566_187
+        }
+@@FIM
+
+mutante: m3
+rotulo: enter_vblank nao seta in_vblank
+@@DE
+    pub fn enter_vblank(&mut self) {
+        self.in_vblank.set(true);
+    }
+@@PARA
+    pub fn enter_vblank(&mut self) {
+    }
+@@FIM
+
+mutante: m4
+rotulo: exit_vblank nao limpa in_vblank (permanece true)
+@@DE
+    pub fn exit_vblank(&mut self) {
+        self.in_vblank.set(false);
+    }
+@@PARA
+    pub fn exit_vblank(&mut self) {
+    }
+@@FIM
+
+mutante: m5
+rotulo: GP1(08h) bit3 invertido — video_mode PAL quando bit3=0
+@@DE
+                self.video_mode.set((param & 0x08) != 0);
+@@PARA
+                self.video_mode.set((param & 0x08) == 0);
+@@FIM
+
+mutante: m6
+rotulo: reset nao zera video_mode (mantem PAL setado antes do reset)
+@@DE
+                self.video_mode.set(false);
+@@PARA
+                // mantem video_mode anterior
+@@FIM
+
+controle: K1
+rotulo: inverte ordem dos bracos if no frame_cycles (cosmetico, semantica identica)
+@@DE
+        if self.video_mode.get() {
+            680_659
+        } else {
+            566_187
+        }
+@@PARA
+        if !self.video_mode.get() {
+            566_187
+        } else {
+            680_659
+        }
+@@FIM
+
+controle: K2
+rotulo: renomeia variavel local stat para s em read32 (cosmetico)
+@@DE
+                let mut stat = self.stat.get();
+                let bit25 = match dir {
+@@PARA
+                let mut s = self.stat.get();
+                let bit25 = match dir {
+@@FIM

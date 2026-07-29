@@ -569,7 +569,7 @@ impl Gpu {
             };
 
             let xl = xl.max(area_x1).max(0);
-            let xr = xr.min(area_x2 + 1).min(1024);
+            let xr = xr.max(0).min(area_x2 + 1).min(1024);
             if xl >= xr {
                 continue;
             }

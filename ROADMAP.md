@@ -43,7 +43,7 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [x] 2.3 Triângulos flat + gouraud (iter 0039)
 - [x] 2.4 Quads, retângulos, linhas (iter 0042)
 - [x] 2.5a Texpage GP0(E1h) + amostragem de textura 15bpp (iter 0044)
-- [ ] 2.5b Texturas 4bpp e 8bpp + CLUT
+- [x] 2.5b Texturas 4bpp e 8bpp + CLUT (iter 0045)
 - [ ] 2.5c Texture window GP0(E2h)
 - [ ] 2.6 Semi-transparência + dithering + mask bit
 - [ ] 2.7 Display regs, timing NTSC/PAL, vblank IRQ
@@ -102,7 +102,7 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [ ] 10.6 GP0(80h) VRAM->VRAM blit (hoje consumido e ignorado)
 - [ ] 10.7 Mask setting GP0(E6h) aplicado a CPU->VRAM e VRAM->VRAM (03-gpu.md L590-592)
 - [ ] 10.8 SWL/SWR fazem read-modify-write e leem portas de I/O de leitura destrutiva
-- [ ] 10.9 UV/CLUT dos polígonos texturizados (hoje consumidos e ignorados)
+- [x] 10.9 UV/CLUT dos polígonos texturizados (hoje consumidos e ignorados) (iter 0045)
 - [ ] 10.10 Drawing Area GP0(E3h/E4h) e Drawing Offset GP0(E5h) sem suite de hardware que os meça
 - [ ] 10.11 Textura e Texpage de retângulos (hoje UV consumido e ignorado)
 - [ ] 10.12 Meta-teste do placar pula em silêncio quando o doc não é legível (`Err(_) => continue`) — passou local e reprovou na CI na iter 0042

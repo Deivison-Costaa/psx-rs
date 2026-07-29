@@ -206,8 +206,8 @@ fn io_catch_all_nao_corrompe_ram() {
     );
     assert_eq!(
         bus.read32::<BusRead>(0x1F80_1074),
-        0,
-        "F2: I_STAT stub devolve 0 no read32"
+        0x7FF,
+        "F2: I_MASK reflete mascara de bits 0-10 no read32"
     );
     assert_eq!(
         bus.read8::<BusRead>(0x1F80_1074),
@@ -239,8 +239,8 @@ fn io_catch_all_nao_corrompe_ram() {
     );
     assert_eq!(
         bus.read32::<BusRead>(0x1F80_1074),
-        0,
-        "F2: read32 apos write16/write8 devolve 0"
+        0x7FF,
+        "F2: read32 apos write16/write8 manteve I_MASK (byte writes sao catchall)"
     );
 }
 

@@ -366,11 +366,14 @@ fn retangulo_variavel_large_1023x511_a9b() {
 fn retangulo_texturizado_8x8_uv_consumido_comando_seguinte_executa_a10() {
     let mut gpu = Gpu::new();
 
-    let cmd: u32 = 0x7400_0000;
+    let cmd: u32 = 0x7400_00FF;
     gpu.write32(0, cmd);
     gpu.write32(0, 0x000A_000A);
     let uv: u32 = 0x0000_0000;
     gpu.write32(0, uv);
+
+    assert_eq!(gpu.vram_pixel(10, 10), 0,
+        "D2: pixel(10,10) nao deve ser pintado (texturizado ignora cor, spec L402)");
 
     let fill_cmd: u32 = 0x0200_00FF;
     let fill_pos: u32 = 0x0014_0014;

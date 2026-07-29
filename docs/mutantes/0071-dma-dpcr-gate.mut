@@ -1,0 +1,85 @@
+# Manifesto de mutação da iteração 0071 — dma-dpcr-gate
+formato: 1
+iteracao: 0071
+item: 10.19
+alvo: crates/psx-core/src/dma.rs
+teste: dma_dpcr_gate
+
+mutante: m1
+rotulo: OTC sem gate DPCR — try_execute_otc nao verifica bit 27
+@@DE
+        if self.dpcr & (1 << 27) == 0 {
+            return;
+        }
+@@PARA
+        let _ = self.dpcr & (1 << 27);
+@@FIM
+
+mutante: m2
+rotulo: DMA3 sem gate DPCR — try_execute_dma3 nao verifica bit 15
+@@DE
+        if self.dpcr & (1 << 15) == 0 {
+            return;
+        }
+@@PARA
+        let _ = self.dpcr & (1 << 15);
+@@FIM
+
+mutante: m3
+rotulo: DMA2 sem gate DPCR — try_execute_dma2 nao verifica bit 11
+@@DE
+        if self.dpcr & (1 << 11) == 0 {
+            return;
+        }
+@@PARA
+        let _ = self.dpcr & (1 << 11);
+@@FIM
+
+mutante: m4
+rotulo: OTC usa bit 26 em vez de 27 — gate nunca abre para o canal 6
+@@DE
+        if self.dpcr & (1 << 27) == 0 {
+@@PARA
+        if self.dpcr & (1 << 26) == 0 {
+@@FIM
+
+mutante: m5
+rotulo: DMA2 usa bit 10 em vez de 11 — gate nunca abre para o canal 2
+@@DE
+        if self.dpcr & (1 << 11) == 0 {
+@@PARA
+        if self.dpcr & (1 << 10) == 0 {
+@@FIM
+
+mutante: m6
+rotulo: DMA3 condicao invertida — transfere com canal desabilitado
+@@DE
+        if self.dpcr & (1 << 15) == 0 {
+@@PARA
+        if self.dpcr & (1 << 15) != 0 {
+@@FIM
+
+mutante: m7
+rotulo: DMA3 usa bit 14 em vez de 15 — gate nunca abre para o canal 3
+@@DE
+        if self.dpcr & (1 << 15) == 0 {
+@@PARA
+        if self.dpcr & (1 << 14) == 0 {
+@@FIM
+
+controle: c1
+rotulo: controle — adiciona ligacao morta (let _) antes do for em try_execute_otc
+@@DE
+        for _ in 0..count {
+@@PARA
+        let _ = 0u32;
+        for _ in 0..count {
+@@FIM
+
+controle: c2
+rotulo: controle — troca 0x0765_4321 por 0x07654321 em Dma::new (formatacao apenas)
+@@DE
+            dpcr: 0x0765_4321,
+@@PARA
+            dpcr: 0x07654321,
+@@FIM

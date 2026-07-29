@@ -34,6 +34,7 @@ fn dma6_chcr_apenas_bits_24_28_30_e_1_sao_gravaveis() {
     let mut bus = bus_com_dma();
     bus.write32::<BusRead>(D6_MADR, 0x0000_0010);
     bus.write32::<BusRead>(D6_BCR, 1);
+    bus.write32::<BusRead>(DPCR, 0x0765_4321 | (1 << 27));
     bus.write32::<BusRead>(D6_CHCR, 0xFFFF_FFFF);
     let val = bus.read32::<BusRead>(D6_CHCR);
     assert_eq!(
@@ -74,6 +75,7 @@ fn dma6_otc_preenche_ram_com_linked_list() {
     let count: u32 = 4;
     bus.write32::<BusRead>(D6_MADR, base);
     bus.write32::<BusRead>(D6_BCR, count);
+    bus.write32::<BusRead>(DPCR, 0x0765_4321 | (1 << 27));
     bus.write32::<BusRead>(D6_CHCR, 0x1100_0002);
     let end_val = bus.read32::<BusRead>(base);
     assert_eq!(end_val, 0x00FF_FFFF, "ultimo slot = end marker");
@@ -98,6 +100,7 @@ fn dma6_chcr_bit24_e_limpo_apos_otc() {
     let mut bus = bus_com_dma();
     bus.write32::<BusRead>(D6_MADR, 0x0000_0100);
     bus.write32::<BusRead>(D6_BCR, 1);
+    bus.write32::<BusRead>(DPCR, 0x0765_4321 | (1 << 27));
     bus.write32::<BusRead>(D6_CHCR, 0x1100_0002);
     let chcr = bus.read32::<BusRead>(D6_CHCR);
     assert_eq!(
@@ -112,6 +115,7 @@ fn dma6_chcr_bit28_e_limpo_apos_otc() {
     let mut bus = bus_com_dma();
     bus.write32::<BusRead>(D6_MADR, 0x0000_0200);
     bus.write32::<BusRead>(D6_BCR, 1);
+    bus.write32::<BusRead>(DPCR, 0x0765_4321 | (1 << 27));
     bus.write32::<BusRead>(D6_CHCR, 0x1100_0002);
     let chcr = bus.read32::<BusRead>(D6_CHCR);
     assert_eq!(
@@ -127,6 +131,7 @@ fn dma6_otc_nao_dispara_sem_bit24() {
     bus.write32::<BusRead>(D6_MADR, 0x0000_0500);
     bus.write32::<BusRead>(D6_BCR, 1);
     bus.write32::<BusRead>(0x0000_0500, 0xCAFE_BABE);
+    bus.write32::<BusRead>(DPCR, 0x0765_4321 | (1 << 27));
     bus.write32::<BusRead>(D6_CHCR, 0x1000_0002);
     let val = bus.read32::<BusRead>(0x0000_0500);
     assert_eq!(val, 0xCAFE_BABE, "RAM nao foi alterada sem bit 24");
@@ -138,6 +143,7 @@ fn dma6_otc_bcr_zero_equivale_a_10000h() {
     let base: u32 = 0x0010_0000;
     bus.write32::<BusRead>(D6_MADR, base);
     bus.write32::<BusRead>(D6_BCR, 0);
+    bus.write32::<BusRead>(DPCR, 0x0765_4321 | (1 << 27));
     bus.write32::<BusRead>(D6_CHCR, 0x1100_0002);
     let ultimo = bus.read32::<BusRead>(base);
     assert_eq!(ultimo, 0x00FF_FFFF, "com BCR=0, ultimo slot = end marker");
@@ -161,6 +167,7 @@ fn dma6_otc_nao_dispara_sem_bit28() {
     bus.write32::<BusRead>(D6_MADR, 0x0000_0600);
     bus.write32::<BusRead>(D6_BCR, 1);
     bus.write32::<BusRead>(0x0000_0600, 0xCAFE_BABE);
+    bus.write32::<BusRead>(DPCR, 0x0765_4321 | (1 << 27));
     bus.write32::<BusRead>(D6_CHCR, 0x0100_0002);
     let val = bus.read32::<BusRead>(0x0000_0600);
     assert_eq!(
@@ -175,6 +182,7 @@ fn dma6_chcr_bit24_gravavel_sem_executar_otc() {
     bus.write32::<BusRead>(D6_MADR, 0x0000_0700);
     bus.write32::<BusRead>(D6_BCR, 1);
     bus.write32::<BusRead>(0x0000_0700, 0xDEAD_BEEF);
+    bus.write32::<BusRead>(DPCR, 0x0765_4321 | (1 << 27));
     bus.write32::<BusRead>(D6_CHCR, 0x0100_0002);
     let chcr = bus.read32::<BusRead>(D6_CHCR);
     assert_eq!(

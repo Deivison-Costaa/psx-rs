@@ -10,6 +10,7 @@ fn bus_com_dma() -> Bus {
 const D2_MADR: u32 = 0x1F80_10A0;
 const D2_BCR: u32 = 0x1F80_10A4;
 const D2_CHCR: u32 = 0x1F80_10A8;
+const DPCR: u32 = 0x1F80_10F0;
 const GPUSTAT: u32 = 0x1F80_1814;
 
 fn write_ram32(bus: &mut Bus, addr: u32, val: u32) {
@@ -53,6 +54,7 @@ fn dma2_linked_list_transfere_comandos_para_gp0() {
 
     bus.write32::<BusRead>(D2_MADR, list_addr);
     bus.write32::<BusRead>(D2_BCR, 0);
+    bus.write32::<BusRead>(DPCR, 0x0765_4321 | (1 << 11));
     bus.write32::<BusRead>(D2_CHCR, 0x1100_0401);
 
     let gpustat = bus.read32::<BusRead>(GPUSTAT);
@@ -79,6 +81,7 @@ fn dma2_linked_list_end_marker_para_transferencia() {
 
     bus.write32::<BusRead>(D2_MADR, list_addr);
     bus.write32::<BusRead>(D2_BCR, 0);
+    bus.write32::<BusRead>(DPCR, 0x0765_4321 | (1 << 11));
     bus.write32::<BusRead>(D2_CHCR, 0x1100_0401);
 
     let gpustat = bus.read32::<BusRead>(GPUSTAT);
@@ -100,6 +103,7 @@ fn dma2_linked_list_bit24_nao_dispara_sem_start() {
 
     bus.write32::<BusRead>(D2_MADR, list_addr);
     bus.write32::<BusRead>(D2_BCR, 0);
+    bus.write32::<BusRead>(DPCR, 0x0765_4321 | (1 << 11));
     bus.write32::<BusRead>(D2_CHCR, 0x0000_0401);
 
     let gpustat = bus.read32::<BusRead>(GPUSTAT);
@@ -121,6 +125,7 @@ fn dma2_chcr_bit24_e_limpo_apos_linked_list() {
 
     bus.write32::<BusRead>(D2_MADR, list_addr);
     bus.write32::<BusRead>(D2_BCR, 0);
+    bus.write32::<BusRead>(DPCR, 0x0765_4321 | (1 << 11));
     bus.write32::<BusRead>(D2_CHCR, 0x1100_0401);
 
     let chcr = bus.read32::<BusRead>(D2_CHCR);
@@ -144,6 +149,7 @@ fn dma2_block_transfere_dados_para_vram() {
 
     bus.write32::<BusRead>(D2_MADR, data_addr);
     bus.write32::<BusRead>(D2_BCR, 0x0001_0001);
+    bus.write32::<BusRead>(DPCR, 0x0765_4321 | (1 << 11));
     bus.write32::<BusRead>(D2_CHCR, 0x1100_0201);
 
     let gpustat = bus.read32::<BusRead>(GPUSTAT);
@@ -172,6 +178,7 @@ fn dma2_block_bit24_nao_dispara_sem_start() {
 
     bus.write32::<BusRead>(D2_MADR, data_addr);
     bus.write32::<BusRead>(D2_BCR, 0x0001_0001);
+    bus.write32::<BusRead>(DPCR, 0x0765_4321 | (1 << 11));
     bus.write32::<BusRead>(D2_CHCR, 0x0000_0201);
 
     let gpustat = bus.read32::<BusRead>(GPUSTAT);
@@ -195,6 +202,7 @@ fn dma2_chcr_bit24_e_limpo_apos_block() {
 
     bus.write32::<BusRead>(D2_MADR, data_addr);
     bus.write32::<BusRead>(D2_BCR, 0x0001_0001);
+    bus.write32::<BusRead>(DPCR, 0x0765_4321 | (1 << 11));
     bus.write32::<BusRead>(D2_CHCR, 0x1100_0201);
 
     let chcr = bus.read32::<BusRead>(D2_CHCR);
@@ -219,6 +227,7 @@ fn dma2_block_multiplas_palavras() {
 
     bus.write32::<BusRead>(D2_MADR, data_addr);
     bus.write32::<BusRead>(D2_BCR, 0x0001_0002);
+    bus.write32::<BusRead>(DPCR, 0x0765_4321 | (1 << 11));
     bus.write32::<BusRead>(D2_CHCR, 0x1100_0201);
 
     let gpustat = bus.read32::<BusRead>(GPUSTAT);
@@ -265,6 +274,7 @@ fn dma2_linked_list_multiplos_nos() {
 
     bus.write32::<BusRead>(D2_MADR, node1);
     bus.write32::<BusRead>(D2_BCR, 0);
+    bus.write32::<BusRead>(DPCR, 0x0765_4321 | (1 << 11));
     bus.write32::<BusRead>(D2_CHCR, 0x1100_0401);
 
     let gpustat = bus.read32::<BusRead>(GPUSTAT);
@@ -292,6 +302,7 @@ fn dma2_linked_list_madr_contem_end_marker_apos_transferencia() {
 
     bus.write32::<BusRead>(D2_MADR, list_addr);
     bus.write32::<BusRead>(D2_BCR, 0);
+    bus.write32::<BusRead>(DPCR, 0x0765_4321 | (1 << 11));
     bus.write32::<BusRead>(D2_CHCR, 0x1100_0401);
 
     let madr = bus.read32::<BusRead>(D2_MADR);
@@ -314,6 +325,7 @@ fn dma2_block_bs_zero_equivale_a_10000h() {
 
     bus.write32::<BusRead>(D2_MADR, data_addr);
     bus.write32::<BusRead>(D2_BCR, 0x0001_0000);
+    bus.write32::<BusRead>(DPCR, 0x0765_4321 | (1 << 11));
     bus.write32::<BusRead>(D2_CHCR, 0x1100_0201);
 
     let pixel = bus.gpu().vram_pixel(0, 0);

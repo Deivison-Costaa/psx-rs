@@ -48,7 +48,7 @@ rotulo: bit24 nao limpo apos linked-list
         }
 @@FIM
 
-mutante: m5
+equivalente: m5
 rotulo: block mode step ignorado (sempre incrementa +4)
 @@DE
                 addr = if step < 0 {

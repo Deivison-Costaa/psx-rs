@@ -40,12 +40,26 @@ rotulo: block mode BS=0 nao tratado como 0x10000 (zero palavras)
 mutante: m4
 rotulo: bit24 nao limpo apos linked-list
 @@DE
+            if next_addr == 0x00FF_FFFF || (next_addr & 0x0080_0000) != 0 {
+                self.madr[2] = (self.madr[2] & !0x00FF_FFFF) | next_addr;
+                break;
+            }
+
+            addr = next_addr & 0x00FF_FFFC;
+        }
         self.chcr[2] &= !(1 << 24);
     }
 }
 
 impl Default for Dma {
 @@PARA
+            if next_addr == 0x00FF_FFFF || (next_addr & 0x0080_0000) != 0 {
+                self.madr[2] = (self.madr[2] & !0x00FF_FFFF) | next_addr;
+                break;
+            }
+
+            addr = next_addr & 0x00FF_FFFC;
+        }
     }
 }
 

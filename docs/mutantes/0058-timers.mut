@@ -4,6 +4,7 @@ iteracao: 0058
 item: 3.4
 alvo: crates/psx-core/src/timers.rs
 teste: timers
+arquivada: metodo tick() reescrito na iter 0059 (item 3.4b) — ancoras nao correspondem mais
 
 mutante: m1
 rotulo: tick nao incrementa o contador (no-op)
@@ -49,9 +50,9 @@ rotulo: timer 2 divisor ignorado (incrementa a cada tick)
 mutante: m6
 rotulo: sync enable nao pausa o timer 2
 @@DE
-            2 => !(sync_enable && (sync_mode == 0 || sync_mode == 3)),
+                2 => !matches!(sync_mode, 0 | 3),
 @@PARA
-            2 => true,
+                2 => true,
 @@FIM
 
 mutante: m7

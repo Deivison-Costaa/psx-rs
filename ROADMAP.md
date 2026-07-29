@@ -59,7 +59,7 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [x] 3.2 DMA regs + canal 6 (OTC) (iter 0056)
 - [x] 3.3 DMA canal 2 GPU (block + linked-list) (iter 0057)
 - [x] 3.4 Timers 0/1/2 — registradores e contagem básica (iter 0058)
-- [ ] 3.4b Timers — modos de sync Hblank/Vblank (deferido da 3.4)
+- [x] 3.4b Timers — modos de sync Hblank/Vblank (iter 0059)
 - [ ] 3.4c Timers — fontes de clock Dotclock/Hblank (deferido da 3.4)
 - [ ] 3.4d Timers — conexão de IRQ4/IRQ5/IRQ6 ao controlador (deferido da 3.4)
 

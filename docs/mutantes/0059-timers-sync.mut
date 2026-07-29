@@ -1,0 +1,136 @@
+# Manifesto de mutação da iteração 0059 — timers-sync
+formato: 1
+iteracao: 0059
+item: 3.4b
+alvo: crates/psx-core/src/timers.rs
+teste: timers_sync
+
+mutante: m1
+rotulo: modo 0 nao pausa durante sync (timer 0 com hblank)
+@@DE
+                0 | 1 => match sync_mode {
+                    0 => (clock_src == 0 || clock_src == 2) && !sync_signal,
+@@PARA
+                0 | 1 => match sync_mode {
+                    0 => clock_src == 0 || clock_src == 2,
+@@FIM
+
+mutante: m2
+rotulo: modo 2 nao pausa fora do sync (timer 1 com vblank)
+@@DE
+                    2 => (clock_src == 0 || clock_src == 2) && sync_signal,
+@@PARA
+                    2 => clock_src == 0 || clock_src == 2,
+@@FIM
+
+mutante: m3
+rotulo: borda de subida do sync nao reseta cnt (modos 1 e 2)
+@@DE
+        if sync_enable && rising_edge {
+            match sync_mode {
+                1 | 2 => {
+                    t.counter.set(0);
+                    t.cycle_acc.set(0);
+                }
+@@PARA
+        if false {
+            match sync_mode {
+                1 | 2 => {
+                    t.counter.set(0);
+                    t.cycle_acc.set(0);
+                }
+@@FIM
+
+mutante: m4
+rotulo: modo 3 nao detecta primeiro sync (nao sai do pause)
+@@DE
+        if sync_enable && rising_edge {
+            match sync_mode {
+                1 | 2 => {
+                    t.counter.set(0);
+                    t.cycle_acc.set(0);
+                }
+                3 if !t.mode3_triggered.get() => {
+                    t.counter.set(0);
+                    t.cycle_acc.set(0);
+                    t.mode3_triggered.set(true);
+                }
+                _ => {}
+            }
+        }
+@@PARA
+        let _ = rising_edge;
+@@FIM
+
+mutante: m5
+rotulo: timer 2 sync_enable=1 modo 1/2 nao incrementa (deveria ser free run)
+@@DE
+                2 => !matches!(sync_mode, 0 | 3),
+@@PARA
+                2 => false,
+@@FIM
+
+mutante: m6
+rotulo: escrever MODE nao reseta prev_sync_signal e mode3_triggered
+@@DE
+                t.prev_sync_signal.set(false);
+                t.mode3_triggered.set(false);
+@@PARA
+                let _ = mode;
+@@FIM
+
+mutante: m7
+rotulo: modo 3 reseta cnt a cada sync mesmo depois de disparado
+@@DE
+                3 if !t.mode3_triggered.get() => {
+                    t.counter.set(0);
+                    t.cycle_acc.set(0);
+                    t.mode3_triggered.set(true);
+                }
+@@PARA
+                3 => {
+                    t.counter.set(0);
+                    t.cycle_acc.set(0);
+                    t.mode3_triggered.set(true);
+                }
+@@FIM
+
+controle: K1
+rotulo: extrair clock_src check em variavel local (equivalente semantico)
+@@DE
+        let increment = if sync_enable {
+            match idx {
+                0 | 1 => match sync_mode {
+                    0 => (clock_src == 0 || clock_src == 2) && !sync_signal,
+                    1 => clock_src == 0 || clock_src == 2,
+                    2 => (clock_src == 0 || clock_src == 2) && sync_signal,
+                    3 => (clock_src == 0 || clock_src == 2) && t.mode3_triggered.get(),
+                    _ => clock_src == 0 || clock_src == 2,
+                },
+@@PARA
+        let sys_clock = clock_src == 0 || clock_src == 2;
+        let increment = if sync_enable {
+            match idx {
+                0 | 1 => match sync_mode {
+                    0 => sys_clock && !sync_signal,
+                    1 => sys_clock,
+                    2 => sys_clock && sync_signal,
+                    3 => sys_clock && t.mode3_triggered.get(),
+                    _ => sys_clock,
+                },
+@@FIM
+
+controle: K2
+rotulo: extrair divisor em variavel local (semantica identica)
+@@DE
+        let divisor: u32 = match idx {
+            2 if clock_src == 2 || clock_src == 3 => 8,
+            _ => 1,
+        };
+@@PARA
+        let d: u32 = match idx {
+            2 if clock_src == 2 || clock_src == 3 => 8,
+            _ => 1,
+        };
+        let divisor = d;
+@@FIM

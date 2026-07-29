@@ -173,6 +173,7 @@ pub struct Gpu {
     video_mode: Cell<bool>,
     in_vblank: Cell<bool>,
     odd_line: Cell<bool>,
+    hblank_active: Cell<bool>,
 }
 
 #[derive(Clone)]
@@ -215,6 +216,7 @@ impl Gpu {
             video_mode: Cell::new(false),
             in_vblank: Cell::new(false),
             odd_line: Cell::new(false),
+            hblank_active: Cell::new(false),
         }
     }
 
@@ -324,6 +326,18 @@ impl Gpu {
 
     pub fn in_vblank(&self) -> bool {
         self.in_vblank.get()
+    }
+
+    pub fn vblank_active(&self) -> bool {
+        self.in_vblank.get()
+    }
+
+    pub fn hblank_active(&self) -> bool {
+        self.hblank_active.get()
+    }
+
+    pub fn set_hblank_active(&mut self, active: bool) {
+        self.hblank_active.set(active);
     }
 
     pub fn frame_cycles(&self) -> u64 {
@@ -1675,6 +1689,7 @@ impl Gpu {
                 self.video_mode.set(false);
                 self.in_vblank.set(false);
                 self.odd_line.set(false);
+                self.hblank_active.set(false);
             }
             0x01 => {
                 self.vram_state.set(VramState::Idle);

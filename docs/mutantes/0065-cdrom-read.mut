@@ -1,0 +1,117 @@
+# Manifesto de mutação da iteração 0065 — cdrom-read
+formato: 1
+iteracao: 0065
+item: 4.2c
+alvo: crates/psx-core/src/cdrom.rs
+teste: cdrom_read
+
+mutante: m1
+rotulo: ReadN sem disco retorna INT3 em vez de INT5 — condicao vira false
+@@DE
+            0x06 => {
+                if !self.disc_inserted.get() {
+                    self.result_push(self.stat_byte() | 0x01);
+                    self.result_push(0x80);
+                    self.intsts.set(5);
+                    self.busy.set(false);
+@@PARA
+            0x06 => {
+                if false {
+                    self.result_push(self.stat_byte() | 0x01);
+                    self.result_push(0x80);
+                    self.intsts.set(5);
+                    self.busy.set(false);
+@@FIM
+
+mutante: m2
+rotulo: ReadS sem disco retorna INT3 em vez de INT5 — condicao vira false
+@@DE
+            0x1B => {
+                if !self.disc_inserted.get() {
+                    self.result_push(self.stat_byte() | 0x01);
+                    self.result_push(0x80);
+                    self.intsts.set(5);
+                    self.busy.set(false);
+@@PARA
+            0x1B => {
+                if false {
+                    self.result_push(self.stat_byte() | 0x01);
+                    self.result_push(0x80);
+                    self.intsts.set(5);
+                    self.busy.set(false);
+@@FIM
+
+mutante: m3
+rotulo: deliver_second nao poe INT1 — pos INT2 (Read interrompido)
+@@DE
+                self.intsts.set(1);
+@@PARA
+                self.intsts.set(2);
+@@FIM
+
+mutante: m4
+rotulo: ReadN nao encadeia — pending_second nao eh re-setado
+@@DE
+                    if pending == 5 && self.read_mode.get() == 1 {
+                        self.pending_second.set(5);
+                    }
+@@PARA
+                    if self.read_mode.get() == 1 {
+                    }
+@@FIM
+
+mutante: m5
+rotulo: buffer de dados preenchido com zeros — RDDATA retorna zeros
+@@DE
+                    *b = (i as u8).wrapping_add(1);
+@@PARA
+                    *b = 0;
+@@FIM
+
+mutante: m6
+rotulo: data_pos nao eh resetado — DRQSTS fica desligado apos primeiro setor
+@@DE
+                self.data_pos.set(0);
+@@PARA
+                self.data_pos.set(2048);
+@@FIM
+
+mutante: m7
+rotulo: ReadN nao seta reading flag no stat — stat bit5=0
+@@DE
+                    self.reading.set(true);
+                    self.read_mode.set(1);
+                    self.result_push(self.stat_byte());
+                    self.intsts.set(3);
+                    self.pending_second.set(5);
+@@PARA
+                    self.reading.set(false);
+                    self.read_mode.set(1);
+                    self.result_push(self.stat_byte());
+                    self.intsts.set(3);
+                    self.pending_second.set(5);
+@@FIM
+
+controle: K1
+rotulo: extrair stat_byte em variavel local no deliver_second case 5 (equivalente semantico)
+@@DE
+                self.result_push(self.stat_byte());
+                self.intsts.set(1);
+@@PARA
+                let st = self.stat_byte();
+                self.result_push(st);
+                self.intsts.set(1);
+@@FIM
+
+controle: K2
+rotulo: usar if em vez de else if no comando ReadN sem disco (equivale semantico)
+@@DE
+                } else {
+                    self.reading.set(true);
+                    self.read_mode.set(1);
+@@PARA
+                }
+                if self.disc_inserted.get() {
+                    self.reading.set(true);
+                    self.read_mode.set(1);
+@@FIM

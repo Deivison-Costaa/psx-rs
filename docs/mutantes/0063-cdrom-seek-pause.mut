@@ -21,12 +21,16 @@ rotulo: SeekL sem disco retorna INT3 em vez de INT5 — condicao vira false
                     self.result_push(0x80);
                     self.intsts.set(5);
                     self.busy.set(false);
+                } else {
+                    self.seeking.set(true);
 @@PARA
                 if false {
                     self.result_push(self.stat_byte() | 0x01);
                     self.result_push(0x80);
                     self.intsts.set(5);
                     self.busy.set(false);
+                } else {
+                    self.seeking.set(true);
 @@FIM
 
 mutante: m3
@@ -89,6 +93,8 @@ rotulo: extrair disc_inserted em variavel local no SeekL (equivalente semantico)
                     self.result_push(0x80);
                     self.intsts.set(5);
                     self.busy.set(false);
+                } else {
+                    self.seeking.set(true);
 @@PARA
                 let no_disc = !self.disc_inserted.get();
                 if no_disc {
@@ -96,6 +102,8 @@ rotulo: extrair disc_inserted em variavel local no SeekL (equivalente semantico)
                     self.result_push(0x80);
                     self.intsts.set(5);
                     self.busy.set(false);
+                } else {
+                    self.seeking.set(true);
 @@FIM
 
 controle: K2

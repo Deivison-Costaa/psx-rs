@@ -107,7 +107,9 @@ fn read_data_sector_extrai_2048_bytes_do_bin() {
 
 #[test]
 fn read_data_sector_no_segundo_setor() {
-    let raw = vec![0xAAu8; 2352 * 5];
+    let mut raw = vec![0xCCu8; 2352 * 5];
+    let setor1_start = 2352 + 0x10;
+    raw[setor1_start] = 0xBB;
     let cue = r#"FILE "game.bin" BINARY
   TRACK 01 MODE2/2352
     INDEX 01 00:00:00
@@ -115,7 +117,8 @@ fn read_data_sector_no_segundo_setor() {
     let layout = parse_cue(cue);
     let sector = layout.read_data_sector(&raw, 1);
     assert_eq!(sector.len(), 2048);
-    assert_eq!(sector[0], 0xAA);
+    assert_eq!(sector[0], 0xBB);
+    assert_eq!(sector[1], 0xCC);
 }
 
 #[test]

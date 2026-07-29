@@ -20,6 +20,10 @@ pub struct Cdrom {
     seek_min: Cell<u8>,
     seek_sec: Cell<u8>,
     seek_sect: Cell<u8>,
+    data_buffer: Cell<[u8; 2048]>,
+    data_pos: Cell<usize>,
+    read_mode: Cell<u8>,
+    bfrd: Cell<bool>,
 }
 
 impl Cdrom {
@@ -43,6 +47,10 @@ impl Cdrom {
             seek_min: Cell::new(0),
             seek_sec: Cell::new(0),
             seek_sect: Cell::new(0),
+            data_buffer: Cell::new([0u8; 2048]),
+            data_pos: Cell::new(0),
+            read_mode: Cell::new(0),
+            bfrd: Cell::new(false),
         }
     }
 
@@ -147,6 +155,9 @@ impl Cdrom {
         if !self.result_is_empty() {
             s |= 1 << 5;
         }
+        if self.data_pos.get() < 2048 && self.read_mode.get() != 0 {
+            s |= 1 << 6;
+        }
         if self.busy.get() {
             s |= 1 << 7;
         }
@@ -183,6 +194,20 @@ impl Cdrom {
                     self.intsts.set(3);
                 }
                 self.busy.set(false);
+            }
+            0x06 => {
+                if !self.disc_inserted.get() {
+                    self.result_push(self.stat_byte() | 0x01);
+                    self.result_push(0x80);
+                    self.intsts.set(5);
+                    self.busy.set(false);
+                } else {
+                    self.reading.set(true);
+                    self.read_mode.set(1);
+                    self.result_push(self.stat_byte());
+                    self.intsts.set(3);
+                    self.pending_second.set(5);
+                }
             }
             0x09 => {
                 let stat = self.stat_byte();
@@ -240,6 +265,20 @@ impl Cdrom {
                 self.intsts.set(3);
                 self.pending_second.set(2);
             }
+            0x1B => {
+                if !self.disc_inserted.get() {
+                    self.result_push(self.stat_byte() | 0x01);
+                    self.result_push(0x80);
+                    self.intsts.set(5);
+                    self.busy.set(false);
+                } else {
+                    self.reading.set(true);
+                    self.read_mode.set(2);
+                    self.result_push(self.stat_byte());
+                    self.intsts.set(3);
+                    self.pending_second.set(5);
+                }
+            }
             _ => {
                 self.result_push(self.stat_byte());
                 self.intsts.set(3);
@@ -252,7 +291,17 @@ impl Cdrom {
         match offset & 0x3 {
             0 => self.hsts(),
             1 => self.result_pop(),
-            2 => 0,
+            2 => {
+                let buf = self.data_buffer.get();
+                let pos = self.data_pos.get();
+                if pos < 2048 {
+                    let val = buf[pos];
+                    self.data_pos.set(pos + 1);
+                    val
+                } else {
+                    0
+                }
+            }
             3 => {
                 let base = self.intsts.get() & 0x7;
                 if self.bank.get() == 1 || self.bank.get() == 3 {
@@ -278,9 +327,12 @@ impl Cdrom {
                     let new_intsts = self.intsts.get() & !(val & 0x07);
                     self.intsts.set(new_intsts);
                 }
-                let had_pending = self.pending_second.get() != 0;
-                if had_pending {
+                let pending = self.pending_second.get();
+                if pending != 0 {
                     self.deliver_second();
+                    if pending == 5 && self.read_mode.get() == 1 {
+                        self.pending_second.set(5);
+                    }
                 }
                 if val & 0x40 != 0 {
                     self.param_clear();
@@ -321,6 +373,19 @@ impl Cdrom {
                 self.result_clear();
                 self.result_push(self.stat_byte());
                 self.intsts.set(2);
+            }
+            5 => {
+                self.busy.set(false);
+                self.result_clear();
+                self.result_push(self.stat_byte());
+                self.intsts.set(1);
+                let mut buf = [0u8; 2048];
+                for (i, b) in buf.iter_mut().enumerate() {
+                    *b = (i as u8).wrapping_add(1);
+                }
+                self.data_buffer.set(buf);
+                self.data_pos.set(0);
+                self.bfrd.set(false);
             }
             _ => {}
         }

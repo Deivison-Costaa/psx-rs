@@ -155,3 +155,53 @@ fn t5_framebuffer_faz_wrap_de_coordenadas_da_vram() {
         px,
     );
 }
+
+#[rustfmt::skip]
+#[test]
+fn t6_framebuffer_le_multiplas_linhas_da_vram() {
+    let mut gpu = Gpu::new();
+
+    write_pixel(&mut gpu, 100, 10, 0x001F);
+    write_pixel(&mut gpu, 101, 10, 0x03E0);
+    write_pixel(&mut gpu, 100, 11, 0x7C00);
+    write_pixel(&mut gpu, 101, 11, 0x7FFF);
+
+    write_gp1(&mut gpu, 0x05, 100 | (10 << 10));
+
+    let fb = gpu.framebuffer();
+
+    let px = |x: usize, y: usize| {
+        let offset = (y * fb.width as usize + x) * 4;
+        (
+            fb.data[offset],
+            fb.data[offset + 1],
+            fb.data[offset + 2],
+            fb.data[offset + 3],
+        )
+    };
+
+    assert_eq!(
+        px(0, 0),
+        (0xF8, 0x00, 0x00, 255),
+        "T6: pixel (0, 0) deve ser vermelho, obtido {:?}",
+        px(0, 0),
+    );
+    assert_eq!(
+        px(1, 0),
+        (0x00, 0xF8, 0x00, 255),
+        "T6: pixel (1, 0) deve ser verde, obtido {:?}",
+        px(1, 0),
+    );
+    assert_eq!(
+        px(0, 1),
+        (0x00, 0x00, 0xF8, 255),
+        "T6: pixel (0, 1) deve ser azul, obtido {:?}",
+        px(0, 1),
+    );
+    assert_eq!(
+        px(1, 1),
+        (0xF8, 0xF8, 0xF8, 255),
+        "T6: pixel (1, 1) deve ser branco, obtido {:?}",
+        px(1, 1),
+    );
+}

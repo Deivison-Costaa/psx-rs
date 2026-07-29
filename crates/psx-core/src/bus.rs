@@ -1,3 +1,4 @@
+use crate::cdrom::Cdrom;
 use crate::dma::Dma;
 use crate::gpu::Gpu;
 use crate::irq::Irq;
@@ -110,6 +111,7 @@ pub struct Bus {
     gpu: Gpu,
     irq: Irq,
     dma: Dma,
+    cdrom: Cdrom,
     timers: Timers,
     scratchpad: Scratchpad,
     mem_ctrl: MemCtrl,
@@ -133,6 +135,7 @@ impl Bus {
             gpu: Gpu::new(),
             irq: Irq::new(),
             dma: Dma::new(),
+            cdrom: Cdrom::new(),
             timers: Timers::new(),
             scratchpad: Scratchpad::new(),
             mem_ctrl: MemCtrl::new(),
@@ -149,8 +152,26 @@ impl Bus {
         &mut self.irq
     }
 
+    pub fn cdrom(&self) -> &Cdrom {
+        &self.cdrom
+    }
+
+    pub fn cdrom_mut(&mut self) -> &mut Cdrom {
+        &mut self.cdrom
+    }
+
     pub fn timers_mut(&mut self) -> &mut Timers {
         &mut self.timers
+    }
+
+    pub fn tick_timers(&mut self, cycles: u32) {
+        let hb = self.gpu.hblank_active();
+        let vb = self.gpu.vblank_active();
+        for base in &[0x1F80_1100u32, 0x1F80_1110, 0x1F80_1120] {
+            if let Some(bit) = self.timers.tick(*base, cycles, hb, vb) {
+                self.irq.raise(bit);
+            }
+        }
     }
 
     pub fn tty_push(&mut self, byte: u8) {
@@ -198,6 +219,13 @@ impl Bus {
             0xFFFE_0130 => Some(self.bcc.0),
             0x1F80_1100..=0x1F80_112F => Some(self.timers.read32(phys)),
             0x1F80_1810 | 0x1F80_1814 => Some(self.gpu.read32(phys - 0x1F80_1810)),
+            0x1F80_1800..=0x1F80_1803 => {
+                let b0 = self.cdrom.read8(0) as u32;
+                let b1 = self.cdrom.read8(1) as u32;
+                let b2 = self.cdrom.read8(2) as u32;
+                let b3 = self.cdrom.read8(3) as u32;
+                Some(b0 | (b1 << 8) | (b2 << 16) | (b3 << 24))
+            }
             0x1F80_1024..=0x1F80_105F | 0x1F80_1061..=0x1F80_10FF | 0x1F80_1130..=0x1F80_1FFF => {
                 Some(0)
             }
@@ -269,6 +297,13 @@ impl Bus {
                 self.gpu.write32(phys - 0x1F80_1810, val);
                 true
             }
+            0x1F80_1800..=0x1F80_1803 => {
+                self.cdrom.write8(0, val as u8);
+                self.cdrom.write8(1, (val >> 8) as u8);
+                self.cdrom.write8(2, (val >> 16) as u8);
+                self.cdrom.write8(3, (val >> 24) as u8);
+                true
+            }
             0x1F80_1024..=0x1F80_105F | 0x1F80_1061..=0x1F80_10FF | 0x1F80_1130..=0x1F80_1FFF => {
                 true
             }
@@ -304,6 +339,10 @@ impl Bus {
                 let byte_index = (phys & 3) + offset;
                 Some(((val >> (byte_index * 8)) & 0xFF) as u8)
             }
+            0x1F80_1800..=0x1F80_1803 => {
+                let reg = (phys - 0x1F80_1800 + offset) & 0x3;
+                Some(self.cdrom.read8(reg))
+            }
             0x1F80_1024..=0x1F80_105F | 0x1F80_1064..=0x1F80_1FFF => Some(0),
             _ => None,
         }
@@ -320,6 +359,11 @@ impl Bus {
             }
             0x1F80_1000..=0x1F80_1023 | 0x1F80_1060 | 0xFFFE_0130 => true,
             0x1F80_1810..=0x1F80_1817 => true, // Registradores da GPU sao de 32 bits; escrita de byte e descartada
+            0x1F80_1800..=0x1F80_1803 => {
+                let reg = (phys - 0x1F80_1800 + offset) & 0x3;
+                self.cdrom.write8(reg, val);
+                true
+            }
             0x1F80_1024..=0x1F80_105F | 0x1F80_1061..=0x1F80_1FFF => true,
             _ => false,
         }

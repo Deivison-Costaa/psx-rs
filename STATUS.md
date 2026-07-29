@@ -5,13 +5,13 @@
 
 ## Última iteração concluída
 
-**0061** — Timers — conexão de IRQ4/IRQ5/IRQ6 ao controlador (ROADMAP 3.4d).
+**0062** — CDROM — registradores INDEX0-3, comandos GetStat/GetID/Test (ROADMAP 4.1).
 
 ## Próxima tarefa
 
-**ROADMAP 4.1 — CDROM — Regs/FIFOs/IRQs + GetStat/GetID/Test.**
-Registradores de status, comando, dados; filas de parâmetro e resposta; IRQs do CDROM (IRQ2). Implementar o INDEX0-3, comandos GetStat (19h), GetID (1Ah) e Test (0Ah). Suficiente para a BIOS detectar o drive e prosseguir.
-Arquivos-alvo: `crates/psx-core/src/cdrom.rs` (criar), `crates/psx-core/src/irq.rs`, `crates/psx-core/src/bus.rs`. Spec: `docs/reference/06-cdrom.md` seções 1F801800h INDEX0-3 + comandos GetStat/GetID/Test. Armadilha: INDEX0 é o registrador de status com bits de busy/data ready/ack; a BIOS faz polling em loop esperando o drive ficar pronto — sem resposta, trava.
+**ROADMAP 4.2 — CDROM — Parser BIN/CUE + Setloc/SeekL/ReadN/ReadS/Pause/Init.**
+Parser de arquivos BIN/CUE para extrair setores do disco. Implementar comandos de seek (Setloc 02h, SeekL 15h), leitura (ReadN 06h, ReadS 1Bh), Pause (09h) e Init (0Ah já implementado). Estado do drive: motor ligado/desligado, posição do cabeçote, status (busy/ready/error). Suficiente para a BIOS bootar um jogo.
+Arquivos-alvo: `crates/psx-core/src/cdrom.rs`, novo `crates/psx-core/src/cdrom_drive.rs`. Spec: `docs/reference/06-cdrom.md` seções SeekL/ReadN/ReadS/Setloc/Pause + "CDROM - Mainloop/Responses". Armadilha: ReadN/ReadS primeiro respondem INT3, depois entregam setores via INT1 + BFRD/DRQSTS — é uma máquina de estados com timing.
 
 ## Repositório
 
@@ -25,7 +25,7 @@ Arquivos-alvo: `crates/psx-core/src/cdrom.rs` (criar), `crates/psx-core/src/irq.
 
 ## Placar de testes
 
-Workspace: **493** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 29 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 11 cpu_opcode_reservado + 11 cpu_irq + 13 dma_otc + 14 dma_gpu + 14 timers + 11 timers_sync + 9 timers_dotclock_hblank + 14 timers_irq + 16 gpu_status_gp0_gp1 + 9 ci_scoreboard + 9 cli_runner + 21 gpu_vram_transfers + 20 gpu_triangulos_flat_gouraud + 20 gpu_linhas_retangulos + 4 gpu_linhas_retangulos_continuacao + 6 gpu_textura_15bpp + 6 gpu_texturas_4bpp_8bpp + 5 gpu_texture_window + 6 gpu_semi_transparencia + 7 gpu_dithering + 8 gpu_mask_bit + 7 gpu_display_regs + 9 gpu_timing_vblank + 6 gpu_framebuffer + 3 gpu_desktop_egui + 6 gpu_scoreboard + 1 spec_citations + 2 mutation_manifest + 2 mutation_anchors + 5 mutation_battery).
+Workspace: **506** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 29 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 11 cpu_opcode_reservado + 11 cpu_irq + 13 dma_otc + 14 dma_gpu + 14 timers + 11 timers_sync + 9 timers_dotclock_hblank + 14 timers_irq + 16 gpu_status_gp0_gp1 + 9 ci_scoreboard + 9 cli_runner + 21 gpu_vram_transfers + 20 gpu_triangulos_flat_gouraud + 20 gpu_linhas_retangulos + 4 gpu_linhas_retangulos_continuacao + 6 gpu_textura_15bpp + 6 gpu_texturas_4bpp_8bpp + 5 gpu_texture_window + 6 gpu_semi_transparencia + 7 gpu_dithering + 8 gpu_mask_bit + 7 gpu_display_regs + 9 gpu_timing_vblank + 6 gpu_framebuffer + 3 gpu_desktop_egui + 6 gpu_scoreboard + 13 cdrom_regs + 1 spec_citations + 2 mutation_manifest + 2 mutation_anchors + 5 mutation_battery).
 
 ## Bloqueios
 

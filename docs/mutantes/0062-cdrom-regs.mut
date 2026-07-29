@@ -1,0 +1,104 @@
+# Manifesto de mutação da iteração 0062 — cdrom-regs
+formato: 1
+iteracao: 0062
+item: 4.1
+alvo: crates/psx-core/src/cdrom.rs
+teste: cdrom_regs
+
+mutante: m1
+rotulo: bit PRMEMPT invertido no HSTS — param FIFO sempre parece cheia
+@@DE
+        if self.param_is_empty() {
+            s |= 1 << 3;
+        }
+@@PARA
+        if !self.param_is_empty() {
+            s |= 1 << 3;
+        }
+@@FIM
+
+mutante: m2
+rotulo: GetStat 20h retorna mes em vez de ano invertendo o primeiro push
+@@DE
+                        self.result_push(0x97);
+@@PARA
+                        self.result_push(0x01);
+@@FIM
+
+mutante: m3
+rotulo: Init nao gera segunda resposta (pending_second nunca setado)
+@@DE
+                self.pending_second.set(1);
+@@PARA
+                let _ = cmd;
+@@FIM
+
+mutante: m4
+rotulo: GetID sem disco retorna INT2 em vez de INT5
+@@DE
+                self.intsts.set(5);
+@@PARA
+                self.intsts.set(2);
+@@FIM
+
+mutante: m5
+rotulo: Result FIFO nao faz pop — pega sempre o head sem avancar
+@@DE
+        let head = self.result_head.get() as usize;
+        let buf = self.result_buf.get();
+        let val = buf[head];
+        self.result_head.set(((head + 1) & 0xF) as u8);
+        self.result_count.set((count - 1) as u8);
+        val
+@@PARA
+        let head = self.result_head.get() as usize;
+        let buf = self.result_buf.get();
+        buf[head]
+@@FIM
+
+mutante: m6
+rotulo: HCLRCTL com bit CLRPRM (0x40) nao limpa param FIFO
+@@DE
+                if val & 0x40 != 0 {
+                    self.param_clear();
+                }
+@@PARA
+                let _ = val & 0x40;
+@@FIM
+
+mutante: m7
+rotulo: IRQ pending ignora INTMSK (retorna true se INTSTS tiver algum bit)
+@@DE
+        (self.intsts.get() & self.intmsk.get() & 0x7) != 0
+@@PARA
+        (self.intsts.get() & 0x7) != 0
+@@FIM
+
+controle: K1
+rotulo: adicionar let binding descartavel antes do match em send_command (equivalente semantico)
+@@DE
+        self.result_clear();
+        match cmd {
+@@PARA
+        self.result_clear();
+        let _sentinel = cmd;
+        match cmd {
+@@FIM
+
+controle: K2
+rotulo: extrair bank.get() em variavel local no write8 (equivalente semantico)
+@@DE
+            1 if self.bank.get() == 0 => self.send_command(val),
+            2 if self.bank.get() == 0 => self.param_push(val),
+            2 if self.bank.get() == 1 => {
+                self.intmsk.set(val & 0x1F);
+            }
+            3 if self.bank.get() == 1 => {
+@@PARA
+            1 if self.bank.get() == 0 => self.send_command(val),
+            2 if self.bank.get() == 0 => self.param_push(val),
+            2 if { let b = self.bank.get(); b == 1 } => {
+                self.intmsk.set(val & 0x1F);
+            }
+            3 if { let b = self.bank.get(); b == 1 } => {
+@@FIM

@@ -24,7 +24,7 @@
 
 ## Bateria de mutação
 
-Placar da bateria: 5/5 mutantes mortos, 0/2 controles verdes, 0 equivalente - docs/mutantes/0043-verificador-citacoes.mut
+Placar da bateria: 1/5 mutantes mortos, 2/2 controles verdes, 0 equivalente - docs/mutantes/0043-verificador-citacoes.mut
 
 | # | Mutação | Pego? | Teste que pegou |
 |---|---|---|---|

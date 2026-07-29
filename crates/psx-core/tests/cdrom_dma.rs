@@ -155,6 +155,7 @@ fn dma3_transfere_dados_do_setor_para_ram() {
     let dest: u32 = 0x0001_0000;
     bus.write32::<BusRead>(D3_MADR, dest);
     bus.write32::<BusRead>(D3_BCR, 4);
+    bus.write32::<BusRead>(DPCR, 0x0765_4321 | (1 << 15));
     bus.write32::<BusRead>(D3_CHCR, 0x1100_0000);
 
     let w0 = bus.read32::<BusRead>(dest);
@@ -177,6 +178,7 @@ fn dma3_bit24_e_bit28_limpos_apos_transferencia() {
 
     bus.write32::<BusRead>(D3_MADR, 0x0001_0000);
     bus.write32::<BusRead>(D3_BCR, 1);
+    bus.write32::<BusRead>(DPCR, 0x0765_4321 | (1 << 15));
     bus.write32::<BusRead>(D3_CHCR, 0x1100_0000);
 
     let chcr = bus.read32::<BusRead>(D3_CHCR);
@@ -195,6 +197,7 @@ fn dma3_nao_dispara_sem_bfrd() {
     bus.write32::<BusRead>(dest, 0xCAFE_BABE);
     bus.write32::<BusRead>(D3_MADR, dest);
     bus.write32::<BusRead>(D3_BCR, 1);
+    bus.write32::<BusRead>(DPCR, 0x0765_4321 | (1 << 15));
     bus.write32::<BusRead>(D3_CHCR, 0x1100_0000);
 
     let kept = bus.read32::<BusRead>(dest);
@@ -216,6 +219,7 @@ fn dma3_nao_dispara_sem_bit24() {
     bus.write32::<BusRead>(dest, 0xDEAD_BEEF);
     bus.write32::<BusRead>(D3_MADR, dest);
     bus.write32::<BusRead>(D3_BCR, 1);
+    bus.write32::<BusRead>(DPCR, 0x0765_4321 | (1 << 15));
     bus.write32::<BusRead>(D3_CHCR, 0x1000_0000);
 
     let kept = bus.read32::<BusRead>(dest);
@@ -237,6 +241,7 @@ fn dma3_nao_dispara_sem_bit28() {
     bus.write32::<BusRead>(dest, 0xBAAD_F00D);
     bus.write32::<BusRead>(D3_MADR, dest);
     bus.write32::<BusRead>(D3_BCR, 1);
+    bus.write32::<BusRead>(DPCR, 0x0765_4321 | (1 << 15));
     bus.write32::<BusRead>(D3_CHCR, 0x0100_0000);
 
     let kept = bus.read32::<BusRead>(dest);
@@ -257,6 +262,7 @@ fn dma3_bcr_zero_equivale_a_10000h_words() {
     let dest: u32 = 0x0001_0000;
     bus.write32::<BusRead>(D3_MADR, dest);
     bus.write32::<BusRead>(D3_BCR, 0);
+    bus.write32::<BusRead>(DPCR, 0x0765_4321 | (1 << 15));
     bus.write32::<BusRead>(D3_CHCR, 0x1100_0000);
 
     let w0 = bus.read32::<BusRead>(dest);

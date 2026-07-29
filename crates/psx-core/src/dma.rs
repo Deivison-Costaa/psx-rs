@@ -68,6 +68,9 @@ impl Dma {
     }
 
     pub fn try_execute_otc(&mut self, ram: &mut [u8]) {
+        if self.dpcr & (1 << 27) == 0 {
+            return;
+        }
         if (self.chcr[6] & ((1 << 24) | (1 << 28))) != ((1 << 24) | (1 << 28)) {
             return;
         }
@@ -88,6 +91,9 @@ impl Dma {
     }
 
     pub fn try_execute_dma3(&mut self, ram: &mut [u8], cdrom: &Cdrom) {
+        if self.dpcr & (1 << 15) == 0 {
+            return;
+        }
         if (self.chcr[3] & ((1 << 24) | (1 << 28))) != ((1 << 24) | (1 << 28)) {
             return;
         }
@@ -119,6 +125,9 @@ impl Dma {
     }
 
     pub fn try_execute_dma2(&mut self, ram: &mut [u8], gpu: &mut Gpu) {
+        if self.dpcr & (1 << 11) == 0 {
+            return;
+        }
         if self.chcr[2] & (1 << 24) == 0 {
             return;
         }

@@ -22,11 +22,15 @@ rotulo: IRQ FFFF enable (bit5) ignorado — nunca gera IRQ por overflow
 @@FIM
 
 mutante: m3
-rotulo: one-shot nao suprime segunda IRQ (removeu a guarda)
+rotulo: one-shot nao suprime segunda IRQ de target (removeu a guarda)
 @@DE
-                    && (!irq_once || !t.irq_fired_oneshot.get())
+                if irq_enable_target && (!irq_once || !t.irq_fired_oneshot.get()) {
+                    let old_bit10 = (mode_now >> 10) & 1;
+                    if irq_toggle {
 @@PARA
-                    && true
+                if irq_enable_target {
+                    let old_bit10 = (mode_now >> 10) & 1;
+                    if irq_toggle {
 @@FIM
 
 mutante: m4

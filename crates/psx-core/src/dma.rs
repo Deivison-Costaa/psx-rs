@@ -1,3 +1,5 @@
+use crate::gpu::Gpu;
+
 #[derive(Debug)]
 pub struct Dma {
     madr: [u32; 7],
@@ -82,6 +84,103 @@ impl Dma {
             addr = addr.wrapping_sub(4);
         }
         self.chcr[6] &= !((1 << 24) | (1 << 28));
+    }
+
+    pub fn try_execute_dma2(&mut self, ram: &mut [u8], gpu: &mut Gpu) {
+        if self.chcr[2] & (1 << 24) == 0 {
+            return;
+        }
+        let sync_mode = (self.chcr[2] >> 9) & 3;
+        match sync_mode {
+            1 => self.execute_block(ram, gpu),
+            2 => self.execute_linked_list(ram, gpu),
+            _ => {}
+        }
+    }
+
+    fn execute_block(&mut self, ram: &mut [u8], gpu: &mut Gpu) {
+        let bcr = self.bcr[2];
+        let bs = if (bcr & 0xFFFF) == 0 {
+            0x10000
+        } else {
+            (bcr & 0xFFFF) as usize
+        };
+        let ba = if ((bcr >> 16) & 0xFFFF) == 0 {
+            0x10000
+        } else {
+            ((bcr >> 16) & 0xFFFF) as usize
+        };
+        let step: i32 = if self.chcr[2] & 2 != 0 { -4 } else { 4 };
+        let mut addr = self.madr[2] & 0x00FF_FFFC;
+
+        for _ in 0..ba {
+            for _ in 0..bs {
+                let offset = (addr & 0x1F_FF_FF) as usize;
+                if offset + 4 <= ram.len() {
+                    let word = u32::from_le_bytes([
+                        ram[offset],
+                        ram[offset + 1],
+                        ram[offset + 2],
+                        ram[offset + 3],
+                    ]);
+                    gpu.write32(0, word);
+                }
+                addr = if step < 0 {
+                    addr.wrapping_sub(4)
+                } else {
+                    addr.wrapping_add(4)
+                };
+            }
+        }
+        self.madr[2] = (self.madr[2] & !0x00FF_FFFF) | (addr & 0x00FF_FFFF);
+        self.chcr[2] &= !(1 << 24);
+    }
+
+    fn execute_linked_list(&mut self, ram: &mut [u8], gpu: &mut Gpu) {
+        let mut addr = self.madr[2] & 0x00FF_FFFC;
+        let mut node_count = 0;
+
+        loop {
+            node_count += 1;
+            if node_count > 4096 {
+                break;
+            }
+            let offset = (addr & 0x1F_FF_FF) as usize;
+            if offset + 4 > ram.len() {
+                break;
+            }
+            let header = u32::from_le_bytes([
+                ram[offset],
+                ram[offset + 1],
+                ram[offset + 2],
+                ram[offset + 3],
+            ]);
+            let next_addr = header & 0x00FF_FFFF;
+            let word_count = (header >> 24) as usize;
+
+            let mut data_addr = addr.wrapping_add(4);
+            for _ in 0..word_count {
+                let doff = (data_addr & 0x1F_FF_FF) as usize;
+                if doff + 4 <= ram.len() {
+                    let word = u32::from_le_bytes([
+                        ram[doff],
+                        ram[doff + 1],
+                        ram[doff + 2],
+                        ram[doff + 3],
+                    ]);
+                    gpu.write32(0, word);
+                }
+                data_addr = data_addr.wrapping_add(4);
+            }
+
+            if next_addr == 0x00FF_FFFF || (next_addr & 0x0080_0000) != 0 {
+                self.madr[2] = (self.madr[2] & !0x00FF_FFFF) | next_addr;
+                break;
+            }
+
+            addr = next_addr & 0x00FF_FFFC;
+        }
+        self.chcr[2] &= !(1 << 24);
     }
 }
 

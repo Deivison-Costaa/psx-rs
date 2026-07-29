@@ -121,18 +121,16 @@ rotulo: extrair clock_src check em variavel local (equivalente semantico)
 @@FIM
 
 controle: K2
-rotulo: inverter ordem de if/else no increment (semantica identica)
+rotulo: extrair divisor em variavel local (semantica identica)
 @@DE
-        let increment = if sync_enable {
-            match idx {
-                0 | 1 => match sync_mode {
+        let divisor: u32 = match idx {
+            2 if clock_src == 2 || clock_src == 3 => 8,
+            _ => 1,
+        };
 @@PARA
-        let increment = if !sync_enable {
-            match idx {
-                2 => true,
-                _ => return,
-            }
-        } else {
-            match idx {
-                0 | 1 => match sync_mode {
+        let d: u32 = match idx {
+            2 if clock_src == 2 || clock_src == 3 => 8,
+            _ => 1,
+        };
+        let divisor = d;
 @@FIM

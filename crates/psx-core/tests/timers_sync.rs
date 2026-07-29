@@ -244,20 +244,28 @@ fn timer2_modo_1_e_2_sao_free_run() {
 #[test]
 fn escrever_mode_reseta_estado_de_sync() {
     let mut bus = bus();
-    bus.write32::<BusRead>(T0_MODE, 0x0003);
+    bus.write32::<BusRead>(T0_MODE, 0x0007);
+    set_hb(&mut bus, false);
+    tick_timer(&mut bus, T0_CNT, 10);
+    assert_eq!(
+        bus.read32::<BusRead>(T0_CNT) & 0xFFFF,
+        0,
+        "CNT pausado no modo 3 antes do primeiro Hblank"
+    );
     set_hb(&mut bus, true);
     tick_timer(&mut bus, T0_CNT, 5);
     assert_eq!(
         bus.read32::<BusRead>(T0_CNT) & 0xFFFF,
         5,
-        "CNT incrementou apos reset na primeira borda"
+        "CNT incrementou apos primeiro Hblank (modo 3 disparou)"
     );
-    bus.write32::<BusRead>(T0_MODE, 0x0003);
-    tick_timer(&mut bus, T0_CNT, 3);
+    bus.write32::<BusRead>(T0_MODE, 0x0007);
+    set_hb(&mut bus, false);
+    tick_timer(&mut bus, T0_CNT, 5);
     assert_eq!(
         bus.read32::<BusRead>(T0_CNT) & 0xFFFF,
-        3,
-        "CNT resetou na borda ao re-escrever MODE com Hblank mantido ativo"
+        0,
+        "CNT pausado novamente apos re-escrever MODE no modo 3 (mode3_triggered resetado)"
     );
 }
 

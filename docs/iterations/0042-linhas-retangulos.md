@@ -27,9 +27,9 @@
 
 ## Bateria de mutação
 
-Placar da bateria (inicial): 7/7 mutantes mortos, 2/2 controles verdes, 0 equivalente - docs/mutantes/0042-linhas-retangulos.mut
+Placar da bateria: 11/11 mutantes mortos, 2/2 controles verdes, 0 equivalente - docs/mutantes/0042-linhas-retangulos.mut
 
-Placar da bateria (continuacao): 11/11 mutantes mortos, 2/2 controles verdes, 0 equivalente - docs/mutantes/0042-linhas-retangulos.mut
+A primeira rodada fechou com 7/7; os quatro mutantes acrescentados na continuacao (D1-D4) levaram a 11/11.
 
 | Mutante | Descricao | Teste assassino |
 |---|---|---|

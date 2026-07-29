@@ -224,3 +224,48 @@ fn dma3_nao_dispara_sem_bit24() {
         "RAM inalterada: DMA3 nao disparou sem bit 24"
     );
 }
+
+#[test]
+fn dma3_nao_dispara_sem_bit28() {
+    let mut bus = bus();
+    insert_stub_disc(&mut bus);
+    setloc(&mut bus, 0x02, 0x10, 0x00);
+    read_n_and_int1(&mut bus);
+    hchpctl_write(&mut bus, 0x80);
+
+    let dest: u32 = 0x0001_0000;
+    bus.write32::<BusRead>(dest, 0xBAAD_F00D);
+    bus.write32::<BusRead>(D3_MADR, dest);
+    bus.write32::<BusRead>(D3_BCR, 1);
+    bus.write32::<BusRead>(D3_CHCR, 0x0100_0000);
+
+    let kept = bus.read32::<BusRead>(dest);
+    assert_eq!(
+        kept, 0xBAAD_F00D,
+        "RAM inalterada: DMA3 nao disparou com so bit 24, sem bit 28"
+    );
+}
+
+#[test]
+fn dma3_bcr_zero_equivale_a_10000h_words() {
+    let mut bus = bus();
+    insert_stub_disc(&mut bus);
+    setloc(&mut bus, 0x02, 0x10, 0x00);
+    read_n_and_int1(&mut bus);
+    hchpctl_write(&mut bus, 0x80);
+
+    let dest: u32 = 0x0001_0000;
+    bus.write32::<BusRead>(D3_MADR, dest);
+    bus.write32::<BusRead>(D3_BCR, 0);
+    bus.write32::<BusRead>(D3_CHCR, 0x1100_0000);
+
+    let w0 = bus.read32::<BusRead>(dest);
+    assert_eq!(w0, 0x0403_0201, "primeiro word transferido com BCR=0");
+
+    let chcr = bus.read32::<BusRead>(D3_CHCR);
+    assert_eq!(
+        chcr & (1 << 24),
+        0,
+        "bit 24 limpo — transferencia executou com BCR=0"
+    );
+}

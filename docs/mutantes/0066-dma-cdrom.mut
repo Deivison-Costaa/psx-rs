@@ -73,11 +73,13 @@ rotulo: extrair word_count em variavel local antes do loop (equivalente semânti
         let mut addr = self.madr[3] & 0x00FF_FFFC;
 
         for _ in 0..word_count {
+            let b0 = cdrom.read8(2) as u32;
 @@PARA
         let mut addr = self.madr[3] & 0x00FF_FFFC;
         let total = word_count;
 
         for _ in 0..total {
+            let b0 = cdrom.read8(2) as u32;
 @@FIM
 
 controle: K2

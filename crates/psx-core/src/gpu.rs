@@ -347,12 +347,24 @@ impl Gpu {
     }
 
     fn cycles_per_pix(&self) -> u16 {
-        10
+        let stat = self.stat.get();
+        let hr1 = (stat >> 17) & 3;
+        let hr2 = (stat >> 16) & 1;
+        if hr2 != 0 {
+            7
+        } else {
+            match hr1 {
+                0 => 10,
+                1 => 8,
+                2 => 5,
+                _ => 4,
+            }
+        }
     }
 
     fn display_width(&self) -> u16 {
         let range = self.display_range_x2.get().wrapping_sub(self.display_range_x1.get());
-        range / self.cycles_per_pix() + 2
+        ((range / self.cycles_per_pix()) + 2) & !3u16
     }
 
     fn display_height(&self) -> u16 {
@@ -362,7 +374,23 @@ impl Gpu {
     pub fn framebuffer(&self) -> Framebuffer {
         let w = self.display_width();
         let h = self.display_height();
-        let data = vec![0u8; (w as usize) * (h as usize) * 4];
+        let start_x = self.display_start_x.get() as usize;
+        let start_y = self.display_start_y.get() as usize;
+        let mut data = Vec::with_capacity((w as usize) * (h as usize) * 4);
+        for y in 0..(h as usize) {
+            for x in 0..(w as usize) {
+                let vx = (start_x + x) & 0x3FF;
+                let vy = (start_y + y) & 0x1FF;
+                let pixel = self.vram[vy * 1024 + vx];
+                let r = ((pixel & 0x1F) as u8) << 3;
+                let g = (((pixel >> 5) & 0x1F) as u8) << 3;
+                let b = (((pixel >> 10) & 0x1F) as u8) << 3;
+                data.push(r);
+                data.push(g);
+                data.push(b);
+                data.push(255u8);
+            }
+        }
         Framebuffer {
             width: w,
             height: h,

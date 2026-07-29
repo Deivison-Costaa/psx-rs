@@ -78,13 +78,16 @@ impl Dma {
         let bcr = self.bcr[6] & 0xFFFF;
         let count = if bcr == 0 { 0x10000 } else { bcr as usize };
         let mut addr = madr;
-        let mut next_val: u32 = 0x00FF_FFFF;
-        for _ in 0..count {
+        for i in 0..count {
             let offset = (addr & 0x1F_FF_FF) as usize;
             if offset + 4 <= ram.len() {
-                ram[offset..offset + 4].copy_from_slice(&next_val.to_le_bytes());
+                let val = if i == count - 1 {
+                    0x00FF_FFFF
+                } else {
+                    addr.wrapping_sub(4) & 0x00FF_FFFC
+                };
+                ram[offset..offset + 4].copy_from_slice(&val.to_le_bytes());
             }
-            next_val = addr & 0x1F_FFFC;
             addr = addr.wrapping_sub(4);
         }
         self.chcr[6] &= !((1 << 24) | (1 << 28));

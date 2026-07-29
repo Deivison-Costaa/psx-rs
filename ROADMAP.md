@@ -57,7 +57,7 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 ## M3 — DMA, IRQ, timers
 - [x] 3.1 Interrupt controller (I_STAT/I_MASK) + COP0 (iter 0055)
 - [x] 3.2 DMA regs + canal 6 (OTC) (iter 0056)
-- [ ] 3.3 DMA canal 2 GPU (block + linked-list)
+- [x] 3.3 DMA canal 2 GPU (block + linked-list) (iter 0057)
 - [ ] 3.4 Timers 0/1/2
 
 ## M4 — CDROM

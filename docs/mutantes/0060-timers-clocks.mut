@@ -137,23 +137,3 @@ rotulo: extrair condicao de clock_src em variavel local (semantica identica)
         let reset_on_target = (mode >> 3) & 1 != 0;
         let clock_src = (mode >> 8) & 0x3;
 @@FIM
-
-controle: K2
-rotulo: reordenar match arms do increment por idx (logica identica)
-@@DE
-                _ => return,
-            }
-        } else {
-            true
-        };
-@@PARA
-                _ => return,
-            }
-        } else {
-            if !sync_enable {
-                true
-            } else {
-                false
-            }
-        };
-@@FIM

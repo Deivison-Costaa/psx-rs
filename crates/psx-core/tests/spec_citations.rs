@@ -301,6 +301,12 @@ fn parse_citations_in_file(source_path: &str, content: &str) -> Vec<Citation> {
     citations
 }
 
+/// Docs de iteracao anteriores a este numero nao sao varridos: medi 54 citacoes
+/// deslocadas no acervo historico, e corrigi-las e arqueologia, nao medicao. Mesmo
+/// raciocinio do MAX_LAG de metrics_freshness.rs. Os docs VIVOS (STATUS, ROADMAP,
+/// CLAUDE, SKILL) sao varridos sempre — e onde o handoff do proximo item e escrito.
+const PISO_ITERACOES: u32 = 43;
+
 #[test]
 fn citacoes_de_spec_sao_validas() {
     let root = support::repo_root();
@@ -320,10 +326,13 @@ fn citacoes_de_spec_sao_validas() {
             }
             if let Some(stripped) = rel.strip_prefix("docs/iterations/") {
                 if let Ok(n) = stripped.chars().take(4).collect::<String>().parse::<u32>() {
-                    return n > 43;
+                    return n > PISO_ITERACOES;
                 }
             }
-            false
+            if rel == "docs/orquestracao.md" {
+                return false;
+            }
+            !rel.starts_with("docs/reference/")
         })
         .collect();
     let mut all_errors: Vec<String> = Vec::new();

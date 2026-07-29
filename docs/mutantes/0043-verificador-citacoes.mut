@@ -74,11 +74,11 @@ ocorrencias: 1
 
 # Mutante 5: expande escopo para incluir a proprio doc 0043
 mutante: m5
-rotulo: muda escopo de n > 43 para n >= 43 incluindo doc com erros
+rotulo: piso de iteracoes de > para >= inclui o acervo historico com 54 citacoes deslocadas
 
 @@DE
-                    return n > 43;
+                    return n > PISO_ITERACOES;
 @@PARA
-                    return n >= 43;
+                    return n >= PISO_ITERACOES;
 @@FIM
 ocorrencias: 1

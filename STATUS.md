@@ -5,13 +5,13 @@
 
 ## Última iteração concluída
 
-**0055** — Interrupt controller I_STAT/I_MASK + COP0 (ROADMAP 3.1).
+**0056** — DMA regs + canal 6 OTC (ROADMAP 3.2).
 
 ## Próxima tarefa
 
-**ROADMAP 3.2 — DMA regs + canal 6 (OTC).**
-Implementar os registradores de DMA no bus (1F801080h-1F8010F4h), com foco no canal 6 (OTC — Clear Ordering Table). Mapear DPCR, DICR e os registradores de canal (MADR, BCR, CHCR) no KSEG2. O canal 6 não faz DMA real — ele preenche RAM com linked-list de "fim de tabela" a partir do MADR.
-Arquivos-alvo: `crates/psx-core/src/dma.rs`, `crates/psx-core/src/bus.rs`, spec `docs/reference/04-dma.md`. Armadilha: o offset exato do DICR não é óbvio (1F801074h é I_MASK, DICR está em 1F8010F4h — não confundir).
+**ROADMAP 3.3 — DMA canal 2 GPU (block + linked-list).**
+Implementar o canal 2 de DMA no modo block (SyncMode=1) para transferência de VRAM e linked-list (SyncMode=2) para listas de comandos GP0. Mapear D2_MADR (1F8010A0h), D2_BCR (1F8010A4h), D2_CHCR (1F8010A8h) e conectar ao GPU. O canal 2 em SyncMode=2 transfere listas linkadas de comandos para GP0; em SyncMode=1 transfere blocos de dados para VRAM. DREQ do canal 2 é gerado pelo GPU.
+Arquivos-alvo: `crates/psx-core/src/dma.rs`, `crates/psx-core/src/gpu.rs`, `crates/psx-core/src/bus.rs`, spec `docs/reference/04-dma.md` (L198-L215, Linked List DMA). Armadilha: o end-marker no linked-list é 0x00FFFFFF (não confundir com o end marker do OTC).
 
 ## Repositório
 
@@ -25,7 +25,7 @@ Arquivos-alvo: `crates/psx-core/src/dma.rs`, `crates/psx-core/src/bus.rs`, spec 
 
 ## Placar de testes
 
-Workspace: **419** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 29 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 11 cpu_opcode_reservado + 11 cpu_irq + 16 gpu_status_gp0_gp1 + 9 ci_scoreboard + 9 cli_runner + 21 gpu_vram_transfers + 20 gpu_triangulos_flat_gouraud + 21 gpu_linhas_retangulos + 6 gpu_textura_15bpp + 6 gpu_texturas_4bpp_8bpp + 5 gpu_texture_window + 6 gpu_semi_transparencia + 7 gpu_dithering + 8 gpu_mask_bit + 7 gpu_display_regs + 9 gpu_timing_vblank + 6 gpu_framebuffer + 3 gpu_desktop_egui + 6 gpu_scoreboard + 1 spec_citations + 2 mutation_manifest + 2 mutation_anchors + 5 mutation_battery).
+Workspace: **430** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 29 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 11 cpu_opcode_reservado + 11 cpu_irq + 11 dma_otc + 16 gpu_status_gp0_gp1 + 9 ci_scoreboard + 9 cli_runner + 21 gpu_vram_transfers + 20 gpu_triangulos_flat_gouraud + 21 gpu_linhas_retangulos + 6 gpu_textura_15bpp + 6 gpu_texturas_4bpp_8bpp + 5 gpu_texture_window + 6 gpu_semi_transparencia + 7 gpu_dithering + 8 gpu_mask_bit + 7 gpu_display_regs + 9 gpu_timing_vblank + 6 gpu_framebuffer + 3 gpu_desktop_egui + 6 gpu_scoreboard + 1 spec_citations + 2 mutation_manifest + 2 mutation_anchors + 5 mutation_battery).
 
 ## Bloqueios
 

@@ -424,7 +424,7 @@ fn citacoes_de_spec_sao_validas() {
                     let in_real = cit.num >= real && (next_real == u32::MAX || cit.num < next_real);
                     let in_index_range = next_k != u32::MAX && cit.num >= k && cit.num < next_k;
 
-                    if in_index_range {
+                    if !in_real && in_index_range {
                         offset_buckets
                             .entry(cit.source_path.clone())
                             .or_default()

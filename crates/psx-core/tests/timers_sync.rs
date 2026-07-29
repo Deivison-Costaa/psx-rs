@@ -117,6 +117,13 @@ fn timer0_sync_mode3_espera_primeiro_hblank_depois_free_run() {
         5,
         "CNT continua incrementando fora do Hblank apos modo 3 disparado"
     );
+    set_hb(&mut bus, true);
+    tick_timer(&mut bus, T0_CNT, 3);
+    assert_eq!(
+        bus.read32::<BusRead>(T0_CNT) & 0xFFFF,
+        8,
+        "CNT NAO reseta na segunda borda de Hblank apos modo 3 disparado"
+    );
 }
 
 #[test]
@@ -204,6 +211,13 @@ fn timer1_sync_mode3_espera_primeiro_vblank_depois_free_run() {
         7,
         "CNT continua incrementando fora do Vblank apos modo 3 disparado"
     );
+    set_vb(&mut bus, true);
+    tick_timer(&mut bus, T1_CNT, 2);
+    assert_eq!(
+        bus.read32::<BusRead>(T1_CNT) & 0xFFFF,
+        9,
+        "CNT NAO reseta na segunda borda de Vblank apos modo 3 disparado"
+    );
 }
 
 #[test]
@@ -224,6 +238,34 @@ fn timer2_modo_1_e_2_sao_free_run() {
         bus.read32::<BusRead>(T2_CNT) & 0xFFFF,
         8,
         "T2 sync mode 2 incrementa livremente"
+    );
+}
+
+#[test]
+fn escrever_mode_reseta_estado_de_sync() {
+    let mut bus = bus();
+    bus.write32::<BusRead>(T0_MODE, 0x0003);
+    set_hb(&mut bus, true);
+    tick_timer(&mut bus, T0_CNT, 5);
+    assert_eq!(
+        bus.read32::<BusRead>(T0_CNT) & 0xFFFF,
+        5,
+        "CNT incrementou apos primeira borda de Hblank no modo 1"
+    );
+    bus.write32::<BusRead>(T0_MODE, 0x0003);
+    set_hb(&mut bus, false);
+    tick_timer(&mut bus, T0_CNT, 5);
+    assert_eq!(
+        bus.read32::<BusRead>(T0_CNT) & 0xFFFF,
+        5,
+        "CNT incrementou livremente apos re-escrever MODE (reset de prev_sync)"
+    );
+    set_hb(&mut bus, true);
+    tick_timer(&mut bus, T0_CNT, 3);
+    assert_eq!(
+        bus.read32::<BusRead>(T0_CNT) & 0xFFFF,
+        3,
+        "CNT resetou na borda apos re-escrever MODE (prev_sync foi resetado)"
     );
 }
 

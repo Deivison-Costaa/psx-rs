@@ -121,51 +121,43 @@ rotulo: extrair clock_src check em variavel local (equivalente semantico)
 @@FIM
 
 controle: K2
-rotulo: reordenar branches do match de increment (ordem diferente, semantica igual)
+rotulo: renomear variavel local rising_edge (semantica identica)
 @@DE
-        let increment = if sync_enable {
-            match idx {
-                0 | 1 => match sync_mode {
-                    0 => (clock_src == 0 || clock_src == 2) && !sync_signal,
-                    1 => clock_src == 0 || clock_src == 2,
-                    2 => (clock_src == 0 || clock_src == 2) && sync_signal,
-                    3 => (clock_src == 0 || clock_src == 2) && t.mode3_triggered.get(),
-                    _ => clock_src == 0 || clock_src == 2,
-                },
-                2 => match sync_mode {
-                    0 | 3 => false,
-                    _ => true,
-                },
-                _ => return,
+        let prev_sync = t.prev_sync_signal.get();
+        let rising_edge = sync_signal && !prev_sync;
+        t.prev_sync_signal.set(sync_signal);
+
+        if sync_enable && rising_edge {
+            match sync_mode {
+                1 | 2 => {
+                    t.counter.set(0);
+                    t.cycle_acc.set(0);
+                }
+                3 if !t.mode3_triggered.get() => {
+                    t.counter.set(0);
+                    t.cycle_acc.set(0);
+                    t.mode3_triggered.set(true);
+                }
+                _ => {}
             }
-        } else {
-            match idx {
-                0 | 1 => clock_src == 0 || clock_src == 2,
-                2 => true,
-                _ => return,
-            }
-        };
+        }
 @@PARA
-        let increment = if sync_enable {
-            match idx {
-                2 => match sync_mode {
-                    0 | 3 => false,
-                    _ => true,
-                },
-                0 | 1 => match sync_mode {
-                    0 => (clock_src == 0 || clock_src == 2) && !sync_signal,
-                    1 => clock_src == 0 || clock_src == 2,
-                    2 => (clock_src == 0 || clock_src == 2) && sync_signal,
-                    3 => (clock_src == 0 || clock_src == 2) && t.mode3_triggered.get(),
-                    _ => clock_src == 0 || clock_src == 2,
-                },
-                _ => return,
+        let prev_sync = t.prev_sync_signal.get();
+        let edge = sync_signal && !prev_sync;
+        t.prev_sync_signal.set(sync_signal);
+
+        if sync_enable && edge {
+            match sync_mode {
+                1 | 2 => {
+                    t.counter.set(0);
+                    t.cycle_acc.set(0);
+                }
+                3 if !t.mode3_triggered.get() => {
+                    t.counter.set(0);
+                    t.cycle_acc.set(0);
+                    t.mode3_triggered.set(true);
+                }
+                _ => {}
             }
-        } else {
-            match idx {
-                2 => true,
-                0 | 1 => clock_src == 0 || clock_src == 2,
-                _ => return,
-            }
-        };
+        }
 @@FIM

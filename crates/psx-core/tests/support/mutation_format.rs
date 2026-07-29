@@ -411,3 +411,59 @@ pub fn load_manifests() -> Result<Vec<(PathBuf, String, Manifest)>, Vec<String>>
     }
     Ok(manifests)
 }
+
+#[derive(Debug)]
+pub struct ResultadoRow {
+    pub id: String,
+    pub tipo: String,
+    pub _esperado: String,
+    pub obtido: String,
+    pub _segundos: String,
+    pub testes: String,
+}
+
+pub fn parse_resultado(content: &str) -> Result<(String, Vec<ResultadoRow>), Vec<String>> {
+    let mut errs = Vec::new();
+    let mut commit: Option<String> = None;
+    let mut rows: Vec<ResultadoRow> = Vec::new();
+
+    for line in content.lines() {
+        let trimmed = line.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        if trimmed.starts_with("# gerado por") {
+            continue;
+        }
+        if let Some(rest) = trimmed.strip_prefix("# commit: ") {
+            commit = Some(rest.to_string());
+            continue;
+        }
+        if trimmed.starts_with("# rodado_em:") {
+            continue;
+        }
+        let parts: Vec<&str> = trimmed.split(',').collect();
+        if parts.len() < 6 {
+            errs.push(format!("linha com menos de 6 colunas: '{trimmed}'"));
+            continue;
+        }
+        rows.push(ResultadoRow {
+            id: parts[0].to_string(),
+            tipo: parts[1].to_string(),
+            _esperado: parts[2].to_string(),
+            obtido: parts[3].to_string(),
+            _segundos: parts[4].to_string(),
+            testes: parts[5..].join(",").to_string(),
+        });
+    }
+
+    let commit = commit.unwrap_or_default();
+    if commit.is_empty() {
+        errs.push("resultado sem '# commit: <sha>'".to_string());
+    }
+    if errs.is_empty() {
+        Ok((commit, rows))
+    } else {
+        Err(errs)
+    }
+}

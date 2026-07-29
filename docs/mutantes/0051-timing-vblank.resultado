@@ -1,0 +1,11 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: a8fe0148e83642352d53c6efd1d45918afd3ed4a
+# rodado_em: 2026-07-29T06:05:00-03:00
+m1,mutante,morreu,morreu,0.6,t4_frame_cycles_ntsc_valor_esperado;t9_reset_gp1_00h_volta_para_ntsc
+m2,mutante,morreu,morreu,0.5,t5_frame_cycles_pal_valor_esperado
+m3,mutante,morreu,morreu,0.6,t7_enter_vblank_zera_bit31_mesmo_com_odd_line_true;t8_exit_vblank_restaura_bit31
+m4,mutante,morreu,morreu,0.6,t8_exit_vblank_restaura_bit31
+m5,mutante,morreu,morreu,0.7,t2_gp1_08h_bit3_pal;t3_gp1_08h_bit3_ntsc;t5_frame_cycles_pal_valor_esperado;t9_reset_gp1_00h_volta_para_ntsc
+m6,mutante,morreu,morreu,0.6,t9_reset_gp1_00h_volta_para_ntsc
+K1,controle,sobreviveu,sobreviveu,0.6,
+K2,controle,sobreviveu,sobreviveu,0.6,

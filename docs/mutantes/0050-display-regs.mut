@@ -84,6 +84,7 @@ rotulo: declara variavel local nao usada _nop dentro de write_gp1 (cosmetico)
                 let mask: u32 = (1 << 14) | (0x7F << 16);
                 let s = self.stat.get();
                 self.stat.set((s & !mask) | bits);
+                self.video_mode.set((param & 0x08) != 0);
             }
             _ => {}
 @@PARA
@@ -94,6 +95,7 @@ rotulo: declara variavel local nao usada _nop dentro de write_gp1 (cosmetico)
                 let mask: u32 = (1 << 14) | (0x7F << 16);
                 let s = self.stat.get();
                 self.stat.set((s & !mask) | bits);
+                self.video_mode.set((param & 0x08) != 0);
             }
             _ => {}
 @@FIM

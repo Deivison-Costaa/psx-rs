@@ -363,12 +363,17 @@ impl Gpu {
     }
 
     fn display_width(&self) -> u16 {
-        let range = self.display_range_x2.get().wrapping_sub(self.display_range_x1.get());
+        let range = self
+            .display_range_x2
+            .get()
+            .wrapping_sub(self.display_range_x1.get());
         ((range / self.cycles_per_pix()) + 2) & !3u16
     }
 
     fn display_height(&self) -> u16 {
-        self.display_range_y2.get().wrapping_sub(self.display_range_y1.get())
+        self.display_range_y2
+            .get()
+            .wrapping_sub(self.display_range_y1.get())
     }
 
     pub fn framebuffer(&self) -> Framebuffer {

@@ -1,6 +1,6 @@
 # gerado por scripts/mutantes.ps1 — NAO editar a mao
-# commit: ae33d9665f07bfd66e9eb1c99450e2287a70014e
-# rodado_em: 2026-07-29T10:03:29-03:00
+# commit: 118b3feb048ad0c688a35937535cf66579fa341f
+# rodado_em: 2026-07-29T10:04:19-03:00
 m1,mutante,morreu,morreu,0.7,cnt_wrap_em_ffff_sem_target;flag_ffff_alcancado_setado_e_limpo_na_leitura;flag_target_alcancado_setado_e_limpo_na_leitura;tick_incrementa_cnt_modo_system_clock;tick_respeita_divisor_de_clock_do_timer2
 m2,mutante,morreu,morreu,0.7,escrever_mode_reseta_cnt
 m3,mutante,morreu,morreu,0.7,cnt_reseta_no_target_com_bit3_setado;flag_target_alcancado_setado_e_limpo_na_leitura
@@ -8,5 +8,5 @@ m4,mutante,morreu,morreu,0.7,flag_ffff_alcancado_setado_e_limpo_na_leitura;flag_
 m5,mutante,morreu,morreu,0.7,tick_respeita_divisor_de_clock_do_timer2
 m6,mutante,morreu,morreu,0.7,timer2_modo_0_sync_ativo_para_contador
 m7,mutante,morreu,morreu,0.7,flag_ffff_alcancado_setado_e_limpo_na_leitura
-K1,controle,sobreviveu,morreu,0.7,cnt_gravavel_e_legivel;tick_incrementa_cnt_modo_system_clock;tick_respeita_divisor_de_clock_do_timer2;timer2_modo_0_sync_ativo_para_contador;tres_timers_independentes
+K1,controle,sobreviveu,sobreviveu,0.7,
 K2,controle,sobreviveu,sobreviveu,0.7,

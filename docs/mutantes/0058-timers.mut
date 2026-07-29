@@ -19,6 +19,7 @@ rotulo: escrever MODE nao reseta o contador
                 t.counter.set(0);
                 t.cycle_acc.set(0);
 @@PARA
+                let _ = mode;
 @@FIM
 
 mutante: m3
@@ -34,6 +35,7 @@ rotulo: flags bits 11 e 12 nunca limpos na leitura do MODE
 @@DE
                 t.mode.set(val & !((1 << 11) | (1 << 12)));
 @@PARA
+                let _ = val;
 @@FIM
 
 mutante: m5

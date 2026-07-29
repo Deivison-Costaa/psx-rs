@@ -86,8 +86,11 @@ enum VramState {
         gouraud: bool,
         polyline: bool,
         color0: u32,
-        vertices: [(i16, i16); 16],
-        colors: [u32; 16],
+        vertex0: (i16, i16),
+        prev_vertex: (i16, i16),
+        prev_color: u32,
+        pending_color: u32,
+        has_prev: bool,
         vertex_count: u8,
         expecting_vertex: bool,
     },
@@ -276,14 +279,15 @@ impl Gpu {
                             let gouraud = (cmd & 0x10) != 0;
                             let polyline = (cmd & 0x08) != 0;
                             let color0 = val & 0x00FF_FFFF;
-                            let mut colors = [0u32; 16];
-                            colors[0] = color0;
                             VramState::LineRender {
                                 gouraud,
                                 polyline,
                                 color0,
-                                vertices: [(0, 0); 16],
-                                colors,
+                                vertex0: (0, 0),
+                                prev_vertex: (0, 0),
+                                prev_color: color0,
+                                pending_color: 0,
+                                has_prev: false,
                                 vertex_count: 0,
                                 expecting_vertex: true,
                             }
@@ -460,17 +464,17 @@ impl Gpu {
                 gouraud,
                 polyline,
                 color0,
-                mut vertices,
-                mut colors,
+                mut vertex0,
+                mut prev_vertex,
+                mut prev_color,
+                mut pending_color,
+                mut has_prev,
                 mut vertex_count,
                 mut expecting_vertex,
             } => {
                 let is_terminator = (val & 0xF000F000) == 0x50005000;
                 if expecting_vertex {
                     if polyline && !gouraud && is_terminator {
-                        if vertex_count >= 2 {
-                            self.render_polyline(&vertices, &colors, vertex_count, gouraud);
-                        }
                         self.stat.set(self.stat.get() | (1 << 26));
                         self.vram_state.set(VramState::Idle);
                         return;
@@ -481,36 +485,69 @@ impl Gpu {
                     let off_y = self.drawing_offset_y.get();
                     let x = raw_x.wrapping_add(off_x);
                     let y = raw_y.wrapping_add(off_y);
-                    vertices[vertex_count as usize] = (x, y);
-                    vertex_count += 1;
 
                     if polyline {
-                        if gouraud {
+                        if !gouraud {
+                            if has_prev {
+                                let c = color24_to_16(color0);
+                                self.draw_line_segment(prev_vertex, (x, y), c, c, false);
+                            }
+                            prev_vertex = (x, y);
+                            has_prev = true;
+                        } else {
+                            if has_prev {
+                                self.draw_line_segment(
+                                    prev_vertex,
+                                    (x, y),
+                                    color24_to_16(prev_color),
+                                    color24_to_16(pending_color),
+                                    true,
+                                );
+                                prev_color = pending_color;
+                            }
+                            prev_vertex = (x, y);
+                            has_prev = true;
                             expecting_vertex = false;
                         }
                     } else {
                         if gouraud {
-                            if vertex_count == 1 {
+                            if vertex_count == 0 {
+                                vertex0 = (x, y);
+                                vertex_count = 1;
                                 expecting_vertex = false;
                             } else {
-                                if colors.len() > vertex_count as usize {
-                                    colors[vertex_count as usize] = color0;
+                                let dx = (vertex0.0 as i32 - x as i32).abs();
+                                let dy = (vertex0.1 as i32 - y as i32).abs();
+                                if dx > 1023 || dy > 511 {
+                                    self.stat.set(self.stat.get() | (1 << 26));
+                                    self.vram_state.set(VramState::Idle);
+                                    return;
                                 }
                                 self.render_single_line(
-                                    vertices[0],
-                                    vertices[1],
-                                    color24_to_16(colors[0]),
-                                    color24_to_16(colors[1]),
-                                    gouraud,
+                                    vertex0,
+                                    (x, y),
+                                    color24_to_16(color0),
+                                    color24_to_16(prev_color),
+                                    true,
                                 );
                                 self.stat.set(self.stat.get() | (1 << 26));
                                 self.vram_state.set(VramState::Idle);
                                 return;
                             }
                         } else {
-                            if vertex_count == 2 {
+                            if vertex_count == 0 {
+                                vertex0 = (x, y);
+                                vertex_count = 1;
+                            } else {
+                                let dx = (vertex0.0 as i32 - x as i32).abs();
+                                let dy = (vertex0.1 as i32 - y as i32).abs();
+                                if dx > 1023 || dy > 511 {
+                                    self.stat.set(self.stat.get() | (1 << 26));
+                                    self.vram_state.set(VramState::Idle);
+                                    return;
+                                }
                                 let c = color24_to_16(color0);
-                                self.render_single_line(vertices[0], vertices[1], c, c, false);
+                                self.render_single_line(vertex0, (x, y), c, c, false);
                                 self.stat.set(self.stat.get() | (1 << 26));
                                 self.vram_state.set(VramState::Idle);
                                 return;
@@ -519,15 +556,13 @@ impl Gpu {
                     }
                 } else {
                     if polyline && gouraud && is_terminator {
-                        if vertex_count >= 2 {
-                            self.render_polyline(&vertices, &colors, vertex_count, gouraud);
-                        }
                         self.stat.set(self.stat.get() | (1 << 26));
                         self.vram_state.set(VramState::Idle);
                         return;
                     }
-                    if vertex_count < 16 {
-                        colors[vertex_count as usize] = val & 0x00FF_FFFF;
+                    pending_color = val & 0x00FF_FFFF;
+                    if !gouraud || !polyline {
+                        prev_color = val & 0x00FF_FFFF;
                     }
                     expecting_vertex = true;
                 }
@@ -535,8 +570,11 @@ impl Gpu {
                     gouraud,
                     polyline,
                     color0,
-                    vertices,
-                    colors,
+                    vertex0,
+                    prev_vertex,
+                    prev_color,
+                    pending_color,
+                    has_prev,
                     vertex_count,
                     expecting_vertex,
                 });
@@ -588,6 +626,24 @@ impl Gpu {
                 }
                 RectStage::AwaitUV => {
                     uv = val;
+                    if textured {
+                        if size == 0 {
+                            self.vram_state.set(VramState::RectRender {
+                                size,
+                                textured,
+                                color,
+                                vertex,
+                                uv,
+                                width,
+                                height,
+                                stage: RectStage::AwaitDims,
+                            });
+                        } else {
+                            self.stat.set(self.stat.get() | (1 << 26));
+                            self.vram_state.set(VramState::Idle);
+                        }
+                        return;
+                    }
                     if size == 0 {
                         self.vram_state.set(VramState::RectRender {
                             size,
@@ -608,6 +664,11 @@ impl Gpu {
                 RectStage::AwaitDims => {
                     width = (val & 0xFFFF) as u16;
                     height = ((val >> 16) & 0xFFFF) as u16;
+                    if textured {
+                        self.stat.set(self.stat.get() | (1 << 26));
+                        self.vram_state.set(VramState::Idle);
+                        return;
+                    }
                     self.render_rect(size, color, vertex, width, height);
                     self.stat.set(self.stat.get() | (1 << 26));
                     self.vram_state.set(VramState::Idle);
@@ -862,35 +923,20 @@ impl Gpu {
         }
     }
 
-    fn render_polyline(
+    fn draw_line_segment(
         &mut self,
-        vertices: &[(i16, i16); 16],
-        colors: &[u32; 16],
-        count: u8,
+        v0: (i16, i16),
+        v1: (i16, i16),
+        c0: u16,
+        c1: u16,
         gouraud: bool,
     ) {
-        let n = count as usize;
-        let flat_c0 = color24_to_16(colors[0]);
-        for i in 0..(n - 1) {
-            let v0 = vertices[i];
-            let v1 = vertices[i + 1];
-            let dx = (v0.0 as i32 - v1.0 as i32).abs();
-            let dy = (v0.1 as i32 - v1.1 as i32).abs();
-            if dx > 1023 || dy > 511 {
-                continue;
-            }
-            let c0 = if gouraud {
-                color24_to_16(colors[i])
-            } else {
-                flat_c0
-            };
-            let c1 = if gouraud {
-                color24_to_16(colors[i + 1])
-            } else {
-                flat_c0
-            };
-            self.render_single_line(v0, v1, c0, c1, gouraud);
+        let dx = (v0.0 as i32 - v1.0 as i32).abs();
+        let dy = (v0.1 as i32 - v1.1 as i32).abs();
+        if dx > 1023 || dy > 511 {
+            return;
         }
+        self.render_single_line(v0, v1, c0, c1, gouraud);
     }
 
     fn render_rect(&mut self, size: u8, color: u32, vertex: (i16, i16), w: u16, h: u16) {
@@ -915,16 +961,13 @@ impl Gpu {
         let area_x2 = self.drawing_x2.get() as i32;
         let area_y2 = self.drawing_y2.get() as i32;
 
-        for ry in 0..h_actual {
-            let py = y_start + ry as i32;
-            if py < area_y1 || py > area_y2 || !(0..512).contains(&py) {
-                continue;
-            }
-            for rx in 0..w_actual {
-                let px = x_start + rx as i32;
-                if px < area_x1 || px > area_x2 || !(0..1024).contains(&px) {
-                    continue;
-                }
+        let draw_x0 = x_start.max(area_x1).max(0);
+        let draw_x1 = (x_start + w_actual as i32).min(area_x2 + 1).min(1024);
+        let draw_y0 = y_start.max(area_y1).max(0);
+        let draw_y1 = (y_start + h_actual as i32).min(area_y2 + 1).min(512);
+
+        for py in draw_y0..draw_y1 {
+            for px in draw_x0..draw_x1 {
                 self.vram[py as usize * 1024 + px as usize] = pixel;
             }
         }

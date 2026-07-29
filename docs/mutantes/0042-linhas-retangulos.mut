@@ -38,15 +38,13 @@ rotulo: troca R e B em color24_to_16 (na borda, C1 da 0038 indicou essa classe d
 @@FIM
 
 mutante: m4
-rotulo: regressao do flat polyline — segmentos alem do primeiro usam colors[i]=0 em vez de flat_c0
+rotulo: flat polyline usa pending_color em vez de color0 (cor zero em vez da cor do comando)
 @@DE
-            let c0 = if gouraud {
-                color24_to_16(colors[i])
-            } else {
-                flat_c0
-            };
+                            if has_prev {
+                                let c = color24_to_16(color0);
 @@PARA
-            let c0 = color24_to_16(colors[i]);
+                            if has_prev {
+                                let c = color24_to_16(pending_color);
 @@FIM
 
 mutante: m5
@@ -73,6 +71,61 @@ rotulo: terminador de polyline ignora mascara dos bits 12-15 so confere bits 28-
                 let is_terminator = (val & 0xF0000000) == 0x50000000;
 @@FIM
 
+mutante: m8
+rotulo: D1 — polyline incremental nao desenha os segmentos flat (regressao do array)
+@@DE
+                            if has_prev {
+                                let c = color24_to_16(color0);
+                                self.draw_line_segment(prev_vertex, (x, y), c, c, false);
+                            }
+@@PARA
+                            if false && has_prev {
+                                let c = color24_to_16(color0);
+                                self.draw_line_segment(prev_vertex, (x, y), c, c, false);
+                            }
+@@FIM
+
+mutante: m9
+rotulo: D2 — retangulo texturizado desenha com cor em vez de ignorar (AwaitUV)
+@@DE
+                    if textured {
+                        if size == 0 {
+@@PARA
+                    if false {
+                        if size == 0 {
+@@FIM
+
+mutante: m10
+rotulo: D3 — linha simples flat sem checagem de distancia maxima entre vertices
+@@DE
+                            } else {
+                                let dx = (vertex0.0 as i32 - x as i32).abs();
+                                let dy = (vertex0.1 as i32 - y as i32).abs();
+                                if dx > 1023 || dy > 511 {
+                                    self.stat.set(self.stat.get() | (1 << 26));
+                                    self.vram_state.set(VramState::Idle);
+                                    return;
+                                }
+                                let c = color24_to_16(color0);
+@@PARA
+                            } else {
+                                let c = color24_to_16(color0);
+@@FIM
+
+mutante: m11
+rotulo: D4 — render_rect com bounds fixos 16x16 em vez da intersecao com a area de desenho
+@@DE
+        let draw_x0 = x_start.max(area_x1).max(0);
+        let draw_x1 = (x_start + w_actual as i32).min(area_x2 + 1).min(1024);
+        let draw_y0 = y_start.max(area_y1).max(0);
+        let draw_y1 = (y_start + h_actual as i32).min(area_y2 + 1).min(512);
+@@PARA
+        let draw_x0 = 0i32;
+        let draw_x1 = 16i32;
+        let draw_y0 = 0i32;
+        let draw_y1 = 16i32;
+@@FIM
+
 controle: K1
 rotulo: inverte ordem das ligacoes let dx e let dy em render_single_line
 @@DE
@@ -84,15 +137,13 @@ rotulo: inverte ordem das ligacoes let dx e let dy em render_single_line
 @@FIM
 
 controle: K2
-rotulo: renomeia flat_c0 para base_color no render_polyline, duas edicoes atomicas
+rotulo: renomeia variavel local c para seg_color no flat polyline (cosmetico)
 @@DE
-        let flat_c0 = color24_to_16(colors[0]);
+                            if has_prev {
+                                let c = color24_to_16(color0);
+                                self.draw_line_segment(prev_vertex, (x, y), c, c, false);
 @@PARA
-        let base_color = color24_to_16(colors[0]);
-@@FIM
-ocorrencias: 2
-@@DE
-                flat_c0
-@@PARA
-                base_color
+                            if has_prev {
+                                let seg_color = color24_to_16(color0);
+                                self.draw_line_segment(prev_vertex, (x, y), seg_color, seg_color, false);
 @@FIM

@@ -352,6 +352,10 @@ impl Gpu {
         self.odd_line.set(odd);
     }
 
+    pub fn video_cycles_per_scanline(&self) -> u16 {
+        if self.video_mode.get() { 3406 } else { 3413 }
+    }
+
     pub fn enter_vblank(&mut self) {
         self.in_vblank.set(true);
     }
@@ -360,7 +364,7 @@ impl Gpu {
         self.in_vblank.set(false);
     }
 
-    fn cycles_per_pix(&self) -> u16 {
+    pub fn cycles_per_pix(&self) -> u16 {
         let stat = self.stat.get();
         let hr1 = (stat >> 17) & 3;
         let hr2 = (stat >> 16) & 1;

@@ -4,6 +4,7 @@ iteracao: 0052
 item: 2.8
 alvo: crates/psx-core/src/gpu.rs
 teste: gpu_framebuffer
+arquivada: cycles_per_pix() visibilidade alterada de fn para pub fn na iter 0060 (item 3.4c) — ancoras nao correspondem mais
 
 mutante: m1
 rotulo: cycles_per_pix sempre retorna 10 (ignora HR1/HR2)

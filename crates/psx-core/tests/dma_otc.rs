@@ -154,3 +154,35 @@ fn dma6_otc_bcr_zero_equivale_a_10000h() {
         "slot logo acima do fundo aponta para o proximo"
     );
 }
+
+#[test]
+fn dma6_otc_nao_dispara_sem_bit28() {
+    let mut bus = bus_com_dma();
+    bus.write32::<BusRead>(D6_MADR, 0x0000_0600);
+    bus.write32::<BusRead>(D6_BCR, 1);
+    bus.write32::<BusRead>(0x0000_0600, 0xCAFE_BABE);
+    bus.write32::<BusRead>(D6_CHCR, 0x0100_0002);
+    let val = bus.read32::<BusRead>(0x0000_0600);
+    assert_eq!(
+        val,
+        0xCAFE_BABE,
+        "RAM nao foi alterada com bit24=1 e bit28=0 (sem force-start)"
+    );
+}
+
+#[test]
+fn dma6_chcr_bit24_gravavel_sem_executar_otc() {
+    let mut bus = bus_com_dma();
+    bus.write32::<BusRead>(D6_MADR, 0x0000_0700);
+    bus.write32::<BusRead>(D6_BCR, 1);
+    bus.write32::<BusRead>(0x0000_0700, 0xDEAD_BEEF);
+    bus.write32::<BusRead>(D6_CHCR, 0x0100_0002);
+    let chcr = bus.read32::<BusRead>(D6_CHCR);
+    assert_eq!(
+        chcr & (1 << 24),
+        1 << 24,
+        "bit 24 permanece setado (OTC nao executou)"
+    );
+    let ram = bus.read32::<BusRead>(0x0000_0700);
+    assert_eq!(ram, 0xDEAD_BEEF, "RAM nao foi alterada sem bit 28");
+}

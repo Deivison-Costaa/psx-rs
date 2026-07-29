@@ -12,6 +12,7 @@ const T0_MODE: u32 = 0x1F80_1104;
 const T0_TARGET: u32 = 0x1F80_1108;
 const T2_CNT: u32 = 0x1F80_1120;
 const T2_MODE: u32 = 0x1F80_1124;
+const T2_TARGET: u32 = 0x1F80_1128;
 
 fn tick(bus: &mut Bus, base: u32, cycles: u32) -> Option<u32> {
     let hb = bus.gpu().hblank_active();
@@ -69,7 +70,11 @@ fn irq_target_pulse_retorna_irq_bit4() {
     bus.write32::<BusRead>(T0_TARGET, 0x0001);
     bus.write32::<BusRead>(T0_MODE, 0x0010);
     let irq = tick(&mut bus, T0_CNT, 1);
-    assert_eq!(irq, Some(4), "IRQ4 deve ser retornado quando target alcancado em pulse mode");
+    assert_eq!(
+        irq,
+        Some(4),
+        "IRQ4 deve ser retornado quando target alcancado em pulse mode"
+    );
     let mode_after_read = bus.read32::<BusRead>(T0_MODE);
     assert_eq!(
         mode_after_read & (1 << 10),
@@ -99,7 +104,11 @@ fn irq_ffff_pulse_retorna_irq_bit4() {
     bus.write32::<BusRead>(T0_MODE, 0x0020);
     bus.write32::<BusRead>(T0_CNT, 0xFFFF);
     let irq = tick(&mut bus, T0_CNT, 1);
-    assert_eq!(irq, Some(4), "IRQ4 deve ser retornado quando FFFF alcancado com bit5=1");
+    assert_eq!(
+        irq,
+        Some(4),
+        "IRQ4 deve ser retornado quando FFFF alcancado com bit5=1"
+    );
 }
 
 #[test]
@@ -132,14 +141,18 @@ fn irq_repeat_dispara_multiplas_vezes() {
     assert_eq!(irq1, Some(4), "primeiro IRQ em repeat mode");
     bus.write32::<BusRead>(T0_CNT, 0);
     let irq2 = tick(&mut bus, T0_CNT, 1);
-    assert_eq!(irq2, Some(4), "segundo IRQ em repeat mode dispara novamente");
+    assert_eq!(
+        irq2,
+        Some(4),
+        "segundo IRQ em repeat mode dispara novamente"
+    );
 }
 
 #[test]
 fn irq_toggle_inverte_bit10_e_so_retorna_irq_na_descida() {
     let mut bus = bus();
     bus.write32::<BusRead>(T0_TARGET, 0x0001);
-    bus.write32::<BusRead>(T0_MODE, 0x0090);
+    bus.write32::<BusRead>(T0_MODE, 0x00D0);
     let irq1 = tick(&mut bus, T0_CNT, 1);
     assert_eq!(irq1, Some(4), "primeiro IRQ: 1→0 gera IRQ4");
     let bit10_after_first = bus.read32::<BusRead>(T0_MODE) & (1 << 10);
@@ -148,17 +161,22 @@ fn irq_toggle_inverte_bit10_e_so_retorna_irq_na_descida() {
     let irq2 = tick(&mut bus, T0_CNT, 1);
     assert_eq!(irq2, None, "segundo IRQ: 0→1 NAO gera IRQ");
     let bit10_after_second = bus.read32::<BusRead>(T0_MODE) & (1 << 10);
-    assert_eq!(bit10_after_second, 1 << 10, "bit10 volta a 1 no segundo toggle");
+    assert_eq!(
+        bit10_after_second,
+        1 << 10,
+        "bit10 volta a 1 no segundo toggle"
+    );
 }
 
 #[test]
 fn irq_toggle_terceiro_disparo_retorna_irq() {
     let mut bus = bus();
     bus.write32::<BusRead>(T0_TARGET, 0x0001);
-    bus.write32::<BusRead>(T0_MODE, 0x0090);
+    bus.write32::<BusRead>(T0_MODE, 0x00D0);
     tick(&mut bus, T0_CNT, 1);
     bus.write32::<BusRead>(T0_CNT, 0);
     tick(&mut bus, T0_CNT, 1);
+    bus.write32::<BusRead>(T0_CNT, 0);
     let irq3 = tick(&mut bus, T0_CNT, 1);
     assert_eq!(irq3, Some(4), "terceiro toggle: 1→0 gera IRQ4 novamente");
 }
@@ -178,15 +196,13 @@ fn irq_oneshot_toggle_nao_dispara_segunda_vez() {
 #[test]
 fn irq4_timer0_irq5_timer1_irq6_timer2() {
     let mut bus = bus();
+    bus.write32::<BusRead>(T2_TARGET, 0x0005);
     bus.write32::<BusRead>(T2_MODE, 0x0210);
-    bus.timers_mut().tick(T2_CNT, 8, false, false);
-    bus.write32::<BusRead>(T2_CNT, 0xFFF0);
-    bus.write32::<BusRead>(T2_MODE, 0x0210);
-    let irq2 = tick(&mut bus, T2_CNT, 8);
+    let irq = tick(&mut bus, T2_CNT, 40);
     assert_eq!(
-        irq2,
+        irq,
         Some(6),
-        "IRQ6 para timer 2 em pulse mode com target alcancado (clock/8)"
+        "IRQ6 para timer 2: clock/8, 40 ciclos = 5 incrementos, target=5 alcancado em pulse mode"
     );
 }
 

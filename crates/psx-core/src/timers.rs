@@ -10,6 +10,7 @@ struct Timer {
     cycle_acc: Cell<u32>,
     prev_sync_signal: Cell<bool>,
     mode3_triggered: Cell<bool>,
+    irq_fired_oneshot: Cell<bool>,
 }
 
 #[derive(Debug)]
@@ -28,6 +29,7 @@ impl Timer {
             cycle_acc: Cell::new(0),
             prev_sync_signal: Cell::new(false),
             mode3_triggered: Cell::new(false),
+            irq_fired_oneshot: Cell::new(false),
         }
     }
 }
@@ -80,6 +82,7 @@ impl Timers {
                 t.cycle_acc.set(0);
                 t.prev_sync_signal.set(false);
                 t.mode3_triggered.set(false);
+                t.irq_fired_oneshot.set(false);
             }
             0x8 => {
                 self.timers[idx].target = (val & 0xFFFF) as u16;
@@ -94,7 +97,13 @@ impl Timers {
             .set(video_cycles_per_scanline);
     }
 
-    pub fn tick(&mut self, base_addr: u32, cycles: u32, hblank_active: bool, vblank_active: bool) -> Option<u32> {
+    pub fn tick(
+        &mut self,
+        base_addr: u32,
+        cycles: u32,
+        hblank_active: bool,
+        vblank_active: bool,
+    ) -> Option<u32> {
         let idx = Self::timer_index(base_addr);
         let t = &self.timers[idx];
         let mode = t.mode.get();
@@ -166,23 +175,77 @@ impl Timers {
         let effective = (total / denom) as u32;
         t.cycle_acc.set((total % denom) as u32);
 
+        let irq_enable_target = (mode >> 4) & 1 != 0;
+        let irq_enable_ffff = (mode >> 5) & 1 != 0;
+        let irq_once = (mode >> 6) & 1 == 0;
+        let irq_toggle = (mode >> 7) & 1 != 0;
+        let irq_bit = 4 + idx as u32;
+
+        let mut irq_raised = false;
+
         for _ in 0..effective {
             let prev = t.counter.get();
             t.counter.set(prev.wrapping_add(1));
 
-            if reset_on_target && t.counter.get() == t.target {
-                let m = t.mode.get();
-                t.mode.set(m | (1 << 11));
-                t.counter.set(0);
+            let mut mode_now = t.mode.get();
+            let mut mode_changed = false;
+
+            if t.counter.get() == t.target {
+                mode_now |= 1 << 11;
+                mode_changed = true;
+                if irq_enable_target && (!irq_once || !t.irq_fired_oneshot.get()) {
+                    let old_bit10 = (mode_now >> 10) & 1;
+                    if irq_toggle {
+                        mode_now ^= 1 << 10;
+                    } else {
+                        mode_now &= !(1 << 10);
+                    }
+                    mode_changed = true;
+                    let new_bit10 = (mode_now >> 10) & 1;
+                    if old_bit10 == 1 && new_bit10 == 0 {
+                        irq_raised = true;
+                    }
+                    if irq_once {
+                        t.irq_fired_oneshot.set(true);
+                    }
+                }
+                if reset_on_target {
+                    t.counter.set(0);
+                }
             }
 
             if prev == 0xFFFF && t.counter.get() == 0 {
-                let m = t.mode.get();
-                t.mode.set(m | (1 << 12));
+                mode_now |= 1 << 12;
+                mode_changed = true;
+                if irq_enable_ffff && (!irq_once || !t.irq_fired_oneshot.get()) {
+                    let old_bit10 = (mode_now >> 10) & 1;
+                    if irq_toggle {
+                        mode_now ^= 1 << 10;
+                    } else {
+                        mode_now &= !(1 << 10);
+                    }
+                    mode_changed = true;
+                    let new_bit10 = (mode_now >> 10) & 1;
+                    if old_bit10 == 1 && new_bit10 == 0 {
+                        irq_raised = true;
+                    }
+                    if irq_once {
+                        t.irq_fired_oneshot.set(true);
+                    }
+                }
+            }
+
+            if mode_changed {
+                t.mode.set(mode_now);
             }
         }
 
-        None
+        if !irq_toggle {
+            let m = t.mode.get();
+            t.mode.set(m | (1 << 10));
+        }
+
+        if irq_raised { Some(irq_bit) } else { None }
     }
 }
 

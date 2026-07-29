@@ -118,7 +118,13 @@ rotulo: adicionar binding descartavel (equivalente semantico)
 controle: K2
 rotulo: extrair condicao de clock_src em variavel local (semantica identica)
 @@DE
-    pub fn tick(&mut self, base_addr: u32, cycles: u32, hblank_active: bool, vblank_active: bool) {
+    pub fn tick(
+        &mut self,
+        base_addr: u32,
+        cycles: u32,
+        hblank_active: bool,
+        vblank_active: bool,
+    ) -> Option<u32> {
         let idx = Self::timer_index(base_addr);
         let t = &self.timers[idx];
         let mode = t.mode.get();
@@ -127,7 +133,13 @@ rotulo: extrair condicao de clock_src em variavel local (semantica identica)
         let reset_on_target = (mode >> 3) & 1 != 0;
         let clock_src = (mode >> 8) & 0x3;
 @@PARA
-    pub fn tick(&mut self, base_addr: u32, cycles: u32, hblank_active: bool, vblank_active: bool) {
+    pub fn tick(
+        &mut self,
+        base_addr: u32,
+        cycles: u32,
+        hblank_active: bool,
+        vblank_active: bool,
+    ) -> Option<u32> {
         let idx = Self::timer_index(base_addr);
         let t = &self.timers[idx];
         let mode = t.mode.get();

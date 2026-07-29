@@ -1,6 +1,7 @@
 use crate::dma::Dma;
 use crate::gpu::Gpu;
 use crate::irq::Irq;
+use crate::timers::Timers;
 
 const SCRATCHPAD_SIZE: usize = 1024;
 
@@ -109,6 +110,7 @@ pub struct Bus {
     gpu: Gpu,
     irq: Irq,
     dma: Dma,
+    timers: Timers,
     scratchpad: Scratchpad,
     mem_ctrl: MemCtrl,
     bcc: Bcc,
@@ -127,6 +129,7 @@ impl Bus {
             gpu: Gpu::new(),
             irq: Irq::new(),
             dma: Dma::new(),
+            timers: Timers::new(),
             scratchpad: Scratchpad::new(),
             mem_ctrl: MemCtrl::new(),
             bcc: Bcc::new(),
@@ -140,6 +143,10 @@ impl Bus {
 
     pub fn irq_mut(&mut self) -> &mut Irq {
         &mut self.irq
+    }
+
+    pub fn timers_mut(&mut self) -> &mut Timers {
+        &mut self.timers
     }
 
     pub fn tty_push(&mut self, byte: u8) {
@@ -185,8 +192,10 @@ impl Bus {
             0x1F80_10F0 => Some(self.dma.read_dpcr()),
             0x1F80_10F4 => Some(self.dma.read_dicr()),
             0xFFFE_0130 => Some(self.bcc.0),
+             0x1F80_1100..=0x1F80_112F => Some(self.timers.read32(phys)),
             0x1F80_1810 | 0x1F80_1814 => Some(self.gpu.read32(phys - 0x1F80_1810)),
-            0x1F80_1024..=0x1F80_105F | 0x1F80_1061..=0x1F80_1FFF => Some(0),
+            0x1F80_1024..=0x1F80_105F | 0x1F80_1061..=0x1F80_10FF
+            | 0x1F80_1130..=0x1F80_1FFF => Some(0),
             _ => None,
         }
     }
@@ -247,11 +256,16 @@ impl Bus {
                 self.bcc.0 = val;
                 true
             }
+             0x1F80_1100..=0x1F80_112F => {
+                self.timers.write32(phys, val);
+                true
+            }
             0x1F80_1810 | 0x1F80_1814 => {
                 self.gpu.write32(phys - 0x1F80_1810, val);
                 true
             }
-            0x1F80_1024..=0x1F80_105F | 0x1F80_1061..=0x1F80_1FFF => true,
+            0x1F80_1024..=0x1F80_105F | 0x1F80_1061..=0x1F80_10FF
+            | 0x1F80_1130..=0x1F80_1FFF => true,
             _ => false,
         }
     }

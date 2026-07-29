@@ -42,6 +42,10 @@ topo e pule DIRETO à(s) seção(ões) do item (offsets relativos à marca `CORP
 necessária não estiver em docs/reference, rode `scripts/fetch-reference-docs.ps1` com o
 capítulo adicionado, commite (`chore(scripts)` + `docs(reference)`) e prossiga.
 
+**Convenção de citação:** use `§ Título (L<n>)` — o título sobrevive à regeneração da spec,
+o número não. Antes de commitar o doc da iteração, rode `scripts/confere-citacoes.ps1` para
+validar que as citações de spec estão corretas (linha real, não offset do índice).
+
 ## Passo 4 — Teste que falha (R5)
 
 Um arquivo de integração por item em `crates/psx-core/tests/`, nome `modulo_slug.rs`
@@ -104,6 +108,9 @@ invariantes/notas novas (índice numerado, nunca renumere). Marque o checkbox do
 Se `logs/metrics-pending.csv` existir, mova suas linhas para o fim de `docs/metricas.csv`
 (mesmo formato, sem cabeçalho) e apague o pendente — são as métricas das execuções
 anteriores, appendadas pelo runner.
+
+Rode `scripts/confere-citacoes.ps1` antes do commit `docs(iter)` para garantir que as
+citações de spec no doc da iteração estão corretas.
 
 ## Passo 9 — PR (sem merge)
 

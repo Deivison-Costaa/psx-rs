@@ -5,16 +5,17 @@
 
 ## Última iteração concluída
 
-**0053** — psx-desktop eframe/egui (ROADMAP 2.8b).
+**0054** — Suíte GPU do ps1-tests no scoreboard (ROADMAP 2.9).
 
 ## Próxima tarefa
 
-**ROADMAP 2.9 — Suíte GPU do ps1-tests no scoreboard.**
-Baixar ps1-tests GPU (exes de `gpu/`), rodar via `psx-cli sideload` e integrar o
-resultado no scoreboard (`scripts/scoreboard.ps1`). A GPU já tem rasterizador completo
-(triângulos, linhas, retângulos, texturas, dithering, blend, mask bit, vblank); o que
-falta é o fetch dos binários e a coluna no scoreboard.
-Arquivos-alvo: `scripts/fetch-test-exes.ps1` (adicionar GPU), `exes/gpu/`, scoreboard.
+**ROADMAP 3.1 — Interrupt controller (I_STAT/I_MASK) + COP0.**
+Implementar os registradores de interrupção I_STAT (1F801070h) e I_MASK (1F801074h),
+mapeá-los no bus (KSEG2), conectar IRQ de vblank ao COP0 (CAUSE.IP bit 2) e gerar
+exceção de hardware quando I_STAT & I_MASK != 0 e SR.IEc=1.
+Arquivos-alvo: `crates/psx-core/src/irq.rs`, `crates/psx-core/src/cpu.rs` (COP0),
+`crates/psx-core/src/bus.rs`, spec `docs/reference/02-cpu.md` (COP0 Cause/IP),
+`docs/reference/05-interrupts.md` (se existir).
 
 ## Repositório
 
@@ -28,7 +29,7 @@ Arquivos-alvo: `scripts/fetch-test-exes.ps1` (adicionar GPU), `exes/gpu/`, score
 
 ## Placar de testes
 
-Workspace: **402** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 29 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 11 cpu_opcode_reservado + 16 gpu_status_gp0_gp1 + 9 ci_scoreboard + 9 cli_runner + 21 gpu_vram_transfers + 20 gpu_triangulos_flat_gouraud + 21 gpu_linhas_retangulos + 6 gpu_textura_15bpp + 6 gpu_texturas_4bpp_8bpp + 5 gpu_texture_window + 6 gpu_semi_transparencia + 7 gpu_dithering + 8 gpu_mask_bit + 7 gpu_display_regs + 9 gpu_timing_vblank + 6 gpu_framebuffer + 3 gpu_desktop_egui + 1 spec_citations + 2 mutation_manifest + 2 mutation_anchors + 5 mutation_battery).
+Workspace: **408** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 29 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 11 cpu_opcode_reservado + 16 gpu_status_gp0_gp1 + 9 ci_scoreboard + 9 cli_runner + 21 gpu_vram_transfers + 20 gpu_triangulos_flat_gouraud + 21 gpu_linhas_retangulos + 6 gpu_textura_15bpp + 6 gpu_texturas_4bpp_8bpp + 5 gpu_texture_window + 6 gpu_semi_transparencia + 7 gpu_dithering + 8 gpu_mask_bit + 7 gpu_display_regs + 9 gpu_timing_vblank + 6 gpu_framebuffer + 3 gpu_desktop_egui + 6 gpu_scoreboard + 1 spec_citations + 2 mutation_manifest + 2 mutation_anchors + 5 mutation_battery).
 
 ## Bloqueios
 

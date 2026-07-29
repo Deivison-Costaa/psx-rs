@@ -118,3 +118,18 @@ fn i_stat_bits_11_a_15_sao_zero() {
     let val = bus.read32::<BusRead>(0x1F80_1070);
     assert_eq!((val >> 11) & 0x1F, 0);
 }
+
+#[test]
+fn interrupcao_nao_executa_instrucao_corrente() {
+    let mut bus = bus_com_irq();
+    bus.irq_mut().raise(0);
+    bus.write32::<BusRead>(0x1F80_1074, 0x001);
+    let mut cpu = Cpu::new();
+    cpu.cop0[12] = 1 | (1 << 10);
+    cpu.pc = 0x0000_0000;
+    bus.write32::<BusRead>(0x0000_0000, asm::addiu(8, 0, 42));
+    cpu.step(&mut bus);
+    assert_eq!(cpu.regs[8], 0);
+    assert_eq!(cpu.cop0[14], 0x0000_0000);
+    assert_eq!(cpu.pc, 0x8000_0080);
+}

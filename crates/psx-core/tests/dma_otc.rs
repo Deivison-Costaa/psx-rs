@@ -205,3 +205,26 @@ fn dma6_chcr_bit24_gravavel_sem_executar_otc() {
     let ram = bus.read32::<BusRead>(0x0000_0700);
     assert_eq!(ram, 0xDEAD_BEEF, "RAM nao foi alterada sem bit 28");
 }
+
+#[test]
+fn dma6_otc_ponteiro_guarda_24_bits_e_nao_dobra_em_21() {
+    let mut bus = bus_com_dma();
+    let base: u32 = 0x00FF_FF80;
+    bus.write32::<BusRead>(D6_MADR, base);
+    bus.write32::<BusRead>(D6_BCR, 2);
+    bus.write32::<BusRead>(DPCR, 0x0765_4321 | (1 << 27));
+    bus.write32::<BusRead>(D6_CHCR, 0x1100_0002);
+
+    let alto = bus.read32::<BusRead>(base & 0x001F_FFFF);
+    assert_eq!(
+        alto,
+        base.wrapping_sub(4) & 0x00FF_FFFC,
+        "o ponteiro gravado conserva os bits 21-23 do endereco; dobrar em 21 bits daria {:#X}",
+        base.wrapping_sub(4) & 0x001F_FFFC
+    );
+    assert_ne!(
+        alto,
+        base.wrapping_sub(4) & 0x001F_FFFC,
+        "mascara de 21 bits perderia os bits altos que o otc-test do ps1-tests exige"
+    );
+}

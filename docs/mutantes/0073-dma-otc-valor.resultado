@@ -1,0 +1,11 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: a914ba8b96c5de6d179beb8fc8a2c5106803e8d6
+# rodado_em: 2026-07-29T20:58:04-03:00
+m1,mutante,morreu,morreu,0.7,dma6_otc_bcr_zero_equivale_a_10000h;dma6_otc_preenche_ram_com_linked_list
+m2,mutante,morreu,morreu,0.7,dma6_otc_bcr_zero_equivale_a_10000h;dma6_otc_preenche_ram_com_linked_list
+m3,mutante,morreu,morreu,0.7,dma6_otc_bcr_zero_equivale_a_10000h;dma6_otc_preenche_ram_com_linked_list
+m4,mutante,morreu,sobreviveu,0.7,
+m5,mutante,morreu,morreu,0.7,dma6_otc_bcr_zero_equivale_a_10000h;dma6_otc_preenche_ram_com_linked_list
+m6,mutante,morreu,morreu,0.8,dma6_otc_bcr_zero_equivale_a_10000h;dma6_otc_preenche_ram_com_linked_list
+c1,controle,sobreviveu,sobreviveu,0.7,
+c2,controle,sobreviveu,sobreviveu,0.8,

@@ -69,6 +69,7 @@ fn parse_directive(line: &str) -> Option<(&str, &str)> {
     Some((key, value))
 }
 
+#[allow(clippy::too_many_arguments)]
 fn emit_record(
     kind: Option<RecordKind>,
     id: Option<String>,
@@ -97,7 +98,9 @@ fn emit_record(
         ));
     }
     if edits.is_empty() {
-        errs.push(format!("registro '{id}': nenhuma edicao (@@DE/@@PARA/@@FIM)"));
+        errs.push(format!(
+            "registro '{id}': nenhuma edicao (@@DE/@@PARA/@@FIM)"
+        ));
     }
     for (i, edit) in edits.iter().enumerate() {
         if edit.de.is_empty() {
@@ -329,10 +332,7 @@ pub fn parse_manifest(path: &Path, rel_path: &str) -> Result<Manifest, Vec<Strin
     if iteracao_num == 0 {
         errs.push(format!("{rel_path}: iteracao ausente"));
     }
-    let prefix = path
-        .file_stem()
-        .and_then(|s| s.to_str())
-        .unwrap_or("");
+    let prefix = path.file_stem().and_then(|s| s.to_str()).unwrap_or("");
     if iteracao_num > 0 && !prefix.starts_with(&format!("{:04}", iteracao_num)) {
         errs.push(format!(
             "{rel_path}: iteracao {iteracao_num} nao bate com o prefixo do arquivo '{prefix}'"

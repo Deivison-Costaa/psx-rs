@@ -5,12 +5,9 @@ use std::fs;
 #[path = "support/mutation_format.rs"]
 mod mutation_format;
 
-use mutation_format::{load_manifests, Ocorrencias, PRIMEIRA_ITER_COM_MANIFESTO};
+use mutation_format::{Ocorrencias, PRIMEIRA_ITER_COM_MANIFESTO, load_manifests};
 
-fn check_anchors(
-    manifest: &mutation_format::Manifest,
-    repo_root: &std::path::Path,
-) -> Vec<String> {
+fn check_anchors(manifest: &mutation_format::Manifest, repo_root: &std::path::Path) -> Vec<String> {
     if manifest.arquivada.is_some() {
         return Vec::new();
     }
@@ -41,7 +38,12 @@ fn check_anchors(
                              Se a ancora envelheceu, atualize o manifesto e RODE A \
                              BATERIA DE NOVO, ou adicione 'arquivada: <motivo>' no \
                              cabecalho do manifesto.",
-                            manifest.rel_path, rec.id, i + 1, expected, count, arquivo
+                            manifest.rel_path,
+                            rec.id,
+                            i + 1,
+                            expected,
+                            count,
+                            arquivo
                         ));
                     }
                 }
@@ -49,7 +51,10 @@ fn check_anchors(
                     if count == 0 {
                         errs.push(format!(
                             "{}: registro '{}', edicao {}: ancora nao encontrada em '{}'",
-                            manifest.rel_path, rec.id, i + 1, arquivo
+                            manifest.rel_path,
+                            rec.id,
+                            i + 1,
+                            arquivo
                         ));
                     }
                 }

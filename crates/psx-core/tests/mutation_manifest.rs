@@ -5,7 +5,7 @@ use std::collections::HashMap;
 #[path = "support/mutation_format.rs"]
 mod mutation_format;
 
-use mutation_format::{load_manifests, RecordKind, MIN_CONTROLES, MIN_MUTANTES};
+use mutation_format::{MIN_CONTROLES, MIN_MUTANTES, RecordKind, load_manifests};
 
 #[test]
 fn manifesto_de_mutacao_forma_e_integridade() {

@@ -5,29 +5,22 @@
 
 ## Última iteração concluída
 
-**0038** — VRAM 1MB + transfers CPU↔VRAM (ROADMAP 2.2, PR #52).
+**0040** — Formato de manifesto de mutação + meta-teste (ROADMAP 0.10, PR em aberto).
 
 ## Próxima tarefa
 
-**ROADMAP 2.3 — Triângulos flat + gouraud. NÃO ESTÁ CONCLUÍDO: reprovado na revisão.**
-Rodada de continuação na branch `iter/0039-triangulos-flat-gouraud`, PR #53 já aberto.
-Use `oc-iter.ps1 -ContinueBranch iter/0039-triangulos-flat-gouraud`.
+**ROADMAP 0.11 — scripts/mutantes.ps1 + job de CI + reconciliação do placar.**
+Item de ferramental. O script lê `docs/mutantes/NNNN-slug.mut`, aplica cada mutação, roda
+o teste e registra o placar. O job de CI roda o script para o PR atual e falha se o placar
+não for 100%. A reconciliação do placar atualiza o doc da iteração com o placar canônico.
 
-O scanline em si está certo para o caso interior — não reescreva o rasterizador. Reprovaram:
+Arquivos-alvo: `scripts/mutantes.ps1` (novo), `.github/workflows/ci.yml` (job novo).
+Formatos de referência: `docs/mutantes/README.md` (gramática), `docs/mutantes/0038-vram-transfers.mut`
+(fixture), `crates/psx-core/tests/support/mutation_format.rs` (parser de `Ocorrencias`).
 
-1. **Regra de preenchimento (L323).** `Polygons are displayed up to <excluding> their
-   lower-right coordinates`. Os spans são inclusivos nos dois extremos: medido, um triângulo
-   (0,0)-(0,4)-(4,0) pinta (4,0) e (0,4), que deveriam ficar de fora.
-2. **Comandos texturizados dessincronizam o FIFO.** O braço `0x20..=0x3F` lê gouraud
-   (`cmd & 0x10`) e quad (`cmd & 0x08`) e ignora o bit de textura (`cmd & 0x04`); as palavras
-   de UV viram vértices. Medido: um GP0(24h) desenha um triângulo fantasma em (5,5) e nada no
-   interior real. Não implemente textura (é o item 2.5) — só **conte e consuma** as palavras.
-3. **Drawing Offset GP0(E5h) não existe** (L565) e **Drawing Area GP0(E3h/E4h) não existe**
-   (L552). Medido: com offset (100,100) o triângulo sai na origem crua. Polígonos são afetados
-   pelos dois — ao contrário das cópias do 2.2, que a spec diz explicitamente que não são.
-4. **Testes que não medem** (8 achados) e **a bateria conta um controle que não é controle**:
-   reordenar os dois triângulos do quad muda o resultado observável, porque no quad cíclico
-   eles se sobrepõem.
+Armadilha conhecida: o script aplica edições ATOMICAMENTE (todas as edições de um registro
+juntas) e as reverte juntas. `ocorrencias: todas` significa substituir TODAS as ocorrências
+da âncora, não apenas uma.
 
 ## Repositório
 
@@ -41,7 +34,7 @@ O scanline em si está certo para o caso interior — não reescreva o rasteriza
 
 ## Placar de testes
 
-Workspace: **312** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 29 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 11 cpu_opcode_reservado + 16 gpu_status_gp0_gp1 + 9 ci_scoreboard + 9 cli_runner + 21 gpu_vram_transfers + 12 gpu_triangulos_flat_gouraud).
+Workspace: **316** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 29 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 11 cpu_opcode_reservado + 16 gpu_status_gp0_gp1 + 9 ci_scoreboard + 9 cli_runner + 21 gpu_vram_transfers + 12 gpu_triangulos_flat_gouraud + 2 mutation_manifest + 2 mutation_anchors).
 
 ## Bloqueios
 

@@ -60,13 +60,31 @@ Commit: `feat(escopo): resumo` (ou `fix`/`refactor`).
 
 Verde não prova que o teste mede: mutante que sobrevive é teste que não olha.
 
-1. Liste as maneiras plausíveis de errar este item (sinal trocado, offset, delay slot
-   ignorado, saturação ausente, flag errada...).
-2. Aplique **uma de cada vez** no fonte; o teste TEM que falhar; reverta.
-3. Some **controles**: 1–2 mutações que NÃO deveriam quebrar (renomear local, reordenar
-   funções); o teste TEM que passar; reverta.
-4. Registre o placar `N/N pegos, M/M controles verdes` com a lista das mutações no doc da
-   iteração. Mutante sobrevivente = volte ao passo 4 e fortaleça o teste.
+### 6.1 — Manifesto de mutação
+
+Crie `docs/mutantes/NNNN-slug.mut` (formato em `docs/mutantes/README.md`) com ≥5 mutantes
+e ≥2 controles. **É proibido mutar arquivo de teste** — a âncora deve apontar para
+`crates/*/src/` (asserção F do meta-teste `mutation_manifest.rs` reprova).
+
+Cada mutante declara o `@@DE` (linha(s) original(is)) e o `@@PARA` (linha(s) substituída(s))
+com casamento por **linha inteira**. `ocorrencias: N` é contrato, dica: declarou 2 e achou
+3 no fonte → erro duro, nada é mutado.
+
+### 6.2 — Validação do manifesto
+
+`cargo test --test mutation_manifest --test mutation_anchors` valida forma, unicidade de
+pares (de,para), volume, âncoras reais, não-trivialidade, alvo em src/ e equivalência.
+Rode ANTES de commitar o manifesto.
+
+### 6.3 — Script de bateria (item 0.11)
+
+O script `scripts/mutantes.ps1` que aplica cada mutante, roda o teste e registra o placar
+**ainda não existe** — será implementado na iteração 0041 (item 0.11). Até lá, o placar
+no doc da iteração é preenchido por inspeção (aplicar cada mutante manualmente, rodar o
+teste, reverter).
+
+Quando o script existir, ele lerá `docs/mutantes/NNNN-slug.mut` e produzirá o placar
+canônico. O passo 6.3 será reescrito para `scripts/mutantes.ps1 NNNN`.
 
 ## Passo 7 — Verificação completa
 

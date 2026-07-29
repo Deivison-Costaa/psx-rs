@@ -18,13 +18,11 @@ rotulo: bit PRMEMPT invertido no HSTS — param FIFO sempre parece cheia
 @@FIM
 
 mutante: m2
-rotulo: GetStat 20h retorna mes em vez de ano no primeiro byte
+rotulo: GetStat 20h retorna mes em vez de ano invertendo o primeiro push
 @@DE
-                    self.result_push(0x97);
-                    self.result_push(0x01);
+                        self.result_push(0x97);
 @@PARA
-                    self.result_push(0x01);
-                    self.result_push(0x97);
+                        self.result_push(0x01);
 @@FIM
 
 mutante: m3
@@ -77,46 +75,14 @@ rotulo: IRQ pending ignora INTMSK (retorna true se INTSTS tiver algum bit)
 @@FIM
 
 controle: K1
-rotulo: reordenar branches do send_command (0x0A e 0x19) — semantica identica
+rotulo: adicionar let binding descartavel antes do match em send_command (equivalente semantico)
 @@DE
+        self.result_clear();
         match cmd {
-            0x0A => {
-                self.result_push(0x02);
-                self.intsts.set(3);
-                self.pending_second.set(1);
-            }
-            0x19 => {
-                self.intsts.set(3);
-                let sub = self.param_pop();
-                match sub {
 @@PARA
+        self.result_clear();
+        let _sentinel = cmd;
         match cmd {
-            0x19 => {
-                self.intsts.set(3);
-                let sub = self.param_pop();
-                match sub {
-                    0x20 => {
-                        self.result_push(0x97);
-                        self.result_push(0x01);
-                        self.result_push(0x10);
-                        self.result_push(0xC2);
-                    }
-                    0x21 => {
-                        self.result_push(0x01);
-                    }
-                    _ => {
-                        self.result_push(0x02);
-                    }
-                }
-                self.param_clear();
-            }
-            0x0A => {
-                self.result_push(0x02);
-                self.intsts.set(3);
-                self.pending_second.set(1);
-            }
-        match cmd {
-            _ => {
 @@FIM
 
 controle: K2
@@ -131,7 +97,7 @@ rotulo: extrair bank.get() em variavel local no write8 (equivalente semantico)
 @@PARA
             1 if self.bank.get() == 0 => self.send_command(val),
             2 if self.bank.get() == 0 => self.param_push(val),
-            2 if self.bank.get() == 1 => {
+            2 if { let b = self.bank.get(); b == 1 } => {
                 self.intmsk.set(val & 0x1F);
             }
             3 if { let b = self.bank.get(); b == 1 } => {

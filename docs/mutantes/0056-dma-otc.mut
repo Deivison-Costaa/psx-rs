@@ -47,6 +47,14 @@ rotulo: CHCR canal 6 sem restricao de bits (todos gravaveis)
             self.chcr[6] = val;
 @@FIM
 
+mutante: m6
+rotulo: OTC executa sem verificar bit 28 (forca start ignorado)
+@@DE
+        if (self.chcr[6] & ((1 << 24) | (1 << 28))) != ((1 << 24) | (1 << 28)) {
+@@PARA
+        if self.chcr[6] & (1 << 24) == 0 {
+@@FIM
+
 controle: K1
 rotulo: adicionar comentario nao altera comportamento
 @@DE

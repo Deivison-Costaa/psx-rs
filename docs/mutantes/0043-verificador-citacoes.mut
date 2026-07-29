@@ -1,0 +1,90 @@
+formato: 1
+iteracao: 0043
+item: 0.12
+alvo: crates/psx-core/tests/spec_citations.rs
+teste: spec_citations
+
+# Controle 1: insercao de linha inofensiva
+controle: c1
+rotulo: acrescenta bind let inofensivo antes do teste
+
+@@DE
+fn citacoes_de_spec_sao_validas() {
+@@PARA
+fn citacoes_de_spec_sao_validas() {
+    let _guard = 0;
+@@FIM
+
+# Controle 2: acrescenta bind local inofensivo
+controle: c2
+rotulo: acrescenta let inofensivo dentro da funcao de teste
+
+@@DE
+    let md_files = collect_md_files(&root);
+@@PARA
+    let md_files = collect_md_files(&root);
+    let _mark = 1;
+@@FIM
+
+# Mutante 1: hardcoda offset em 115 (obrigatorio, tem que morrer)
+mutante: m1
+rotulo: hardcoda offset em 115 em vez de computar da linha CORPO
+
+@@DE
+            let offset = ref_doc.corpo_line as u32 + 1;
+@@PARA
+            let offset: u32 = 115;
+@@FIM
+ocorrencias: 1
+
+# Mutante 2: desabilita o diagnostico A4
+mutante: m2
+rotulo: torna falso o in_index_range
+
+@@DE
+                    if in_index_range {
+@@PARA
+                    if false {
+@@FIM
+ocorrencias: 1
+
+# Mutante 3: remove extracao de titulo por palavra-chave
+mutante: m3
+rotulo: remove extracao de titulo por palavra-chave secao
+
+@@DE
+    if let Some(title) = extract_after_section_keyword(before) {
+        return Some(title);
+    }
+@@PARA
+    if false {
+        return None;
+    }
+@@FIM
+ocorrencias: 1
+
+# Mutante 4: remove deteccao de simbolo de secao
+mutante: m4
+rotulo: remove extracao de titulo apos simbolo de secao
+
+@@DE
+    if let Some(title) = extract_after_section_sign_before_ref(before) {
+        return Some(title);
+    }
+@@PARA
+    if false {
+        return None;
+    }
+@@FIM
+ocorrencias: 1
+
+# Mutante 5: quebra checagem de faixa
+mutante: m5
+rotulo: aumenta teto de faixa de 400 para 40000
+
+@@DE
+                if end - cit.num > 400 {
+@@PARA
+                if end - cit.num > 40000 {
+@@FIM
+ocorrencias: 1

@@ -1040,6 +1040,7 @@ impl Gpu {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn render_triangle(
         &mut self,
         gouraud: bool,
@@ -1051,11 +1052,7 @@ impl Gpu {
         uvs: [(u8, u8); 3],
     ) {
         if dither && gouraud && !textured {
-            self.render_triangle_dithered(
-                verts,
-                colors,
-                semi_transparent,
-            );
+            self.render_triangle_dithered(verts, colors, semi_transparent);
             return;
         }
         let (v0, v1, v2) = (verts[0], verts[1], verts[2]);
@@ -1262,6 +1259,7 @@ impl Gpu {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn render_single_line(
         &mut self,
         v0: (i16, i16),
@@ -1324,6 +1322,7 @@ impl Gpu {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn draw_line_segment(
         &mut self,
         v0: (i16, i16),

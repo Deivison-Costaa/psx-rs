@@ -102,8 +102,8 @@ fn t3_poligono_flat_nao_aplica_dither() {
     let cor: u32 = 0x00000707;
     let cmd: u32 = (0x20u32 << 24) | (cor & 0x00FF_FFFF);
     gpu.write32(0, cmd);
-    gpu.write32(0, ((0u32) << 16) | 0u32);
-    gpu.write32(0, ((0u32) << 16) | 4u32);
+    gpu.write32(0, 0u32);
+    gpu.write32(0, 4u32);
     gpu.write32(0, ((3u32) << 16) | 2u32);
     espera_idle(&mut gpu);
 
@@ -124,8 +124,8 @@ fn t4_linha_aplica_dither() {
     let cor: u32 = 0x00000707;
     let cmd: u32 = (0x40u32 << 24) | (cor & 0x00FF_FFFF);
     gpu.write32(0, cmd);
-    gpu.write32(0, ((0u32) << 16) | 0u32);
-    gpu.write32(0, ((0u32) << 16) | 4u32);
+    gpu.write32(0, 0u32);
+    gpu.write32(0, 4u32);
     espera_idle(&mut gpu);
 
     assert_eq!(
@@ -147,7 +147,7 @@ fn t5_retangulo_nao_aplica_dither() {
     let cor: u32 = 0x00000707;
     let cmd: u32 = (0x60u32 << 24) | (cor & 0x00FF_FFFF);
     gpu.write32(0, cmd);
-    gpu.write32(0, ((0u32) << 16) | 3u32);
+    gpu.write32(0, 3u32);
     gpu.write32(0, ((2u32) << 16) | 1u32);
     espera_idle(&mut gpu);
 
@@ -168,9 +168,9 @@ fn t6_saturacao_dither_nao_ultrapassa_255() {
     let cor: u32 = 0x00FCFCFC;
     let cmd: u32 = (0x30u32 << 24) | (cor & 0x00FF_FFFF);
     gpu.write32(0, cmd);
-    gpu.write32(0, ((0u32) << 16) | 0u32);
+    gpu.write32(0, 0u32);
     gpu.write32(0, cor & 0x00FF_FFFF);
-    gpu.write32(0, ((0u32) << 16) | 4u32);
+    gpu.write32(0, 4u32);
     gpu.write32(0, cor & 0x00FF_FFFF);
     gpu.write32(0, ((3u32) << 16) | 2u32);
     espera_idle(&mut gpu);
@@ -190,9 +190,9 @@ fn t7_saturacao_dither_nao_fica_negativa() {
     let cor: u32 = 0x00000101;
     let cmd: u32 = (0x30u32 << 24) | (cor & 0x00FF_FFFF);
     gpu.write32(0, cmd);
-    gpu.write32(0, ((0u32) << 16) | 0u32);
+    gpu.write32(0, 0u32);
     gpu.write32(0, cor & 0x00FF_FFFF);
-    gpu.write32(0, ((0u32) << 16) | 4u32);
+    gpu.write32(0, 4u32);
     gpu.write32(0, cor & 0x00FF_FFFF);
     gpu.write32(0, ((3u32) << 16) | 2u32);
     espera_idle(&mut gpu);

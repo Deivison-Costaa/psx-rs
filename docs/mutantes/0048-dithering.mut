@@ -93,23 +93,17 @@ fn color24_to_16_dithered(color24: u32, x: i32, y: i32, dither_enabled: bool) ->
 @@FIM
 
 controle: K2
-rotulo: inverte ordem das declaracoes da area de desenho em render_triangle_dithered (independentes)
+rotulo: inverte ordem das entradas do array sorted antes do sort_by_key (cosmetico, sort reordena)
 @@DE
-    fn render_triangle_dithered(
-        &mut self,
-        verts: [(i16, i16); 3],
-        colors: [u32; 3],
-        semi_transparent: bool,
-    ) {
-        let (v0, v1, v2) = (verts[0], verts[1], verts[2]);
-        let (c0, c1, c2) = (colors[0], colors[1], colors[2]);
+        let mut sorted = [
+            (v0.0 as i32, v0.1 as i32, c0),
+            (v1.0 as i32, v1.1 as i32, c1),
+            (v2.0 as i32, v2.1 as i32, c2),
+        ];
 @@PARA
-    fn render_triangle_dithered(
-        &mut self,
-        verts: [(i16, i16); 3],
-        colors: [u32; 3],
-        semi_transparent: bool,
-    ) {
-        let (v0, v1, v2) = (verts[0], verts[1], verts[2]);
-        let (c0, c1, c2) = (colors[0], colors[1], colors[2]);
+        let mut sorted = [
+            (v2.0 as i32, v2.1 as i32, c2),
+            (v1.0 as i32, v1.1 as i32, c1),
+            (v0.0 as i32, v0.1 as i32, c0),
+        ];
 @@FIM

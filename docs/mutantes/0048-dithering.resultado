@@ -1,0 +1,12 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: 591c5a96be20f45828b5e635a013a5e8fcb658b2
+# rodado_em: 2026-07-29T04:53:11-03:00
+m1,mutante,morreu,morreu,0.6,t1_gouraud_triangulo_com_dither_matriz_4x4;t4_linha_aplica_dither
+m2,mutante,morreu,morreu,0.7,t2_gouraud_triangulo_sem_dither;t3_poligono_flat_nao_aplica_dither;t5_retangulo_nao_aplica_dither
+m3,mutante,morreu,morreu,0.7,t1_gouraud_triangulo_com_dither_matriz_4x4;t4_linha_aplica_dither
+m4,mutante,morreu,morreu,0.6,t1_gouraud_triangulo_com_dither_matriz_4x4;t4_linha_aplica_dither
+m5,mutante,morreu,morreu,0.6,t4_linha_aplica_dither
+m6,mutante,morreu,morreu,0.6,t1_gouraud_triangulo_com_dither_matriz_4x4
+m7,mutante,morreu,morreu,0.6,t1_gouraud_triangulo_com_dither_matriz_4x4;t4_linha_aplica_dither;t7_saturacao_dither_nao_fica_negativa
+K1,controle,sobreviveu,sobreviveu,0.6,
+K2,controle,sobreviveu,sobreviveu,0.6,

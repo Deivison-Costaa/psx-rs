@@ -5,16 +5,16 @@
 
 ## Última iteração concluída
 
-**0041** — Script de mutação + job de CI + reconciliação do placar (ROADMAP 0.11).
+**0042** — Linhas e retângulos (ROADMAP 2.4).
 
 ## Próxima tarefa
 
-**ROADMAP 2.4 — Quads, retângulos, linhas.** Próximo item de hardware com manifesto de
-mutação exigido (PRIMEIRA_ITER_COM_MANIFESTO = 42). Spec: `docs/reference/03-gpu.md`,
-seções § Command 20h-2Fh/60h-6Fh (quads e retângulos) e § 50h-5Fh (linhas).
-Arquivo-alvo: `crates/psx-core/src/gpu.rs`.
-Armadilha: a iter 0039 já implementou quads básicos via decomposição em dois triângulos;
-o 2.4 é sobre o caminho nativo (GP0 20h-2Fh/60h-6Fh).
+**ROADMAP 2.5 — Texturas 4/8/15bpp + CLUT + texture window.** Spec: `docs/reference/03-gpu.md`,
+seções Texture Caching (L138-L206), Texpage Attribute (L471-478), Clut Attribute (L481-489),
+GP0(E1h) Draw Mode (L492-519), GP0(E2h) Texture Window (L521-549).
+Arquivos-alvo: `crates/psx-core/src/gpu.rs` e `docs/reference/03-gpu.md`.
+Armadilha: retângulos texturizados já consomem UV (`RectRender::AwaitUV`) mas não desenham
+textura — o 2.5 completa os caminhos de textura de polígono e retângulo.
 
 ## Repositório
 
@@ -28,7 +28,7 @@ o 2.4 é sobre o caminho nativo (GP0 20h-2Fh/60h-6Fh).
 
 ## Placar de testes
 
-Workspace: **321** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 29 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 11 cpu_opcode_reservado + 16 gpu_status_gp0_gp1 + 9 ci_scoreboard + 9 cli_runner + 21 gpu_vram_transfers + 12 gpu_triangulos_flat_gouraud + 2 mutation_manifest + 2 mutation_anchors + 5 mutation_battery).
+Workspace: **338** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 29 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 11 cpu_opcode_reservado + 16 gpu_status_gp0_gp1 + 9 ci_scoreboard + 9 cli_runner + 21 gpu_vram_transfers + 20 gpu_triangulos_flat_gouraud + 17 gpu_linhas_retangulos + 2 mutation_manifest + 2 mutation_anchors + 5 mutation_battery).
 
 ## Bloqueios
 
@@ -109,5 +109,9 @@ Workspace: **321** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version
    `[epc-4]` for descuido de redação sobre o caso BD (onde `EPC` de fato aponta 4 bytes
    antes). Não mudamos sem evidência (R1). Ponto de resolução: Amidog `psxtest_cpu`.
 12. **`file_size.rs`: `cpu_exception_mechanism.rs` está em 487 linhas de 500.** O próximo
-   teste de exceção vai para `cpu_exception_estado_previo.rs`, criado na segunda rodada de
-   revisão do PR #35, ou para um arquivo novo com nome próprio. Não corte casos existentes.
+    teste de exceção vai para `cpu_exception_estado_previo.rs`, criado na segunda rodada de
+    revisão do PR #35, ou para um arquivo novo com nome próprio. Não corte casos existentes.
+13. **Linhas INCLUEM a coordenada inferior-direita (L361-362); polígonos EXCLUEM (L323).**
+    As duas funções de rasterização têm regras de borda OPOSTAS. `render_single_line` usa
+    Bresenham com break em `x==x1 && y==y1` (inclusivo); `render_triangle` usa
+    `xr.min(area_x2 + 1)` (exclusivo). Não reusa uma na outra.

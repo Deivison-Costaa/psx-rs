@@ -41,7 +41,7 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [x] 2.1 GPUSTAT + decodificação GP0/GP1 (iter 0035)
 - [x] 2.2 VRAM 1MB + transfers (fill, CPU↔VRAM) (iter 0038)
 - [x] 2.3 Triângulos flat + gouraud (iter 0039)
-- [ ] 2.4 Quads, retângulos, linhas (parcial: quads na iter 0039)
+- [x] 2.4 Quads, retângulos, linhas (iter 0042)
 - [ ] 2.5 Texturas 4/8/15bpp + CLUT + texture window
 - [ ] 2.6 Semi-transparência + dithering + mask bit
 - [ ] 2.7 Display regs, timing NTSC/PAL, vblank IRQ

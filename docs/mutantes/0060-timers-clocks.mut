@@ -40,19 +40,17 @@ rotulo: dotclock ativado no timer errado (idx==0 trocado por idx==1)
 mutante: m4
 rotulo: sync_enable=0 ainda verifica clock_src (regressao para o codigo antigo)
 @@DE
+        } else {
             true
         };
-
-        if !increment {
 @@PARA
+        } else {
             match idx {
                 0 | 1 => clock_src == 0 || clock_src == 2,
                 2 => true,
                 _ => false,
             }
         };
-
-        if !increment {
 @@FIM
 
 mutante: m5

@@ -1,0 +1,143 @@
+# Manifesto de mutação da iteração 0052 — psx-desktop
+formato: 1
+iteracao: 0052
+item: 2.8
+alvo: crates/psx-core/src/gpu.rs
+teste: gpu_framebuffer
+
+mutante: m1
+rotulo: cycles_per_pix sempre retorna 10 (ignora HR1/HR2)
+@@DE
+    fn cycles_per_pix(&self) -> u16 {
+        let stat = self.stat.get();
+        let hr1 = (stat >> 17) & 3;
+        let hr2 = (stat >> 16) & 1;
+        if hr2 != 0 {
+            7
+        } else {
+            match hr1 {
+                0 => 10,
+                1 => 8,
+                2 => 5,
+                _ => 4,
+            }
+        }
+    }
+@@PARA
+    fn cycles_per_pix(&self) -> u16 {
+        10
+    }
+@@FIM
+
+mutante: m2
+rotulo: display_width sem truncamento (& !3), retorna valor nao arredondado
+@@DE
+        ((range / self.cycles_per_pix()) + 2) & !3u16
+@@PARA
+        (range / self.cycles_per_pix()) + 2
+@@FIM
+
+mutante: m3
+rotulo: framebuffer preenche com zeros em vez de ler VRAM
+@@DE
+    pub fn framebuffer(&self) -> Framebuffer {
+        let w = self.display_width();
+        let h = self.display_height();
+        let start_x = self.display_start_x.get() as usize;
+        let start_y = self.display_start_y.get() as usize;
+        let mut data = Vec::with_capacity((w as usize) * (h as usize) * 4);
+        for y in 0..(h as usize) {
+            for x in 0..(w as usize) {
+                let vx = (start_x + x) & 0x3FF;
+                let vy = (start_y + y) & 0x1FF;
+                let pixel = self.vram[vy * 1024 + vx];
+                let r = ((pixel & 0x1F) as u8) << 3;
+                let g = (((pixel >> 5) & 0x1F) as u8) << 3;
+                let b = (((pixel >> 10) & 0x1F) as u8) << 3;
+                data.push(r);
+                data.push(g);
+                data.push(b);
+                data.push(255u8);
+            }
+        }
+        Framebuffer {
+            width: w,
+            height: h,
+            data,
+        }
+    }
+@@PARA
+    pub fn framebuffer(&self) -> Framebuffer {
+        let w = self.display_width();
+        let h = self.display_height();
+        let data = vec![0u8; (w as usize) * (h as usize) * 4];
+        Framebuffer {
+            width: w,
+            height: h,
+            data,
+        }
+    }
+@@FIM
+
+mutante: m4
+rotulo: framebuffer ignora display_start_x e start_y (usa offsets 0,0)
+@@DE
+        let start_x = self.display_start_x.get() as usize;
+        let start_y = self.display_start_y.get() as usize;
+@@PARA
+        let start_x = 0usize;
+        let start_y = 0usize;
+@@FIM
+
+mutante: m5
+rotulo: framebuffer troca ordem dos canais (escreve B, G, R em vez de R, G, B)
+@@DE
+                data.push(r);
+                data.push(g);
+                data.push(b);
+@@PARA
+                data.push(b);
+                data.push(g);
+                data.push(r);
+@@FIM
+
+mutante: m6
+rotulo: display_height usa wrapping_add em vez de wrapping_sub
+@@DE
+        self.display_range_y2
+            .get()
+            .wrapping_sub(self.display_range_y1.get())
+@@PARA
+        self.display_range_y2
+            .get()
+            .wrapping_add(self.display_range_y1.get())
+@@FIM
+
+controle: K1
+rotulo: variavel local _cosmetico nao usada em framebuffer (cosmetico)
+@@DE
+        let w = self.display_width();
+        let h = self.display_height();
+        let start_x = self.display_start_x.get() as usize;
+@@PARA
+        let _cosmetico = 0;
+        let w = self.display_width();
+        let h = self.display_height();
+        let start_x = self.display_start_x.get() as usize;
+@@FIM
+
+controle: K2
+rotulo: inverte ordem dos campos do struct Framebuffer (cosmetico)
+@@DE
+pub struct Framebuffer {
+    pub width: u16,
+    pub height: u16,
+    pub data: Vec<u8>,
+}
+@@PARA
+pub struct Framebuffer {
+    pub data: Vec<u8>,
+    pub height: u16,
+    pub width: u16,
+}
+@@FIM

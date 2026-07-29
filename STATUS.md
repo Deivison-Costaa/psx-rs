@@ -5,20 +5,16 @@
 
 ## Última iteração concluída
 
-**0051** — Timing NTSC/PAL, vblank (ROADMAP 2.7b).
+**0052** — Framebuffer GPU (ROADMAP 2.8).
 
 ## Próxima tarefa
 
-**ROADMAP 2.8 — psx-desktop mínimo (eframe/egui) → logo do BIOS na tela.**
-Este item exige que a GPU tenha um framebuffer visível: o rasterizador desenha na VRAM,
-o display a lê via os registradores GP1(05h-07h), e o desktop exibe num widget egui.
-O timing de vblank (0051) e os registradores de display (0050) já existem; o que falta
-é o loop de render do desktop consumindo a VRAM a cada frame.
-Arquivos-alvo: `crates/psx-desktop/src/main.rs` (eframe/egui), `crates/psx-core/src/gpu.rs`
-(método `framebuffer` que lê VRAM via display registers), `crates/psx-core/src/bus.rs`
-(expor GPU via Bus).
-Armadilha: a VRAM é 1024×512 halfwords, mas o display show só a janela definida por
-GP1(05h-07h); conversão 15bpp→RGBA8 para egui.
+**ROADMAP 2.8b — psx-desktop com eframe/egui (deferido da 2.8).**
+Adicionar dependência `eframe`/`egui` compatível com Rust 1.85 e criar janela desktop
+que exiba o framebuffer da GPU num widget Image. A GPU já tem `framebuffer()` (0052);
+falta escolher versão de eframe que compile na toolchain 1.85 e integrar o loop.
+Arquivos-alvo: `crates/psx-desktop/src/main.rs`, `crates/psx-desktop/Cargo.toml`.
+Armadilha: eframe 0.31 requer Rust ~1.80 mas pode ter API diferente; testar antes de commitar.
 
 ## Repositório
 
@@ -32,7 +28,7 @@ GP1(05h-07h); conversão 15bpp→RGBA8 para egui.
 
 ## Placar de testes
 
-Workspace: **393** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 29 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 11 cpu_opcode_reservado + 16 gpu_status_gp0_gp1 + 9 ci_scoreboard + 9 cli_runner + 21 gpu_vram_transfers + 20 gpu_triangulos_flat_gouraud + 21 gpu_linhas_retangulos + 6 gpu_textura_15bpp + 6 gpu_texturas_4bpp_8bpp + 5 gpu_texture_window + 6 gpu_semi_transparencia + 7 gpu_dithering + 8 gpu_mask_bit + 7 gpu_display_regs + 9 gpu_timing_vblank + 1 spec_citations + 2 mutation_manifest + 2 mutation_anchors + 5 mutation_battery).
+Workspace: **398** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 29 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 11 cpu_opcode_reservado + 16 gpu_status_gp0_gp1 + 9 ci_scoreboard + 9 cli_runner + 21 gpu_vram_transfers + 20 gpu_triangulos_flat_gouraud + 21 gpu_linhas_retangulos + 6 gpu_textura_15bpp + 6 gpu_texturas_4bpp_8bpp + 5 gpu_texture_window + 6 gpu_semi_transparencia + 7 gpu_dithering + 8 gpu_mask_bit + 7 gpu_display_regs + 9 gpu_timing_vblank + 5 gpu_framebuffer + 1 spec_citations + 2 mutation_manifest + 2 mutation_anchors + 5 mutation_battery).
 
 ## Bloqueios
 

@@ -107,63 +107,35 @@ rotulo: timer 2 divisor /8 ignorado (tratado como /1)
 @@FIM
 
 controle: K1
-rotulo: extrair denominador em variavel local (equivalente semantico)
+rotulo: adicionar binding descartavel (equivalente semantico)
 @@DE
-            if !increment {
-            return;
-        }
-
         let (numer, denom): (u64, u64) = match idx {
-            0 if clock_src == 1 || clock_src == 3 => {
-                let cpp = self.gpu_cycles_per_pix.get() as u64;
-                (11, 7 * cpp)
-            }
-            1 if clock_src == 1 || clock_src == 3 => {
-                let vcs = self.gpu_video_cycles_per_scanline.get() as u64;
-                (11, 7 * vcs)
-            }
-            2 if clock_src == 2 || clock_src == 3 => (1, 8),
-            _ => (1, 1),
-        };
-
-        let prev_acc = t.cycle_acc.get() as u64;
-        let total = prev_acc * denom + (cycles as u64) * numer;
-        let effective = (total / denom) as u32;
-        t.cycle_acc.set((total % denom) as u32);
 @@PARA
-            if !increment {
-            return;
-        }
+        let _dummy = || {};
+        let (numer, denom): (u64, u64) = match idx {
+@@FIM
 
-        let n: u64;
-        let d: u64;
-        match idx {
-            0 if clock_src == 1 || clock_src == 3 => {
-                let cpp = self.gpu_cycles_per_pix.get() as u64;
-                n = 11;
-                d = 7 * cpp;
-            }
-            1 if clock_src == 1 || clock_src == 3 => {
-                let vcs = self.gpu_video_cycles_per_scanline.get() as u64;
-                n = 11;
-                d = 7 * vcs;
-            }
-            2 if clock_src == 2 || clock_src == 3 => {
-                n = 1;
-                d = 8;
-            }
-            _ => {
-                n = 1;
-                d = 1;
-            }
-        }
-        let numer = n;
-        let denom = d;
-
-        let prev_acc = t.cycle_acc.get() as u64;
-        let total = prev_acc * denom + (cycles as u64) * numer;
-        let effective = (total / denom) as u32;
-        t.cycle_acc.set((total % denom) as u32);
+controle: K2
+rotulo: extrair condicao de clock_src em variavel local (semantica identica)
+@@DE
+    pub fn tick(&mut self, base_addr: u32, cycles: u32, hblank_active: bool, vblank_active: bool) {
+        let idx = Self::timer_index(base_addr);
+        let t = &self.timers[idx];
+        let mode = t.mode.get();
+        let sync_enable = mode & 1 != 0;
+        let sync_mode = (mode >> 1) & 0x3;
+        let reset_on_target = (mode >> 3) & 1 != 0;
+        let clock_src = (mode >> 8) & 0x3;
+@@PARA
+    pub fn tick(&mut self, base_addr: u32, cycles: u32, hblank_active: bool, vblank_active: bool) {
+        let idx = Self::timer_index(base_addr);
+        let t = &self.timers[idx];
+        let mode = t.mode.get();
+        let sync_enable = mode & 1 != 0;
+        let sync_mode = (mode >> 1) & 0x3;
+        let _sync_mode_copy = sync_mode;
+        let reset_on_target = (mode >> 3) & 1 != 0;
+        let clock_src = (mode >> 8) & 0x3;
 @@FIM
 
 controle: K2

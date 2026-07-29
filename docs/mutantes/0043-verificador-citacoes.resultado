@@ -1,0 +1,10 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: e88695014e2390f75a510372387f17358dcca168
+# rodado_em: 2026-07-29T00:57:42-03:00
+c1,controle,sobreviveu,sobreviveu,0.6,
+c2,controle,sobreviveu,sobreviveu,0.7,
+m1,mutante,morreu,morreu,0.6,citacoes_de_spec_sao_validas
+m2,mutante,morreu,sobreviveu,0.7,
+m3,mutante,morreu,sobreviveu,0.8,
+m4,mutante,morreu,sobreviveu,0.7,
+m5,mutante,morreu,sobreviveu,0.7,

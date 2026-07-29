@@ -46,7 +46,7 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [x] 2.5b Texturas 4bpp e 8bpp + CLUT (iter 0045)
 - [x] 2.5c Texture window GP0(E2h) (iter 0046)
 - [x] 2.6a Semi-transparência (blend B/2+F/2, B+F, B-F, B+F/4) (iter 0047)
-- [ ] 2.6b Dithering 24→15 bit (matriz 4x4)
+- [x] 2.6b Dithering 24→15 bit (matriz 4x4) (iter 0048)
 - [ ] 2.6c Mask bit (proteção de pixel bit15=1)
 - [ ] 2.7 Display regs, timing NTSC/PAL, vblank IRQ
 - [ ] 2.8 psx-desktop mínimo (eframe/egui) → logo do BIOS na tela

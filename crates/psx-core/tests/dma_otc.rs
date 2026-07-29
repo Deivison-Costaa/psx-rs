@@ -164,8 +164,7 @@ fn dma6_otc_nao_dispara_sem_bit28() {
     bus.write32::<BusRead>(D6_CHCR, 0x0100_0002);
     let val = bus.read32::<BusRead>(0x0000_0600);
     assert_eq!(
-        val,
-        0xCAFE_BABE,
+        val, 0xCAFE_BABE,
         "RAM nao foi alterada com bit24=1 e bit28=0 (sem force-start)"
     );
 }

@@ -47,12 +47,16 @@ impl Cpu {
         };
 
         let sr = self.cop0[12];
-        if (sr & 0x1) != 0
-            && (sr & (1 << 10)) != 0
-            && (self.cop0[13] & (1 << 10)) != 0
-            && self.pending_exception.is_none()
-        {
-            self.raise_exception(0x00, None);
+        if (sr & 0x1) != 0 && (sr & (1 << 10)) != 0 && (self.cop0[13] & (1 << 10)) != 0 {
+            if let Some((reg, val)) = self.load_delay.take() {
+                self.set_reg(reg, val);
+            }
+            let ie_ku_shifted = ((sr & 0x3) << 2) | ((sr & 0xC) << 2);
+            self.cop0[12] = (sr & !0x3F) | ie_ku_shifted;
+            self.cop0[13] &= !0xC000_007C;
+            self.cop0[14] = self.pc;
+            self.pc = 0x8000_0080;
+            return;
         }
 
         let instr_pc = self.pc;
@@ -131,10 +135,10 @@ impl Cpu {
                 0x8000_0080
             };
 
+            self.branch_target = None;
             if let Some((reg, val)) = self.load_delay.take() {
                 self.set_reg(reg, val);
             }
-            self.branch_target = None;
             return;
         }
 

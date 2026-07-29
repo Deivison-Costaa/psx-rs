@@ -1,0 +1,103 @@
+# Manifesto de mutação da iteração 0058 — timers
+formato: 1
+iteracao: 0058
+item: 3.4
+alvo: crates/psx-core/src/timers.rs
+teste: timers
+
+mutante: m1
+rotulo: tick nao incrementa o contador (no-op)
+@@DE
+        let effective = total / divisor;
+        t.cycle_acc.set(total % divisor);
+
+        for _ in 0..effective {
+@@PARA
+        let effective = 0;
+        t.cycle_acc.set(total % divisor);
+
+        for _ in 0..effective {
+@@FIM
+
+mutante: m2
+rotulo: escrever MODE nao reseta o contador
+@@DE
+                t.mode.set(mode);
+                t.counter.set(0);
+                t.cycle_acc.set(0);
+@@PARA
+                t.mode.set(mode);
+@@FIM
+
+mutante: m3
+rotulo: bit3 (reset on target) ignorado — sempre reseta em FFFFh
+@@DE
+            if reset_on_target && t.counter.get() == t.target {
+                let m = t.mode.get();
+                t.mode.set(m | (1 << 11));
+                t.counter.set(0);
+            }
+@@PARA
+@@FIM
+
+mutante: m4
+rotulo: flags bits 11 e 12 nunca limpos na leitura do MODE
+@@DE
+                let val = t.mode.get();
+                t.mode.set(val & !((1 << 11) | (1 << 12)));
+                val
+@@PARA
+                let val = t.mode.get();
+                val
+@@FIM
+
+mutante: m5
+rotulo: timer 2 divisor ignorado (incrementa a cada tick)
+@@DE
+        let divisor: u32 = match idx {
+            2 if clock_src == 2 || clock_src == 3 => 8,
+            _ => 1,
+        };
+@@PARA
+        let divisor: u32 = 1;
+@@FIM
+
+mutante: m6
+rotulo: sync enable nao pausa o timer 2
+@@DE
+            2 => !(sync_enable && (sync_mode == 0 || sync_mode == 3)),
+@@PARA
+            2 => true,
+@@FIM
+
+mutante: m7
+rotulo: bit11 setado mesmo sem reset_on_target (bit3)
+@@DE
+            if reset_on_target && t.counter.get() == t.target {
+                let m = t.mode.get();
+                t.mode.set(m | (1 << 11));
+                t.counter.set(0);
+            }
+@@PARA
+            if t.counter.get() == t.target {
+                let m = t.mode.get();
+                t.mode.set(m | (1 << 11));
+            }
+@@FIM
+
+controle: K1
+rotulo: renomear variavel local cycles para ticks
+@@DE
+    pub fn tick(&mut self, base_addr: u32, cycles: u32) {
+@@PARA
+    pub fn tick(&mut self, base_addr: u32, ticks: u32) {
+@@FIM
+
+controle: K2
+rotulo: extrair mascara de bits 11-12 em constante
+@@DE
+                t.mode.set(val & !((1 << 11) | (1 << 12)));
+@@PARA
+                let flags_mask = (1 << 11) | (1 << 12);
+                t.mode.set(val & !flags_mask);
+@@FIM

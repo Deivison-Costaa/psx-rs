@@ -1,0 +1,81 @@
+# Manifesto de mutação da iteração 0044 — texpage e textura 15bpp
+formato: 1
+iteracao: 0044
+item: 2.5a
+alvo: crates/psx-core/src/gpu.rs
+teste: gpu_textura_15bpp
+
+mutante: m1
+rotulo: Texpage attribute sobrescreve bits 9-10 do GPUSTAT (dither e display)
+@@DE
+            let new_bits = (texpage & 0x1FF) | (((texpage >> 11) & 1) << 15);
+            let mask = 0x1FF | (1 << 15);
+@@PARA
+            let new_bits = (texpage & 0x7FF) | (((texpage >> 11) & 1) << 15);
+            let mask = 0x7FF | (1 << 15);
+@@FIM
+
+mutante: m2
+rotulo: texel 0x0000 eh desenhado em vez de pular (transparencia ignorada)
+@@DE
+                    let texel = self.sample_texel(tex_u, tex_v);
+                    if texel == 0 {
+                        continue;
+                    }
+                    texel
+@@PARA
+                    let texel = self.sample_texel(tex_u, tex_v);
+                    texel
+@@FIM
+
+mutante: m3
+rotulo: bit 11 do E1h vai para GPUSTAT.11 em vez de GPUSTAT.15
+@@DE
+            let mask = (0x7FF) | (1 << 15);
+            let bits = (param & 0x7FF) | (((param >> 11) & 1) << 15);
+@@PARA
+            let mask = (0x7FF) | (1 << 11);
+            let bits = (param & 0x7FF) | (((param >> 11) & 1) << 11);
+@@FIM
+
+mutante: m4
+rotulo: texpage colors=3 nao tratado como 15bpp (so mode=2 amostra textura)
+@@DE
+            tex_colors == 2 || tex_colors == 3
+@@PARA
+            tex_colors == 2
+@@FIM
+
+mutante: m5
+rotulo: texture page Y base lido do bit 15 em vez do bit 4 do GPUSTAT
+@@DE
+            let page_y = (((stat >> 4) & 1) as u16) * 256;
+@@PARA
+            let page_y = (((stat >> 15) & 1) as u16) * 256;
+@@FIM
+
+mutante: m6
+rotulo: UV armazenado na posicao vertex_count em vez de vertex_count-1
+@@DE
+                    let uv_idx = vertex_count.saturating_sub(1) as usize;
+@@PARA
+                    let uv_idx = vertex_count as usize;
+@@FIM
+
+controle: K1
+rotulo: renomeia variavel local tex_colors para mode em sample_texel (cosmetico)
+@@DE
+        let tex_colors = (stat >> 7) & 3;
+@@PARA
+        let mode = (stat >> 7) & 3;
+@@FIM
+
+controle: K2
+rotulo: inverte ordem das atribuicoes de page_x e page_y em sample_texel
+@@DE
+            let page_x = ((stat & 0xF) as u16) * 64;
+            let page_y = (((stat >> 4) & 1) as u16) * 256;
+@@PARA
+            let page_y = (((stat >> 4) & 1) as u16) * 256;
+            let page_x = ((stat & 0xF) as u16) * 64;
+@@FIM

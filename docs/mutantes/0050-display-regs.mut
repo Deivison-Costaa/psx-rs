@@ -1,0 +1,90 @@
+# Manifesto de mutação da iteração 0050 — display registers
+formato: 1
+iteracao: 0050
+item: 2.7a
+alvo: crates/psx-core/src/gpu.rs
+teste: gpu_display_regs
+
+mutante: m1
+rotulo: GP1(06h) inverte X1 e X2 (X1 le o campo de X2 e X2 le de X1)
+@@DE
+                self.display_range_x1.set((param & 0xFFF) as u16);
+                self.display_range_x2.set(((param >> 12) & 0xFFF) as u16);
+@@PARA
+                self.display_range_x1.set(((param >> 12) & 0xFFF) as u16);
+                self.display_range_x2.set((param & 0xFFF) as u16);
+@@FIM
+
+mutante: m2
+rotulo: GP1(07h) inverte Y1 e Y2 (Y1 le o campo de Y2 e Y2 le de Y1)
+@@DE
+                self.display_range_y1.set((param & 0x3FF) as u16);
+                self.display_range_y2.set(((param >> 10) & 0x3FF) as u16);
+@@PARA
+                self.display_range_y1.set(((param >> 10) & 0x3FF) as u16);
+                self.display_range_y2.set((param & 0x3FF) as u16);
+@@FIM
+
+mutante: m3
+rotulo: GP1(05h) mascara X com 0x1FF (9 bits) em vez de 0x3FF (10 bits)
+@@DE
+                self.display_start_x.set((param & 0x3FF) as u16);
+@@PARA
+                self.display_start_x.set((param & 0x1FF) as u16);
+@@FIM
+
+mutante: m4
+rotulo: GP1(00h) reset nao zera display_range_x1 (mantem valor anterior do hardware)
+@@DE
+                self.display_range_x1.set(0x200);
+@@PARA
+                // mantem valor anterior
+@@FIM
+
+mutante: m5
+rotulo: GP1(05h) Y usa mascara 0xFF (8 bits) em vez de 0x1FF (9 bits)
+@@DE
+                self.display_start_y.set(((param >> 10) & 0x1FF) as u16);
+@@PARA
+                self.display_start_y.set(((param >> 10) & 0xFF) as u16);
+@@FIM
+
+mutante: m6
+rotulo: GP1(07h) Y2 le do bit 12 em vez do bit 10 (deslocamento errado)
+@@DE
+                self.display_range_y2.set(((param >> 10) & 0x3FF) as u16);
+@@PARA
+                self.display_range_y2.set(((param >> 12) & 0x3FF) as u16);
+@@FIM
+
+mutante: m7
+rotulo: GP1(06h) armazena X1 no lugar de X2 (esquece de ler X2)
+@@DE
+                self.display_range_x2.set(((param >> 12) & 0xFFF) as u16);
+@@PARA
+                self.display_range_x2.set((param & 0xFFF) as u16);
+@@FIM
+
+controle: K1
+rotulo: inverte ordem de set de Y1 e Y2 em GP1(07h) (independentes, cosmetico)
+@@DE
+                self.display_range_y1.set((param & 0x3FF) as u16);
+                self.display_range_y2.set(((param >> 10) & 0x3FF) as u16);
+@@PARA
+                self.display_range_y2.set(((param >> 10) & 0x3FF) as u16);
+                self.display_range_y1.set((param & 0x3FF) as u16);
+@@FIM
+
+controle: K2
+rotulo: declara variavel local nao usada _nop dentro de write_gp1 (cosmetico)
+@@DE
+            _ => {}
+        }
+    }
+@@PARA
+            _ => {
+                let _nop = 0;
+            }
+        }
+    }
+@@FIM

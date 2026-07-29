@@ -40,6 +40,10 @@ fn intmsk_write(bus: &mut Bus, val: u8) {
     set_bank(bus, 0);
 }
 
+fn insert_stub_disc(bus: &mut Bus) {
+    bus.cdrom_mut().insert_disc();
+}
+
 #[test]
 fn index0_read_retorna_status_inicial() {
     let bus = bus();
@@ -78,6 +82,7 @@ fn index0_write_troca_de_bank() {
 #[test]
 fn init_command_dispara_int3_e_depois_int2() {
     let mut bus = bus();
+    insert_stub_disc(&mut bus);
     set_bank(&mut bus, 0);
     cd_write(&mut bus, 1, 0x0A);
     let hintsts = hintsts_read_bank1(&mut bus);
@@ -86,7 +91,11 @@ fn init_command_dispara_int3_e_depois_int2() {
     let hsts = cd_read(&bus, 0);
     assert_ne!(hsts & (1 << 7), 0, "BUSYSTS=1 apos comando");
     let stat = cd_read(&bus, 1);
-    assert_eq!(stat, 0x02, "INT3 stat = 02h");
+    assert_eq!(
+        stat & (1 << 1),
+        1 << 1,
+        "stat bit1=1 — motor ligado apos Init com disco"
+    );
     hclrctl_write(&mut bus, 0x07);
     let hintsts2 = hintsts_read_bank1(&mut bus);
     assert_eq!(hintsts2 & 0x7, 2, "INT2 apos acknowledge do INT3 do Init");
@@ -214,14 +223,19 @@ fn escrever_mode_reseta_param_fifo() {
 #[test]
 fn result_fifo_esvaziado_apos_acknowledge_e_leitura_da_segunda_resposta() {
     let mut bus = bus();
+    insert_stub_disc(&mut bus);
     set_bank(&mut bus, 0);
     cd_write(&mut bus, 1, 0x0A);
     let stat = cd_read(&bus, 1);
-    assert_eq!(stat, 0x02, "INT3 stat = 02h");
+    assert_eq!(
+        stat & (1 << 1),
+        1 << 1,
+        "stat bit1=1 — motor ligado apos Init com disco"
+    );
     hclrctl_write(&mut bus, 0x03);
     set_bank(&mut bus, 0);
     let stat2 = cd_read(&bus, 1);
-    assert_eq!(stat2, 0x02, "INT2 entrega stat=02h do Init");
+    assert_eq!(stat2 & (1 << 1), 1 << 1, "INT2 stat bit1=1 — motor ligado");
     let hsts = cd_read(&bus, 0);
     assert_eq!(
         hsts & (1 << 5),

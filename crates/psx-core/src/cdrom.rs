@@ -12,6 +12,14 @@ pub struct Cdrom {
     intmsk: Cell<u8>,
     busy: Cell<bool>,
     pending_second: Cell<u8>,
+    disc_inserted: Cell<bool>,
+    motor_on: Cell<bool>,
+    seeking: Cell<bool>,
+    reading: Cell<bool>,
+    shell_open: Cell<bool>,
+    seek_min: Cell<u8>,
+    seek_sec: Cell<u8>,
+    seek_sect: Cell<u8>,
 }
 
 impl Cdrom {
@@ -27,7 +35,37 @@ impl Cdrom {
             intmsk: Cell::new(0),
             busy: Cell::new(false),
             pending_second: Cell::new(0),
+            disc_inserted: Cell::new(false),
+            motor_on: Cell::new(false),
+            seeking: Cell::new(false),
+            reading: Cell::new(false),
+            shell_open: Cell::new(false),
+            seek_min: Cell::new(0),
+            seek_sec: Cell::new(0),
+            seek_sect: Cell::new(0),
         }
+    }
+
+    pub fn insert_disc(&self) {
+        self.disc_inserted.set(true);
+        self.motor_on.set(true);
+    }
+
+    fn stat_byte(&self) -> u8 {
+        let mut s = 0u8;
+        if self.seeking.get() {
+            s |= 1 << 6;
+        }
+        if self.reading.get() {
+            s |= 1 << 5;
+        }
+        if self.shell_open.get() {
+            s |= 1 << 4;
+        }
+        if self.motor_on.get() {
+            s |= 1 << 1;
+        }
+        s
     }
 
     fn param_push(&self, val: u8) {
@@ -123,10 +161,59 @@ impl Cdrom {
         self.busy.set(true);
         self.result_clear();
         match cmd {
+            0x02 => {
+                let mm = self.param_pop();
+                let ss = self.param_pop();
+                let ff = self.param_pop();
+                self.param_clear();
+                let bcd_ok = (ss & 0xF0) < 0x60 && (ff & 0xF0) < 0x70 && (ff & 0x0F) < 0x0A;
+                if !bcd_ok {
+                    self.result_push(self.stat_byte() | 0x01);
+                    self.result_push(0x10);
+                    self.intsts.set(5);
+                } else if !self.disc_inserted.get() {
+                    self.result_push(self.stat_byte() | 0x01);
+                    self.result_push(0x80);
+                    self.intsts.set(5);
+                } else {
+                    self.seek_min.set(mm);
+                    self.seek_sec.set(ss);
+                    self.seek_sect.set(ff);
+                    self.result_push(self.stat_byte());
+                    self.intsts.set(3);
+                }
+                self.busy.set(false);
+            }
+            0x09 => {
+                let stat = self.stat_byte();
+                self.result_push(stat);
+                self.intsts.set(3);
+                self.pending_second.set(4);
+            }
             0x0A => {
-                self.result_push(0x02);
+                if self.pending_second.get() == 1 {
+                    self.busy.set(false);
+                    return;
+                }
+                if self.disc_inserted.get() {
+                    self.motor_on.set(true);
+                }
+                self.result_push(self.stat_byte());
                 self.intsts.set(3);
                 self.pending_second.set(1);
+            }
+            0x15 => {
+                if !self.disc_inserted.get() {
+                    self.result_push(self.stat_byte() | 0x01);
+                    self.result_push(0x80);
+                    self.intsts.set(5);
+                    self.busy.set(false);
+                } else {
+                    self.seeking.set(true);
+                    self.result_push(self.stat_byte());
+                    self.intsts.set(3);
+                    self.pending_second.set(3);
+                }
             }
             0x19 => {
                 self.intsts.set(3);
@@ -142,19 +229,21 @@ impl Cdrom {
                         self.result_push(0x01);
                     }
                     _ => {
-                        self.result_push(0x02);
+                        self.result_push(self.stat_byte());
                     }
                 }
                 self.param_clear();
+                self.busy.set(false);
             }
             0x1A => {
-                self.result_push(0x02);
+                self.result_push(self.stat_byte());
                 self.intsts.set(3);
                 self.pending_second.set(2);
             }
             _ => {
-                self.result_push(0x02);
+                self.result_push(self.stat_byte());
                 self.intsts.set(3);
+                self.busy.set(false);
             }
         }
     }
@@ -206,7 +295,7 @@ impl Cdrom {
             1 => {
                 self.busy.set(false);
                 self.result_clear();
-                self.result_push(0x02);
+                self.result_push(self.stat_byte());
                 self.intsts.set(2);
             }
             2 => {
@@ -218,6 +307,20 @@ impl Cdrom {
                     self.result_push(0x00);
                 }
                 self.intsts.set(5);
+            }
+            3 => {
+                self.busy.set(false);
+                self.seeking.set(false);
+                self.result_clear();
+                self.result_push(self.stat_byte());
+                self.intsts.set(2);
+            }
+            4 => {
+                self.busy.set(false);
+                self.reading.set(false);
+                self.result_clear();
+                self.result_push(self.stat_byte());
+                self.intsts.set(2);
             }
             _ => {}
         }

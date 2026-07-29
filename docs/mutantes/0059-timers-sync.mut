@@ -121,43 +121,18 @@ rotulo: extrair clock_src check em variavel local (equivalente semantico)
 @@FIM
 
 controle: K2
-rotulo: renomear variavel local rising_edge (semantica identica)
+rotulo: inverter ordem de if/else no increment (semantica identica)
 @@DE
-        let prev_sync = t.prev_sync_signal.get();
-        let rising_edge = sync_signal && !prev_sync;
-        t.prev_sync_signal.set(sync_signal);
-
-        if sync_enable && rising_edge {
-            match sync_mode {
-                1 | 2 => {
-                    t.counter.set(0);
-                    t.cycle_acc.set(0);
-                }
-                3 if !t.mode3_triggered.get() => {
-                    t.counter.set(0);
-                    t.cycle_acc.set(0);
-                    t.mode3_triggered.set(true);
-                }
-                _ => {}
-            }
-        }
+        let increment = if sync_enable {
+            match idx {
+                0 | 1 => match sync_mode {
 @@PARA
-        let prev_sync = t.prev_sync_signal.get();
-        let edge = sync_signal && !prev_sync;
-        t.prev_sync_signal.set(sync_signal);
-
-        if sync_enable && edge {
-            match sync_mode {
-                1 | 2 => {
-                    t.counter.set(0);
-                    t.cycle_acc.set(0);
-                }
-                3 if !t.mode3_triggered.get() => {
-                    t.counter.set(0);
-                    t.cycle_acc.set(0);
-                    t.mode3_triggered.set(true);
-                }
-                _ => {}
+        let increment = if !sync_enable {
+            match idx {
+                2 => true,
+                _ => return,
             }
-        }
+        } else {
+            match idx {
+                0 | 1 => match sync_mode {
 @@FIM

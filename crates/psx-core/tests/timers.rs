@@ -147,11 +147,9 @@ fn flag_ffff_alcancado_setado_e_limpo_na_leitura() {
     bus.write32::<BusRead>(T0_MODE, 0x0000);
     bus.write32::<BusRead>(T0_CNT, 0xFFFE);
     bus.timers_mut().tick(T0_CNT, 2);
-    assert_eq!(
-        bus.read32::<BusRead>(T0_MODE) & (1 << 12),
-        1 << 12,
-        "bit12 setado apos passar de FFFFh"
-    );
+    let mode = bus.read32::<BusRead>(T0_MODE);
+    assert_eq!(mode & (1 << 12), 1 << 12, "bit12 setado apos passar de FFFFh");
+    assert_eq!(mode & (1 << 11), 0, "bit11 NAO setado — FFFFh nao e target");
     assert_eq!(
         bus.read32::<BusRead>(T0_MODE) & (1 << 12),
         0,

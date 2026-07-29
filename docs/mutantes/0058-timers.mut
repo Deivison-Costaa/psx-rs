@@ -61,11 +61,13 @@ rotulo: bit11 setado mesmo sem reset_on_target (bit3)
 @@FIM
 
 controle: K1
-rotulo: renomear variavel local cycles para ticks
+rotulo: inverter ordem de CNT e TARGET no match de read32 (independentes)
 @@DE
-    pub fn tick(&mut self, base_addr: u32, cycles: u32) {
+            0x0 => t.counter.get() as u32,
+            0x4 => {
 @@PARA
-    pub fn tick(&mut self, base_addr: u32, ticks: u32) {
+            0x8 => t.target as u32,
+            0x4 => {
 @@FIM
 
 controle: K2

@@ -37,7 +37,9 @@
 
 ## Bateria de mutação
 
-Placar: **13/14 mutantes pegos, 1 equivalente, 2/2 controles verdes.** Cada linha foi
+Placar da bateria: 6/6 mutantes mortos, 2/2 controles verdes, 1 equivalente — docs/mutantes/0038-vram-transfers.mut
+
+**Nota histórica:** o placar original (antes do ferramental 0.10/0.11) era 13/14 mutantes pegos, 1 equivalente, 2/2 controles verdes, conferido manualmente. O manifesto `.mut` formal contém os 9 registros (6 mutantes + 2 controles + 1 equivalente) que sobreviveram à revisão adversarial e à conferência de âncoras. Cada linha foi
 aplicada no fonte, `cargo test --all --no-fail-fast` foi **rodado**, e a árvore restaurada com
 `git checkout --` (restaurar por cópia de arquivo desfez correções uma vez nesta iteração).
 Saída bruta em `scratchpad/bateria-saida.txt`; script em `scratchpad/bateria.py`.

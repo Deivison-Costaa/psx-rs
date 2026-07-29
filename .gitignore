@@ -11,3 +11,4 @@
 
 # Saída de execuções da orquestração (métricas curadas ficam em docs/metricas.csv)
 /logs/
+

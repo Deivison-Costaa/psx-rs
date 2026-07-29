@@ -5,22 +5,16 @@
 
 ## Última iteração concluída
 
-**0040** — Formato de manifesto de mutação + meta-teste (ROADMAP 0.10, PR em aberto).
+**0041** — Script de mutação + job de CI + reconciliação do placar (ROADMAP 0.11).
 
 ## Próxima tarefa
 
-**ROADMAP 0.11 — scripts/mutantes.ps1 + job de CI + reconciliação do placar.**
-Item de ferramental. O script lê `docs/mutantes/NNNN-slug.mut`, aplica cada mutação, roda
-o teste e registra o placar. O job de CI roda o script para o PR atual e falha se o placar
-não for 100%. A reconciliação do placar atualiza o doc da iteração com o placar canônico.
-
-Arquivos-alvo: `scripts/mutantes.ps1` (novo), `.github/workflows/ci.yml` (job novo).
-Formatos de referência: `docs/mutantes/README.md` (gramática), `docs/mutantes/0038-vram-transfers.mut`
-(fixture), `crates/psx-core/tests/support/mutation_format.rs` (parser de `Ocorrencias`).
-
-Armadilha conhecida: o script aplica edições ATOMICAMENTE (todas as edições de um registro
-juntas) e as reverte juntas. `ocorrencias: todas` significa substituir TODAS as ocorrências
-da âncora, não apenas uma.
+**ROADMAP 2.4 — Quads, retângulos, linhas.** Próximo item de hardware com manifesto de
+mutação exigido (PRIMEIRA_ITER_COM_MANIFESTO = 42). Spec: `docs/reference/03-gpu.md`,
+seções § Command 20h-2Fh/60h-6Fh (quads e retângulos) e § 50h-5Fh (linhas).
+Arquivo-alvo: `crates/psx-core/src/gpu.rs`.
+Armadilha: a iter 0039 já implementou quads básicos via decomposição em dois triângulos;
+o 2.4 é sobre o caminho nativo (GP0 20h-2Fh/60h-6Fh).
 
 ## Repositório
 
@@ -34,7 +28,7 @@ da âncora, não apenas uma.
 
 ## Placar de testes
 
-Workspace: **316** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 29 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 11 cpu_opcode_reservado + 16 gpu_status_gp0_gp1 + 9 ci_scoreboard + 9 cli_runner + 21 gpu_vram_transfers + 12 gpu_triangulos_flat_gouraud + 2 mutation_manifest + 2 mutation_anchors).
+Workspace: **321** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 29 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 11 cpu_opcode_reservado + 16 gpu_status_gp0_gp1 + 9 ci_scoreboard + 9 cli_runner + 21 gpu_vram_transfers + 12 gpu_triangulos_flat_gouraud + 2 mutation_manifest + 2 mutation_anchors + 5 mutation_battery).
 
 ## Bloqueios
 

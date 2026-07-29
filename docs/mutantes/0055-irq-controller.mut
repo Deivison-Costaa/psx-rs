@@ -34,27 +34,19 @@ rotulo: CAUSE.IP bit10 sempre zero (desacoplado do IRQ)
 @@FIM
 
 mutante: m4
-rotulo: ExcCode errado na interrupcao (MOD=01h em vez de INT=00h)
+rotulo: EPC errado na interrupcao (aponta para pc+4 em vez de pc)
 @@DE
-            self.raise_exception(0x00, None);
+            self.cop0[14] = self.pc;
 @@PARA
-            self.raise_exception(0x01, None);
+            self.cop0[14] = self.pc.wrapping_add(4);
 @@FIM
 
 mutante: m5
-rotulo: vetor de excecao errado (8000_0040h para INT em vez de 8000_0080h)
+rotulo: vetor de excecao errado na INT (8000_0040h em vez de 8000_0080h)
 @@DE
-            self.pc = if exc_code == 0x09 {
-                0x8000_0040
-            } else {
-                0x8000_0080
-            };
+            self.pc = 0x8000_0080;
 @@PARA
-            self.pc = if exc_code == 0x09 || exc_code == 0x00 {
-                0x8000_0040
-            } else {
-                0x8000_0080
-            };
+            self.pc = 0x8000_0040;
 @@FIM
 
 controle: K1
@@ -67,21 +59,23 @@ rotulo: adicionar comentario nao altera comportamento
 @@FIM
 
 controle: K2
-rotulo: extrair condicao para funcao helper (refatoracao equivalente)
+rotulo: extrair condicao para variavel (refatoracao equivalente)
 @@DE
         if (sr & 0x1) != 0
             && (sr & (1 << 10)) != 0
             && (self.cop0[13] & (1 << 10)) != 0
-            && self.pending_exception.is_none()
         {
-            self.raise_exception(0x00, None);
-        }
+            if let Some((reg, val)) = self.load_delay.take() {
+                self.set_reg(reg, val);
+            }
+            let ie_ku_shifted = ((sr & 0x3) << 2) | ((sr & 0xC) << 2);
 @@PARA
         let deve_interromper = (sr & 0x1) != 0
             && (sr & (1 << 10)) != 0
-            && (self.cop0[13] & (1 << 10)) != 0
-            && self.pending_exception.is_none();
+            && (self.cop0[13] & (1 << 10)) != 0;
         if deve_interromper {
-            self.raise_exception(0x00, None);
-        }
+            if let Some((reg, val)) = self.load_delay.take() {
+                self.set_reg(reg, val);
+            }
+            let ie_ku_shifted = ((sr & 0x3) << 2) | ((sr & 0xC) << 2);
 @@FIM

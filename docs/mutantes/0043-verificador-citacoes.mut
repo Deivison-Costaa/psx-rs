@@ -17,13 +17,15 @@ fn citacoes_de_spec_sao_validas() {
 
 # Controle 2: acrescenta bind local inofensivo
 controle: c2
-rotulo: acrescenta let inofensivo dentro da funcao de teste
+rotulo: acrescenta let inofensivo apos o collect
 
 @@DE
-    let md_files: Vec<_> = collect_md_files(&root)
+        .collect();
+    let mut all_errors: Vec<String> = Vec::new();
 @@PARA
-    let md_files: Vec<_> = collect_md_files(&root)
+        .collect();
     let _mark = 1;
+    let mut all_errors: Vec<String> = Vec::new();
 @@FIM
 
 # Mutante 1: hardcoda offset em 115 (obrigatorio, tem que morrer)

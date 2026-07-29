@@ -11,7 +11,8 @@
 
 **ROADMAP 4.3b — CDROM — Acoplar DiscLayout + dados do .bin.**
 Substituir o buffer stub (`data_buffer` preenchido com `(i+1) & 0xFF`) por dados reais do arquivo .bin, usando o `DiscLayout` (item 4.2b). ReadN/ReadS devem ler setores do BIN a partir da posição definida por Setloc. Armadilha: o `Cdrom` hoje não tem referência ao `DiscLayout` nem ao buffer `.bin`; `Bus` precisa injetá-los ou o `Cdrom` precisa guardar uma referência.
-Spec: `docs/reference/06-cdrom.md` seção "ReadN/ReadS" (L924), "Copy Data to Main RAM" (L940).
+Spec, em `docs/reference/06-cdrom.md`: seção "ReadN/ReadS" (L924).
+Sequência de entrega do setor, na seção "CDROM Incoming Data / Buffer Overrun Timings" (L928) do mesmo arquivo: "Copy Data to Main RAM" (L940).
 Arquivos-alvo: `crates/psx-core/src/cdrom.rs` (injetar DiscLayout + buffer BIN, ler setor real no deliver_second), `crates/psx-core/src/bus.rs` (passar dados do BIN para o Cdrom).
 
 ## Repositório

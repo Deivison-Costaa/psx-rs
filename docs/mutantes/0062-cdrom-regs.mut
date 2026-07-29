@@ -93,12 +93,18 @@ rotulo: extrair bank.get() em variavel local no write8 (equivalente semantico)
             2 if self.bank.get() == 1 => {
                 self.intmsk.set(val & 0x1F);
             }
+            3 if self.bank.get() == 0 => {
+                self.hchpctl.set(val);
+            }
             3 if self.bank.get() == 1 => {
 @@PARA
             1 if self.bank.get() == 0 => self.send_command(val),
             2 if self.bank.get() == 0 => self.param_push(val),
             2 if { let b = self.bank.get(); b == 1 } => {
                 self.intmsk.set(val & 0x1F);
+            }
+            3 if self.bank.get() == 0 => {
+                self.hchpctl.set(val);
             }
             3 if { let b = self.bank.get(); b == 1 } => {
 @@FIM

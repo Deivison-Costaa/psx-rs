@@ -1,6 +1,36 @@
 use std::cell::Cell;
 use std::fmt;
 
+fn color24_to_16(color24: u32) -> u16 {
+    let r = (color24 & 0xFF) as u8;
+    let g = ((color24 >> 8) & 0xFF) as u8;
+    let b = ((color24 >> 16) & 0xFF) as u8;
+    ((r >> 3) as u16) | (((g >> 3) as u16) << 5) | (((b >> 3) as u16) << 10)
+}
+
+fn lerp_i32(a: i32, b: i32, t: i32, t_max: i32) -> i32 {
+    if t_max == 0 {
+        return a;
+    }
+    a + (b - a) * t / t_max
+}
+
+fn lerp_color(a: u16, b: u16, t: i32, t_max: i32) -> u16 {
+    if t_max == 0 {
+        return a;
+    }
+    let ar = (a & 0x1F) as i32;
+    let ag = ((a >> 5) & 0x1F) as i32;
+    let ab = ((a >> 10) & 0x1F) as i32;
+    let br = (b & 0x1F) as i32;
+    let bg = ((b >> 5) & 0x1F) as i32;
+    let bb = ((b >> 10) & 0x1F) as i32;
+    let r = (ar + (br - ar) * t / t_max).clamp(0, 31) as u16;
+    let g = (ag + (bg - ag) * t / t_max).clamp(0, 31) as u16;
+    let b = (ab + (bb - ab) * t / t_max).clamp(0, 31) as u16;
+    r | (g << 5) | (b << 10)
+}
+
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum VramCmd {
     Fill,
@@ -33,6 +63,18 @@ enum VramState {
     SkipParams {
         remaining: u8,
     },
+    PolygonRender {
+        gouraud: bool,
+        textured: bool,
+        quad: bool,
+        color0: u32,
+        vertices: [(i16, i16); 4],
+        colors: [u32; 4],
+        vertex_count: u8,
+        total_vertices: u8,
+        awaiting_color: bool,
+        awaiting_uv: bool,
+    },
 }
 
 pub struct Gpu {
@@ -40,6 +82,12 @@ pub struct Gpu {
     dma_direction: Cell<u8>,
     vram: Vec<u16>,
     vram_state: Cell<VramState>,
+    drawing_x1: Cell<u16>,
+    drawing_y1: Cell<u16>,
+    drawing_x2: Cell<u16>,
+    drawing_y2: Cell<u16>,
+    drawing_offset_x: Cell<i16>,
+    drawing_offset_y: Cell<i16>,
 }
 
 impl Default for Gpu {
@@ -55,6 +103,12 @@ impl Gpu {
             dma_direction: Cell::new(0),
             vram: vec![0u16; 1024 * 512],
             vram_state: Cell::new(VramState::Idle),
+            drawing_x1: Cell::new(0),
+            drawing_y1: Cell::new(0),
+            drawing_x2: Cell::new(1023),
+            drawing_y2: Cell::new(511),
+            drawing_offset_x: Cell::new(0),
+            drawing_offset_y: Cell::new(0),
         }
     }
 
@@ -151,6 +205,46 @@ impl Gpu {
                             }
                         }
                         0x00 | 0x04..=0x1E | 0xE0 | 0xE7..=0xEF => VramState::Idle,
+                        0xE3 => {
+                            let x = (val & 0x3FF) as u16;
+                            let y = ((val >> 10) & 0x1FF) as u16;
+                            self.drawing_x1.set(x);
+                            self.drawing_y1.set(y);
+                            VramState::Idle
+                        }
+                        0xE4 => {
+                            let x = (val & 0x3FF) as u16;
+                            let y = ((val >> 10) & 0x1FF) as u16;
+                            self.drawing_x2.set(x);
+                            self.drawing_y2.set(y);
+                            VramState::Idle
+                        }
+                        0xE5 => {
+                            let off_x = ((val & 0x7FF) << 5) as i16 >> 5;
+                            let off_y = (((val >> 11) & 0x7FF) << 5) as i16 >> 5;
+                            self.drawing_offset_x.set(off_x);
+                            self.drawing_offset_y.set(off_y);
+                            VramState::Idle
+                        }
+                        0x20..=0x3F => {
+                            self.stat.set(self.stat.get() & !(1 << 26));
+                            let gouraud = (cmd & 0x10) != 0;
+                            let textured = (cmd & 0x04) != 0;
+                            let quad = (cmd & 0x08) != 0;
+                            let total = if quad { 4 } else { 3 };
+                            VramState::PolygonRender {
+                                gouraud,
+                                textured,
+                                quad,
+                                color0: val & 0x00FF_FFFF,
+                                vertices: [(0, 0); 4],
+                                colors: [0; 4],
+                                vertex_count: 0,
+                                total_vertices: total,
+                                awaiting_color: false,
+                                awaiting_uv: false,
+                            }
+                        }
                         0xE6 => {
                             let param = val & 0xFF_FFFF;
                             let mask = (1 << 11) | (1 << 12);
@@ -239,6 +333,70 @@ impl Gpu {
                 }
             }
             VramState::VramToCpu { .. } => {}
+            VramState::PolygonRender {
+                gouraud,
+                textured,
+                quad,
+                color0,
+                mut vertices,
+                mut colors,
+                mut vertex_count,
+                total_vertices,
+                mut awaiting_color,
+                mut awaiting_uv,
+            } => {
+                if awaiting_color {
+                    colors[vertex_count as usize] = val & 0x00FF_FFFF;
+                    awaiting_color = false;
+                } else if awaiting_uv {
+                    awaiting_uv = false;
+                    if vertex_count >= total_vertices {
+                        self.render_polygon(gouraud, quad, &mut vertices, &mut colors);
+                        self.stat.set(self.stat.get() | (1 << 26));
+                        self.vram_state.set(VramState::Idle);
+                        return;
+                    }
+                    if gouraud {
+                        awaiting_color = true;
+                    }
+                } else {
+                    let raw_x = ((val & 0xFFFF) << 5) as i16 >> 5;
+                    let raw_y = (((val >> 16) & 0xFFFF) << 5) as i16 >> 5;
+                    let off_x = self.drawing_offset_x.get();
+                    let off_y = self.drawing_offset_y.get();
+                    let x = raw_x.wrapping_add(off_x);
+                    let y = raw_y.wrapping_add(off_y);
+                    if vertex_count == 0 {
+                        colors[0] = color0;
+                    }
+                    vertices[vertex_count as usize] = (x, y);
+                    vertex_count += 1;
+
+                    if textured {
+                        awaiting_uv = true;
+                    } else if vertex_count >= total_vertices {
+                        self.render_polygon(gouraud, quad, &mut vertices, &mut colors);
+                        self.stat.set(self.stat.get() | (1 << 26));
+                        self.vram_state.set(VramState::Idle);
+                        return;
+                    }
+                    if gouraud && !textured {
+                        awaiting_color = true;
+                    }
+                }
+                self.vram_state.set(VramState::PolygonRender {
+                    gouraud,
+                    textured,
+                    quad,
+                    color0,
+                    vertices,
+                    colors,
+                    vertex_count,
+                    total_vertices,
+                    awaiting_color,
+                    awaiting_uv,
+                });
+            }
         }
     }
 
@@ -310,6 +468,121 @@ impl Gpu {
             for col in 0..xsiz as u16 {
                 let px = xpos.wrapping_add(col) & 0x3FF;
                 self.vram[py as usize * 1024 + px as usize] = pixel;
+            }
+        }
+    }
+
+    fn render_polygon(
+        &mut self,
+        gouraud: bool,
+        quad: bool,
+        vertices: &mut [(i16, i16); 4],
+        colors: &mut [u32; 4],
+    ) {
+        let n = if quad { 4 } else { 3 };
+        if !gouraud {
+            let flat_color = colors[0];
+            for c in colors.iter_mut().take(n) {
+                *c = flat_color;
+            }
+        }
+        for i in 0..n {
+            for j in (i + 1)..n {
+                let dx = (vertices[i].0 as i32 - vertices[j].0 as i32).abs();
+                let dy = (vertices[i].1 as i32 - vertices[j].1 as i32).abs();
+                if dx > 1023 || dy > 511 {
+                    return;
+                }
+            }
+        }
+        if quad {
+            self.render_triangle(
+                gouraud,
+                [vertices[0], vertices[1], vertices[2]],
+                [colors[0], colors[1], colors[2]],
+            );
+            self.render_triangle(
+                gouraud,
+                [vertices[1], vertices[2], vertices[3]],
+                [colors[1], colors[2], colors[3]],
+            );
+        } else {
+            self.render_triangle(
+                gouraud,
+                [vertices[0], vertices[1], vertices[2]],
+                [colors[0], colors[1], colors[2]],
+            );
+        }
+    }
+
+    fn render_triangle(&mut self, gouraud: bool, verts: [(i16, i16); 3], colors: [u32; 3]) {
+        let (v0, v1, v2) = (verts[0], verts[1], verts[2]);
+        let (c0, c1, c2) = (colors[0], colors[1], colors[2]);
+        let mut verts = [
+            (v0.0 as i32, v0.1 as i32, color24_to_16(c0)),
+            (v1.0 as i32, v1.1 as i32, color24_to_16(c1)),
+            (v2.0 as i32, v2.1 as i32, color24_to_16(c2)),
+        ];
+        verts.sort_by_key(|v| v.1);
+
+        let (xm, ym, pcm) = verts[1];
+        let (xb, yb, pcb) = verts[2];
+        let (xt, yt, pct) = verts[0];
+
+        let dy_mt = ym - yt;
+        let dy_bt = yb - yt;
+        let dy_bm = yb - ym;
+
+        if dy_bt <= 0 {
+            return;
+        }
+
+        let area_x1 = self.drawing_x1.get() as i32;
+        let area_y1 = self.drawing_y1.get() as i32;
+        let area_x2 = self.drawing_x2.get() as i32;
+        let area_y2 = self.drawing_y2.get() as i32;
+        let y_start = yt.max(area_y1).max(0);
+        let y_end = yb.min(area_y2 + 1).min(512);
+
+        for y in y_start..y_end {
+            let x_edge_tb = lerp_i32(xt, xb, y - yt, dy_bt);
+            let (x_edge_short, color_short, _dy_short) = if y < ym {
+                (
+                    lerp_i32(xt, xm, y - yt, dy_mt),
+                    lerp_color(pct, pcm, y - yt, dy_mt),
+                    dy_mt,
+                )
+            } else {
+                (
+                    lerp_i32(xm, xb, y - ym, dy_bm),
+                    lerp_color(pcm, pcb, y - ym, dy_bm),
+                    dy_bm,
+                )
+            };
+
+            let color_tb = lerp_color(pct, pcb, y - yt, dy_bt);
+
+            let (xl, xr, cl, cr) = if x_edge_tb < x_edge_short {
+                (x_edge_tb, x_edge_short, color_tb, color_short)
+            } else {
+                (x_edge_short, x_edge_tb, color_short, color_tb)
+            };
+
+            let xl = xl.max(area_x1).max(0);
+            let xr = xr.max(0).min(area_x2 + 1).min(1024);
+            if xl >= xr {
+                continue;
+            }
+
+            let dx = xr - xl;
+            for x in xl..xr {
+                let pixel = if gouraud && dx > 0 {
+                    lerp_color(cl, cr, x - xl, dx)
+                } else {
+                    pct
+                };
+                let idx = y as usize * 1024 + x as usize;
+                self.vram[idx] = pixel;
             }
         }
     }
@@ -417,6 +690,12 @@ impl Gpu {
                 self.stat.set(0x1480_2000);
                 self.dma_direction.set(0);
                 self.vram_state.set(VramState::Idle);
+                self.drawing_x1.set(0);
+                self.drawing_y1.set(0);
+                self.drawing_x2.set(1023);
+                self.drawing_y2.set(511);
+                self.drawing_offset_x.set(0);
+                self.drawing_offset_y.set(0);
             }
             0x01 => {
                 self.vram_state.set(VramState::Idle);
@@ -490,6 +769,20 @@ impl fmt::Debug for VramState {
             }
             VramState::SkipParams { remaining } => {
                 write!(f, "SkipParams(rem={})", remaining)
+            }
+            VramState::PolygonRender {
+                vertex_count,
+                total_vertices,
+                awaiting_color,
+                awaiting_uv,
+                textured,
+                ..
+            } => {
+                write!(
+                    f,
+                    "PolygonRender(v={}/{}, tex={}, await_color={}, await_uv={})",
+                    vertex_count, total_vertices, textured, awaiting_color, awaiting_uv
+                )
             }
             VramState::VramToCpu {
                 x,

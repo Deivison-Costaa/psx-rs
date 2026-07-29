@@ -5,36 +5,29 @@
 
 ## Última iteração concluída
 
-**0038** — **VRAM 1MB + transfers CPU↔VRAM** (ROADMAP 2.2). Fill GP0(02h), A0h copy
-CPU→VRAM, C0h copy VRAM→CPU pelo GPUREAD. Seis rodadas de trabalhador: 1 aproveitada,
-1 timeout e 4 falhas de processo; testes e correções finais feitos pelo orquestrador.
-Bateria 13/14 + 1 equivalente, 2/2 controles. 300 testes.
-Ver `docs/iterations/0038-vram-transfers.md`.
+**0038** — VRAM 1MB + transfers CPU↔VRAM (ROADMAP 2.2, PR #52).
 
 ## Próxima tarefa
 
-**ROADMAP 2.3** — Triângulos flat + gouraud.
+**ROADMAP 2.3 — Triângulos flat + gouraud. NÃO ESTÁ CONCLUÍDO: reprovado na revisão.**
+Rodada de continuação na branch `iter/0039-triangulos-flat-gouraud`, PR #53 já aberto.
+Use `oc-iter.ps1 -ContinueBranch iter/0039-triangulos-flat-gouraud`.
 
-Arquivo-alvo: `crates/psx-core/src/gpu.rs` (a máquina de estados de GP0 já existe — o
-`write_gp0` decodifica pelos 3 bits altos do byte de comando; polígonos são `top3 == 1`).
-Spec: `docs/reference/03-gpu.md` § GPU Render Polygon Commands (**L254**), § GPU Rendering
-Attributes (**L439**), § Vertex (**L440**), § Color Attribute (**L457**). Números de linha
-REAIS, conferidos com `grep -n`.
+O scanline em si está certo para o caso interior — não reescreva o rasterizador. Reprovaram:
 
-**Armadilha 1 — o índice de seções no topo dos arquivos de `docs/reference/` usa offsets
-relativos à marca `CORPO:` e NÃO bate com a linha real** (diferença medida: +115 em
-`03-gpu.md`). Sempre reconferir com `grep -n` antes de citar linha.
-
-**Armadilha 2 — contagem de palavras.** O número de parâmetros varia com shading (flat vs
-gouraud), número de vértices (3 vs 4) e textura (on/off). Errar a contagem dessincroniza o
-FIFO e as palavras seguintes viram comandos — foi exatamente o defeito G3 desta iteração com
-o GP0(80h). Vértices são coordenadas signed de 16 bits (`YyyyXxxxh`); cores são 24 bits
-empacotados (`BbGgRrh`).
-
-**Armadilha 3 — teste que não mede.** Nesta iteração sete mutações sobreviveram a 19 testes
-verdes. Para 2.3: assertar **valor exato** de pixel em coordenada absoluta, nunca
-`assert_ne!`/"não deu panic"; e nada de round-trip (desenhar e reler pela mesma função não
-mede endereçamento). Ver a seção da revisão delegada no doc da 0038.
+1. **Regra de preenchimento (L323).** `Polygons are displayed up to <excluding> their
+   lower-right coordinates`. Os spans são inclusivos nos dois extremos: medido, um triângulo
+   (0,0)-(0,4)-(4,0) pinta (4,0) e (0,4), que deveriam ficar de fora.
+2. **Comandos texturizados dessincronizam o FIFO.** O braço `0x20..=0x3F` lê gouraud
+   (`cmd & 0x10`) e quad (`cmd & 0x08`) e ignora o bit de textura (`cmd & 0x04`); as palavras
+   de UV viram vértices. Medido: um GP0(24h) desenha um triângulo fantasma em (5,5) e nada no
+   interior real. Não implemente textura (é o item 2.5) — só **conte e consuma** as palavras.
+3. **Drawing Offset GP0(E5h) não existe** (L565) e **Drawing Area GP0(E3h/E4h) não existe**
+   (L552). Medido: com offset (100,100) o triângulo sai na origem crua. Polígonos são afetados
+   pelos dois — ao contrário das cópias do 2.2, que a spec diz explicitamente que não são.
+4. **Testes que não medem** (8 achados) e **a bateria conta um controle que não é controle**:
+   reordenar os dois triângulos do quad muda o resultado observável, porque no quad cíclico
+   eles se sobrepõem.
 
 ## Repositório
 
@@ -48,7 +41,7 @@ mede endereçamento). Ver a seção da revisão delegada no doc da 0038.
 
 ## Placar de testes
 
-Workspace: **300** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 29 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 11 cpu_opcode_reservado + 16 gpu_status_gp0_gp1 + 9 ci_scoreboard + 9 cli_runner + 21 gpu_vram_transfers).
+Workspace: **312** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 29 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 11 cpu_opcode_reservado + 16 gpu_status_gp0_gp1 + 9 ci_scoreboard + 9 cli_runner + 21 gpu_vram_transfers + 12 gpu_triangulos_flat_gouraud).
 
 ## Bloqueios
 

@@ -5,28 +5,9 @@
 
 ## Última iteração concluída
 
-**0069** — Portão da reconciliação do placar (ROADMAP 10.12): `relative()` devolvia separador
-nativo, então o portão anti-fabricação pulava os 25 manifestos na máquina local desde a 0041.
+**0071** — DMA: DPCR como gate de habilitação (ROADMAP 10.19): os três `try_execute_*` agora consultam o DPCR antes de transferir. Canais nascem desabilitados (reset `07654321h` com Master Enable=0 em todos os nibbles). Testes existentes de `dma_otc`, `dma_gpu` e `cdrom_dma` passaram a habilitar o canal antes de disparar.
 
 ## Próxima tarefa
-
-**Duas opções abertas; a escolha é do usuário. Enquanto não houver decisão, vale a segunda.**
-
-**Opção A (recomendada) — ROADMAP 10.19 — DMA: DPCR como gate de habilitação.**
-Nenhum dos três canais implementados consulta o DPCR: em `crates/psx-core/src/dma.rs`, as três
-funções `try_execute_otc`, `try_execute_dma3` e `try_execute_dma2` olham só os bits 24 e 28 do
-CHCR, então transferem com o canal desabilitado. `ps1-tests/dma/otc-test` reprova 4 subtestes só por isso
-(`testOtcStandardWithMasterDisabled`). É a menor mudança do projeto com evidência de hardware
-direta.
-Spec, em `docs/reference/04-dma.md`: seção "1F8010F0h - DPCR - DMA Control Register (R/W)"
-(L121); Master Enable do canal 6 é o bit 27 (L136), do canal 3 é o bit 15 (L130), do canal 2 é
-o bit 11 (L128) — sempre o bit 3 do nibble do canal.
-**Armadilha medida, não suposta:** o reset `07654321h` (L140) tem todos os nibbles entre 1 e 7,
-logo o bit 3 de cada um é **zero** — ao ligar o gate, todo canal nasce desabilitado. Os testes
-existentes de `dma_otc`, `dma_gpu` e `cdrom_dma` escrevem CHCR sem nunca habilitar o canal no
-DPCR, então parte deles vai ficar vermelha: essa vermelhidão é o resultado esperado, e cada um
-precisa passar a habilitar o canal antes de disparar. Não conserte relaxando o gate.
-Arquivos-alvo: `crates/psx-core/src/dma.rs`, `crates/psx-core/tests/dma_dpcr_gate.rs` (novo).
 
 **Opção B — ROADMAP 4.3b — CDROM — Acoplar DiscLayout + dados do .bin.**
 Substituir o buffer stub (`data_buffer` preenchido com `(i+1) & 0xFF`) por dados reais do arquivo .bin, usando o `DiscLayout` (item 4.2b). ReadN/ReadS devem ler setores do BIN a partir da posição definida por Setloc. Armadilha: o `Cdrom` hoje não tem referência ao `DiscLayout` nem ao buffer `.bin`; `Bus` precisa injetá-los ou o `Cdrom` precisa guardar uma referência.
@@ -46,7 +27,7 @@ Arquivos-alvo: `crates/psx-core/src/cdrom.rs` (injetar DiscLayout + buffer BIN, 
 
 ## Placar de testes
 
-Workspace: **549** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 29 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 11 cpu_opcode_reservado + 11 cpu_irq + 13 dma_otc + 14 dma_gpu + 12 cdrom_dma + 13 timers + 11 timers_sync + 9 timers_dotclock_hblank + 14 timers_irq + 16 gpu_status_gp0_gp1 + 9 ci_scoreboard + 9 cli_runner + 21 gpu_vram_transfers + 20 gpu_triangulos_flat_gouraud + 20 gpu_linhas_retangulos + 4 gpu_linhas_retangulos_continuacao + 6 gpu_textura_15bpp + 6 gpu_texturas_4bpp_8bpp + 5 gpu_texture_window + 6 gpu_semi_transparencia + 7 gpu_dithering + 8 gpu_mask_bit + 7 gpu_display_regs + 9 gpu_timing_vblank + 6 gpu_framebuffer + 3 gpu_desktop_egui + 6 gpu_scoreboard + 13 cdrom_regs + 11 cdrom_seek_pause + 11 cdrom_bin_cue + 10 cdrom_read + 1 spec_citations + 2 mutation_manifest + 2 mutation_anchors + 5 mutation_battery + 1 mutation_reconciliation).
+Workspace: **556** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 29 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 11 cpu_opcode_reservado + 11 cpu_irq + 13 dma_otc + 14 dma_gpu + 12 cdrom_dma + 7 dma_dpcr_gate + 13 timers + 11 timers_sync + 9 timers_dotclock_hblank + 14 timers_irq + 16 gpu_status_gp0_gp1 + 9 ci_scoreboard + 9 cli_runner + 21 gpu_vram_transfers + 20 gpu_triangulos_flat_gouraud + 20 gpu_linhas_retangulos + 4 gpu_linhas_retangulos_continuacao + 6 gpu_textura_15bpp + 6 gpu_texturas_4bpp_8bpp + 5 gpu_texture_window + 6 gpu_semi_transparencia + 7 gpu_dithering + 8 gpu_mask_bit + 7 gpu_display_regs + 9 gpu_timing_vblank + 6 gpu_framebuffer + 3 gpu_desktop_egui + 6 gpu_scoreboard + 13 cdrom_regs + 11 cdrom_seek_pause + 11 cdrom_bin_cue + 10 cdrom_read + 1 spec_citations + 2 mutation_manifest + 2 mutation_anchors + 5 mutation_battery + 1 mutation_reconciliation).
 
 ## Bloqueios
 

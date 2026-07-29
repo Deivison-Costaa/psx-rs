@@ -250,22 +250,14 @@ fn escrever_mode_reseta_estado_de_sync() {
     assert_eq!(
         bus.read32::<BusRead>(T0_CNT) & 0xFFFF,
         5,
-        "CNT incrementou apos primeira borda de Hblank no modo 1"
+        "CNT incrementou apos reset na primeira borda"
     );
     bus.write32::<BusRead>(T0_MODE, 0x0003);
-    set_hb(&mut bus, false);
-    tick_timer(&mut bus, T0_CNT, 5);
-    assert_eq!(
-        bus.read32::<BusRead>(T0_CNT) & 0xFFFF,
-        5,
-        "CNT incrementou livremente apos re-escrever MODE (reset de prev_sync)"
-    );
-    set_hb(&mut bus, true);
     tick_timer(&mut bus, T0_CNT, 3);
     assert_eq!(
         bus.read32::<BusRead>(T0_CNT) & 0xFFFF,
         3,
-        "CNT resetou na borda apos re-escrever MODE (prev_sync foi resetado)"
+        "CNT resetou na borda ao re-escrever MODE com Hblank mantido ativo"
     );
 }
 

@@ -145,6 +145,21 @@ fn bateria_resultados_consistem_com_manifestos() {
             ));
             continue;
         }
+        for cand in &candidates {
+            let cand_rel = support::relative(cand);
+            let rastreado = std::process::Command::new("git")
+                .current_dir(&root)
+                .args(["ls-files", "--error-unmatch", &cand_rel])
+                .output()
+                .map(|o| o.status.success())
+                .unwrap_or(true);
+            if !rastreado {
+                errs.push(format!(
+                    "{}: existe no disco mas NAO esta rastreado pelo git. O .resultado e a                      prova de execucao: sem ele no repositorio o teste passa na arvore de                      quem rodou e reprova no clone limpo da CI. Rode `git add {}`.                      (3 ocorrencias: iters 0041, 0042, 0044.)",
+                    cand_rel, cand_rel
+                ));
+            }
+        }
         let result_path = &candidates[0];
         let result_content = match fs::read_to_string(result_path) {
             Ok(c) => c,

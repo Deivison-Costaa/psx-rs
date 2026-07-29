@@ -77,6 +77,7 @@ enum VramState {
         color0: u32,
         vertices: [(i16, i16); 4],
         colors: [u32; 4],
+        uvs: [(u8, u8); 4],
         vertex_count: u8,
         total_vertices: u8,
         awaiting_color: bool,
@@ -268,6 +269,7 @@ impl Gpu {
                                 color0: val & 0x00FF_FFFF,
                                 vertices: [(0, 0); 4],
                                 colors: [0; 4],
+                                uvs: [(0, 0); 4],
                                 vertex_count: 0,
                                 total_vertices: total,
                                 awaiting_color: false,
@@ -403,6 +405,7 @@ impl Gpu {
                 color0,
                 mut vertices,
                 mut colors,
+                mut uvs,
                 mut vertex_count,
                 total_vertices,
                 mut awaiting_color,
@@ -413,8 +416,18 @@ impl Gpu {
                     awaiting_color = false;
                 } else if awaiting_uv {
                     awaiting_uv = false;
+                    let uv_idx = vertex_count.saturating_sub(1) as usize;
+                    uvs[uv_idx] = ((val & 0xFF) as u8, ((val >> 8) & 0xFF) as u8);
+                    self.apply_texpage_if_second(uv_idx, val);
                     if vertex_count >= total_vertices {
-                        self.render_polygon(gouraud, quad, &mut vertices, &mut colors);
+                        self.render_polygon(
+                            gouraud,
+                            quad,
+                            textured,
+                            &mut vertices,
+                            &mut colors,
+                            &mut uvs,
+                        );
                         self.stat.set(self.stat.get() | (1 << 26));
                         self.vram_state.set(VramState::Idle);
                         return;
@@ -438,7 +451,14 @@ impl Gpu {
                     if textured {
                         awaiting_uv = true;
                     } else if vertex_count >= total_vertices {
-                        self.render_polygon(gouraud, quad, &mut vertices, &mut colors);
+                        self.render_polygon(
+                            gouraud,
+                            quad,
+                            textured,
+                            &mut vertices,
+                            &mut colors,
+                            &mut uvs,
+                        );
                         self.stat.set(self.stat.get() | (1 << 26));
                         self.vram_state.set(VramState::Idle);
                         return;
@@ -454,6 +474,7 @@ impl Gpu {
                     color0,
                     vertices,
                     colors,
+                    uvs,
                     vertex_count,
                     total_vertices,
                     awaiting_color,
@@ -749,12 +770,40 @@ impl Gpu {
         }
     }
 
+    fn apply_texpage_if_second(&mut self, vertex_idx: usize, uv_word: u32) {
+        if vertex_idx == 1 {
+            let texpage = (uv_word >> 16) & 0xFFFF;
+            let new_bits = (texpage & 0x1FF) | (((texpage >> 11) & 1) << 15);
+            let mask = 0x1FF | (1 << 15);
+            let s = self.stat.get();
+            self.stat.set((s & !mask) | new_bits);
+        }
+    }
+
+    fn sample_texel(&self, u: i32, v: i32) -> u16 {
+        let stat = self.stat.get();
+        let tex_colors = (stat >> 7) & 3;
+        let u_clamped = u.clamp(0, 255) as u16;
+        let v_clamped = v.clamp(0, 255) as u16;
+        if tex_colors == 2 || tex_colors == 3 {
+            let page_x = ((stat & 0xF) as u16) * 64;
+            let page_y = (((stat >> 4) & 1) as u16) * 256;
+            let addr = (page_y.wrapping_add(v_clamped) as usize & 0x1FF) * 1024
+                + (page_x.wrapping_add(u_clamped) as usize & 0x3FF);
+            self.vram[addr]
+        } else {
+            0
+        }
+    }
+
     fn render_polygon(
         &mut self,
         gouraud: bool,
         quad: bool,
+        textured: bool,
         vertices: &mut [(i16, i16); 4],
         colors: &mut [u32; 4],
+        uvs: &mut [(u8, u8); 4],
     ) {
         let n = if quad { 4 } else { 3 };
         if !gouraud {
@@ -772,39 +821,75 @@ impl Gpu {
                 }
             }
         }
+        let tex_active = textured && {
+            let tex_colors = (self.stat.get() >> 7) & 3;
+            tex_colors == 2 || tex_colors == 3
+        };
         if quad {
             self.render_triangle(
                 gouraud,
+                tex_active,
                 [vertices[0], vertices[1], vertices[2]],
                 [colors[0], colors[1], colors[2]],
+                [uvs[0], uvs[1], uvs[2]],
             );
             self.render_triangle(
                 gouraud,
+                tex_active,
                 [vertices[1], vertices[2], vertices[3]],
                 [colors[1], colors[2], colors[3]],
+                [uvs[1], uvs[2], uvs[3]],
             );
         } else {
             self.render_triangle(
                 gouraud,
+                tex_active,
                 [vertices[0], vertices[1], vertices[2]],
                 [colors[0], colors[1], colors[2]],
+                [uvs[0], uvs[1], uvs[2]],
             );
         }
     }
 
-    fn render_triangle(&mut self, gouraud: bool, verts: [(i16, i16); 3], colors: [u32; 3]) {
+    fn render_triangle(
+        &mut self,
+        gouraud: bool,
+        textured: bool,
+        verts: [(i16, i16); 3],
+        colors: [u32; 3],
+        uvs: [(u8, u8); 3],
+    ) {
         let (v0, v1, v2) = (verts[0], verts[1], verts[2]);
         let (c0, c1, c2) = (colors[0], colors[1], colors[2]);
-        let mut verts = [
-            (v0.0 as i32, v0.1 as i32, color24_to_16(c0)),
-            (v1.0 as i32, v1.1 as i32, color24_to_16(c1)),
-            (v2.0 as i32, v2.1 as i32, color24_to_16(c2)),
+        let (uv0, uv1, uv2) = (uvs[0], uvs[1], uvs[2]);
+        let mut sorted = [
+            (
+                v0.0 as i32,
+                v0.1 as i32,
+                color24_to_16(c0),
+                uv0.0 as i32,
+                uv0.1 as i32,
+            ),
+            (
+                v1.0 as i32,
+                v1.1 as i32,
+                color24_to_16(c1),
+                uv1.0 as i32,
+                uv1.1 as i32,
+            ),
+            (
+                v2.0 as i32,
+                v2.1 as i32,
+                color24_to_16(c2),
+                uv2.0 as i32,
+                uv2.1 as i32,
+            ),
         ];
-        verts.sort_by_key(|v| v.1);
+        sorted.sort_by_key(|v| v.1);
 
-        let (xm, ym, pcm) = verts[1];
-        let (xb, yb, pcb) = verts[2];
-        let (xt, yt, pct) = verts[0];
+        let (xm, ym, pcm, um, vm) = sorted[1];
+        let (xb, yb, pcb, ub, vb) = sorted[2];
+        let (xt, yt, pct, ut, vt) = sorted[0];
 
         let dy_mt = ym - yt;
         let dy_bt = yb - yt;
@@ -823,26 +908,48 @@ impl Gpu {
 
         for y in y_start..y_end {
             let x_edge_tb = lerp_i32(xt, xb, y - yt, dy_bt);
-            let (x_edge_short, color_short, _dy_short) = if y < ym {
+            let (x_edge_short, color_short, u_short, v_short) = if y < ym {
                 (
                     lerp_i32(xt, xm, y - yt, dy_mt),
                     lerp_color(pct, pcm, y - yt, dy_mt),
-                    dy_mt,
+                    lerp_i32(ut, um, y - yt, dy_mt),
+                    lerp_i32(vt, vm, y - yt, dy_mt),
                 )
             } else {
                 (
                     lerp_i32(xm, xb, y - ym, dy_bm),
                     lerp_color(pcm, pcb, y - ym, dy_bm),
-                    dy_bm,
+                    lerp_i32(um, ub, y - ym, dy_bm),
+                    lerp_i32(vm, vb, y - ym, dy_bm),
                 )
             };
 
             let color_tb = lerp_color(pct, pcb, y - yt, dy_bt);
+            let u_tb = lerp_i32(ut, ub, y - yt, dy_bt);
+            let v_tb = lerp_i32(vt, vb, y - yt, dy_bt);
 
-            let (xl, xr, cl, cr) = if x_edge_tb < x_edge_short {
-                (x_edge_tb, x_edge_short, color_tb, color_short)
+            let (xl, xr, cl, cr, ul, ur, vl, vr) = if x_edge_tb < x_edge_short {
+                (
+                    x_edge_tb,
+                    x_edge_short,
+                    color_tb,
+                    color_short,
+                    u_tb,
+                    u_short,
+                    v_tb,
+                    v_short,
+                )
             } else {
-                (x_edge_short, x_edge_tb, color_short, color_tb)
+                (
+                    x_edge_short,
+                    x_edge_tb,
+                    color_short,
+                    color_tb,
+                    u_short,
+                    u_tb,
+                    v_short,
+                    v_tb,
+                )
             };
 
             let xl = xl.max(area_x1).max(0);
@@ -853,7 +960,23 @@ impl Gpu {
 
             let dx = xr - xl;
             for x in xl..xr {
-                let pixel = if gouraud && dx > 0 {
+                let pixel = if textured {
+                    let tex_u = if dx > 0 {
+                        lerp_i32(ul, ur, x - xl, dx)
+                    } else {
+                        ul
+                    };
+                    let tex_v = if dx > 0 {
+                        lerp_i32(vl, vr, x - xl, dx)
+                    } else {
+                        vl
+                    };
+                    let texel = self.sample_texel(tex_u, tex_v);
+                    if texel == 0 {
+                        continue;
+                    }
+                    texel
+                } else if gouraud && dx > 0 {
                     lerp_color(cl, cr, x - xl, dx)
                 } else {
                     pct

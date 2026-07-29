@@ -356,6 +356,13 @@ foreach ($manifestPath in $manifestPaths) {
     Write-Host "    registro(s): $($recordsList.Count) | alvo: $($hdr.alvo) | teste: $($hdr.teste)"
     Write-Host ""
 
+    if ($hdr.arquivada) {
+        Write-Host "  ARQUIVADA - $($recordsList.Count) registro(s) NAO rodados. Motivo: $($hdr.arquivada)" -ForegroundColor Yellow
+        Write-Host "  Cobertura perdida ate alguem reparar as ancoras." -ForegroundColor Yellow
+        Write-Host ""
+        continue
+    }
+
     @(
         "# gerado por scripts/mutantes.ps1 — NAO editar a mao",
         "# commit: $commit",

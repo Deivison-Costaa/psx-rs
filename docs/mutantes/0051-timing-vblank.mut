@@ -94,9 +94,19 @@ rotulo: inverte ordem dos bracos if no frame_cycles (cosmetico, semantica identi
 controle: K2
 rotulo: renomeia variavel local stat para s em read32 (cosmetico)
 @@DE
+    pub fn read32(&self, offset: u32) -> u32 {
+        match offset {
+            0x0 => self.gpuread_word(),
+            0x4 => {
+                let dir = self.dma_direction.get();
                 let mut stat = self.stat.get();
                 let bit25 = match dir {
 @@PARA
+    pub fn read32(&self, offset: u32) -> u32 {
+        match offset {
+            0x0 => self.gpuread_word(),
+            0x4 => {
+                let dir = self.dma_direction.get();
                 let mut s = self.stat.get();
                 let bit25 = match dir {
 @@FIM

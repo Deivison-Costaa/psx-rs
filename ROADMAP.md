@@ -48,7 +48,10 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [x] 2.6a Semi-transparência (blend B/2+F/2, B+F, B-F, B+F/4) (iter 0047)
 - [x] 2.6b Dithering 24→15 bit (matriz 4x4) (iter 0048)
 - [x] 2.6c Mask bit (proteção de pixel bit15=1) (iter 0049)
-- [ ] 2.7 Display regs, timing NTSC/PAL, vblank IRQ
+- [ ] 2.7 Display regs, timing NTSC/PAL, vblank IRQ (dividido em 2.7a, 2.7b, 2.7c)
+  - [x] 2.7a GP1(05h,06h,07h) display range registers (iter 0050)
+  - [ ] 2.7b vblank timing (NTSC/PAL) + IRQ via scheduler + GPUSTAT bit 13
+  - [ ] 2.7c GP1(05h-07h) integração com pipeline de display (item 2.8)
 - [ ] 2.8 psx-desktop mínimo (eframe/egui) → logo do BIOS na tela
 - [ ] 2.9 Suíte GPU do ps1-tests no scoreboard
 

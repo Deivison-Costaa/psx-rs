@@ -5,15 +5,18 @@
 
 ## Última iteração concluída
 
-**0049** — Mask bit GP0(E6h) (ROADMAP 2.6c).
+**0050** — Display range registers GP1(05h,06h,07h) (ROADMAP 2.7a).
 
 ## Próxima tarefa
 
-**ROADMAP 2.7 — Display regs, timing NTSC/PAL, vblank IRQ.** Spec: `docs/reference/03-gpu.md`,
-seções GP1(00h..08h) display mode (L1003-1025), GPUSTAT bits 16-22 (L989-1001), e vblank
-(L1400-1440). Arquivo-alvo: `crates/psx-core/src/gpu.rs`.
+**ROADMAP 2.7b — vblank timing (NTSC/PAL) + IRQ via scheduler + GPUSTAT bit 13.**
+Spec: `docs/reference/03-gpu.md`, seções Vertical Video Timings (L1414-1424), Vertical
+Refresh Rates (L1426-1443), GPUSTAT bit 13 (L1012-1013). Arquivo-alvo:
+`crates/psx-core/src/gpu.rs` + `crates/psx-core/src/scheduler.rs`.
 Armadilha: o vblank é disparado pelo scheduler de eventos, não por polling; NTSC=60Hz →
-~16.67ms por frame; PAL=50Hz → 20ms; GPUSTAT bits 19-22 refletem resolução e video mode.
+~16.67ms por frame; PAL=50Hz → 20ms; o scheduler atual (`advance_to`) só dispara um evento
+por tick; o GPU precisa agendar o próximo evento a cada disparo. GPUSTAT bit 13 alterna
+entre campos de interlace (0/1). `irq.rs` está vazio — precisa de um stub mínimo.
 
 ## Repositório
 
@@ -27,7 +30,7 @@ Armadilha: o vblank é disparado pelo scheduler de eventos, não por polling; NT
 
 ## Placar de testes
 
-Workspace: **377** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 29 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 11 cpu_opcode_reservado + 16 gpu_status_gp0_gp1 + 9 ci_scoreboard + 9 cli_runner + 21 gpu_vram_transfers + 20 gpu_triangulos_flat_gouraud + 21 gpu_linhas_retangulos + 6 gpu_textura_15bpp + 6 gpu_texturas_4bpp_8bpp + 5 gpu_texture_window + 6 gpu_semi_transparencia + 7 gpu_dithering + 8 gpu_mask_bit + 1 spec_citations + 2 mutation_manifest + 2 mutation_anchors + 5 mutation_battery).
+Workspace: **387** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 29 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 11 cpu_opcode_reservado + 16 gpu_status_gp0_gp1 + 9 ci_scoreboard + 9 cli_runner + 21 gpu_vram_transfers + 20 gpu_triangulos_flat_gouraud + 21 gpu_linhas_retangulos + 6 gpu_textura_15bpp + 6 gpu_texturas_4bpp_8bpp + 5 gpu_texture_window + 6 gpu_semi_transparencia + 7 gpu_dithering + 8 gpu_mask_bit + 10 gpu_display_range + 1 spec_citations + 2 mutation_manifest + 2 mutation_anchors + 5 mutation_battery).
 
 ## Bloqueios
 

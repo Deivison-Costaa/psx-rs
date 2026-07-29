@@ -68,18 +68,22 @@ rotulo: DMA3 incrementa MADR com step -4 em vez de +4
 @@FIM
 
 controle: K1
-rotulo: extrair word_count em variavel local antes do loop (equivalente semântico)
+rotulo: usar match em vez de if/else na verificacao de bits do CHCR (equivalente semântico)
 @@DE
-        let mut addr = self.madr[3] & 0x00FF_FFFC;
-
-        for _ in 0..word_count {
-            let b0 = cdrom.read8(2) as u32;
+        if (self.chcr[3] & ((1 << 24) | (1 << 28))) != ((1 << 24) | (1 << 28)) {
+            return;
+        }
+        if !cdrom.drqsts_active() {
+            return;
+        }
 @@PARA
-        let mut addr = self.madr[3] & 0x00FF_FFFC;
-        let total = word_count;
-
-        for _ in 0..total {
-            let b0 = cdrom.read8(2) as u32;
+        let mask = (1 << 24) | (1 << 28);
+        if (self.chcr[3] & mask) != mask {
+            return;
+        }
+        if !cdrom.drqsts_active() {
+            return;
+        }
 @@FIM
 
 controle: K2

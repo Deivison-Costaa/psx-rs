@@ -42,7 +42,9 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [x] 2.2 VRAM 1MB + transfers (fill, CPU↔VRAM) (iter 0038)
 - [x] 2.3 Triângulos flat + gouraud (iter 0039)
 - [x] 2.4 Quads, retângulos, linhas (iter 0042)
-- [ ] 2.5 Texturas 4/8/15bpp + CLUT + texture window
+- [x] 2.5a Texpage GP0(E1h) + amostragem de textura 15bpp (iter 0044)
+- [ ] 2.5b Texturas 4bpp e 8bpp + CLUT
+- [ ] 2.5c Texture window GP0(E2h)
 - [ ] 2.6 Semi-transparência + dithering + mask bit
 - [ ] 2.7 Display regs, timing NTSC/PAL, vblank IRQ
 - [ ] 2.8 psx-desktop mínimo (eframe/egui) → logo do BIOS na tela

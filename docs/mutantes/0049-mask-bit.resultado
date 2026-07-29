@@ -1,0 +1,11 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: 27437b8de7e9d39948b815a0b203e103969f8d07
+# rodado_em: 2026-07-29T05:13:15-03:00
+m1,mutante,morreu,morreu,0.7,t3_gp0_e6h_bit1_protege_pixel_com_bit15_1;t5_mask_bit_aplica_a_linhas;t6_mask_bit_aplica_a_retangulos
+m2,mutante,morreu,morreu,0.6,t1_gp0_e6h_bit0_liga_bit15_do_pixel_escrito
+m3,mutante,morreu,morreu,0.6,t3_gp0_e6h_bit1_protege_pixel_com_bit15_1;t5_mask_bit_aplica_a_linhas;t6_mask_bit_aplica_a_retangulos
+m4,mutante,morreu,morreu,0.6,t1_gp0_e6h_bit0_liga_bit15_do_pixel_escrito
+m5,mutante,morreu,morreu,0.6,t3_gp0_e6h_bit1_protege_pixel_com_bit15_1;t5_mask_bit_aplica_a_linhas;t6_mask_bit_aplica_a_retangulos
+m6,mutante,morreu,morreu,0.6,t1_gp0_e6h_bit0_liga_bit15_do_pixel_escrito
+m7,mutante,morreu,sobreviveu,0.6,
+K1,controle,sobreviveu,sobreviveu,0.7,

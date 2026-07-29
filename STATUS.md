@@ -10,7 +10,7 @@
 ## Próxima tarefa
 
 **ROADMAP 4.2c — CDROM — ReadN/ReadS + INT1/DRQSTS (máquina de estados).**
-Implementar comandos ReadN (06h) e ReadS (1Bh) com máquina de estados: INT3(stat) → INT1(stat) → bloco de dados. FIFO de dados (DRQSTS), Data/Parameter (bank 2), PCRC (bank 3). Primeira resposta igual para ambos (INT3), segunda resposta via `pending_second` desencadeia ciclo de leitura. Armadilha: ReadN continua mesmo após sucesso (requer Pause para parar); ReadS para sozinho. Spec: `docs/reference/06-cdrom.md` seção "ReadN" (L686) e "ReadS" (L749), "ReadN/ReadS" (L754). Arquivos-alvo: `crates/psx-core/src/cdrom.rs` (estender `send_command`, `deliver_second`, `read8`/`write8`), teste novo `crates/psx-core/tests/cdrom_read.rs`.
+Implementar comandos ReadN (06h) e ReadS (1Bh) com máquina de estados: INT3(stat) → INT1(stat) → bloco de dados. FIFO de dados (DRQSTS), Data/Parameter (bank 2), PCRC (bank 3). Primeira resposta igual para ambos (INT3), segunda resposta via `pending_second` desencadeia ciclo de leitura. Armadilha: ReadN continua mesmo após sucesso (requer Pause para parar); ReadS para sozinho. Spec: `docs/reference/06-cdrom.md` seção "ReadN" (L856) e "ReadS" (L919), "ReadN/ReadS" (L924). Arquivos-alvo: `crates/psx-core/src/cdrom.rs` (estender `send_command`, `deliver_second`, `read8`/`write8`), teste novo `crates/psx-core/tests/cdrom_read.rs`.
 
 ## Repositório
 

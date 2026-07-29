@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 pub mod asm;
+pub mod spec_citation_data;
 
 use std::fs;
 use std::path::{Path, PathBuf};

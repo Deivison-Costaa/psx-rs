@@ -8,7 +8,7 @@ teste: cdrom_seek_pause
 mutante: m1
 rotulo: BCD sec invalido aceito — troca validacao BCD por true
 @@DE
-                let bcd_ok = (ss & 0xF0) < 0x60 && (ff & 0xF0) < 0x70 && (ff & 0x0F) < 0x0A;
+                let bcd_ok = ss < 0x60 && (ss & 0x0F) < 0x0A && ff < 0x75 && (ff & 0x0F) < 0x0A;
 @@PARA
                 let bcd_ok = true;
 @@FIM

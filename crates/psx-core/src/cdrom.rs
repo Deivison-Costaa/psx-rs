@@ -166,7 +166,7 @@ impl Cdrom {
                 let ss = self.param_pop();
                 let ff = self.param_pop();
                 self.param_clear();
-                let bcd_ok = (ss & 0xF0) < 0x60 && (ff & 0xF0) < 0x70 && (ff & 0x0F) < 0x0A;
+                let bcd_ok = ss < 0x60 && (ss & 0x0F) < 0x0A && ff < 0x75 && (ff & 0x0F) < 0x0A;
                 if !bcd_ok {
                     self.result_push(self.stat_byte() | 0x01);
                     self.result_push(0x10);

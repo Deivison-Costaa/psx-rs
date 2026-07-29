@@ -1,25 +1,231 @@
+use std::cell::Cell;
+
 #[derive(Debug)]
 pub struct Cdrom {
-    bank: u8,
+    bank: Cell<u8>,
+    param_count: Cell<u8>,
+    param_buf: Cell<[u8; 16]>,
+    result_count: Cell<u8>,
+    result_head: Cell<u8>,
+    result_buf: Cell<[u8; 16]>,
+    intsts: Cell<u8>,
+    intmsk: Cell<u8>,
+    busy: Cell<bool>,
+    pending_second: Cell<u8>,
 }
 
 impl Cdrom {
     pub fn new() -> Self {
-        Cdrom { bank: 0 }
-    }
-
-    pub fn read8(&self, _offset: u32) -> u8 {
-        0
-    }
-
-    pub fn write8(&mut self, offset: u32, val: u8) {
-        if offset & 0x3 == 0 {
-            self.bank = val & 0x3;
+        Cdrom {
+            bank: Cell::new(0),
+            param_count: Cell::new(0),
+            param_buf: Cell::new([0u8; 16]),
+            result_count: Cell::new(0),
+            result_head: Cell::new(0),
+            result_buf: Cell::new([0u8; 16]),
+            intsts: Cell::new(0),
+            intmsk: Cell::new(0),
+            busy: Cell::new(false),
+            pending_second: Cell::new(0),
         }
     }
 
+    fn param_push(&self, val: u8) {
+        let count = self.param_count.get() as usize;
+        if count < 16 {
+            let mut buf = self.param_buf.get();
+            buf[count] = val;
+            self.param_buf.set(buf);
+            self.param_count.set((count + 1) as u8);
+        }
+    }
+
+    fn param_pop(&self) -> u8 {
+        let count = self.param_count.get() as usize;
+        if count == 0 {
+            return 0;
+        }
+        let buf = self.param_buf.get();
+        let val = buf[0];
+        let mut new_buf = [0u8; 16];
+        new_buf[..count - 1].copy_from_slice(&buf[1..count]);
+        self.param_buf.set(new_buf);
+        self.param_count.set((count - 1) as u8);
+        val
+    }
+
+    fn param_is_empty(&self) -> bool {
+        self.param_count.get() == 0
+    }
+
+    fn param_len(&self) -> u8 {
+        self.param_count.get()
+    }
+
+    fn param_clear(&self) {
+        self.param_count.set(0);
+    }
+
+    fn result_push(&self, val: u8) {
+        let count = self.result_count.get() as usize;
+        if count < 16 {
+            let mut buf = self.result_buf.get();
+            buf[count] = val;
+            self.result_buf.set(buf);
+            self.result_count.set((count + 1) as u8);
+        }
+    }
+
+    fn result_pop(&self) -> u8 {
+        let count = self.result_count.get() as usize;
+        if count == 0 {
+            return 0;
+        }
+        let head = self.result_head.get() as usize;
+        let buf = self.result_buf.get();
+        let val = buf[head];
+        self.result_head.set(((head + 1) & 0xF) as u8);
+        self.result_count.set((count - 1) as u8);
+        val
+    }
+
+    fn result_is_empty(&self) -> bool {
+        self.result_count.get() == 0
+    }
+
+    fn result_clear(&self) {
+        self.result_count.set(0);
+        self.result_head.set(0);
+    }
+
+    fn hsts(&self) -> u8 {
+        let mut s = self.bank.get() & 0x3;
+        if self.param_is_empty() {
+            s |= 1 << 3;
+        }
+        if self.param_len() < 16 {
+            s |= 1 << 4;
+        }
+        if !self.result_is_empty() {
+            s |= 1 << 5;
+        }
+        if self.busy.get() {
+            s |= 1 << 7;
+        }
+        s
+    }
+
+    fn set_bank(&self, val: u8) {
+        self.bank.set(val & 0x3);
+    }
+
+    fn send_command(&self, cmd: u8) {
+        self.busy.set(true);
+        self.result_clear();
+        match cmd {
+            0x0A => {
+                self.result_push(0x02);
+                self.intsts.set(3);
+                self.pending_second.set(1);
+            }
+            0x19 => {
+                self.intsts.set(3);
+                let sub = self.param_pop();
+                match sub {
+                    0x20 => {
+                        self.result_push(0x97);
+                        self.result_push(0x01);
+                        self.result_push(0x10);
+                        self.result_push(0xC2);
+                    }
+                    0x21 => {
+                        self.result_push(0x01);
+                    }
+                    _ => {
+                        self.result_push(0x02);
+                    }
+                }
+                self.param_clear();
+            }
+            0x1A => {
+                self.result_push(0x02);
+                self.intsts.set(3);
+                self.pending_second.set(2);
+            }
+            _ => {
+                self.result_push(0x02);
+                self.intsts.set(3);
+            }
+        }
+    }
+
+    pub fn read8(&self, offset: u32) -> u8 {
+        match offset & 0x3 {
+            0 => self.hsts(),
+            1 => self.result_pop(),
+            2 => 0,
+            3 => {
+                let base = self.intsts.get() & 0x7;
+                if self.bank.get() == 1 || self.bank.get() == 3 {
+                    base | 0xE0
+                } else {
+                    self.intmsk.get() | 0xE0
+                }
+            }
+            _ => 0,
+        }
+    }
+
+    pub fn write8(&self, offset: u32, val: u8) {
+        match offset & 0x3 {
+            0 => self.set_bank(val),
+            1 if self.bank.get() == 0 => self.send_command(val),
+            2 if self.bank.get() == 0 => self.param_push(val),
+            2 if self.bank.get() == 1 => {
+                self.intmsk.set(val & 0x1F);
+            }
+            3 if self.bank.get() == 1 => {
+                if val & 0x7 != 0 {
+                    let new_intsts = self.intsts.get() & !(val & 0x07);
+                    self.intsts.set(new_intsts);
+                }
+                let had_pending = self.pending_second.get() != 0;
+                if had_pending {
+                    self.deliver_second();
+                }
+                if val & 0x40 != 0 {
+                    self.param_clear();
+                }
+            }
+            _ => {}
+        }
+    }
+
+    fn deliver_second(&self) {
+        match self.pending_second.get() {
+            1 => {
+                self.busy.set(false);
+                self.result_clear();
+                self.result_push(0x02);
+                self.intsts.set(2);
+            }
+            2 => {
+                self.busy.set(false);
+                self.result_clear();
+                self.result_push(0x08);
+                self.result_push(0x40);
+                for _ in 0..6 {
+                    self.result_push(0x00);
+                }
+                self.intsts.set(5);
+            }
+            _ => {}
+        }
+        self.pending_second.set(0);
+    }
+
     pub fn irq_pending(&self) -> bool {
-        false
+        (self.intsts.get() & self.intmsk.get() & 0x7) != 0
     }
 }
 

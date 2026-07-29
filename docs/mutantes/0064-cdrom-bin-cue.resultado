@@ -1,0 +1,12 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: da5d6b3ad67102e49b2b9d09382ecb9626ad59da
+# rodado_em: 2026-07-29T14:51:45-03:00
+m1,mutante,morreu,morreu,0.7,parse_cue_extrai_uma_track_mode2_2352
+m2,mutante,morreu,morreu,0.7,parse_cue_extrai_track_audio;parse_cue_offset_bin_corresponde_endereco_logico
+m3,mutante,morreu,morreu,0.8,parse_cue_extrai_pregap
+m4,mutante,morreu,morreu,0.7,parse_cue_offset_bin_corresponde_endereco_logico
+m5,mutante,morreu,morreu,0.7,read_data_sector_extrai_2048_bytes_do_bin
+m6,mutante,morreu,morreu,0.8,parse_cue_bin_path_com_aspas;parse_cue_extrai_bin_path
+m7,mutante,morreu,morreu,0.8,parse_cue_extrai_pregap;parse_cue_extrai_track_audio;parse_cue_extrai_track_mode1_2048;parse_cue_extrai_uma_track_mode2_2352;parse_cue_ignora_rem;parse_cue_offset_bin_corresponde_endereco_logico;parse_cue_track_com_index00_explicito
+K1,controle,sobreviveu,sobreviveu,0.7,
+K2,controle,sobreviveu,sobreviveu,0.7,

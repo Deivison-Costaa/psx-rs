@@ -36,7 +36,11 @@ fn dma6_chcr_apenas_bits_24_28_30_e_1_sao_gravaveis() {
     bus.write32::<BusRead>(D6_BCR, 1);
     bus.write32::<BusRead>(D6_CHCR, 0xFFFF_FFFF);
     let val = bus.read32::<BusRead>(D6_CHCR);
-    assert_eq!(val & 0x5100_0002, 0x4000_0002, "bits 24 e 28 limpos pelo OTC, bit 30 e bit 1 permanecem");
+    assert_eq!(
+        val & 0x5100_0002,
+        0x4000_0002,
+        "bits 24 e 28 limpos pelo OTC, bit 30 e bit 1 permanecem"
+    );
     assert_eq!(val & !0x5100_0002, 0, "nenhum outro bit e gravavel");
 }
 
@@ -76,9 +80,17 @@ fn dma6_otc_preenche_ram_com_linked_list() {
     let prev = bus.read32::<BusRead>(base.wrapping_sub(4));
     assert_eq!(prev, base & 0x1F_FFFC, "slot N-1 aponta para slot N");
     let ante = bus.read32::<BusRead>(base.wrapping_sub(8));
-    assert_eq!(ante, (base.wrapping_sub(4)) & 0x1F_FFFC, "slot N-2 aponta para slot N-1");
+    assert_eq!(
+        ante,
+        (base.wrapping_sub(4)) & 0x1F_FFFC,
+        "slot N-2 aponta para slot N-1"
+    );
     let primeiro = bus.read32::<BusRead>(base.wrapping_sub(12));
-    assert_eq!(primeiro, (base.wrapping_sub(8)) & 0x1F_FFFC, "slot N-3 aponta para slot N-2");
+    assert_eq!(
+        primeiro,
+        (base.wrapping_sub(8)) & 0x1F_FFFC,
+        "slot N-3 aponta para slot N-2"
+    );
 }
 
 #[test]
@@ -88,7 +100,11 @@ fn dma6_chcr_bit24_e_limpo_apos_otc() {
     bus.write32::<BusRead>(D6_BCR, 1);
     bus.write32::<BusRead>(D6_CHCR, 0x1100_0002);
     let chcr = bus.read32::<BusRead>(D6_CHCR);
-    assert_eq!(chcr & (1 << 24), 0, "bit 24 deve ser limpo apos transferencia");
+    assert_eq!(
+        chcr & (1 << 24),
+        0,
+        "bit 24 deve ser limpo apos transferencia"
+    );
 }
 
 #[test]
@@ -98,7 +114,11 @@ fn dma6_chcr_bit28_e_limpo_apos_otc() {
     bus.write32::<BusRead>(D6_BCR, 1);
     bus.write32::<BusRead>(D6_CHCR, 0x1100_0002);
     let chcr = bus.read32::<BusRead>(D6_CHCR);
-    assert_eq!(chcr & (1 << 28), 0, "bit 28 deve ser limpo apos transferencia");
+    assert_eq!(
+        chcr & (1 << 28),
+        0,
+        "bit 28 deve ser limpo apos transferencia"
+    );
 }
 
 #[test]
@@ -122,7 +142,15 @@ fn dma6_otc_bcr_zero_equivale_a_10000h() {
     let ultimo = bus.read32::<BusRead>(base);
     assert_eq!(ultimo, 0x00FF_FFFF, "com BCR=0, ultimo slot = end marker");
     let penultimo = bus.read32::<BusRead>(base.wrapping_sub(4));
-    assert_eq!(penultimo, base & 0x1F_FFFC, "com BCR=0, penultimo aponta para ultimo");
+    assert_eq!(
+        penultimo,
+        base & 0x1F_FFFC,
+        "com BCR=0, penultimo aponta para ultimo"
+    );
     let primeiro = bus.read32::<BusRead>(base.wrapping_sub(0xFFFC));
-    assert_eq!(primeiro, (base.wrapping_sub(0xFFF8)) & 0x1F_FFFC, "slot logo acima do fundo aponta para o proximo");
+    assert_eq!(
+        primeiro,
+        (base.wrapping_sub(0xFFF8)) & 0x1F_FFFC,
+        "slot logo acima do fundo aponta para o proximo"
+    );
 }

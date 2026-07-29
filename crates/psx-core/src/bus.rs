@@ -269,6 +269,7 @@ impl Bus {
                         self.dma.write_chcr(ch, val);
                         match ch {
                             2 => self.dma.try_execute_dma2(&mut self.ram.data, &mut self.gpu),
+                            3 => self.dma.try_execute_dma3(&mut self.ram.data, &self.cdrom),
                             6 => self.dma.try_execute_otc(&mut self.ram.data),
                             _ => {}
                         }

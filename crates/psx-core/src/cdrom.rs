@@ -23,7 +23,7 @@ pub struct Cdrom {
     data_buffer: Cell<[u8; 2048]>,
     data_pos: Cell<usize>,
     read_mode: Cell<u8>,
-    bfrd: Cell<bool>,
+    hchpctl: Cell<u8>,
 }
 
 impl Cdrom {
@@ -50,7 +50,7 @@ impl Cdrom {
             data_buffer: Cell::new([0u8; 2048]),
             data_pos: Cell::new(0),
             read_mode: Cell::new(0),
-            bfrd: Cell::new(false),
+            hchpctl: Cell::new(0),
         }
     }
 
@@ -155,7 +155,10 @@ impl Cdrom {
         if !self.result_is_empty() {
             s |= 1 << 5;
         }
-        if self.data_pos.get() < 2048 && self.read_mode.get() != 0 {
+        if self.data_pos.get() < 2048
+            && self.read_mode.get() != 0
+            && (self.hchpctl.get() & 0x80) != 0
+        {
             s |= 1 << 6;
         }
         if self.busy.get() {
@@ -322,6 +325,9 @@ impl Cdrom {
             2 if self.bank.get() == 1 => {
                 self.intmsk.set(val & 0x1F);
             }
+            3 if self.bank.get() == 0 => {
+                self.hchpctl.set(val);
+            }
             3 if self.bank.get() == 1 => {
                 if val & 0x7 != 0 {
                     let new_intsts = self.intsts.get() & !(val & 0x07);
@@ -385,11 +391,19 @@ impl Cdrom {
                 }
                 self.data_buffer.set(buf);
                 self.data_pos.set(0);
-                self.bfrd.set(false);
+                self.hchpctl.set(0);
             }
             _ => {}
         }
         self.pending_second.set(0);
+    }
+
+    pub fn _hchpctl(&self) -> u8 {
+        self.hchpctl.get()
+    }
+
+    pub fn drqsts_active(&self) -> bool {
+        self.data_pos.get() < 2048 && self.read_mode.get() != 0 && (self.hchpctl.get() & 0x80) != 0
     }
 
     pub fn irq_pending(&self) -> bool {

@@ -1,3 +1,4 @@
+use crate::cdrom::Cdrom;
 use crate::gpu::Gpu;
 
 #[derive(Debug)]
@@ -84,6 +85,37 @@ impl Dma {
             addr = addr.wrapping_sub(4);
         }
         self.chcr[6] &= !((1 << 24) | (1 << 28));
+    }
+
+    pub fn try_execute_dma3(&mut self, ram: &mut [u8], cdrom: &Cdrom) {
+        if (self.chcr[3] & ((1 << 24) | (1 << 28))) != ((1 << 24) | (1 << 28)) {
+            return;
+        }
+        if !cdrom.drqsts_active() {
+            return;
+        }
+        let bcr = self.bcr[3];
+        let word_count = if (bcr & 0xFFFF) == 0 {
+            0x10000
+        } else {
+            (bcr & 0xFFFF) as usize
+        };
+        let mut addr = self.madr[3] & 0x00FF_FFFC;
+
+        for _ in 0..word_count {
+            let b0 = cdrom.read8(2) as u32;
+            let b1 = cdrom.read8(2) as u32;
+            let b2 = cdrom.read8(2) as u32;
+            let b3 = cdrom.read8(2) as u32;
+            let word = b0 | (b1 << 8) | (b2 << 16) | (b3 << 24);
+            let offset = (addr & 0x1F_FF_FF) as usize;
+            if offset + 4 <= ram.len() {
+                ram[offset..offset + 4].copy_from_slice(&word.to_le_bytes());
+            }
+            addr = addr.wrapping_add(4);
+        }
+        self.madr[3] = (self.madr[3] & !0x00FF_FFFF) | (addr & 0x00FF_FFFF);
+        self.chcr[3] &= !((1 << 24) | (1 << 28));
     }
 
     pub fn try_execute_dma2(&mut self, ram: &mut [u8], gpu: &mut Gpu) {

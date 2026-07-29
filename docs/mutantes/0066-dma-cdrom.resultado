@@ -1,0 +1,12 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: fc0d71359442145bc1516d821bfc167610e03027
+# rodado_em: 2026-07-29T16:34:08-03:00
+m1,mutante,morreu,morreu,0.8,dma3_chcr_gravavel_e_legivel;dma3_nao_dispara_sem_bfrd
+m2,mutante,morreu,morreu,0.7,dma3_nao_dispara_sem_bit28
+m3,mutante,morreu,morreu,0.7,dma3_bcr_zero_equivale_a_10000h_words;dma3_bit24_e_bit28_limpos_apos_transferencia
+m4,mutante,morreu,morreu,0.7,dma3_bcr_zero_equivale_a_10000h_words;dma3_transfere_dados_do_setor_para_ram
+m5,mutante,morreu,morreu,0.8,dma3_bcr_zero_equivale_a_10000h_words;dma3_transfere_dados_do_setor_para_ram
+m6,mutante,morreu,morreu,0.8,dma3_bcr_zero_equivale_a_10000h_words
+m7,mutante,morreu,morreu,0.8,dma3_transfere_dados_do_setor_para_ram
+K1,controle,sobreviveu,sobreviveu,0.7,
+K2,controle,sobreviveu,sobreviveu,0.7,

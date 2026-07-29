@@ -28,6 +28,12 @@ fn hintsts_read_bank1(bus: &mut Bus) -> u8 {
     val
 }
 
+fn hchpctl_write(bus: &mut Bus, val: u8) {
+    set_bank(bus, 0);
+    cd_write(bus, 3, val);
+    set_bank(bus, 0);
+}
+
 fn hclrctl_write(bus: &mut Bus, val: u8) {
     set_bank(bus, 1);
     cd_write(bus, 3, val);
@@ -286,13 +292,14 @@ fn hsts_drqsts_setado_quando_dados_disponiveis() {
     let _ = result_read(&mut bus);
     hclrctl_write(&mut bus, 0x07);
     let _ = result_read(&mut bus);
+    hchpctl_write(&mut bus, 0x80);
 
     set_bank(&mut bus, 0);
     let hsts = cd_read(&bus, 0);
     assert_ne!(
         hsts & (1 << 6),
         0,
-        "DRQSTS=1 quando dados disponiveis no buffer"
+        "DRQSTS=1 quando BFRD=1 e dados disponiveis no buffer"
     );
 }
 

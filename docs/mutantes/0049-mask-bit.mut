@@ -1,0 +1,101 @@
+# Manifesto de mutação da iteração 0049 — mask bit
+formato: 1
+iteracao: 0049
+item: 2.6c
+alvo: crates/psx-core/src/gpu.rs
+teste: gpu_mask_bit
+
+mutante: m1
+rotulo: write-protect le GPUSTAT.11 em vez de GPUSTAT.12 (bit errado)
+@@DE
+        if (stat & (1 << 12)) != 0 && (self.vram[idx] & 0x8000) != 0 {
+@@PARA
+        if (stat & (1 << 11)) != 0 && (self.vram[idx] & 0x8000) != 0 {
+@@FIM
+
+mutante: m2
+rotulo: force bit15 le GPUSTAT.12 em vez de GPUSTAT.11 (bit errado)
+@@DE
+        if (stat & (1 << 11)) != 0 {
+@@PARA
+        if (stat & (1 << 12)) != 0 {
+@@FIM
+
+mutante: m3
+rotulo: write-protect verifica foreground (pixel) em vez de background (vram[idx])
+@@DE
+        if (stat & (1 << 12)) != 0 && (self.vram[idx] & 0x8000) != 0 {
+@@PARA
+        if (stat & (1 << 12)) != 0 && (pixel & 0x8000) != 0 {
+@@FIM
+
+mutante: m4
+rotulo: force bit15 sempre desligado (if false)
+@@DE
+        if (stat & (1 << 11)) != 0 {
+            pixel |= 0x8000;
+        }
+@@PARA
+        if false {
+            pixel |= 0x8000;
+        }
+@@FIM
+
+mutante: m5
+rotulo: write-protect sempre desligado (if false)
+@@DE
+        if (stat & (1 << 12)) != 0 && (self.vram[idx] & 0x8000) != 0 {
+            return;
+        }
+@@PARA
+        if false && (self.vram[idx] & 0x8000) != 0 {
+            return;
+        }
+@@FIM
+
+mutante: m6
+rotulo: force bit15 aplica mascara 0x4000 (bit14) em vez de 0x8000 (bit15)
+@@DE
+            pixel |= 0x8000;
+@@PARA
+            pixel |= 0x4000;
+@@FIM
+
+mutante: m7
+rotulo: write-protect aplicado ao fill no execute_fill (item nao pedia, spec diz que fill ignora)
+@@DE
+    fn execute_fill(&mut self, color_word: u32, pos_word: u32, size_word: u32) {
+@@PARA
+    fn execute_fill(&mut self, color_word: u32, pos_word: u32, size_word: u32) {
+        let stat = self.stat.get();
+@@FIM
+
+controle: K1
+rotulo: inverte ordem de force bit15 e write-protect (independentes, cosmetico)
+@@DE
+        let stat = self.stat.get();
+        if (stat & (1 << 12)) != 0 && (self.vram[idx] & 0x8000) != 0 {
+            return;
+        }
+        let mut pixel = pixel;
+        if (stat & (1 << 11)) != 0 {
+            pixel |= 0x8000;
+        }
+@@PARA
+        let stat = self.stat.get();
+        let mut pixel = pixel;
+        if (stat & (1 << 11)) != 0 {
+            pixel |= 0x8000;
+        }
+        if (stat & (1 << 12)) != 0 && (self.vram[idx] & 0x8000) != 0 {
+            return;
+        }
+@@FIM
+
+controle: K2
+rotulo: renomeia variavel local stat para s (cosmetico)
+@@DE
+        let stat = self.stat.get();
+@@PARA
+        let s = self.stat.get();
+@@FIM

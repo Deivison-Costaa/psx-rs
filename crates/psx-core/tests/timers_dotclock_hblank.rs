@@ -23,8 +23,7 @@ fn tick_timer(bus: &mut Bus, base: u32, cycles: u32) {
 #[test]
 fn timer0_dotclock_256px_razao_11_por_70_cpu_cycles() {
     let mut bus = bus();
-    bus.timers_mut()
-        .update_gpu_timing(10, 3413);
+    bus.timers_mut().update_gpu_timing(10, 3413);
     bus.write32::<BusRead>(T0_MODE, 0x0100);
     tick_timer(&mut bus, T0_CNT, 200);
     assert_eq!(
@@ -43,8 +42,7 @@ fn timer0_dotclock_256px_razao_11_por_70_cpu_cycles() {
 #[test]
 fn timer0_dotclock_320px_razao_11_por_56_cpu_cycles() {
     let mut bus = bus();
-    bus.timers_mut()
-        .update_gpu_timing(8, 3413);
+    bus.timers_mut().update_gpu_timing(8, 3413);
     bus.write32::<BusRead>(T0_MODE, 0x0100);
     tick_timer(&mut bus, T0_CNT, 200);
     assert_eq!(
@@ -57,8 +55,7 @@ fn timer0_dotclock_320px_razao_11_por_56_cpu_cycles() {
 #[test]
 fn timer1_hblank_ntsc_razao_11_por_23891_cpu_cycles() {
     let mut bus = bus();
-    bus.timers_mut()
-        .update_gpu_timing(10, 3413);
+    bus.timers_mut().update_gpu_timing(10, 3413);
     bus.write32::<BusRead>(T1_MODE, 0x0100);
     tick_timer(&mut bus, T1_CNT, 5000);
     assert_eq!(
@@ -69,16 +66,15 @@ fn timer1_hblank_ntsc_razao_11_por_23891_cpu_cycles() {
     tick_timer(&mut bus, T1_CNT, 10000);
     assert_eq!(
         bus.read32::<BusRead>(T1_CNT) & 0xFFFF,
-        6,
-        "acumulado: 2 + floor((7218*23891+10000*11)/23891) = 2+4=6"
+        7224,
+        "acumulado: 2 + floor((7218*23891+10000*11)/23891) = 2+7222=7224"
     );
 }
 
 #[test]
 fn timer1_hblank_pal_razao_11_por_23842_cpu_cycles() {
     let mut bus = bus();
-    bus.timers_mut()
-        .update_gpu_timing(10, 3406);
+    bus.timers_mut().update_gpu_timing(10, 3406);
     bus.write32::<BusRead>(T1_MODE, 0x0100);
     tick_timer(&mut bus, T1_CNT, 5000);
     assert_eq!(
@@ -91,8 +87,7 @@ fn timer1_hblank_pal_razao_11_por_23842_cpu_cycles() {
 #[test]
 fn timer0_clock_src_0_system_clock_continua_funcionando() {
     let mut bus = bus();
-    bus.timers_mut()
-        .update_gpu_timing(10, 3413);
+    bus.timers_mut().update_gpu_timing(10, 3413);
     bus.write32::<BusRead>(T0_MODE, 0x0000);
     tick_timer(&mut bus, T0_CNT, 7);
     assert_eq!(
@@ -105,8 +100,7 @@ fn timer0_clock_src_0_system_clock_continua_funcionando() {
 #[test]
 fn timer0_dotclock_com_sync_mode0_pausa_durante_hblank() {
     let mut bus = bus();
-    bus.timers_mut()
-        .update_gpu_timing(10, 3413);
+    bus.timers_mut().update_gpu_timing(10, 3413);
     bus.write32::<BusRead>(T0_MODE, 0x0101);
     bus.gpu_mut().set_hblank_active(true);
     tick_timer(&mut bus, T0_CNT, 70);
@@ -127,8 +121,7 @@ fn timer0_dotclock_com_sync_mode0_pausa_durante_hblank() {
 #[test]
 fn timer1_hblank_com_sync_mode0_pausa_durante_vblank() {
     let mut bus = bus();
-    bus.timers_mut()
-        .update_gpu_timing(10, 3413);
+    bus.timers_mut().update_gpu_timing(10, 3413);
     bus.write32::<BusRead>(T1_MODE, 0x0101);
     bus.gpu_mut().enter_vblank();
     tick_timer(&mut bus, T1_CNT, 30000);
@@ -150,8 +143,7 @@ fn timer1_hblank_com_sync_mode0_pausa_durante_vblank() {
 #[test]
 fn timer2_clock_div_8_continua_funcionando() {
     let mut bus = bus();
-    bus.timers_mut()
-        .update_gpu_timing(10, 3413);
+    bus.timers_mut().update_gpu_timing(10, 3413);
     bus.write32::<BusRead>(T2_MODE, 0x0200);
     tick_timer(&mut bus, T2_CNT, 1);
     assert_eq!(
@@ -170,8 +162,7 @@ fn timer2_clock_div_8_continua_funcionando() {
 #[test]
 fn escrever_mode_reseta_acumulador_fractional_de_clock() {
     let mut bus = bus();
-    bus.timers_mut()
-        .update_gpu_timing(10, 3413);
+    bus.timers_mut().update_gpu_timing(10, 3413);
     bus.write32::<BusRead>(T0_MODE, 0x0100);
     tick_timer(&mut bus, T0_CNT, 30);
     assert_eq!(

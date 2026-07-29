@@ -1,16 +1,16 @@
 # gerado por scripts/mutantes.ps1 — NAO editar a mao
-# commit: b656964989a5824e36a6e1cbc7ad2a6523307f18
-# rodado_em: 2026-07-28T23:59:22-03:00
-m1,mutante,morreu,morreu,0.8,linha_diagonal_steep_tracado_esperado_a2b;linha_diagonal_tracado_esperado_a2;linha_gouraud_cor_no_meio_derivada_da_interpolacao_a3;linha_horizontal_inclui_ponta_inferior_direita_a1;linha_vertical_inclui_ponta_inferior_a2c;polyline_gouraud_terminador_na_palavra_de_cor_a6
-m2,mutante,morreu,morreu,0.9,retangulo_1x1_um_pixel_a7;retangulo_8x8_cantos_certos_a8
-m3,mutante,morreu,morreu,0.8,linha_gouraud_cor_no_meio_derivada_da_interpolacao_a3;polyline_gouraud_terminador_na_palavra_de_cor_a6;retangulo_1x1_um_pixel_a7;retangulo_8x8_cantos_certos_a8;retangulo_variavel_3x2_seis_pixels_comando_seguinte_executa_a9;vertices_coincidentes_1x1_pixel_cor_primeiro_vertice_a4;vertices_coincidentes_gouraud_cor_do_primeiro_vertice_a4b
-m4,mutante,morreu,morreu,0.8,polyline_flat_4_vertices_terminador_fifo_alinhado_a5;polyline_flat_vertice_com_bits_28_a_31_iguais_a_5_nao_e_terminador
-m5,mutante,morreu,morreu,0.8,retangulo_1x1_um_pixel_a7
-m6,mutante,morreu,morreu,0.8,linha_gouraud_cor_no_meio_derivada_da_interpolacao_a3;polyline_gouraud_terminador_na_palavra_de_cor_a6
-m7,mutante,morreu,morreu,0.8,polyline_flat_vertice_com_bits_28_a_31_iguais_a_5_nao_e_terminador
-m8,mutante,morreu,morreu,0.8,polyline_flat_4_vertices_terminador_fifo_alinhado_a5;polyline_flat_vertice_com_bits_28_a_31_iguais_a_5_nao_e_terminador
-m9,mutante,morreu,morreu,0.8,retangulo_texturizado_8x8_uv_consumido_comando_seguinte_executa_a10
-m10,mutante,morreu,sobreviveu,0.9,
-m11,mutante,morreu,morreu,0.8,retangulo_1x1_um_pixel_a7;retangulo_8x8_cantos_certos_a8;retangulo_variavel_3x2_seis_pixels_comando_seguinte_executa_a9;retangulo_variavel_large_1023x511_a9b
-K1,controle,sobreviveu,sobreviveu,0.8,
+# commit: d1fffa9b2a5116ff2a994b88b3cc4782b664288e
+# rodado_em: 2026-07-29T00:01:02-03:00
+m1,mutante,morreu,morreu,0.9,polyline_17_vertices_nao_estoura_e_renderiza_16_segmentos_d1
+m2,mutante,morreu,sobreviveu,0.8,
+m3,mutante,morreu,morreu,0.8,retangulo_variavel_width_height_ffff_termina_d4
+m4,mutante,morreu,morreu,0.8,polyline_17_vertices_nao_estoura_e_renderiza_16_segmentos_d1
+m5,mutante,morreu,sobreviveu,0.8,
+m6,mutante,morreu,sobreviveu,0.8,
+m7,mutante,morreu,sobreviveu,0.7,
+m8,mutante,morreu,morreu,0.8,polyline_17_vertices_nao_estoura_e_renderiza_16_segmentos_d1
+m9,mutante,morreu,morreu,0.7,retangulo_texturizado_nao_desenha_com_cor_d2
+m10,mutante,morreu,morreu,0.9,linha_simples_dy_600_nao_renderiza_d3
+m11,mutante,morreu,morreu,0.8,retangulo_variavel_width_height_ffff_termina_d4
+K1,controle,sobreviveu,sobreviveu,0.7,
 K2,controle,sobreviveu,sobreviveu,0.8,

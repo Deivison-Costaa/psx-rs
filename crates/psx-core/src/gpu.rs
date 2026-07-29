@@ -312,24 +312,31 @@ impl Gpu {
     }
 
     pub fn video_mode(&self) -> bool {
-        false
+        self.video_mode.get()
     }
 
     pub fn in_vblank(&self) -> bool {
-        false
+        self.in_vblank.get()
     }
 
     pub fn frame_cycles(&self) -> u64 {
-        0
+        if self.video_mode.get() {
+            680_659
+        } else {
+            566_187
+        }
     }
 
-    pub fn set_odd_line(&mut self, _odd: bool) {
+    pub fn set_odd_line(&mut self, odd: bool) {
+        self.odd_line.set(odd);
     }
 
     pub fn enter_vblank(&mut self) {
+        self.in_vblank.set(true);
     }
 
     pub fn exit_vblank(&mut self) {
+        self.in_vblank.set(false);
     }
 
     fn write_gp0(&mut self, val: u32) {

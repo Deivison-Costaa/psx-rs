@@ -1,0 +1,112 @@
+# Manifesto de mutação da iteração 0063 — cdrom-seek-pause
+formato: 1
+iteracao: 0063
+item: 4.2a
+alvo: crates/psx-core/src/cdrom.rs
+teste: cdrom_seek_pause
+
+mutante: m1
+rotulo: BCD sec invalido aceito — troca validacao BCD por true
+@@DE
+                let bcd_ok = (ss & 0xF0) < 0x60 && (ff & 0xF0) < 0x70 && (ff & 0x0F) < 0x0A;
+@@PARA
+                let bcd_ok = true;
+@@FIM
+
+mutante: m2
+rotulo: SeekL sem disco retorna INT3 em vez de INT5 — condicao vira false
+@@DE
+                if !self.disc_inserted.get() {
+                    self.result_push(self.stat_byte() | 0x01);
+                    self.result_push(0x80);
+                    self.intsts.set(5);
+                    self.busy.set(false);
+@@PARA
+                if false {
+                    self.result_push(self.stat_byte() | 0x01);
+                    self.result_push(0x80);
+                    self.intsts.set(5);
+                    self.busy.set(false);
+@@FIM
+
+mutante: m3
+rotulo: SeekL nao seta seeking flag — stat bit6 fica 0 durante seek
+@@DE
+                    self.seeking.set(true);
+                    self.result_push(self.stat_byte());
+@@PARA
+                    self.result_push(self.stat_byte());
+@@FIM
+
+mutante: m4
+rotulo: deliver_second do SeekL nao limpa seeking — stat bit6 fica 1 apos seek
+@@DE
+                self.busy.set(false);
+                self.seeking.set(false);
+@@PARA
+                self.busy.set(false);
+@@FIM
+
+mutante: m5
+rotulo: Pause nao gera segunda resposta — pending_second set(4) vira busy.set(false)
+@@DE
+                self.intsts.set(3);
+                self.pending_second.set(4);
+@@PARA
+                self.intsts.set(3);
+                self.busy.set(false);
+@@FIM
+
+mutante: m6
+rotulo: Setloc sem disco retorna INT3 em vez de INT5 — condicao vira false
+@@DE
+                } else if !self.disc_inserted.get() {
+                    self.result_push(self.stat_byte() | 0x01);
+                    self.result_push(0x80);
+                    self.intsts.set(5);
+@@PARA
+                } else if false {
+                    self.result_push(self.stat_byte() | 0x01);
+                    self.result_push(0x80);
+                    self.intsts.set(5);
+@@FIM
+
+mutante: m7
+rotulo: stat_byte nao inclui bit1 (motor) — stat retorna 0 apos InsertDisc+Init
+@@DE
+        if self.motor_on.get() {
+            s |= 1 << 1;
+        }
+@@PARA
+        let _ = self.motor_on.get();
+@@FIM
+
+controle: K1
+rotulo: extrair disc_inserted em variavel local no SeekL (equivalente semantico)
+@@DE
+                if !self.disc_inserted.get() {
+                    self.result_push(self.stat_byte() | 0x01);
+                    self.result_push(0x80);
+                    self.intsts.set(5);
+                    self.busy.set(false);
+@@PARA
+                let no_disc = !self.disc_inserted.get();
+                if no_disc {
+                    self.result_push(self.stat_byte() | 0x01);
+                    self.result_push(0x80);
+                    self.intsts.set(5);
+                    self.busy.set(false);
+@@FIM
+
+controle: K2
+rotulo: inline de stat_byte no Pause (equivalente semantico)
+@@DE
+                let stat = self.stat_byte();
+                self.result_push(stat);
+                self.intsts.set(3);
+                self.pending_second.set(4);
+@@PARA
+                self.result_push(self.stat_byte());
+                self.intsts.set(3);
+                self.pending_second.set(4);
+@@FIM

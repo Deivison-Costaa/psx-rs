@@ -74,6 +74,7 @@ enum VramState {
         gouraud: bool,
         textured: bool,
         quad: bool,
+        semi_transparent: bool,
         color0: u32,
         vertices: [(i16, i16); 4],
         colors: [u32; 4],
@@ -86,6 +87,7 @@ enum VramState {
     LineRender {
         gouraud: bool,
         polyline: bool,
+        semi_transparent: bool,
         color0: u32,
         vertex0: (i16, i16),
         prev_vertex: (i16, i16),
@@ -98,6 +100,7 @@ enum VramState {
     RectRender {
         size: u8,
         textured: bool,
+        semi_transparent: bool,
         color: u32,
         vertex: (i16, i16),
         uv: u32,
@@ -271,11 +274,13 @@ impl Gpu {
                             let gouraud = (cmd & 0x10) != 0;
                             let textured = (cmd & 0x04) != 0;
                             let quad = (cmd & 0x08) != 0;
+                            let semi_transparent = (cmd & 0x02) != 0;
                             let total = if quad { 4 } else { 3 };
                             VramState::PolygonRender {
                                 gouraud,
                                 textured,
                                 quad,
+                                semi_transparent,
                                 color0: val & 0x00FF_FFFF,
                                 vertices: [(0, 0); 4],
                                 colors: [0; 4],
@@ -290,10 +295,12 @@ impl Gpu {
                             self.stat.set(self.stat.get() & !(1 << 26));
                             let gouraud = (cmd & 0x10) != 0;
                             let polyline = (cmd & 0x08) != 0;
+                            let semi_transparent = (cmd & 0x02) != 0;
                             let color0 = val & 0x00FF_FFFF;
                             VramState::LineRender {
                                 gouraud,
                                 polyline,
+                                semi_transparent,
                                 color0,
                                 vertex0: (0, 0),
                                 prev_vertex: (0, 0),
@@ -306,12 +313,14 @@ impl Gpu {
                         }
                         0x60..=0x7F => {
                             self.stat.set(self.stat.get() & !(1 << 26));
-                            let size = (cmd >> 3) & 0x03;
+                            let size = (cmd >> 3) & 0x3;
                             let textured = (cmd & 0x04) != 0;
+                            let semi_transparent = (cmd & 0x02) != 0;
                             let color = val & 0x00FF_FFFF;
                             VramState::RectRender {
                                 size,
                                 textured,
+                                semi_transparent,
                                 color,
                                 vertex: (0, 0),
                                 uv: 0,
@@ -423,6 +432,7 @@ impl Gpu {
                 gouraud,
                 textured,
                 quad,
+                semi_transparent,
                 color0,
                 mut vertices,
                 mut colors,
@@ -446,6 +456,7 @@ impl Gpu {
                             gouraud,
                             quad,
                             textured,
+                            semi_transparent,
                             &mut vertices,
                             &mut colors,
                             &mut uvs,
@@ -477,6 +488,7 @@ impl Gpu {
                             gouraud,
                             quad,
                             textured,
+                            semi_transparent,
                             &mut vertices,
                             &mut colors,
                             &mut uvs,
@@ -493,6 +505,7 @@ impl Gpu {
                     gouraud,
                     textured,
                     quad,
+                    semi_transparent,
                     color0,
                     vertices,
                     colors,
@@ -506,6 +519,7 @@ impl Gpu {
             VramState::LineRender {
                 gouraud,
                 polyline,
+                semi_transparent,
                 color0,
                 mut vertex0,
                 mut prev_vertex,
@@ -533,7 +547,14 @@ impl Gpu {
                         if !gouraud {
                             if has_prev {
                                 let c = color24_to_16(color0);
-                                self.draw_line_segment(prev_vertex, (x, y), c, c, false);
+                                self.draw_line_segment(
+                                    prev_vertex,
+                                    (x, y),
+                                    c,
+                                    c,
+                                    false,
+                                    semi_transparent,
+                                );
                             }
                             prev_vertex = (x, y);
                             has_prev = true;
@@ -545,6 +566,7 @@ impl Gpu {
                                     color24_to_16(prev_color),
                                     color24_to_16(pending_color),
                                     true,
+                                    semi_transparent,
                                 );
                                 prev_color = pending_color;
                             }
@@ -572,6 +594,7 @@ impl Gpu {
                                     color24_to_16(color0),
                                     color24_to_16(prev_color),
                                     true,
+                                    semi_transparent,
                                 );
                                 self.stat.set(self.stat.get() | (1 << 26));
                                 self.vram_state.set(VramState::Idle);
@@ -590,7 +613,14 @@ impl Gpu {
                                     return;
                                 }
                                 let c = color24_to_16(color0);
-                                self.render_single_line(vertex0, (x, y), c, c, false);
+                                self.render_single_line(
+                                    vertex0,
+                                    (x, y),
+                                    c,
+                                    c,
+                                    false,
+                                    semi_transparent,
+                                );
                                 self.stat.set(self.stat.get() | (1 << 26));
                                 self.vram_state.set(VramState::Idle);
                                 return;
@@ -612,6 +642,7 @@ impl Gpu {
                 self.vram_state.set(VramState::LineRender {
                     gouraud,
                     polyline,
+                    semi_transparent,
                     color0,
                     vertex0,
                     prev_vertex,
@@ -625,6 +656,7 @@ impl Gpu {
             VramState::RectRender {
                 size,
                 textured,
+                semi_transparent,
                 color,
                 mut vertex,
                 mut uv,
@@ -642,6 +674,7 @@ impl Gpu {
                         self.vram_state.set(VramState::RectRender {
                             size,
                             textured,
+                            semi_transparent,
                             color,
                             vertex,
                             uv,
@@ -654,6 +687,7 @@ impl Gpu {
                         self.vram_state.set(VramState::RectRender {
                             size,
                             textured,
+                            semi_transparent,
                             color,
                             vertex,
                             uv,
@@ -663,7 +697,7 @@ impl Gpu {
                         });
                         return;
                     }
-                    self.render_rect(size, color, vertex, width, height);
+                    self.render_rect(size, color, vertex, width, height, semi_transparent);
                     self.stat.set(self.stat.get() | (1 << 26));
                     self.vram_state.set(VramState::Idle);
                 }
@@ -674,6 +708,7 @@ impl Gpu {
                             self.vram_state.set(VramState::RectRender {
                                 size,
                                 textured,
+                                semi_transparent,
                                 color,
                                 vertex,
                                 uv,
@@ -691,6 +726,7 @@ impl Gpu {
                         self.vram_state.set(VramState::RectRender {
                             size,
                             textured,
+                            semi_transparent,
                             color,
                             vertex,
                             uv,
@@ -700,7 +736,7 @@ impl Gpu {
                         });
                         return;
                     }
-                    self.render_rect(size, color, vertex, width, height);
+                    self.render_rect(size, color, vertex, width, height, semi_transparent);
                     self.stat.set(self.stat.get() | (1 << 26));
                     self.vram_state.set(VramState::Idle);
                 }
@@ -712,7 +748,7 @@ impl Gpu {
                         self.vram_state.set(VramState::Idle);
                         return;
                     }
-                    self.render_rect(size, color, vertex, width, height);
+                    self.render_rect(size, color, vertex, width, height, semi_transparent);
                     self.stat.set(self.stat.get() | (1 << 26));
                     self.vram_state.set(VramState::Idle);
                 }
@@ -809,6 +845,45 @@ impl Gpu {
         }
     }
 
+    fn write_pixel(&mut self, idx: usize, pixel: u16, semi_transparent: bool) {
+        if semi_transparent && (pixel & 0x8000) != 0 {
+            let back = self.vram[idx];
+            let mode = (self.stat.get() >> 5) & 3;
+            let r_b = back & 0x1F;
+            let g_b = (back >> 5) & 0x1F;
+            let b_b = (back >> 10) & 0x1F;
+            let r_f = pixel & 0x1F;
+            let g_f = (pixel >> 5) & 0x1F;
+            let b_f = (pixel >> 10) & 0x1F;
+            let (r, g, b) = match mode {
+                0 => (
+                    (r_b >> 1) + (r_f >> 1),
+                    (g_b >> 1) + (g_f >> 1),
+                    (b_b >> 1) + (b_f >> 1),
+                ),
+                1 => (
+                    (r_b + r_f).min(31),
+                    (g_b + g_f).min(31),
+                    (b_b + b_f).min(31),
+                ),
+                2 => (
+                    (r_b as i32 - r_f as i32).max(0) as u16,
+                    (g_b as i32 - g_f as i32).max(0) as u16,
+                    (b_b as i32 - b_f as i32).max(0) as u16,
+                ),
+                3 => (
+                    (r_b + (r_f >> 2)).min(31),
+                    (g_b + (g_f >> 2)).min(31),
+                    (b_b + (b_f >> 2)).min(31),
+                ),
+                _ => (r_f, g_f, b_f),
+            };
+            self.vram[idx] = r | (g << 5) | (b << 10);
+        } else {
+            self.vram[idx] = pixel;
+        }
+    }
+
     fn sample_texel(&self, u: i32, v: i32) -> u16 {
         let stat = self.stat.get();
         let tex_colors = (stat >> 7) & 3;
@@ -860,11 +935,13 @@ impl Gpu {
         self.vram[addr]
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn render_polygon(
         &mut self,
         gouraud: bool,
         quad: bool,
         textured: bool,
+        semi_transparent: bool,
         vertices: &mut [(i16, i16); 4],
         colors: &mut [u32; 4],
         uvs: &mut [(u8, u8); 4],
@@ -893,6 +970,7 @@ impl Gpu {
             self.render_triangle(
                 gouraud,
                 tex_active,
+                semi_transparent,
                 [vertices[0], vertices[1], vertices[2]],
                 [colors[0], colors[1], colors[2]],
                 [uvs[0], uvs[1], uvs[2]],
@@ -900,6 +978,7 @@ impl Gpu {
             self.render_triangle(
                 gouraud,
                 tex_active,
+                semi_transparent,
                 [vertices[1], vertices[2], vertices[3]],
                 [colors[1], colors[2], colors[3]],
                 [uvs[1], uvs[2], uvs[3]],
@@ -908,6 +987,7 @@ impl Gpu {
             self.render_triangle(
                 gouraud,
                 tex_active,
+                semi_transparent,
                 [vertices[0], vertices[1], vertices[2]],
                 [colors[0], colors[1], colors[2]],
                 [uvs[0], uvs[1], uvs[2]],
@@ -919,6 +999,7 @@ impl Gpu {
         &mut self,
         gouraud: bool,
         textured: bool,
+        semi_transparent: bool,
         verts: [(i16, i16); 3],
         colors: [u32; 3],
         uvs: [(u8, u8); 3],
@@ -1046,7 +1127,7 @@ impl Gpu {
                     pct
                 };
                 let idx = y as usize * 1024 + x as usize;
-                self.vram[idx] = pixel;
+                self.write_pixel(idx, pixel, semi_transparent);
             }
         }
     }
@@ -1058,6 +1139,7 @@ impl Gpu {
         c0: u16,
         c1: u16,
         gouraud: bool,
+        semi_transparent: bool,
     ) {
         let x0 = v0.0 as i32;
         let y0 = v0.1 as i32;
@@ -1092,7 +1174,7 @@ impl Gpu {
                 && (0..1024).contains(&x)
                 && (0..512).contains(&y)
             {
-                self.vram[y as usize * 1024 + x as usize] = pixel;
+                self.write_pixel(y as usize * 1024 + x as usize, pixel, semi_transparent);
             }
             step += 1;
             if x == x1 && y == y1 {
@@ -1117,16 +1199,25 @@ impl Gpu {
         c0: u16,
         c1: u16,
         gouraud: bool,
+        semi_transparent: bool,
     ) {
         let dx = (v0.0 as i32 - v1.0 as i32).abs();
         let dy = (v0.1 as i32 - v1.1 as i32).abs();
         if dx > 1023 || dy > 511 {
             return;
         }
-        self.render_single_line(v0, v1, c0, c1, gouraud);
+        self.render_single_line(v0, v1, c0, c1, gouraud, semi_transparent);
     }
 
-    fn render_rect(&mut self, size: u8, color: u32, vertex: (i16, i16), w: u16, h: u16) {
+    fn render_rect(
+        &mut self,
+        size: u8,
+        color: u32,
+        vertex: (i16, i16),
+        w: u16,
+        h: u16,
+        semi_transparent: bool,
+    ) {
         let (w_actual, h_actual) = match size {
             0 => (w as u32, h as u32),
             1 => (1, 1),
@@ -1155,7 +1246,7 @@ impl Gpu {
 
         for py in draw_y0..draw_y1 {
             for px in draw_x0..draw_x1 {
-                self.vram[py as usize * 1024 + px as usize] = pixel;
+                self.write_pixel(py as usize * 1024 + px as usize, pixel, semi_transparent);
             }
         }
     }

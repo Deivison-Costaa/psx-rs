@@ -1,0 +1,10 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: c3378e93f82006c422e40d2ff28c9823dfd5eba3
+# rodado_em: 2026-07-29T06:42:07-03:00
+m1,mutante,morreu,morreu,0.7,d2_framebuffer_for_display_retorna_some_quando_display_habilitado;d3_framebuffer_para_egui_formato_rgba8
+m2,mutante,morreu,morreu,0.7,d1_framebuffer_for_display_retorna_none_quando_display_desabilitado
+m3,mutante,morreu,morreu,0.7,d2_framebuffer_for_display_retorna_some_quando_display_habilitado;d3_framebuffer_para_egui_formato_rgba8
+m4,mutante,morreu,morreu,0.7,d1_framebuffer_for_display_retorna_none_quando_display_desabilitado;d2_framebuffer_for_display_retorna_some_quando_display_habilitado;d3_framebuffer_para_egui_formato_rgba8
+m5,mutante,morreu,morreu,0.7,d3_framebuffer_para_egui_formato_rgba8
+K1,controle,sobreviveu,sobreviveu,0.7,
+K2,controle,sobreviveu,sobreviveu,0.8,

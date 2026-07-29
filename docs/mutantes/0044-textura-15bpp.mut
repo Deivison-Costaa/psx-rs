@@ -31,19 +31,25 @@ rotulo: texel 0x0000 eh desenhado em vez de pular (transparencia ignorada)
 mutante: m3
 rotulo: bit 11 do E1h vai para GPUSTAT.11 em vez de GPUSTAT.15
 @@DE
-            let mask = (0x7FF) | (1 << 15);
-            let bits = (param & 0x7FF) | (((param >> 11) & 1) << 15);
+                            let mask = (0x7FF) | (1 << 15);
+                            let bits = (param & 0x7FF) | (((param >> 11) & 1) << 15);
 @@PARA
-            let mask = (0x7FF) | (1 << 11);
-            let bits = (param & 0x7FF) | (((param >> 11) & 1) << 11);
+                            let mask = (0x7FF) | (1 << 11);
+                            let bits = (param & 0x7FF) | (((param >> 11) & 1) << 11);
 @@FIM
 
 mutante: m4
 rotulo: texpage colors=3 nao tratado como 15bpp (so mode=2 amostra textura)
 @@DE
+        let tex_active = textured && {
+            let tex_colors = (self.stat.get() >> 7) & 3;
             tex_colors == 2 || tex_colors == 3
+        };
 @@PARA
+        let tex_active = textured && {
+            let tex_colors = (self.stat.get() >> 7) & 3;
             tex_colors == 2
+        };
 @@FIM
 
 mutante: m5

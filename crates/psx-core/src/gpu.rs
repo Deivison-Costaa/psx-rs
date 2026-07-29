@@ -403,6 +403,13 @@ impl Gpu {
         }
     }
 
+    pub fn framebuffer_for_display(&self) -> Option<Framebuffer> {
+        if self.stat.get() & (1 << 23) == 0 {
+            return None;
+        }
+        Some(self.framebuffer())
+    }
+
     fn write_gp0(&mut self, val: u32) {
         let state = self.vram_state.get();
         match state {

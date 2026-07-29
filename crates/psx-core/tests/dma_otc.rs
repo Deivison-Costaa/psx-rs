@@ -77,21 +77,28 @@ fn dma6_otc_preenche_ram_com_linked_list() {
     bus.write32::<BusRead>(D6_BCR, count);
     bus.write32::<BusRead>(DPCR, 0x0765_4321 | (1 << 27));
     bus.write32::<BusRead>(D6_CHCR, 0x1100_0002);
-    let end_val = bus.read32::<BusRead>(base);
-    assert_eq!(end_val, 0x00FF_FFFF, "ultimo slot = end marker");
-    let prev = bus.read32::<BusRead>(base.wrapping_sub(4));
-    assert_eq!(prev, base & 0x1F_FFFC, "slot N-1 aponta para slot N");
-    let ante = bus.read32::<BusRead>(base.wrapping_sub(8));
+    let slot_mais_baixo = bus.read32::<BusRead>(base.wrapping_sub(12));
     assert_eq!(
-        ante,
-        (base.wrapping_sub(4)) & 0x1F_FFFC,
-        "slot N-2 aponta para slot N-1"
+        slot_mais_baixo, 0x00FF_FFFF,
+        "slot mais baixo = terminador (end marker)"
     );
-    let primeiro = bus.read32::<BusRead>(base.wrapping_sub(12));
+    let slot_2 = bus.read32::<BusRead>(base.wrapping_sub(8));
     assert_eq!(
-        primeiro,
-        (base.wrapping_sub(8)) & 0x1F_FFFC,
-        "slot N-3 aponta para slot N-2"
+        slot_2,
+        (base.wrapping_sub(12)) & 0x00FF_FFFC,
+        "slot N-2 aponta para o slot mais baixo (N-3)"
+    );
+    let slot_1 = bus.read32::<BusRead>(base.wrapping_sub(4));
+    assert_eq!(
+        slot_1,
+        (base.wrapping_sub(8)) & 0x00FF_FFFC,
+        "slot N-1 aponta para o slot N-2"
+    );
+    let slot_mais_alto = bus.read32::<BusRead>(base);
+    assert_eq!(
+        slot_mais_alto,
+        (base.wrapping_sub(4)) & 0x00FF_FFFC,
+        "slot mais alto (N) aponta para o slot N-1"
     );
 }
 
@@ -145,19 +152,23 @@ fn dma6_otc_bcr_zero_equivale_a_10000h() {
     bus.write32::<BusRead>(D6_BCR, 0);
     bus.write32::<BusRead>(DPCR, 0x0765_4321 | (1 << 27));
     bus.write32::<BusRead>(D6_CHCR, 0x1100_0002);
-    let ultimo = bus.read32::<BusRead>(base);
-    assert_eq!(ultimo, 0x00FF_FFFF, "com BCR=0, ultimo slot = end marker");
-    let penultimo = bus.read32::<BusRead>(base.wrapping_sub(4));
+    let mais_baixo = base.wrapping_sub(0xFFFC);
+    let terminador = bus.read32::<BusRead>(mais_baixo);
     assert_eq!(
-        penultimo,
-        base & 0x1F_FFFC,
-        "com BCR=0, penultimo aponta para ultimo"
+        terminador, 0x00FF_FFFF,
+        "com BCR=0, slot mais baixo = terminador"
     );
-    let primeiro = bus.read32::<BusRead>(base.wrapping_sub(0xFFFC));
+    let penultimo_baixo = bus.read32::<BusRead>(mais_baixo.wrapping_add(4));
     assert_eq!(
-        primeiro,
-        (base.wrapping_sub(0xFFF8)) & 0x1F_FFFC,
-        "slot logo acima do fundo aponta para o proximo"
+        penultimo_baixo,
+        mais_baixo & 0x00FF_FFFC,
+        "slot logo acima do terminador aponta para o terminador"
+    );
+    let slot_mais_alto = bus.read32::<BusRead>(base);
+    assert_eq!(
+        slot_mais_alto,
+        (base.wrapping_sub(4)) & 0x00FF_FFFC,
+        "slot mais alto aponta para o slot N-1"
     );
 }
 

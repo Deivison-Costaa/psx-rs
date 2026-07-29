@@ -16,7 +16,7 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [x] 0.9 Carregamento de BIOS com validação de hash (1ª iteração do trabalhador) (iter 0009)
 - [x] 0.10 Formato de manifesto de mutação + meta-teste (iter 0040)
 - [x] 0.11 scripts/mutantes.ps1 + job de CI + reconciliação do placar (iter 0041)
-- [ ] 0.12 Verificador de citações de spec
+- [x] 0.12 Verificador de citações de spec (iter 0043)
 
 ## M1 — CPU R3000A até o BIOS falar
 - [x] 1.1 Scheduler de eventos + bus (KUSEG/KSEG0/KSEG1), RAM 2MB, BIOS ROM (iter 0010)

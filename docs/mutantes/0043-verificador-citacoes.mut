@@ -20,9 +20,9 @@ controle: c2
 rotulo: acrescenta let inofensivo dentro da funcao de teste
 
 @@DE
-    let md_files = collect_md_files(&root);
+    let md_files: Vec<_> = collect_md_files(&root)
 @@PARA
-    let md_files = collect_md_files(&root);
+    let md_files: Vec<_> = collect_md_files(&root)
     let _mark = 1;
 @@FIM
 

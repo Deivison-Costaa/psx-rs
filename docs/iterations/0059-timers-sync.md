@@ -29,6 +29,8 @@ Achados 1 defeito.
 |---|---|---|---|---|
 | 1 | flags | Que `sync_enable=0` no timer 2 com sync_mode=0 parava o contador | Spec: sync_mode só importa quando sync_enable=1. Com sync_enable=0, é Free Run independente do modo | Teste `tick_respeita_divisor_de_clock_do_timer2` falhou após reescrita do `increment` — corrigido com `2 => true` no branch `else` |
 | 2 | API-Rust | Que poderia chamar `bus.timers_mut().tick(...)` com `bus.gpu().hblank_active()` na mesma expressão | Rust não permite borrow mutável e imutável simultâneo no mesmo escopo | Erro de compilação E0502 — resolvido com helper `tick_timer()` que extrai os sinais antes da chamada |
+| 3 | processo | Que escopo composto `test,mut` seria aceito pelo commit-lint | O regex `[a-z0-9-]+` não inclui vírgula — escopo composto não existe no projeto | CI `commit-lint` reprovou — commit `9277d39` reescrito via cherry-pick com escopo único `mut` |
+| 4 | ferramental | Que a âncora do m6 no manifesto 0058 sobreviveria ao refactor do `tick()` | A linha `2 => !(sync_enable && (sync_mode == 0 || sync_mode == 3))` foi substituída por `2 => !matches!(sync_mode, 0 | 3)` — âncora apodreceu | CI `mutantes` reprovou — âncora corrigida para a linha atual, mantendo a mesma intenção (sync enable não pausa o timer 2) |
 
 ## Bateria de mutação
 

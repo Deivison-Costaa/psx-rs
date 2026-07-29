@@ -5,16 +5,16 @@
 
 ## Última iteração concluída
 
-**0052** — Framebuffer GPU (ROADMAP 2.8).
+**0053** — psx-desktop eframe/egui (ROADMAP 2.8b).
 
 ## Próxima tarefa
 
-**ROADMAP 2.8b — psx-desktop com eframe/egui (deferido da 2.8).**
-Adicionar dependência `eframe`/`egui` compatível com Rust 1.85 e criar janela desktop
-que exiba o framebuffer da GPU num widget Image. A GPU já tem `framebuffer()` (0052);
-falta escolher versão de eframe que compile na toolchain 1.85 e integrar o loop.
-Arquivos-alvo: `crates/psx-desktop/src/main.rs`, `crates/psx-desktop/Cargo.toml`.
-Armadilha: eframe 0.31 requer Rust ~1.80 mas pode ter API diferente; testar antes de commitar.
+**ROADMAP 2.9 — Suíte GPU do ps1-tests no scoreboard.**
+Baixar ps1-tests GPU (exes de `gpu/`), rodar via `psx-cli sideload` e integrar o
+resultado no scoreboard (`scripts/scoreboard.ps1`). A GPU já tem rasterizador completo
+(triângulos, linhas, retângulos, texturas, dithering, blend, mask bit, vblank); o que
+falta é o fetch dos binários e a coluna no scoreboard.
+Arquivos-alvo: `scripts/fetch-test-exes.ps1` (adicionar GPU), `exes/gpu/`, scoreboard.
 
 ## Repositório
 
@@ -28,7 +28,7 @@ Armadilha: eframe 0.31 requer Rust ~1.80 mas pode ter API diferente; testar ante
 
 ## Placar de testes
 
-Workspace: **398** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 29 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 11 cpu_opcode_reservado + 16 gpu_status_gp0_gp1 + 9 ci_scoreboard + 9 cli_runner + 21 gpu_vram_transfers + 20 gpu_triangulos_flat_gouraud + 21 gpu_linhas_retangulos + 6 gpu_textura_15bpp + 6 gpu_texturas_4bpp_8bpp + 5 gpu_texture_window + 6 gpu_semi_transparencia + 7 gpu_dithering + 8 gpu_mask_bit + 7 gpu_display_regs + 9 gpu_timing_vblank + 5 gpu_framebuffer + 1 spec_citations + 2 mutation_manifest + 2 mutation_anchors + 5 mutation_battery).
+Workspace: **402** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 29 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 11 cpu_opcode_reservado + 16 gpu_status_gp0_gp1 + 9 ci_scoreboard + 9 cli_runner + 21 gpu_vram_transfers + 20 gpu_triangulos_flat_gouraud + 21 gpu_linhas_retangulos + 6 gpu_textura_15bpp + 6 gpu_texturas_4bpp_8bpp + 5 gpu_texture_window + 6 gpu_semi_transparencia + 7 gpu_dithering + 8 gpu_mask_bit + 7 gpu_display_regs + 9 gpu_timing_vblank + 6 gpu_framebuffer + 3 gpu_desktop_egui + 1 spec_citations + 2 mutation_manifest + 2 mutation_anchors + 5 mutation_battery).
 
 ## Bloqueios
 

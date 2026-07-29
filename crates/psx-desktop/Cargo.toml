@@ -8,3 +8,5 @@ repository.workspace = true
 
 [dependencies]
 psx-core = { path = "../psx-core" }
+eframe = "0.32"
+egui = "0.32"

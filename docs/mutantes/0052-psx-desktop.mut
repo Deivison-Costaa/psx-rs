@@ -4,12 +4,11 @@ iteracao: 0052
 item: 2.8
 alvo: crates/psx-core/src/gpu.rs
 teste: gpu_framebuffer
-arquivada: cycles_per_pix() visibilidade alterada de fn para pub fn na iter 0060 (item 3.4c) — ancoras nao correspondem mais
 
 mutante: m1
 rotulo: cycles_per_pix sempre retorna 10 (ignora HR1/HR2)
 @@DE
-    fn cycles_per_pix(&self) -> u16 {
+    pub fn cycles_per_pix(&self) -> u16 {
         let stat = self.stat.get();
         let hr1 = (stat >> 17) & 3;
         let hr2 = (stat >> 16) & 1;
@@ -25,7 +24,7 @@ rotulo: cycles_per_pix sempre retorna 10 (ignora HR1/HR2)
         }
     }
 @@PARA
-    fn cycles_per_pix(&self) -> u16 {
+    pub fn cycles_per_pix(&self) -> u16 {
         10
     }
 @@FIM

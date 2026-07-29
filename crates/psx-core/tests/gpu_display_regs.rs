@@ -8,10 +8,6 @@ fn write_gp1(gpu: &mut Gpu, cmd: u8, param: u32) {
     gpu.write32(4, ((cmd as u32) << 24) | (param & 0x00FF_FFFF));
 }
 
-fn mount_gp1(cmd: u8, param: u32) -> u32 {
-    ((cmd as u32) << 24) | (param & 0x00FF_FFFF)
-}
-
 #[rustfmt::skip]
 #[test]
 fn t1_gp1_00h_reset_configura_display_regs_com_valores_padrao() {

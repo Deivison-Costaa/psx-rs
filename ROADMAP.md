@@ -66,7 +66,7 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 ## M4 — CDROM
 - [x] 4.1 Regs/FIFOs/IRQs + GetStat/GetID/Test (iter 0062)
 - [x] 4.2a Setloc/SeekL/Pause + estado do drive (iter 0063)
-- [ ] 4.2b Parser BIN/CUE
+- [x] 4.2b Parser BIN/CUE (iter 0064)
 - [ ] 4.2c ReadN/ReadS + INT1/DRQSTS (máquina de estados)
 - [ ] 4.3 DMA canal 3 + entrega de setores
 - [ ] 4.4 Boot de jogo 2D/menu

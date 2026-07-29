@@ -105,6 +105,24 @@ fn setloc_rejeita_setor_bcd_invalido() {
     send_command(&mut bus, 0x02);
     let hintsts = hintsts_read_bank1(&mut bus);
     assert_eq!(hintsts & 0x7, 5, "INT5 apos Setloc com asect >= 75h");
+    let stat = result_read(&mut bus);
+    assert_eq!(stat & 0x01, 0x01, "stat bit0=1 — erro");
+    let err = result_read(&mut bus);
+    assert_eq!(err, 0x10, "error byte = 10h (parametro invalido)");
+}
+
+#[test]
+fn setloc_aceita_setor_0x74_bcd_valido() {
+    let mut bus = bus();
+    insert_stub_disc(&mut bus);
+    param_write(&mut bus, bcd_minute(0x02));
+    param_write(&mut bus, bcd_second(0x10));
+    param_write(&mut bus, 0x74);
+    send_command(&mut bus, 0x02);
+    let hintsts = hintsts_read_bank1(&mut bus);
+    assert_eq!(hintsts & 0x7, 3, "INT3 apos Setloc com setor 74h (valido)");
+    let stat = result_read(&mut bus);
+    assert_eq!(stat & 0x01, 0, "stat bit0=0 — sem erro");
 }
 
 #[test]

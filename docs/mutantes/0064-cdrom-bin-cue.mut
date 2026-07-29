@@ -1,0 +1,91 @@
+# Manifesto de mutação da iteração 0064 — cdrom-bin-cue
+formato: 1
+iteracao: 0064
+item: 4.2b
+alvo: crates/psx-core/src/cdrom_bin_cue.rs
+teste: cdrom_bin_cue
+
+mutante: m1
+rotulo: Track type MODE2/2352 parse como Audio — track type errada
+@@DE
+        "MODE2/2352" => Some(TrackType::Mode2_2352),
+@@PARA
+        "MODE2/2352" => Some(TrackType::Audio),
+@@FIM
+
+mutante: m2
+rotulo: INDEX 01 MM ignorado — usa zero como minute
+@@DE
+                                track.index01_mm = mm;
+@@PARA
+                                track.index01_mm = 0;
+@@FIM
+
+mutante: m3
+rotulo: PREGAP descartado — nunca armazena pregap
+@@DE
+                    track.pregap_mm = Some(mm);
+                    track.pregap_ss = Some(ss);
+                    track.pregap_ff = Some(ff);
+@@PARA
+                    track.pregap_mm = None;
+                    track.pregap_ss = None;
+                    track.pregap_ff = None;
+@@FIM
+
+mutante: m4
+rotulo: bin_offset usa 2048 em vez de 2352 — offset errado
+@@DE
+        total_frames * 2352
+@@PARA
+        total_frames * 2048
+@@FIM
+
+mutante: m5
+rotulo: read_data_sector extrai do offset 0 em vez de 0x10 — dados errados
+@@DE
+        let start = offset + 0x10;
+@@PARA
+        let start = offset;
+@@FIM
+
+mutante: m6
+rotulo: bin_path vazio — ignora FILE
+@@DE
+                    bin_path = rest[1..quote_end].to_string();
+@@PARA
+                    bin_path = String::new();
+@@FIM
+
+mutante: m7
+rotulo: parse_cue perde ultima track — nao faz push no final
+@@DE
+    if let Some(current) = current_track {
+        tracks.push(current);
+    }
+@@PARA
+    if let Some(_current) = current_track {
+    }
+@@FIM
+
+controle: K1
+rotulo: extrair parse_track_type em variavel local (equivalente semantico)
+@@DE
+                    if let Some(tt) = parse_track_type(parts[1]) {
+                        current_track = Some(TrackInfo {
+@@PARA
+                    let parsed_tt = parse_track_type(parts[1]);
+                    if let Some(tt) = parsed_tt {
+                        current_track = Some(TrackInfo {
+@@FIM
+
+controle: K2
+rotulo: usar map().flatten() em vez de if let aninhado no INDEX (equivalente semantico)
+@@DE
+                    if let Ok(idx) = parts[0].parse::<u8>() {
+                        if let Some((mm, ss, ff)) = parse_mm_ss_ff(parts[1]) {
+@@PARA
+                    if let Ok(idx) = parts[0].parse::<u8>() {
+                        let pos = parse_mm_ss_ff(parts[1]);
+                        if let Some((mm, ss, ff)) = pos {
+@@FIM

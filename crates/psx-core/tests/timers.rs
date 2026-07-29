@@ -11,11 +11,8 @@ const T0_CNT: u32 = 0x1F80_1100;
 const T0_MODE: u32 = 0x1F80_1104;
 const T0_TARGET: u32 = 0x1F80_1108;
 const T1_CNT: u32 = 0x1F80_1110;
-const T1_MODE: u32 = 0x1F80_1114;
-const T1_TARGET: u32 = 0x1F80_1118;
 const T2_CNT: u32 = 0x1F80_1120;
 const T2_MODE: u32 = 0x1F80_1124;
-const T2_TARGET: u32 = 0x1F80_1128;
 
 #[test]
 fn cnt_gravavel_e_legivel() {
@@ -32,7 +29,11 @@ fn mode_gravavel_e_legivel() {
     bus.write32::<BusRead>(T0_MODE, 0xA5);
     let val = bus.read32::<BusRead>(T0_MODE);
     assert_eq!(val & 0x1FF, 0xA5, "bits 0-8 gravaveis");
-    assert_eq!(val & 0x7C00, 0, "bits 10-14 sao read-only flags do hardware");
+    assert_eq!(
+        val & 0x7C00,
+        0,
+        "bits 10-14 sao read-only flags do hardware"
+    );
 }
 
 #[test]
@@ -80,22 +81,31 @@ fn tick_incrementa_cnt_modo_system_clock() {
 }
 
 #[test]
-fn tick_nao_incrementa_com_sync_enable_e_modo_pause() {
+fn timer2_modo_0_sync_ativo_para_contador() {
     let mut bus = bus();
-    bus.write32::<BusRead>(T0_MODE, 0x0001);
-    bus.timers_mut().tick(T0_CNT, 5);
-    let val = bus.read32::<BusRead>(T0_CNT);
-    assert_eq!(val & 0xFFFF, 0, "sync enable + modo 0 pausa, counter nao avanca");
+    bus.write32::<BusRead>(T2_MODE, 0x0001);
+    bus.write32::<BusRead>(T2_CNT, 0x000A);
+    bus.timers_mut().tick(T2_CNT, 5);
+    let val = bus.read32::<BusRead>(T2_CNT);
+    assert_eq!(
+        val & 0xFFFF,
+        0x000A,
+        "T2 sync mode 0 para o contador permanentemente"
+    );
 }
 
 #[test]
 fn cnt_wrap_em_ffff_sem_target() {
     let mut bus = bus();
-    bus.write32::<BusRead>(T0_CNT, 0xFFFF);
     bus.write32::<BusRead>(T0_MODE, 0x0000);
+    bus.write32::<BusRead>(T0_CNT, 0xFFFF);
     bus.timers_mut().tick(T0_CNT, 1);
     let val = bus.read32::<BusRead>(T0_CNT);
-    assert_eq!(val & 0xFFFF, 0, "CNT deve dar wrap para 0 ao passar de FFFFh");
+    assert_eq!(
+        val & 0xFFFF,
+        0,
+        "CNT deve dar wrap para 0 ao passar de FFFFh"
+    );
 }
 
 #[test]
@@ -113,20 +123,40 @@ fn flag_target_alcancado_setado_e_limpo_na_leitura() {
     let mut bus = bus();
     bus.write32::<BusRead>(T0_TARGET, 0x0002);
     bus.write32::<BusRead>(T0_MODE, 0x0008);
-    assert_eq!(bus.read32::<BusRead>(T0_MODE) & (1 << 11), 0, "bit11 limpo antes do tick");
+    assert_eq!(
+        bus.read32::<BusRead>(T0_MODE) & (1 << 11),
+        0,
+        "bit11 limpo antes do tick"
+    );
     bus.timers_mut().tick(T0_CNT, 2);
-    assert_eq!(bus.read32::<BusRead>(T0_MODE) & (1 << 11), 1 << 11, "bit11 setado apos atingir target");
-    assert_eq!(bus.read32::<BusRead>(T0_MODE) & (1 << 11), 0, "bit11 limpo apos leitura");
+    assert_eq!(
+        bus.read32::<BusRead>(T0_MODE) & (1 << 11),
+        1 << 11,
+        "bit11 setado apos atingir target"
+    );
+    assert_eq!(
+        bus.read32::<BusRead>(T0_MODE) & (1 << 11),
+        0,
+        "bit11 limpo apos leitura"
+    );
 }
 
 #[test]
 fn flag_ffff_alcancado_setado_e_limpo_na_leitura() {
     let mut bus = bus();
-    bus.write32::<BusRead>(T0_CNT, 0xFFFE);
     bus.write32::<BusRead>(T0_MODE, 0x0000);
+    bus.write32::<BusRead>(T0_CNT, 0xFFFE);
     bus.timers_mut().tick(T0_CNT, 2);
-    assert_eq!(bus.read32::<BusRead>(T0_MODE) & (1 << 12), 1 << 12, "bit12 setado apos passar de FFFFh");
-    assert_eq!(bus.read32::<BusRead>(T0_MODE) & (1 << 12), 0, "bit12 limpo apos leitura");
+    assert_eq!(
+        bus.read32::<BusRead>(T0_MODE) & (1 << 12),
+        1 << 12,
+        "bit12 setado apos passar de FFFFh"
+    );
+    assert_eq!(
+        bus.read32::<BusRead>(T0_MODE) & (1 << 12),
+        0,
+        "bit12 limpo apos leitura"
+    );
 }
 
 #[test]

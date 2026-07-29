@@ -60,7 +60,7 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [x] 3.3 DMA canal 2 GPU (block + linked-list) (iter 0057)
 - [x] 3.4 Timers 0/1/2 — registradores e contagem básica (iter 0058)
 - [x] 3.4b Timers — modos de sync Hblank/Vblank (iter 0059)
-- [ ] 3.4c Timers — fontes de clock Dotclock/Hblank (deferido da 3.4)
+- [x] 3.4c Timers — fontes de clock Dotclock/Hblank (iter 0060)
 - [ ] 3.4d Timers — conexão de IRQ4/IRQ5/IRQ6 ao controlador (deferido da 3.4)
 
 ## M4 — CDROM
@@ -115,6 +115,7 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [ ] 10.12 Meta-teste do placar pula em silêncio quando o doc não é legível (`Err(_) => continue`) — passou local e reprovou na CI na iter 0042
 - [ ] 10.13 GP0(24h) é modulação, não raw texture: bit 24 do comando não é lido e o texel vai cru (03-gpu.md L264 e L1610)
 - [ ] 10.14 U/V e cor gouraud são reinterpolados sobre o span já recortado pela drawing area — a textura estica em vez de só perder os pixels de fora (03-gpu.md L452-454)
+- [ ] 10.15 Reparar as âncoras do manifesto 0059 (`timers-sync`), arquivado na 0060 quando o `tick()` foi reescrito: 4 dos 9 registros não casam mais, e a bateria daquele item está sem rodar. O 0052 foi reparado no mesmo dia com quatro caracteres (`fn` → `pub fn`), o que sugere que arquivar foi resposta cara demais para o problema
 
 ## M11 — Apresentação (incremental desde o M1)
 - [ ] 11.1 Relatório consolidado (docs/relatorio.md — atualizado a cada marco)

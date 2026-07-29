@@ -4,6 +4,7 @@ iteracao: 0059
 item: 3.4b
 alvo: crates/psx-core/src/timers.rs
 teste: timers_sync
+arquivada: tick() reescrito na iter 0060 (item 3.4c) — ancoras nao correspondem mais
 
 mutante: m1
 rotulo: modo 0 nao pausa durante sync (timer 0 com hblank)

@@ -8,7 +8,7 @@ teste: gpu_framebuffer
 mutante: m1
 rotulo: cycles_per_pix sempre retorna 10 (ignora HR1/HR2)
 @@DE
-    fn cycles_per_pix(&self) -> u16 {
+    pub fn cycles_per_pix(&self) -> u16 {
         let stat = self.stat.get();
         let hr1 = (stat >> 17) & 3;
         let hr2 = (stat >> 16) & 1;
@@ -24,7 +24,7 @@ rotulo: cycles_per_pix sempre retorna 10 (ignora HR1/HR2)
         }
     }
 @@PARA
-    fn cycles_per_pix(&self) -> u16 {
+    pub fn cycles_per_pix(&self) -> u16 {
         10
     }
 @@FIM

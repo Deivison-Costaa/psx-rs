@@ -15,6 +15,8 @@ struct Timer {
 #[derive(Debug)]
 pub struct Timers {
     timers: [Timer; TIMER_COUNT],
+    gpu_cycles_per_pix: Cell<u16>,
+    gpu_video_cycles_per_scanline: Cell<u16>,
 }
 
 impl Timer {
@@ -34,6 +36,8 @@ impl Timers {
     pub fn new() -> Self {
         Timers {
             timers: [Timer::new(), Timer::new(), Timer::new()],
+            gpu_cycles_per_pix: Cell::new(10),
+            gpu_video_cycles_per_scanline: Cell::new(3413),
         }
     }
 
@@ -84,6 +88,12 @@ impl Timers {
         }
     }
 
+    pub fn update_gpu_timing(&mut self, cycles_per_pix: u16, video_cycles_per_scanline: u16) {
+        self.gpu_cycles_per_pix.set(cycles_per_pix);
+        self.gpu_video_cycles_per_scanline
+            .set(video_cycles_per_scanline);
+    }
+
     pub fn tick(&mut self, base_addr: u32, cycles: u32, hblank_active: bool, vblank_active: bool) {
         let idx = Self::timer_index(base_addr);
         let t = &self.timers[idx];
@@ -121,36 +131,40 @@ impl Timers {
         let increment = if sync_enable {
             match idx {
                 0 | 1 => match sync_mode {
-                    0 => (clock_src == 0 || clock_src == 2) && !sync_signal,
-                    1 => clock_src == 0 || clock_src == 2,
-                    2 => (clock_src == 0 || clock_src == 2) && sync_signal,
-                    3 => (clock_src == 0 || clock_src == 2) && t.mode3_triggered.get(),
-                    _ => clock_src == 0 || clock_src == 2,
+                    0 => !sync_signal,
+                    1 => true,
+                    2 => sync_signal,
+                    3 => t.mode3_triggered.get(),
+                    _ => true,
                 },
                 2 => !matches!(sync_mode, 0 | 3),
                 _ => return,
             }
         } else {
-            match idx {
-                0 | 1 => clock_src == 0 || clock_src == 2,
-                2 => true,
-                _ => return,
-            }
+            true
         };
 
         if !increment {
             return;
         }
 
-        let divisor: u32 = match idx {
-            2 if clock_src == 2 || clock_src == 3 => 8,
-            _ => 1,
+        let (numer, denom): (u64, u64) = match idx {
+            0 if clock_src == 1 || clock_src == 3 => {
+                let cpp = self.gpu_cycles_per_pix.get() as u64;
+                (11, 7 * cpp)
+            }
+            1 if clock_src == 1 || clock_src == 3 => {
+                let vcs = self.gpu_video_cycles_per_scanline.get() as u64;
+                (11, 7 * vcs)
+            }
+            2 if clock_src == 2 || clock_src == 3 => (1, 8),
+            _ => (1, 1),
         };
 
-        let prev_acc = t.cycle_acc.get();
-        let total = prev_acc + cycles;
-        let effective = total / divisor;
-        t.cycle_acc.set(total % divisor);
+        let prev_acc = t.cycle_acc.get() as u64;
+        let total = prev_acc * denom + (cycles as u64) * numer;
+        let effective = (total / denom) as u32;
+        t.cycle_acc.set((total % denom) as u32);
 
         for _ in 0..effective {
             let prev = t.counter.get();

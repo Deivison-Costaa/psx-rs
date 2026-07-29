@@ -25,7 +25,9 @@
 
 ## Bateria de mutação
 
-<!-- Placar: N/N mutantes pegos, M/M controles verdes. Liste cada mutação e o teste que a pegou. -->
+<!-- Placar da bateria: N/N mutantes mortos, M/M controles verdes, K equivalente — docs/mutantes/NNNN-slug.mut
+     A linha canônica acima é gerada por scripts/mutantes.ps1 e validada pelo meta-teste D.
+     Liste cada mutação e o teste que a pegou. -->
 
 ## Placar antes → depois
 

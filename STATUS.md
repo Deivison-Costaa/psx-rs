@@ -5,15 +5,14 @@
 
 ## Última iteração concluída
 
-**0065** — CDROM — ReadN/ReadS + INT1/DRQSTS (ROADMAP 4.2c).
+**0066** — CDROM — DMA canal 3 + gate BFRD no DRQSTS (ROADMAP 4.3a).
 
 ## Próxima tarefa
 
-**ROADMAP 4.3 — CDROM — DMA canal 3 + entrega de setores.**
-Conectar o DMA canal 3 ao drive de CDROM: transferir dados do setor (RDDATA) para RAM via DMA, coordenado pelo BFRD/DRQSTS. Acoplar `DiscLayout` + dados do .bin à entrega de setores do ReadN/ReadS. Armadilha: DMA3 precisa de trigger via DRQSTS; o canal 3 tem prioridade e comportamento próprio de parada.
-Spec do canal, em `docs/reference/04-dma.md`: "DMA3 channel 3" (L32), SyncMode=0 para OTC e CDROM (L62), prioridade e master enable (L129-130), valor de CHCR (L189).
-Spec da entrega do setor, em `docs/reference/06-cdrom.md`: "Copy Data to Main RAM" (L940).
-Arquivos-alvo: `crates/psx-core/src/dma.rs` (adicionar canal 3), `crates/psx-core/src/cdrom.rs` (acoplar BFRD/DRQSTS ao DMA, fornecer dados do BIN), `crates/psx-core/src/bus.rs` (conectar trigger DMA3↔CDROM).
+**ROADMAP 4.3b — CDROM — Acoplar DiscLayout + dados do .bin.**
+Substituir o buffer stub (`data_buffer` preenchido com `(i+1) & 0xFF`) por dados reais do arquivo .bin, usando o `DiscLayout` (item 4.2b). ReadN/ReadS devem ler setores do BIN a partir da posição definida por Setloc. Armadilha: o `Cdrom` hoje não tem referência ao `DiscLayout` nem ao buffer `.bin`; `Bus` precisa injetá-los ou o `Cdrom` precisa guardar uma referência.
+Spec: `docs/reference/06-cdrom.md` seção "ReadN/ReadS" (L924), "Copy Data to Main RAM" (L940).
+Arquivos-alvo: `crates/psx-core/src/cdrom.rs` (injetar DiscLayout + buffer BIN, ler setor real no deliver_second), `crates/psx-core/src/bus.rs` (passar dados do BIN para o Cdrom).
 
 ## Repositório
 
@@ -27,7 +26,7 @@ Arquivos-alvo: `crates/psx-core/src/dma.rs` (adicionar canal 3), `crates/psx-cor
 
 ## Placar de testes
 
-Workspace: **538** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 29 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 11 cpu_opcode_reservado + 11 cpu_irq + 13 dma_otc + 14 dma_gpu + 13 timers + 11 timers_sync + 9 timers_dotclock_hblank + 14 timers_irq + 16 gpu_status_gp0_gp1 + 9 ci_scoreboard + 9 cli_runner + 21 gpu_vram_transfers + 20 gpu_triangulos_flat_gouraud + 20 gpu_linhas_retangulos + 4 gpu_linhas_retangulos_continuacao + 6 gpu_textura_15bpp + 6 gpu_texturas_4bpp_8bpp + 5 gpu_texture_window + 6 gpu_semi_transparencia + 7 gpu_dithering + 8 gpu_mask_bit + 7 gpu_display_regs + 9 gpu_timing_vblank + 6 gpu_framebuffer + 3 gpu_desktop_egui + 6 gpu_scoreboard + 13 cdrom_regs + 11 cdrom_seek_pause + 11 cdrom_bin_cue + 10 cdrom_read + 1 spec_citations + 2 mutation_manifest + 2 mutation_anchors + 5 mutation_battery).
+Workspace: **548** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 29 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 11 cpu_opcode_reservado + 11 cpu_irq + 13 dma_otc + 14 dma_gpu + 12 cdrom_dma + 13 timers + 11 timers_sync + 9 timers_dotclock_hblank + 14 timers_irq + 16 gpu_status_gp0_gp1 + 9 ci_scoreboard + 9 cli_runner + 21 gpu_vram_transfers + 20 gpu_triangulos_flat_gouraud + 20 gpu_linhas_retangulos + 4 gpu_linhas_retangulos_continuacao + 6 gpu_textura_15bpp + 6 gpu_texturas_4bpp_8bpp + 5 gpu_texture_window + 6 gpu_semi_transparencia + 7 gpu_dithering + 8 gpu_mask_bit + 7 gpu_display_regs + 9 gpu_timing_vblank + 6 gpu_framebuffer + 3 gpu_desktop_egui + 6 gpu_scoreboard + 13 cdrom_regs + 11 cdrom_seek_pause + 11 cdrom_bin_cue + 10 cdrom_read + 1 spec_citations + 2 mutation_manifest + 2 mutation_anchors + 5 mutation_battery).
 
 ## Bloqueios
 

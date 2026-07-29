@@ -68,7 +68,8 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [x] 4.2a Setloc/SeekL/Pause + estado do drive (iter 0063)
 - [x] 4.2b Parser BIN/CUE (iter 0064)
 - [x] 4.2c ReadN/ReadS + INT1/DRQSTS (máquina de estados) (iter 0065)
-- [ ] 4.3 DMA canal 3 + entrega de setores
+- [x] 4.3a DMA canal 3 (registradores + gate BFRD no DRQSTS + transferência) (iter 0066)
+- [ ] 4.3b Acoplar DiscLayout + dados do .bin à entrega de setores
 - [ ] 4.4 Boot de jogo 2D/menu
 
 ## M5 — GTE

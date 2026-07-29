@@ -5,13 +5,29 @@
 
 ## Última iteração concluída
 
-**0039** — **Triângulos flat + gouraud** (ROADMAP 2.3). Rasterizador scanline com
-interpolação de cor. 12 testes. Bateria 4/5 + 2/2 controles. Ver
-`docs/iterations/0039-triangulos-flat-gouraud.md`.
+**0038** — VRAM 1MB + transfers CPU↔VRAM (ROADMAP 2.2, PR #52).
 
 ## Próxima tarefa
 
-**ROADMAP 2.4** — Quads, retângulos, linhas.
+**ROADMAP 2.3 — Triângulos flat + gouraud. NÃO ESTÁ CONCLUÍDO: reprovado na revisão.**
+Rodada de continuação na branch `iter/0039-triangulos-flat-gouraud`, PR #53 já aberto.
+Use `oc-iter.ps1 -ContinueBranch iter/0039-triangulos-flat-gouraud`.
+
+O scanline em si está certo para o caso interior — não reescreva o rasterizador. Reprovaram:
+
+1. **Regra de preenchimento (L323).** `Polygons are displayed up to <excluding> their
+   lower-right coordinates`. Os spans são inclusivos nos dois extremos: medido, um triângulo
+   (0,0)-(0,4)-(4,0) pinta (4,0) e (0,4), que deveriam ficar de fora.
+2. **Comandos texturizados dessincronizam o FIFO.** O braço `0x20..=0x3F` lê gouraud
+   (`cmd & 0x10`) e quad (`cmd & 0x08`) e ignora o bit de textura (`cmd & 0x04`); as palavras
+   de UV viram vértices. Medido: um GP0(24h) desenha um triângulo fantasma em (5,5) e nada no
+   interior real. Não implemente textura (é o item 2.5) — só **conte e consuma** as palavras.
+3. **Drawing Offset GP0(E5h) não existe** (L565) e **Drawing Area GP0(E3h/E4h) não existe**
+   (L552). Medido: com offset (100,100) o triângulo sai na origem crua. Polígonos são afetados
+   pelos dois — ao contrário das cópias do 2.2, que a spec diz explicitamente que não são.
+4. **Testes que não medem** (8 achados) e **a bateria conta um controle que não é controle**:
+   reordenar os dois triângulos do quad muda o resultado observável, porque no quad cíclico
+   eles se sobrepõem.
 
 ## Repositório
 

@@ -106,6 +106,7 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 ## M10 — Precisão e compatibilidade
 - [ ] 10.1 Timings finos (ps1-tests de timing)
 - [ ] 10.2 Passe de compatibilidade (bugs viram itens 10.x)
+- [x] 10.2a Primeiro passe: placar do ps1-tests lido e convertido nos itens 10.19-10.23 (iter 0068)
 - [ ] 10.3 Bus error ao executar codigo do scratchpad (exposto por ps1-tests/cpu/code-in-io)
 - [ ] 10.4 CAUSE.CE nao preenchido nas excecoes de Coprocessor Unusable (02-cpu.md L681)
 - [ ] 10.5 Amidog psxtest_cpu para apos "args: 0" — causa nao investigada (medido na iter 0032)
@@ -121,6 +122,12 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [ ] 10.16 `spec_citations.rs` casa mal título e referência quando a mesma linha tem 2+ títulos entre aspas e 2+ refs: ele usa o primeiro título para todos os refs em vez de parear pelo mais próximo. Na iteração 0066 isso produziu o diagnóstico "L940 não corresponde à seção 'ReadN/ReadS'" quando a L940 pertencia à seção seguinte e estava citada com o texto certo ao lado. Diagnóstico errado é pior que ambiguidade declarada — ou pareia por proximidade, ou falha como ambíguo, como já faz quando há 2+ arquivos na linha
 - [x] 10.15 Reparar as âncoras do manifesto 0059 (`timers-sync`), arquivado na 0060 quando o `tick()` foi reescrito: 4 dos 9 registros não casam mais, e a bateria daquele item está sem rodar. O 0052 foi reparado no mesmo dia com quatro caracteres (`fn` → `pub fn`), o que sugere que arquivar foi resposta cara demais para o problema (iter 0067)
 - [ ] 10.17 `mutantes.ps1` recusa árvore suja, então reparo de âncora só pode ser verificado depois de commitado às cegas — permitir sujeira restrita a `docs/mutantes/*.mut`
+- [ ] 10.19 DPCR nunca é consultado: os três `try_execute_*` do DMA olham só CHCR bits 24/28 e transferem com o canal desabilitado — `otc-test` reprova 4 subtestes só por isso
+- [ ] 10.20 A lista que o OTC escreve é o espelho da do hardware (terminador e sentido dos ponteiros); `dma_otc.rs:79-81` afirma o espelho, então 13 testes verdes certificam o defeito
+- [ ] 10.21 GP0(E1h) escreve o bit 15 do GPUSTAT (Texture Disable) sem o gate de GP1(09h) — `gpu/gp0-e1` reprova 3 de 10
+- [ ] 10.22 `gpu/mask-bit` reprova 2 de 5 desde que passou a dar veredito; provável sobreposição com 10.7
+- [ ] 10.24 `logs/` é gitignored, então `scoreboard.csv` — a única medida contra hardware real — não está no repositório e some com a máquina. Versionar o placar (ou um digest por commit)
+- [ ] 10.23 45 das 51 suites do scoreboard não dão veredito porque renderizam na VRAM: 88% do placar não mede nada. A `diffvram` do ps1-tests já está baixada
 - [ ] 10.18 Nada torna `arquivada:` caro: em 0052 e 0059, arquivar descartou 17 registros dos quais 12 ainda casavam. Exigir no header quantos casam e falhar se algum casar
 
 ## M11 — Apresentação (incremental desde o M1)

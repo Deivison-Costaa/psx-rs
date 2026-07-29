@@ -5,12 +5,30 @@
 
 ## Última iteração concluída
 
-**0067** — Reparo das âncoras do manifesto 0059 (ROADMAP 10.15) — cobertura de mutação do
-item 3.4b de volta a 9/9 registros.
+**0068** — Primeiro passe de compatibilidade (ROADMAP 10.2a): placar do ps1-tests lido e
+convertido nos itens 10.19 a 10.23.
 
 ## Próxima tarefa
 
-**ROADMAP 4.3b — CDROM — Acoplar DiscLayout + dados do .bin.**
+**Duas opções abertas; a escolha é do usuário. Enquanto não houver decisão, vale a segunda.**
+
+**Opção A (recomendada) — ROADMAP 10.19 — DMA: DPCR como gate de habilitação.**
+Nenhum dos três canais implementados consulta o DPCR: em `crates/psx-core/src/dma.rs`, as três
+funções `try_execute_otc`, `try_execute_dma3` e `try_execute_dma2` olham só os bits 24 e 28 do
+CHCR, então transferem com o canal desabilitado. `ps1-tests/dma/otc-test` reprova 4 subtestes só por isso
+(`testOtcStandardWithMasterDisabled`). É a menor mudança do projeto com evidência de hardware
+direta.
+Spec, em `docs/reference/04-dma.md`: seção "1F8010F0h - DPCR - DMA Control Register (R/W)"
+(L121); Master Enable do canal 6 é o bit 27 (L136), do canal 3 é o bit 15 (L130), do canal 2 é
+o bit 11 (L128) — sempre o bit 3 do nibble do canal.
+**Armadilha medida, não suposta:** o reset `07654321h` (L140) tem todos os nibbles entre 1 e 7,
+logo o bit 3 de cada um é **zero** — ao ligar o gate, todo canal nasce desabilitado. Os testes
+existentes de `dma_otc`, `dma_gpu` e `cdrom_dma` escrevem CHCR sem nunca habilitar o canal no
+DPCR, então parte deles vai ficar vermelha: essa vermelhidão é o resultado esperado, e cada um
+precisa passar a habilitar o canal antes de disparar. Não conserte relaxando o gate.
+Arquivos-alvo: `crates/psx-core/src/dma.rs`, `crates/psx-core/tests/dma_dpcr_gate.rs` (novo).
+
+**Opção B — ROADMAP 4.3b — CDROM — Acoplar DiscLayout + dados do .bin.**
 Substituir o buffer stub (`data_buffer` preenchido com `(i+1) & 0xFF`) por dados reais do arquivo .bin, usando o `DiscLayout` (item 4.2b). ReadN/ReadS devem ler setores do BIN a partir da posição definida por Setloc. Armadilha: o `Cdrom` hoje não tem referência ao `DiscLayout` nem ao buffer `.bin`; `Bus` precisa injetá-los ou o `Cdrom` precisa guardar uma referência.
 Spec, em `docs/reference/06-cdrom.md`: seção "ReadN/ReadS" (L924).
 Sequência de entrega do setor, na seção "CDROM Incoming Data / Buffer Overrun Timings" (L928) do mesmo arquivo: "Copy Data to Main RAM" (L940).

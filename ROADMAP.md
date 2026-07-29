@@ -61,7 +61,7 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [x] 3.4 Timers 0/1/2 — registradores e contagem básica (iter 0058)
 - [x] 3.4b Timers — modos de sync Hblank/Vblank (iter 0059)
 - [x] 3.4c Timers — fontes de clock Dotclock/Hblank (iter 0060)
-- [ ] 3.4d Timers — conexão de IRQ4/IRQ5/IRQ6 ao controlador (deferido da 3.4)
+- [x] 3.4d Timers — conexão de IRQ4/IRQ5/IRQ6 ao controlador (deferido da 3.4) (iter 0061)
 
 ## M4 — CDROM
 - [ ] 4.1 Regs/FIFOs/IRQs + GetStat/GetID/Test

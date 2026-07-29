@@ -149,6 +149,7 @@ fn flag_target_alcancado_setado_e_limpo_na_leitura() {
 #[test]
 fn flag_ffff_alcancado_setado_e_limpo_na_leitura() {
     let mut bus = bus();
+    bus.write32::<BusRead>(T0_TARGET, 0x0007);
     bus.write32::<BusRead>(T0_MODE, 0x0000);
     bus.write32::<BusRead>(T0_CNT, 0xFFFE);
     bus.timers_mut().tick(T0_CNT, 2, false, false);

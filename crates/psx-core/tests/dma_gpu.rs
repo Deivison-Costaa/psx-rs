@@ -146,8 +146,17 @@ fn dma2_block_transfere_dados_para_vram() {
     bus.write32::<BusRead>(D2_BCR, 0x0001_0001);
     bus.write32::<BusRead>(D2_CHCR, 0x1100_0201);
 
-    let pixel = bus.read32::<BusRead>(0x1F80_1810);
-    assert_eq!(pixel & 1, 1, "GPU deve reportar VRAM-to-CPU ready ou similar");
+    let gpustat = bus.read32::<BusRead>(GPUSTAT);
+    assert_eq!(
+        gpustat & (1 << 26),
+        1 << 26,
+        "bit 26 (Ready) setado apos transferencia block de 1 palavra"
+    );
+    let pixel = bus.gpu().vram_pixel(0, 0);
+    assert_eq!(
+        pixel, 0xCDCD,
+        "VRAM (0,0) contem metade inferior de ABABCDCD"
+    );
 }
 
 #[test]

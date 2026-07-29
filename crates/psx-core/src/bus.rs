@@ -225,7 +225,11 @@ impl Bus {
                     0x4 => self.dma.write_bcr(ch, val),
                     0x8 => {
                         self.dma.write_chcr(ch, val);
-                        self.dma.try_execute_otc(&mut self.ram.data);
+                        match ch {
+                            2 => self.dma.try_execute_dma2(&mut self.ram.data, &mut self.gpu),
+                            6 => self.dma.try_execute_otc(&mut self.ram.data),
+                            _ => {}
+                        }
                     }
                     _ => {}
                 }

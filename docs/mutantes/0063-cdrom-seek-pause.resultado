@@ -1,6 +1,6 @@
 # gerado por scripts/mutantes.ps1 — NAO editar a mao
-# commit: 5c37006f9cfefa922f9cc582420a5ffb913505f1
-# rodado_em: 2026-07-29T14:34:49-03:00
+# commit: b359dae3f10088744b72ac66c26c26c62dee056a
+# rodado_em: 2026-07-29T14:46:04-03:00
 m1,mutante,morreu,morreu,0.7,setloc_rejeita_segundo_bcd_invalido;setloc_rejeita_setor_bcd_invalido
 m2,mutante,morreu,morreu,0.7,seek_l_sem_disco_retorna_int5
 m3,mutante,morreu,morreu,0.7,seek_l_com_disco_retorna_int3_depois_int2

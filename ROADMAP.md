@@ -51,7 +51,7 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [x] 2.7a Display registers GP1(05h-07h) (iter 0050)
 - [x] 2.7b Timing NTSC/PAL, vblank IRQ (dividido da 2.7 por R4 — display regs ja implementado) (iter 0051)
 - [x] 2.8 psx-desktop mínimo (eframe/egui) → logo do BIOS na tela (iter 0052)
-- [ ] 2.8b psx-desktop janela eframe/egui (deferido da 2.8 por incompatibilidade Rust 1.85 vs eframe 0.35)
+- [x] 2.8b psx-desktop janela eframe/egui (deferido da 2.8 por incompatibilidade Rust 1.85 vs eframe 0.35) (iter 0053)
 - [ ] 2.9 Suíte GPU do ps1-tests no scoreboard
 
 ## M3 — DMA, IRQ, timers

@@ -115,7 +115,11 @@ fn setloc_sem_disco_retorna_int3_mas_stat_com_bit0() {
     param_write(&mut bus, bcd_sector(0x00));
     send_command(&mut bus, 0x02);
     let hintsts = hintsts_read_bank1(&mut bus);
-    assert_eq!(hintsts & 0x7, 5, "INT5 quando parametros validos mas sem disco");
+    assert_eq!(
+        hintsts & 0x7,
+        5,
+        "INT5 quando parametros validos mas sem disco"
+    );
     let stat = result_read(&mut bus);
     assert_eq!(stat & 0x01, 0x01, "stat bit0=1 — erro sem disco");
     let err = result_read(&mut bus);
@@ -191,7 +195,10 @@ fn setloc_consome_tres_parametros_fifo_alinhado() {
     param_write(&mut bus, 0x20);
     send_command(&mut bus, 0x19);
     let yy = result_read(&mut bus);
-    assert_eq!(yy, 0x97, "GetStat(20h) funciona apos Setloc — FIFO alinhado");
+    assert_eq!(
+        yy, 0x97,
+        "GetStat(20h) funciona apos Setloc — FIFO alinhado"
+    );
 }
 
 #[test]
@@ -200,7 +207,11 @@ fn stat_byte_reflete_motor_ligado_com_disco() {
     insert_stub_disc(&mut bus);
     send_command(&mut bus, 0x0A);
     let stat = result_read(&mut bus);
-    assert_ne!(stat & (1 << 1), 0, "stat bit1=1 — motor ligado apos Init com disco");
+    assert_ne!(
+        stat & (1 << 1),
+        0,
+        "stat bit1=1 — motor ligado apos Init com disco"
+    );
 }
 
 #[test]
@@ -208,5 +219,9 @@ fn stat_byte_sem_disco_motor_desligado() {
     let mut bus = bus();
     send_command(&mut bus, 0x0A);
     let stat = result_read(&mut bus);
-    assert_eq!(stat & (1 << 1), 0, "stat bit1=0 — motor desligado sem disco");
+    assert_eq!(
+        stat & (1 << 1),
+        0,
+        "stat bit1=0 — motor desligado sem disco"
+    );
 }

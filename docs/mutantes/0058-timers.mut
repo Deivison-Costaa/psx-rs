@@ -9,57 +9,39 @@ mutante: m1
 rotulo: tick nao incrementa o contador (no-op)
 @@DE
         let effective = total / divisor;
-        t.cycle_acc.set(total % divisor);
-
-        for _ in 0..effective {
 @@PARA
         let effective = 0;
-        t.cycle_acc.set(total % divisor);
-
-        for _ in 0..effective {
 @@FIM
 
 mutante: m2
 rotulo: escrever MODE nao reseta o contador
 @@DE
-                t.mode.set(mode);
                 t.counter.set(0);
                 t.cycle_acc.set(0);
 @@PARA
-                t.mode.set(mode);
 @@FIM
 
 mutante: m3
 rotulo: bit3 (reset on target) ignorado — sempre reseta em FFFFh
 @@DE
             if reset_on_target && t.counter.get() == t.target {
-                let m = t.mode.get();
-                t.mode.set(m | (1 << 11));
-                t.counter.set(0);
-            }
 @@PARA
+            if false {
 @@FIM
 
 mutante: m4
 rotulo: flags bits 11 e 12 nunca limpos na leitura do MODE
 @@DE
-                let val = t.mode.get();
                 t.mode.set(val & !((1 << 11) | (1 << 12)));
-                val
 @@PARA
-                let val = t.mode.get();
-                val
 @@FIM
 
 mutante: m5
 rotulo: timer 2 divisor ignorado (incrementa a cada tick)
 @@DE
-        let divisor: u32 = match idx {
             2 if clock_src == 2 || clock_src == 3 => 8,
-            _ => 1,
-        };
 @@PARA
-        let divisor: u32 = 1;
+            2 if false => 8,
 @@FIM
 
 mutante: m6
@@ -74,15 +56,8 @@ mutante: m7
 rotulo: bit11 setado mesmo sem reset_on_target (bit3)
 @@DE
             if reset_on_target && t.counter.get() == t.target {
-                let m = t.mode.get();
-                t.mode.set(m | (1 << 11));
-                t.counter.set(0);
-            }
 @@PARA
             if t.counter.get() == t.target {
-                let m = t.mode.get();
-                t.mode.set(m | (1 << 11));
-            }
 @@FIM
 
 controle: K1

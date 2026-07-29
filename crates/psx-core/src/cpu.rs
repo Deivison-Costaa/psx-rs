@@ -150,6 +150,7 @@ impl Cpu {
                 self.load_delay = Some((reg, val));
             }
         }
+        bus.tick_timers(1);
     }
 
     fn execute(&mut self, instr: u32, bus: &mut Bus) -> Option<(usize, u32)> {

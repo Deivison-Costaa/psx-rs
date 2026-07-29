@@ -1,0 +1,80 @@
+# Manifesto de mutação da iteração 0058 — timers
+formato: 1
+iteracao: 0058
+item: 3.4
+alvo: crates/psx-core/src/timers.rs
+teste: timers
+
+mutante: m1
+rotulo: tick nao incrementa o contador (no-op)
+@@DE
+        let effective = total / divisor;
+@@PARA
+        let effective = 0;
+@@FIM
+
+mutante: m2
+rotulo: escrever MODE nao reseta o contador
+@@DE
+                t.counter.set(0);
+                t.cycle_acc.set(0);
+@@PARA
+                let _ = mode;
+@@FIM
+
+mutante: m3
+rotulo: bit3 (reset on target) ignorado — sempre reseta em FFFFh
+@@DE
+            if reset_on_target && t.counter.get() == t.target {
+@@PARA
+            if false {
+@@FIM
+
+mutante: m4
+rotulo: flags bits 11 e 12 nunca limpos na leitura do MODE
+@@DE
+                t.mode.set(val & !((1 << 11) | (1 << 12)));
+@@PARA
+                let _ = val;
+@@FIM
+
+mutante: m5
+rotulo: timer 2 divisor ignorado (incrementa a cada tick)
+@@DE
+            2 if clock_src == 2 || clock_src == 3 => 8,
+@@PARA
+            2 if false => 8,
+@@FIM
+
+mutante: m6
+rotulo: sync enable nao pausa o timer 2
+@@DE
+            2 => !(sync_enable && (sync_mode == 0 || sync_mode == 3)),
+@@PARA
+            2 => true,
+@@FIM
+
+mutante: m7
+rotulo: bit11 setado mesmo sem reset_on_target (bit3)
+@@DE
+            if reset_on_target && t.counter.get() == t.target {
+@@PARA
+            if t.counter.get() == t.target {
+@@FIM
+
+controle: K1
+rotulo: trocar 0xFFFF por 65535 (valor identico)
+@@DE
+                self.timers[idx].counter.set((val & 0xFFFF) as u16);
+@@PARA
+                self.timers[idx].counter.set((val & 65535) as u16);
+@@FIM
+
+controle: K2
+rotulo: extrair mascara de bits 11-12 em constante
+@@DE
+                t.mode.set(val & !((1 << 11) | (1 << 12)));
+@@PARA
+                let flags_mask = (1 << 11) | (1 << 12);
+                t.mode.set(val & !flags_mask);
+@@FIM

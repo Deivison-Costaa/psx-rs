@@ -1,0 +1,12 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: e934a5a760dd13505b42d819524cc9341c309029
+# rodado_em: 2026-07-29T05:47:51-03:00
+m1,mutante,morreu,morreu,0.6,t3_gp1_06h_define_faixa_horizontal_do_display
+m2,mutante,morreu,morreu,0.6,t4_gp1_07h_define_faixa_vertical_do_display
+m3,mutante,morreu,morreu,0.7,t2_gp1_05h_define_endereco_de_inicio_do_display;t5_gp1_05h_mascara_x_a_10_bits_e_y_a_9_bits
+m4,mutante,morreu,morreu,0.6,t1_gp1_00h_reset_configura_display_regs_com_valores_padrao
+m5,mutante,morreu,morreu,0.6,t2_gp1_05h_define_endereco_de_inicio_do_display;t5_gp1_05h_mascara_x_a_10_bits_e_y_a_9_bits
+m6,mutante,morreu,morreu,0.6,t4_gp1_07h_define_faixa_vertical_do_display;t7_gp1_07h_mascara_y1_e_y2_a_10_bits
+m7,mutante,morreu,morreu,0.7,t3_gp1_06h_define_faixa_horizontal_do_display
+K1,controle,sobreviveu,sobreviveu,0.7,
+K2,controle,sobreviveu,sobreviveu,0.6,

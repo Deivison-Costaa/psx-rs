@@ -161,8 +161,8 @@ fn gouraud_triangle_interpola_na_aresta_longa_entre_cores_diferentes() {
     assert_eq!(gpu.vram_pixel(10, 10), 0x001F,
         "B7: pixel(10,10) vertice no extremo superior (t=0): 0x001F, obtido 0x{:04X}",
         gpu.vram_pixel(10, 10));
-    assert_eq!(gpu.vram_pixel(10, 20), 0x3C10,
-        "B7: pixel(10,20) meio da aresta longa red->blue (t=10, dy=20): 0x3C10, obtido 0x{:04X}",
+    assert_eq!(gpu.vram_pixel(10, 20), 0x01F0,
+        "B7: pixel(10,20) aresta vertical x=10 red->green (t=10, t_max=20), obtido 0x{:04X}",
         gpu.vram_pixel(10, 20));
 }
 
@@ -195,19 +195,19 @@ fn gouraud_short_edge_interpola_entre_cores_diferentes() {
 
     let cmd: u32 = 0x3000_0000 | 0xF8;
     gpu.write32(0, cmd);
-    gpu.write32(0, (0x0000 << 16) | 0x0000);
+    gpu.write32(0, 0x0000_0000);
     gpu.write32(0, 0x00_00_F8_00);
     gpu.write32(0, (0x000A << 16) | 0x0005);
     gpu.write32(0, 0x00_F8_00_00);
-    gpu.write32(0, (0x0000 << 16) | 0x000A);
+    gpu.write32(0, 0x0000_000A);
 
     assert_eq!(gpu.vram_pixel(0, 0), 0x001F,
         "B8s: vertice0 (0,0) vermelho 0x001F, obtido 0x{:04X}", gpu.vram_pixel(0, 0));
-    assert_eq!(gpu.vram_pixel(4, 3), 0x0D90,
-        "B8s: pixel(4,3) meia-aresta curta topo red->green, 0x0D90, obtido 0x{:04X}",
-        gpu.vram_pixel(4, 3));
-    assert_eq!(gpu.vram_pixel(3, 7), 0x4525,
-        "B8s: pixel(3,7) meia-aresta curta fundo green->blue, 0x4525, obtido 0x{:04X}",
+    assert_eq!(gpu.vram_pixel(1, 3), 0x0136,
+        "B8s: aresta esquerda (x,y)=(1,3) red->green a 30%% (t=3,dx=10): 0x0136, obtido 0x{:04X}",
+        gpu.vram_pixel(1, 3));
+    assert_eq!(gpu.vram_pixel(3, 7), 0x02AA,
+        "B8s: aresta esquerda (x,y)=(3,7) red->green a 70%% (t=7,dx=10): 0x02AA, obtido 0x{:04X}",
         gpu.vram_pixel(3, 7));
 }
 
@@ -271,8 +271,8 @@ fn polygon_vertices_fora_da_vram_nao_causam_panic() {
     gpu.write32(0, (15u32 << 16) | x1 as u32);
     gpu.write32(0, (20u32 << 16) | x2 as u32);
 
-    assert_eq!(gpu.vram_pixel(0, 12), 0x03E3,
-        "B10: x negativo truncado para 0, pixel(0,12) pintado");
+    assert_eq!(gpu.vram_pixel(0, 13), 0x03E3,
+        "B10: x negativo recortado, pixel(0,13) pintado (primeira scanline com x>=0)");
     assert_ne!(gpu.vram_pixel(5, 15), 0,
         "B10: pixel(5,15) interior pintado dentro da VRAM");
 
@@ -281,10 +281,10 @@ fn polygon_vertices_fora_da_vram_nao_causam_panic() {
     gpu.write32(0, cmd);
     gpu.write32(0, (0x00F5 << 16) | 0x03F0);
     gpu.write32(0, (0x00FA << 16) | 0x03F0);
-    gpu.write32(0, (0x00F7 << 16) | 0x0400);
+    gpu.write32(0, (0x00F7 << 16) | 0x03FE);
 
-    assert_eq!(gpu.vram_pixel(1023, 248), 0x03E3,
-        "B10: x >= 1024 truncado para 1023, pixel(1023,248) pintado");
+    assert_eq!(gpu.vram_pixel(1010, 248), 0x03E3,
+        "B10: x=1022 na borda direita, pixel(1010,248) interior pintado");
 }
 
 #[rustfmt::skip]
@@ -307,7 +307,7 @@ fn polygon_com_distancia_entre_vertices_excedendo_limite_nao_renderiza() {
 fn polygon_texturizado_consome_palavras_de_uv_e_mantem_fifo_alinhado() {
     let mut gpu = Gpu::new();
 
-    let cmd: u32 = 0x24_00_FFFF;
+    let cmd: u32 = 0x2400_FFFF;
     gpu.write32(0, cmd);
     gpu.write32(0, 0x0005_0005);
     gpu.write32(0, 0x0000_0000);
@@ -327,6 +327,34 @@ fn polygon_texturizado_consome_palavras_de_uv_e_mantem_fifo_alinhado() {
     gpu.write32(0, 0x0200_00F8);
     gpu.write32(0, (0x000F << 16) | 0x000F);
     gpu.write32(0, (0x0004 << 16) | 0x0004);
-    assert_ne!(gpu.vram_pixel(10, 10), 0,
+    assert_ne!(gpu.vram_pixel(5, 16), 0,
         "fill GP0(02h) executado apos poligono: FIFO alinhado");
+}
+
+#[rustfmt::skip]
+#[test]
+fn gouraud_texturizado_consome_9_palavras_e_fifo_alinhado() {
+    let mut gpu = Gpu::new();
+
+    let cmd: u32 = 0x340F_FFFF;
+    gpu.write32(0, cmd);
+    gpu.write32(0, 0x0005_0005);
+    gpu.write32(0, 0x0000_0000);
+    gpu.write32(0, 0x00_00_F8_00);
+    gpu.write32(0, 0x0005_000A);
+    gpu.write32(0, 0x0000_0000);
+    gpu.write32(0, 0x00_F8_00_00);
+    gpu.write32(0, 0x000A_0005);
+    gpu.write32(0, 0x0000_0000);
+
+    assert_eq!((gpu.read32(4) >> 26) & 1, 1,
+        "GP0(34h) gouraud texturizado 3 vertices: 9 palavras (1+3+3+2), bit26=1");
+    assert_ne!(gpu.vram_pixel(6, 6), 0,
+        "triangulo interior preenchido");
+
+    gpu.write32(0, 0x0200_00F8);
+    gpu.write32(0, (0x000F << 16) | 0x000F);
+    gpu.write32(0, (0x0004 << 16) | 0x0004);
+    assert_ne!(gpu.vram_pixel(5, 16), 0,
+        "fill GP0(02h) executado apos gouraud texturizado: FIFO alinhado");
 }

@@ -1,10 +1,10 @@
 # gerado por scripts/mutantes.ps1 — NAO editar a mao
-# commit: 81a27a0c69e37b92c9ea8bfb1ad34c1bb59ab45c
-# rodado_em: 2026-07-29T10:08:02-03:00
-m1,mutante,morreu,morreu,0.7,cnt_wrap_em_ffff_sem_target;flag_ffff_alcancado_setado_e_limpo_na_leitura;flag_target_alcancado_setado_e_limpo_na_leitura;tick_incrementa_cnt_modo_system_clock;tick_respeita_divisor_de_clock_do_timer2
-m2,mutante,morreu,morreu,0.7,escrever_mode_reseta_cnt
+# commit: 568297c63c64d12d9b5b82725dce7778b5fd0cae
+# rodado_em: 2026-07-29T11:32:14-03:00
+m1,mutante,morreu,morreu,1,cnt_wrap_em_ffff_sem_target;flag_ffff_alcancado_setado_e_limpo_na_leitura;flag_target_alcancado_setado_e_limpo_na_leitura;tick_incrementa_cnt_modo_system_clock;tick_respeita_divisor_de_clock_do_timer2
+m2,mutante,morreu,morreu,0.8,escrever_mode_reseta_cnt
 m3,mutante,morreu,morreu,0.7,cnt_reseta_no_target_com_bit3_setado;flag_target_alcancado_setado_e_limpo_na_leitura
-m4,mutante,morreu,morreu,0.7,flag_ffff_alcancado_setado_e_limpo_na_leitura;flag_target_alcancado_setado_e_limpo_na_leitura
+m4,mutante,morreu,morreu,0.8,flag_ffff_alcancado_setado_e_limpo_na_leitura;flag_target_alcancado_setado_e_limpo_na_leitura
 m5,mutante,morreu,morreu,0.7,tick_respeita_divisor_de_clock_do_timer2
 m6,mutante,morreu,morreu,0.7,timer2_modo_0_sync_ativo_para_contador
 m7,mutante,morreu,morreu,0.7,flag_ffff_alcancado_setado_e_limpo_na_leitura

@@ -94,7 +94,7 @@ impl Timers {
             .set(video_cycles_per_scanline);
     }
 
-    pub fn tick(&mut self, base_addr: u32, cycles: u32, hblank_active: bool, vblank_active: bool) {
+    pub fn tick(&mut self, base_addr: u32, cycles: u32, hblank_active: bool, vblank_active: bool) -> Option<u32> {
         let idx = Self::timer_index(base_addr);
         let t = &self.timers[idx];
         let mode = t.mode.get();
@@ -138,14 +138,14 @@ impl Timers {
                     _ => true,
                 },
                 2 => !matches!(sync_mode, 0 | 3),
-                _ => return,
+                _ => return None,
             }
         } else {
             true
         };
 
         if !increment {
-            return;
+            return None;
         }
 
         let (numer, denom): (u64, u64) = match idx {
@@ -181,6 +181,8 @@ impl Timers {
                 t.mode.set(m | (1 << 12));
             }
         }
+
+        None
     }
 }
 

@@ -119,6 +119,10 @@ pub struct Gpu {
     drawing_offset_x: Cell<i16>,
     drawing_offset_y: Cell<i16>,
     clut_attribute: Cell<u16>,
+    tex_window_mask_x: Cell<u8>,
+    tex_window_mask_y: Cell<u8>,
+    tex_window_offset_x: Cell<u8>,
+    tex_window_offset_y: Cell<u8>,
 }
 
 impl Default for Gpu {
@@ -141,6 +145,10 @@ impl Gpu {
             drawing_offset_x: Cell::new(0),
             drawing_offset_y: Cell::new(0),
             clut_attribute: Cell::new(0),
+            tex_window_mask_x: Cell::new(0),
+            tex_window_mask_y: Cell::new(0),
+            tex_window_offset_x: Cell::new(0),
+            tex_window_offset_y: Cell::new(0),
         }
     }
 
@@ -318,6 +326,17 @@ impl Gpu {
                             let bits = (param & 0x3) << 11;
                             let s = self.stat.get();
                             self.stat.set((s & !mask) | bits);
+                            VramState::Idle
+                        }
+                        0xE2 => {
+                            let mask_x = (val & 0x1F) as u8;
+                            let mask_y = ((val >> 5) & 0x1F) as u8;
+                            let offset_x = ((val >> 10) & 0x1F) as u8;
+                            let offset_y = ((val >> 15) & 0x1F) as u8;
+                            self.tex_window_mask_x.set(mask_x);
+                            self.tex_window_mask_y.set(mask_y);
+                            self.tex_window_offset_x.set(offset_x);
+                            self.tex_window_offset_y.set(offset_y);
                             VramState::Idle
                         }
                         0xE1 => {
@@ -793,8 +812,14 @@ impl Gpu {
     fn sample_texel(&self, u: i32, v: i32) -> u16 {
         let stat = self.stat.get();
         let tex_colors = (stat >> 7) & 3;
-        let u_clamped = u.clamp(0, 255) as u16;
-        let v_clamped = v.clamp(0, 255) as u16;
+        let mask_x = self.tex_window_mask_x.get() as u32;
+        let mask_y = self.tex_window_mask_y.get() as u32;
+        let off_x = self.tex_window_offset_x.get() as u32;
+        let off_y = self.tex_window_offset_y.get() as u32;
+        let u_win = (u as u32 & !(mask_x * 8)) | ((off_x & mask_x) * 8);
+        let v_win = (v as u32 & !(mask_y * 8)) | ((off_y & mask_y) * 8);
+        let u_clamped = (u_win as i32).clamp(0, 255) as u16;
+        let v_clamped = (v_win as i32).clamp(0, 255) as u16;
         let page_x = ((stat & 0xF) as u16) * 64;
         let page_y = (((stat >> 4) & 1) as u16) * 256;
 
@@ -1245,6 +1270,10 @@ impl Gpu {
                 self.drawing_offset_x.set(0);
                 self.drawing_offset_y.set(0);
                 self.clut_attribute.set(0);
+                self.tex_window_mask_x.set(0);
+                self.tex_window_mask_y.set(0);
+                self.tex_window_offset_x.set(0);
+                self.tex_window_offset_y.set(0);
             }
             0x01 => {
                 self.vram_state.set(VramState::Idle);

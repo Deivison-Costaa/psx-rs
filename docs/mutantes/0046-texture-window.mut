@@ -1,0 +1,78 @@
+# Manifesto de mutação da iteração 0046 — texture window GP0(E2h)
+formato: 1
+iteracao: 0046
+item: 2.5c
+alvo: crates/psx-core/src/gpu.rs
+teste: gpu_texture_window
+
+mutante: m1
+rotulo: Mask X ignorada — U nunca transformado pela janela
+@@DE
+        let u_win = (u as u32 & !(mask_x * 8)) | ((off_x & mask_x) * 8);
+@@PARA
+        let u_win = u as u32;
+@@FIM
+
+mutante: m2
+rotulo: Offset X ignorado — U mantém bits originais nos bits mascarados
+@@DE
+        let u_win = (u as u32 & !(mask_x * 8)) | ((off_x & mask_x) * 8);
+@@PARA
+        let u_win = u as u32 & !(mask_x * 8);
+@@FIM
+
+mutante: m3
+rotulo: Offset sem AND Mask — offset não mascarado afeta bits fora da máscara
+@@DE
+        let u_win = (u as u32 & !(mask_x * 8)) | ((off_x & mask_x) * 8);
+@@PARA
+        let u_win = (u as u32 & !(mask_x * 8)) | (off_x * 8);
+@@FIM
+
+mutante: m4
+rotulo: Mask * 4 em vez de * 8 — janela com metade do tamanho
+@@DE
+        let u_win = (u as u32 & !(mask_x * 8)) | ((off_x & mask_x) * 8);
+@@PARA
+        let u_win = (u as u32 & !(mask_x * 4)) | ((off_x & mask_x) * 4);
+@@FIM
+
+mutante: m5
+rotulo: Offset Y ignorado — V sempre inalterado
+@@DE
+        let v_win = (v as u32 & !(mask_y * 8)) | ((off_y & mask_y) * 8);
+@@PARA
+        let v_win = v as u32;
+@@FIM
+
+mutante: m6
+rotulo: Offset X lido de bits 11-15 em vez de 10-14 na decodificação E2h
+@@DE
+                            let offset_x = ((val >> 10) & 0x1F) as u8;
+@@PARA
+                            let offset_x = ((val >> 11) & 0x1F) as u8;
+@@FIM
+
+controle: K1
+rotulo: renomeia u_win para uw (cosmético)
+@@DE
+        let u_win = (u as u32 & !(mask_x * 8)) | ((off_x & mask_x) * 8);
+        let v_win = (v as u32 & !(mask_y * 8)) | ((off_y & mask_y) * 8);
+        let u_clamped = (u_win as i32).clamp(0, 255) as u16;
+        let v_clamped = (v_win as i32).clamp(0, 255) as u16;
+@@PARA
+        let uw = (u as u32 & !(mask_x * 8)) | ((off_x & mask_x) * 8);
+        let vw = (v as u32 & !(mask_y * 8)) | ((off_y & mask_y) * 8);
+        let u_clamped = (uw as i32).clamp(0, 255) as u16;
+        let v_clamped = (vw as i32).clamp(0, 255) as u16;
+@@FIM
+
+controle: K2
+rotulo: inverte ordem de tex_window_offset_x/y (linhas independentes)
+@@DE
+                            self.tex_window_offset_x.set(offset_x);
+                            self.tex_window_offset_y.set(offset_y);
+@@PARA
+                            self.tex_window_offset_y.set(offset_y);
+                            self.tex_window_offset_x.set(offset_x);
+@@FIM

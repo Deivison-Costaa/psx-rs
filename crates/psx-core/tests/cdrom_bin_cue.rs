@@ -1,4 +1,4 @@
-use psx_core::cdrom_bin_cue::{parse_cue, TrackType};
+use psx_core::cdrom_bin_cue::{TrackType, parse_cue};
 
 #[test]
 fn parse_cue_extrai_bin_path() {
@@ -95,8 +95,8 @@ fn read_data_sector_extrai_2048_bytes_do_bin() {
 "#;
     let layout = parse_cue(cue);
     let mut raw = vec![0u8; 2352];
-    for i in 0..2352 {
-        raw[i] = (i & 0xFF) as u8;
+    for (i, byte) in raw.iter_mut().enumerate() {
+        *byte = (i & 0xFF) as u8;
     }
     let sector = layout.read_data_sector(&raw, 0);
     assert_eq!(sector.len(), 2048);

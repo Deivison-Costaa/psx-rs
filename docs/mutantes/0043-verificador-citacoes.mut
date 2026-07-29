@@ -50,33 +50,25 @@ rotulo: inverte checagem de linha fora dos limites
 @@FIM
 ocorrencias: 1
 
-# Mutante 3: remove guarda cit.num == 0
+# Mutante 3: faz A2 sempre falhar para linhas > 1
 mutante: m3
-rotulo: remove o continue para cit.num zero
+rotulo: reduz teto de linha para 1 causando falso erro
 
 @@DE
-            if cit.num == 0 {
-                continue;
-            }
+            if cit.num as usize > ref_doc.total_lines || cit.num < 1 {
 @@PARA
-            if false {
-                continue;
-            }
+            if cit.num as usize > 1 || cit.num < 1 {
 @@FIM
 ocorrencias: 1
 
-# Mutante 4: remove continue do corpo_line zero
+# Mutante 4: seta offset para zero causando falsos erros de secao
 mutante: m4
-rotulo: remove guarda de corpo_line zerado
+rotulo: zera o offset causando diagnostico errado em todas as secoes
 
 @@DE
-            if ref_doc.corpo_line == 0 {
-                continue;
-            }
+            let offset = ref_doc.corpo_line as u32 + 1;
 @@PARA
-            if false {
-                continue;
-            }
+            let offset: u32 = 0;
 @@FIM
 ocorrencias: 1
 

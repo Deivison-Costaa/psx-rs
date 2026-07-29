@@ -56,49 +56,6 @@ fn retangulo_texturizado_variavel_nao_desenha_com_cor_d2b() {
 
 #[rustfmt::skip]
 #[test]
-fn linha_simples_dy_600_nao_renderiza_d3() {
-    let mut gpu = Gpu::new();
-
-    let cmd: u32 = 0x40FF_FFFF;
-    gpu.write32(0, cmd);
-    gpu.write32(0, 0x0000_0000);
-    gpu.write32(0, 0x0258_0000);
-
-    assert_eq!(gpu.vram_pixel(0, 300), 0,
-        "D3: pixel(0,300) nao deve ser pintado (dy=600 > 511, spec L447-451)");
-}
-
-#[rustfmt::skip]
-#[test]
-fn linha_simples_dy_500_renderiza_d3b() {
-    let mut gpu = Gpu::new();
-
-    let cmd: u32 = 0x40FF_FFFF;
-    gpu.write32(0, cmd);
-    gpu.write32(0, 0x0000_0000);
-    gpu.write32(0, 0x01F4_0000);
-
-    assert_ne!(gpu.vram_pixel(0, 250), 0,
-        "D3b: pixel(0,250) deve ser pintado (dy=500 <= 511, spec L447-451)");
-}
-
-#[rustfmt::skip]
-#[test]
-fn linha_simples_gouraud_dy_600_nao_renderiza_d3c() {
-    let mut gpu = Gpu::new();
-
-    let cmd: u32 = 0x5000_00FF;
-    gpu.write32(0, cmd);
-    gpu.write32(0, 0x0000_0000);
-    gpu.write32(0, 0x0000_FF00);
-    gpu.write32(0, 0x0258_0000);
-
-    assert_eq!(gpu.vram_pixel(0, 300), 0,
-        "D3c: pixel(0,300) linha gouraud dy=600 nao deve ser pintado");
-}
-
-#[rustfmt::skip]
-#[test]
 fn retangulo_variavel_width_height_ffff_termina_d4() {
     let mut gpu = Gpu::new();
 

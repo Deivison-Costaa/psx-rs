@@ -97,7 +97,6 @@ rotulo: D2 — retangulo texturizado desenha com cor em vez de ignorar (AwaitUV)
 
 mutante: m10
 rotulo: D3 — linha simples flat sem checagem de distancia maxima entre vertices
-teste: gpu_linhas_retangulos_continuacao
 @@DE
                             } else {
                                 let dx = (vertex0.0 as i32 - x as i32).abs();

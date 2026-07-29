@@ -209,6 +209,9 @@ fn gouraud_short_edge_interpola_entre_cores_diferentes() {
     assert_eq!(gpu.vram_pixel(3, 7), 0x02AA,
         "B8s: aresta esquerda (x,y)=(3,7) red->green a 70%% (t=7,dx=10): 0x02AA, obtido 0x{:04X}",
         gpu.vram_pixel(3, 7));
+    assert_eq!(gpu.vram_pixel(7, 4), 0x3D84,
+        "B8s: pixel(7,4) aresta curta direita blue->green interpolada: 0x3D84, obtido 0x{:04X}",
+        gpu.vram_pixel(7, 4));
 }
 
 #[rustfmt::skip]
@@ -357,4 +360,86 @@ fn gouraud_texturizado_consome_9_palavras_e_fifo_alinhado() {
     gpu.write32(0, (0x0004 << 16) | 0x0004);
     assert_ne!(gpu.vram_pixel(5, 16), 0,
         "fill GP0(02h) executado apos gouraud texturizado: FIFO alinhado");
+}
+
+#[rustfmt::skip]
+#[test]
+fn drawing_area_y2_inclusivo_triangulo_desenha_ate_linha_limite() {
+    let mut gpu = Gpu::new();
+
+    gpu.write32(0, 0xE400_2BFF);
+
+    let cmd: u32 = 0x2000_F818;
+    gpu.write32(0, cmd);
+    gpu.write32(0, 0x000A_0000);
+    gpu.write32(0, 0x000F_000F);
+    gpu.write32(0, 0x0000_000F);
+
+    assert_ne!(gpu.vram_pixel(8, 10), 0,
+        "D1-Y2: pixel na linha y=10 (Y2) deve ser desenhado, obtido 0x{:04X}",
+        gpu.vram_pixel(8, 10));
+    assert_eq!(gpu.vram_pixel(8, 11), 0,
+        "D1-Y2: pixel na linha y=11 (fora do drawing area) nao deve ser desenhado");
+}
+
+#[rustfmt::skip]
+#[test]
+fn drawing_area_y1_inclusivo_nada_acima_de_y1() {
+    let mut gpu = Gpu::new();
+
+    gpu.write32(0, 0xE300_1400);
+
+    let cmd: u32 = 0x2000_F818;
+    gpu.write32(0, cmd);
+    gpu.write32(0, 0x000A_0000);
+    gpu.write32(0, 0x0000_000A);
+    gpu.write32(0, 0x0000_0000);
+
+    assert_eq!(gpu.vram_pixel(2, 4), 0,
+        "D1-Y1: pixel na linha y=4 (acima de Y1=5) nao deve ser desenhado");
+    assert_ne!(gpu.vram_pixel(2, 5), 0,
+        "D1-Y1: pixel na linha y=5 (Y1) deve ser desenhado, obtido 0x{:04X}",
+        gpu.vram_pixel(2, 5));
+}
+
+#[rustfmt::skip]
+#[test]
+fn drawing_area_y_mascara_9_bits_trunca_em_511() {
+    let mut gpu = Gpu::new();
+
+    gpu.write32(0, 0xE40F_FFFF);
+
+    let cmd: u32 = 0x2000_F818;
+    gpu.write32(0, cmd);
+    gpu.write32(0, 0x000A_0000);
+    gpu.write32(0, 0x0000_000A);
+    gpu.write32(0, 0x0000_0000);
+
+    assert_ne!(gpu.vram_pixel(2, 3), 0,
+        "D2-Y: triangulo visivel com Y2=511 (mascara 9 bits sobre 0x3FF), obtido 0x{:04X}",
+        gpu.vram_pixel(2, 3));
+}
+
+#[rustfmt::skip]
+#[test]
+fn drawing_offset_desloca_triangulo() {
+    let mut gpu = Gpu::new();
+
+    gpu.write32(0, 0xE503_2064);
+
+    let cmd: u32 = 0x2000_F818;
+    gpu.write32(0, cmd);
+    gpu.write32(0, 0x000A_000A);
+    gpu.write32(0, 0x000A_0014);
+    gpu.write32(0, 0x0014_000A);
+
+    assert_ne!(gpu.vram_pixel(110, 110), 0,
+        "E5: triangulo (10,10) deslocado para (110,110), obtido 0x{:04X}",
+        gpu.vram_pixel(110, 110));
+    assert_eq!(gpu.vram_pixel(10, 10), 0,
+        "E5: pixel na origem absoluta (10,10) nao deve ser pintado");
+    let middle = gpu.vram_pixel(112, 112);
+    assert_ne!(middle, 0,
+        "E5: pixel interior deslocado (112,112) deve ser pintado, obtido 0x{:04X}",
+        middle);
 }

@@ -28,11 +28,16 @@ fn mode_gravavel_e_legivel() {
     let mut bus = bus();
     bus.write32::<BusRead>(T0_MODE, 0xA5);
     let val = bus.read32::<BusRead>(T0_MODE);
-    assert_eq!(val & 0x1FF, 0xA5, "bits 0-8 gravaveis");
+    assert_eq!(val & 0x3FF, 0xA5, "bits 0-9 gravaveis");
     assert_eq!(
-        val & 0x7C00,
+        val & 0x0400,
+        0x0400,
+        "bit10 setado apos escrita (Set after Writing)"
+    );
+    assert_eq!(
+        val & 0x7800,
         0,
-        "bits 10-14 sao read-only flags do hardware"
+        "bits 11-14 sao read-only flags (zero no reset)"
     );
 }
 
@@ -75,7 +80,7 @@ fn tres_timers_independentes() {
 fn tick_incrementa_cnt_modo_system_clock() {
     let mut bus = bus();
     bus.write32::<BusRead>(T0_MODE, 0x0000);
-    bus.timers_mut().tick(T0_CNT, 1);
+    bus.timers_mut().tick(T0_CNT, 1, false, false);
     let val = bus.read32::<BusRead>(T0_CNT);
     assert_eq!(val & 0xFFFF, 1, "CNT incrementou de 0 para 1 apos 1 tick");
 }
@@ -85,7 +90,7 @@ fn timer2_modo_0_sync_ativo_para_contador() {
     let mut bus = bus();
     bus.write32::<BusRead>(T2_MODE, 0x0001);
     bus.write32::<BusRead>(T2_CNT, 0x000A);
-    bus.timers_mut().tick(T2_CNT, 5);
+    bus.timers_mut().tick(T2_CNT, 5, false, false);
     let val = bus.read32::<BusRead>(T2_CNT);
     assert_eq!(
         val & 0xFFFF,
@@ -99,7 +104,7 @@ fn cnt_wrap_em_ffff_sem_target() {
     let mut bus = bus();
     bus.write32::<BusRead>(T0_MODE, 0x0000);
     bus.write32::<BusRead>(T0_CNT, 0xFFFF);
-    bus.timers_mut().tick(T0_CNT, 1);
+    bus.timers_mut().tick(T0_CNT, 1, false, false);
     let val = bus.read32::<BusRead>(T0_CNT);
     assert_eq!(
         val & 0xFFFF,
@@ -113,7 +118,7 @@ fn cnt_reseta_no_target_com_bit3_setado() {
     let mut bus = bus();
     bus.write32::<BusRead>(T0_TARGET, 0x0003);
     bus.write32::<BusRead>(T0_MODE, 0x0008);
-    bus.timers_mut().tick(T0_CNT, 3);
+    bus.timers_mut().tick(T0_CNT, 3, false, false);
     let val = bus.read32::<BusRead>(T0_CNT);
     assert_eq!(val & 0xFFFF, 0, "CNT voltou a 0 apos atingir target=3");
 }
@@ -128,7 +133,7 @@ fn flag_target_alcancado_setado_e_limpo_na_leitura() {
         0,
         "bit11 limpo antes do tick"
     );
-    bus.timers_mut().tick(T0_CNT, 2);
+    bus.timers_mut().tick(T0_CNT, 2, false, false);
     assert_eq!(
         bus.read32::<BusRead>(T0_MODE) & (1 << 11),
         1 << 11,
@@ -146,7 +151,7 @@ fn flag_ffff_alcancado_setado_e_limpo_na_leitura() {
     let mut bus = bus();
     bus.write32::<BusRead>(T0_MODE, 0x0000);
     bus.write32::<BusRead>(T0_CNT, 0xFFFE);
-    bus.timers_mut().tick(T0_CNT, 2);
+    bus.timers_mut().tick(T0_CNT, 2, false, false);
     let mode = bus.read32::<BusRead>(T0_MODE);
     assert_eq!(
         mode & (1 << 12),
@@ -165,10 +170,10 @@ fn flag_ffff_alcancado_setado_e_limpo_na_leitura() {
 fn tick_respeita_divisor_de_clock_do_timer2() {
     let mut bus = bus();
     bus.write32::<BusRead>(T2_MODE, 0x0200);
-    bus.timers_mut().tick(T2_CNT, 1);
+    bus.timers_mut().tick(T2_CNT, 1, false, false);
     let val = bus.read32::<BusRead>(T2_CNT);
     assert_eq!(val & 0xFFFF, 0, "T2 clock/8: 1 tick nao incrementa");
-    bus.timers_mut().tick(T2_CNT, 7);
+    bus.timers_mut().tick(T2_CNT, 7, false, false);
     let val = bus.read32::<BusRead>(T2_CNT);
     assert_eq!(val & 0xFFFF, 1, "T2 clock/8: 8 ticks incrementam 1");
 }

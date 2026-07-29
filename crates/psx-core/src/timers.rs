@@ -8,6 +8,8 @@ struct Timer {
     mode: Cell<u32>,
     target: u16,
     cycle_acc: Cell<u32>,
+    prev_sync_signal: Cell<bool>,
+    mode3_triggered: Cell<bool>,
 }
 
 #[derive(Debug)]
@@ -22,6 +24,8 @@ impl Timer {
             mode: Cell::new(0),
             target: 0,
             cycle_acc: Cell::new(0),
+            prev_sync_signal: Cell::new(false),
+            mode3_triggered: Cell::new(false),
         }
     }
 }
@@ -66,12 +70,12 @@ impl Timers {
                 let t = &self.timers[idx];
                 let prev = t.mode.get();
                 let mut mode = (prev & 0x7C00) | (val & 0x3FF);
-                if val & (1 << 10) != 0 {
-                    mode |= 1 << 10;
-                }
+                mode |= 1 << 10;
                 t.mode.set(mode);
                 t.counter.set(0);
                 t.cycle_acc.set(0);
+                t.prev_sync_signal.set(false);
+                t.mode3_triggered.set(false);
             }
             0x8 => {
                 self.timers[idx].target = (val & 0xFFFF) as u16;
@@ -80,7 +84,7 @@ impl Timers {
         }
     }
 
-    pub fn tick(&mut self, base_addr: u32, cycles: u32) {
+    pub fn tick(&mut self, base_addr: u32, cycles: u32, hblank_active: bool, vblank_active: bool) {
         let idx = Self::timer_index(base_addr);
         let t = &self.timers[idx];
         let mode = t.mode.get();
@@ -89,13 +93,49 @@ impl Timers {
         let reset_on_target = (mode >> 3) & 1 != 0;
         let clock_src = (mode >> 8) & 0x3;
 
-        let increment = match idx {
-            0 | 1 => {
-                !(sync_enable && (sync_mode == 2 || sync_mode == 3))
-                    && (clock_src == 0 || clock_src == 2)
+        let sync_signal = match idx {
+            0 => hblank_active,
+            1 => vblank_active,
+            _ => false,
+        };
+
+        let prev_sync = t.prev_sync_signal.get();
+        let rising_edge = sync_signal && !prev_sync;
+        t.prev_sync_signal.set(sync_signal);
+
+        if sync_enable && rising_edge {
+            match sync_mode {
+                1 | 2 => {
+                    t.counter.set(0);
+                    t.cycle_acc.set(0);
+                }
+                3 if !t.mode3_triggered.get() => {
+                    t.counter.set(0);
+                    t.cycle_acc.set(0);
+                    t.mode3_triggered.set(true);
+                }
+                _ => {}
             }
-            2 => !(sync_enable && (sync_mode == 0 || sync_mode == 3)),
-            _ => return,
+        }
+
+        let increment = if sync_enable {
+            match idx {
+                0 | 1 => match sync_mode {
+                    0 => (clock_src == 0 || clock_src == 2) && !sync_signal,
+                    1 => clock_src == 0 || clock_src == 2,
+                    2 => (clock_src == 0 || clock_src == 2) && sync_signal,
+                    3 => (clock_src == 0 || clock_src == 2) && t.mode3_triggered.get(),
+                    _ => clock_src == 0 || clock_src == 2,
+                },
+                2 => !matches!(sync_mode, 0 | 3),
+                _ => return,
+            }
+        } else {
+            match idx {
+                0 | 1 => clock_src == 0 || clock_src == 2,
+                2 => true,
+                _ => return,
+            }
         };
 
         if !increment {

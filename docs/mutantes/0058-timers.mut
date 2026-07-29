@@ -4,6 +4,7 @@ iteracao: 0058
 item: 3.4
 alvo: crates/psx-core/src/timers.rs
 teste: timers
+arquivada: metodo tick() reescrito na iter 0059 (item 3.4b) — ancoras nao correspondem mais
 
 mutante: m1
 rotulo: tick nao incrementa o contador (no-op)

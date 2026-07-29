@@ -122,6 +122,10 @@ impl Bus {
         &self.gpu
     }
 
+    pub fn gpu_mut(&mut self) -> &mut Gpu {
+        &mut self.gpu
+    }
+
     pub fn new(ram: Ram, bios: Bios) -> Self {
         Bus {
             ram,

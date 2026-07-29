@@ -1,0 +1,12 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: 047e94e4137a5cfd8369fb49b13b88c500668c2e
+# rodado_em: 2026-07-28T22:46:53-03:00
+a,mutante,morreu,morreu,0.7,a2_fill_arredonda_xpos_e_xsiz
+b,mutante,morreu,morreu,0.7,a2_fill_arredonda_xpos_e_xsiz
+c,equivalente,sobreviveu,sobreviveu,0.6,
+d,mutante,morreu,morreu,0.6,a0h_com_ypos_nao_zero_endereca_linha_absoluta;a0h_xsiz_1024_mascara_para_0_colunas_vira_max;a0h_ysiz_513_mascara_para_1_linha;a5_a0h_cpu_para_vram_2x1_escreve_baixo_primeiro;a6_a0h_impar_descarta_halfword_extra;a7_a0h_com_xsiz_zero_transfere_max_0x400;a9_wrap_copy_comecando_em_x_1020_sem_carry_para_proxima_linha;c0h_le_da_linha_absoluta_e_com_wrap_em_x
+e,mutante,morreu,morreu,0.7,a6_a0h_impar_descarta_halfword_extra
+f,mutante,morreu,morreu,0.7,a10_gpustat_bit27_c0h
+g,mutante,morreu,morreu,0.6,a0h_xsiz_1024_mascara_para_0_colunas_vira_max;a7_a0h_com_xsiz_zero_transfere_max_0x400
+K1,controle,sobreviveu,sobreviveu,0.6,
+K2,controle,sobreviveu,sobreviveu,0.7,

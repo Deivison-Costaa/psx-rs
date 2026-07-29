@@ -12,5 +12,3 @@
 # Saída de execuções da orquestração (métricas curadas ficam em docs/metricas.csv)
 /logs/
 
-# Placar de bateria de mutação (regenerado a cada execução)
-docs/mutantes/*.resultado

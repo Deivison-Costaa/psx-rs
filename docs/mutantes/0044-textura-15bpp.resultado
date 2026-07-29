@@ -1,0 +1,11 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: a04444c52b85c22c3a4495421a95733fec2526f7
+# rodado_em: 2026-07-29T01:33:27-03:00
+m1,mutante,morreu,morreu,0.8,a3_texpage_attribute_nao_muda_bits_9_10_12_13
+m2,mutante,morreu,morreu,0.8,a5_texel_0000h_nao_e_desenhado
+m3,mutante,morreu,morreu,0.8,a1_gp0_e1h_todos_os_campos_setados_refletem_no_gpustat
+m4,mutante,morreu,morreu,0.8,a2_texpage_colors_3_se_comporta_como_15bpp
+m5,mutante,morreu,morreu,0.8,a6_texpage_base_diferente_de_zero
+m6,mutante,morreu,morreu,0.7,a2_texpage_colors_3_se_comporta_como_15bpp;a4_poligono_texturizado_15bpp_confere_texel_exato;a5_texel_0000h_nao_e_desenhado;a6_texpage_base_diferente_de_zero
+K1,controle,sobreviveu,sobreviveu,0.8,
+K2,controle,sobreviveu,sobreviveu,0.7,

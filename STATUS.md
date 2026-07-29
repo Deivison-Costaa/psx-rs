@@ -5,15 +5,15 @@
 
 ## Última iteração concluída
 
-**0047** — Semi-transparência (ROADMAP 2.6a).
+**0048** — Dithering 24→15 bit (ROADMAP 2.6b).
 
 ## Próxima tarefa
 
-**ROADMAP 2.6b — Dithering 24→15 bit.** Spec: `docs/reference/03-gpu.md`,
-seção dithering (L1558-1568). Arquivo-alvo: `crates/psx-core/src/gpu.rs`.
-Armadilha: a matriz 4x4 é pré-definida e indexada por `(y & 3, x & 3)`; o dither
-aplica-se APENAS a polígonos com gouraud shading ou textura, e APENAS se GPUSTAT.9=1;
-o offset é adicionado aos canais de 8 bits antes da redução para 5 bits, com saturação.
+**ROADMAP 2.6c — Mask bit (proteção de pixel bit15=1).** Spec: `docs/reference/03-gpu.md`,
+seção Mask Bit Setting GP0(E6h) (L463-479). Arquivo-alvo: `crates/psx-core/src/gpu.rs`.
+Armadilha: o mask bit bloqueia escrita em pixels cujo bit15=1 na VRAM; é controlado por
+GP0(E6h) bits 0-1, armazenados em GPUSTAT bits 11-12; aplica-se a polígonos, linhas e
+retângulos, mas NÃO a VRAM transfers (Fill, CPU→VRAM, VRAM→CPU).
 
 ## Repositório
 
@@ -27,7 +27,7 @@ o offset é adicionado aos canais de 8 bits antes da redução para 5 bits, com 
 
 ## Placar de testes
 
-Workspace: **362** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 29 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 11 cpu_opcode_reservado + 16 gpu_status_gp0_gp1 + 9 ci_scoreboard + 9 cli_runner + 21 gpu_vram_transfers + 20 gpu_triangulos_flat_gouraud + 21 gpu_linhas_retangulos + 6 gpu_textura_15bpp + 6 gpu_texturas_4bpp_8bpp + 5 gpu_texture_window + 6 gpu_semi_transparencia + 1 spec_citations + 2 mutation_manifest + 2 mutation_anchors + 5 mutation_battery).
+Workspace: **369** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 29 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 11 cpu_opcode_reservado + 16 gpu_status_gp0_gp1 + 9 ci_scoreboard + 9 cli_runner + 21 gpu_vram_transfers + 20 gpu_triangulos_flat_gouraud + 21 gpu_linhas_retangulos + 6 gpu_textura_15bpp + 6 gpu_texturas_4bpp_8bpp + 5 gpu_texture_window + 6 gpu_semi_transparencia + 7 gpu_dithering + 1 spec_citations + 2 mutation_manifest + 2 mutation_anchors + 5 mutation_battery).
 
 ## Bloqueios
 

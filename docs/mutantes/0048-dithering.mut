@@ -1,0 +1,109 @@
+# Manifesto de mutação da iteração 0048 — dithering 24→15 bit
+formato: 1
+iteracao: 0048
+item: 2.6b
+alvo: crates/psx-core/src/gpu.rs
+teste: gpu_dithering
+
+mutante: m1
+rotulo: matriz de dither trocada — linha 0 vira [-4, -4, -4, -4] (todos -4)
+@@DE
+    [-4, 0, -3, 1],
+@@PARA
+    [-4, -4, -4, -4],
+@@FIM
+
+mutante: m2
+rotulo: dither aplicado a retangulo (spec diz que nao)
+@@DE
+fn color24_to_16(color24: u32) -> u16 {
+    let r = (color24 & 0xFF) as u8;
+    let g = ((color24 >> 8) & 0xFF) as u8;
+    let b = ((color24 >> 16) & 0xFF) as u8;
+    ((r >> 3) as u16) | (((g >> 3) as u16) << 5) | (((b >> 3) as u16) << 10)
+}
+@@PARA
+fn color24_to_16(color24: u32) -> u16 {
+    color24_to_16_dithered(color24, 3, 0, true)
+}
+@@FIM
+
+mutante: m3
+rotulo: offset de dither sempre +1 (ignora a matriz)
+@@DE
+        let offset = DITHER_MATRIX[(y & 3) as usize][(x & 3) as usize];
+@@PARA
+        let offset = 1;
+@@FIM
+
+mutante: m4
+rotulo: dither desabilitado mesmo com GPUSTAT.9=1 — if dither_enabled vira if false
+@@DE
+    if dither_enabled {
+        let offset = DITHER_MATRIX[(y & 3) as usize][(x & 3) as usize];
+@@PARA
+    if false {
+        let offset = DITHER_MATRIX[(y & 3) as usize][(x & 3) as usize];
+@@FIM
+
+mutante: m5
+rotulo: linha nao aplica dither (spec diz que sempre aplica)
+@@DE
+                    let dither = (self.stat.get() & (1 << 9)) != 0;
+                    if polyline {
+@@PARA
+                    let dither = false;
+                    if polyline {
+@@FIM
+
+mutante: m6
+rotulo: matriz linha 2 trocada pela linha 0 — offset errado para y&3=2
+@@DE
+    [-3, 1, -4, 0],
+@@PARA
+    [-4, 0, -3, 1],
+@@FIM
+
+mutante: m7
+rotulo: saturacao removida — offset somado sem clamp
+@@DE
+        let r_d = ((r as i32) + offset).clamp(0, 255) as u16;
+        let g_d = ((g as i32) + offset).clamp(0, 255) as u16;
+        let b_d = ((b as i32) + offset).clamp(0, 255) as u16;
+@@PARA
+        let r_d = ((r as i32) + offset) as u16;
+        let g_d = ((g as i32) + offset) as u16;
+        let b_d = ((b as i32) + offset) as u16;
+@@FIM
+
+controle: K1
+rotulo: inverte ordem das declaracoes de r e g em color24_to_16_dithered (independentes, cosmetico)
+@@DE
+fn color24_to_16_dithered(color24: u32, x: i32, y: i32, dither_enabled: bool) -> u16 {
+    let r = (color24 & 0xFF) as u8;
+    let g = ((color24 >> 8) & 0xFF) as u8;
+    let b = ((color24 >> 16) & 0xFF) as u8;
+    if dither_enabled {
+@@PARA
+fn color24_to_16_dithered(color24: u32, x: i32, y: i32, dither_enabled: bool) -> u16 {
+    let g = ((color24 >> 8) & 0xFF) as u8;
+    let r = (color24 & 0xFF) as u8;
+    let b = ((color24 >> 16) & 0xFF) as u8;
+    if dither_enabled {
+@@FIM
+
+controle: K2
+rotulo: inverte ordem das entradas do array sorted antes do sort_by_key (cosmetico, sort reordena)
+@@DE
+        let mut sorted = [
+            (v0.0 as i32, v0.1 as i32, c0),
+            (v1.0 as i32, v1.1 as i32, c1),
+            (v2.0 as i32, v2.1 as i32, c2),
+        ];
+@@PARA
+        let mut sorted = [
+            (v2.0 as i32, v2.1 as i32, c2),
+            (v1.0 as i32, v1.1 as i32, c1),
+            (v0.0 as i32, v0.1 as i32, c0),
+        ];
+@@FIM

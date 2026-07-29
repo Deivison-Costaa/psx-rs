@@ -207,14 +207,14 @@ impl Gpu {
                         0x00 | 0x04..=0x1E | 0xE0 | 0xE7..=0xEF => VramState::Idle,
                         0xE3 => {
                             let x = (val & 0x3FF) as u16;
-                            let y = ((val >> 10) & 0x3FF) as u16;
+                            let y = ((val >> 10) & 0x1FF) as u16;
                             self.drawing_x1.set(x);
                             self.drawing_y1.set(y);
                             VramState::Idle
                         }
                         0xE4 => {
                             let x = (val & 0x3FF) as u16;
-                            let y = ((val >> 10) & 0x3FF) as u16;
+                            let y = ((val >> 10) & 0x1FF) as u16;
                             self.drawing_x2.set(x);
                             self.drawing_y2.set(y);
                             VramState::Idle
@@ -542,7 +542,7 @@ impl Gpu {
         let area_x2 = self.drawing_x2.get() as i32;
         let area_y2 = self.drawing_y2.get() as i32;
         let y_start = yt.max(area_y1).max(0);
-        let y_end = yb.min(area_y2).min(512);
+        let y_end = yb.min(area_y2 + 1).min(512);
 
         for y in y_start..y_end {
             let x_edge_tb = lerp_i32(xt, xb, y - yt, dy_bt);

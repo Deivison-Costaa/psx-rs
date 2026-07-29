@@ -89,19 +89,14 @@ rotulo: IRQ retorna bit fixo 4 em vez de 4+idx (timer 1 e 2 retornariam IRQ erra
 @@FIM
 
 controle: K1
-rotulo: renomear variavel mode_now para m (equivalente semantico)
+rotulo: adicionar let binding descartavel (equivalente semantico)
 @@DE
-            let mut mode_now = t.mode.get();
-            let mut mode_changed = false;
-
-            if t.counter.get() == t.target {
-                mode_now |= 1 << 11;
+        for _ in 0..effective {
+            let prev = t.counter.get();
 @@PARA
-            let mut m = t.mode.get();
-            let mut mode_changed = false;
-
-            if t.counter.get() == t.target {
-                m |= 1 << 11;
+        let _ctrl = || {};
+        for _ in 0..effective {
+            let prev = t.counter.get();
 @@FIM
 
 controle: K2

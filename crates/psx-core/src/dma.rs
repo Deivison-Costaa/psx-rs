@@ -138,8 +138,13 @@ impl Dma {
 
     fn execute_linked_list(&mut self, ram: &mut [u8], gpu: &mut Gpu) {
         let mut addr = self.madr[2] & 0x00FF_FFFC;
+        let mut node_count = 0;
 
         loop {
+            node_count += 1;
+            if node_count > 4096 {
+                break;
+            }
             let offset = (addr & 0x1F_FF_FF) as usize;
             if offset + 4 > ram.len() {
                 break;

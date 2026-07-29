@@ -253,6 +253,30 @@ impl Gpu {
         self.stat.get()
     }
 
+    pub fn display_start_x(&self) -> u16 {
+        0
+    }
+
+    pub fn display_start_y(&self) -> u16 {
+        0
+    }
+
+    pub fn display_range_x1(&self) -> u16 {
+        0
+    }
+
+    pub fn display_range_x2(&self) -> u16 {
+        0
+    }
+
+    pub fn display_range_y1(&self) -> u16 {
+        0
+    }
+
+    pub fn display_range_y2(&self) -> u16 {
+        0
+    }
+
     fn write_gp0(&mut self, val: u32) {
         let state = self.vram_state.get();
         match state {

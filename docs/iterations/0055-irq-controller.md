@@ -38,6 +38,7 @@ Nota: o manifesto de mutação 0054 foi criado em f7c1935 e deletado em a89328f 
 | 2 | API-Rust | Que o manifesto de mutação apontava irq.rs como alvo, bastando um `arquivo:` para desviar para cpu.rs | O campo `alvo:` do manifesto define o arquivo padrão; mutações em outros arquivos precisam de `arquivo:` explícito | mutantes.ps1 falhou: "@@DE não encontrada" — corrigi o `alvo:` para `crates/psx-core/src/cpu.rs` |
 | 3 | API-Rust | Que o m3 podia ter @@PARA vazio (remover todo o bloco de atualização do CAUSE.IP) | O meta-teste mutation_anchors.rs rejeita @@PARA vazio (mutante inerte) | CI reprovou — troquei por substituição (`self.cop0[13] &= !(1 << 10)`) |
 | 4 | API-Rust | Que o K1 podia renomear `sr` para `status_reg` (só trocar o nome da variável) | A renomeação quebrou o uso de `sr` abaixo, virando mutante em vez de controle | Erro de compilação no mutantes.ps1 — troquei por adição de comentário |
+| 5 | dupla-execução | Que `raise_exception` no topo de `step()` bastava — a instrução corrente seria executada e a exceção tratada depois | 11-interrupts.md L46-50: a interrupção deve interromper a instrução corrente, não executá-la antes do handler. Se a instrução executasse, EPC apontaria para ela e o RFE a reexecutaria (double-execution) | Revisão adversarial desta rodada: o teste `interrupcao_dispara_excecao_int` passava porque a instrução no PC inicial (BIOS vazia = NOP) não tinha efeitos colaterais visíveis. Adicionado `interrupcao_nao_executa_instrucao_corrente` com ADDIU que modifica r8, e reestruturado `step()` para tratar INT antes do fetch |
 
 ## Bateria de mutação
 
@@ -50,12 +51,12 @@ Placar da bateria: 5/5 mutantes mortos, 2/2 controles verdes, 0 equivalente - ./
 | m1 (SR.IEc ignorado) | `interrupcao_nao_dispara_sem_sr_iec` |
 | m2 (SR.Im bit10 ignorado) | `interrupcao_nao_dispara_sem_sr_im_bit10` |
 | m3 (CAUSE.bit10 sempre zero) | `cause_bit10_reflete_irq_pendente` |
-| m4 (ExcCode 01h em vez de 00h) | `interrupcao_dispara_excecao_int` |
-| m5 (vetor 8000_0040h para INT) | `interrupcao_dispara_excecao_int` |
+| m4 (EPC errado — pc+4) | `interrupcao_dispara_excecao_int` |
+| m5 (vetor INT 8000_0040h) | `interrupcao_dispara_excecao_int` |
 
 ## Placar antes → depois
 
-Workspace: **408** → **418** testes (408 existentes + 10 cpu_irq).
+Workspace: **408** → **419** testes (408 existentes + 10 cpu_irq originais + 1 `interrupcao_nao_executa_instrucao_corrente`).
 
 ## Revisão cruzada (orquestrador)
 
@@ -68,3 +69,4 @@ Workspace: **408** → **418** testes (408 existentes + 10 cpu_irq).
 3. **I_MASK mascara bits 0-10** (0x7FF). Bits 11-15 são sempre zero, 16-31 são garbage.
 4. **Vblank ainda não conectado.** O GPU tem `enter_vblank()`/`exit_vblank()` mas não chama `irq.raise(0)`. Isso será feito quando o scheduler de eventos estiver ativo (ROADMAP 3.4 — Timers).
 5. **O ROADMAP 3.1 diz "CAUSE.IP bit 2"** — é um erro de digitação; o correto é bit 10 (a PSX usa só o bit 10 dos 6 bits IP disponíveis no COP0).
+6. **INT tratado ANTES do fetch da instrução.** Após revisão adversarial, `step()` foi reestruturado: o handler de interrupção executa antes do fetch/decode, garantindo que a instrução corrente NÃO é executada. O commit do load delay pendente ocorre dentro do bloco INT (antes do desvio para o handler), preservando a semântica de load delay para o caminho normal (commit após execute).

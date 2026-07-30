@@ -28,7 +28,7 @@ Nove padrões conferidos:
 | psx-spx | AVSZ3 (L523) | `docs/reference/07-gte.md` |
 | psx-spx | AVSZ4 (L524) | `docs/reference/07-gte.md` |
 | psx-spx | SQR (L566) | `docs/reference/07-gte.md` |
-| psx-spx | OP (L574) | `docs/reference/07-gte.md` |
+| psx-spx | COP2 170000Ch+sf\*80000h - 6 Cycles - OP(sf,lm) - Cross product of 2 vectors (L574) | `docs/reference/07-gte.md` |
 
 ## Erros de primeira tentativa
 
@@ -62,7 +62,7 @@ Workspace: **651** → **662** testes (+11: gte_nclip_avsz3_avsz4_sqr_op).
 
 ## Decisões e notas
 
-1. **FLAG zerado no início de cada comando.** `execute_command` agora aplica `self.regs[63] &= 0x7FFF_F000` antes do match, conforme spec L373-375. Testes existentes (RTPS/RTPT) continuam passando porque já zeravam o flag internamente.
+1. **FLAG zerado no início de cada comando.** `execute_command` agora aplica `self.regs[63] &= 0x7FFF_F000` antes do match, conforme `docs/reference/07-gte.md` L373-375. Testes existentes (RTPS/RTPT) continuam passando porque já zeravam o flag internamente.
 
 2. **NCLIP overflow positivo nunca ocorre com entradas de 16 bits.** O produto máximo de dois S16 é ~10^9, e a fórmula de NCLIP cancela termos de forma que o resultado sempre cabe em 32 bits. O bit 16 do FLAG existe na spec mas é inalcançável via software normal.
 

@@ -1,4 +1,4 @@
-use crate::bus::{Bus, BusRead};
+use crate::bus::{Bus, BusRead, BusWrite};
 
 #[derive(Debug, Clone)]
 pub struct Cpu {
@@ -248,10 +248,13 @@ impl Cpu {
                 None
             }
             0x10 => self.cop0_op(instr),
+            0x12 => self.cop2_op(instr, bus),
+            0x32 => self.lwc2_op(instr, bus),
+            0x3A => self.swc2_op(instr, bus),
             _ => {
                 match primary {
-                    0x11..=0x13 => self.raise_exception(0x0B, None),
-                    0x30..=0x33 | 0x38..=0x3B => self.raise_exception(0x0B, None),
+                    0x11 | 0x13 => self.raise_exception(0x0B, None),
+                    0x30 | 0x31 | 0x33 | 0x38 | 0x39 | 0x3B => self.raise_exception(0x0B, None),
                     _ => self.raise_exception(0x0A, None),
                 };
                 None
@@ -857,6 +860,60 @@ impl Cpu {
 
     fn cop0_read(&self, reg: usize) -> u32 {
         self.cop0[reg]
+    }
+
+    fn cop2_op(&mut self, instr: u32, bus: &mut Bus) -> Option<(usize, u32)> {
+        let co = (instr >> 21) & 0x1F;
+        match co {
+            0x00 => {
+                let rt = ((instr >> 16) & 0x1F) as usize;
+                let rd = ((instr >> 11) & 0x1F) as usize;
+                let val = bus.gte().read_data(rd);
+                Some((rt, val))
+            }
+            0x02 => {
+                let rt = ((instr >> 16) & 0x1F) as usize;
+                let rd = ((instr >> 11) & 0x1F) as usize;
+                let val = bus.gte().read_control(rd);
+                Some((rt, val))
+            }
+            0x04 => {
+                let rt = ((instr >> 16) & 0x1F) as usize;
+                let rd = ((instr >> 11) & 0x1F) as usize;
+                let val = self.regs[rt];
+                bus.gte_mut().write_data(rd, val);
+                None
+            }
+            0x06 => {
+                let rt = ((instr >> 16) & 0x1F) as usize;
+                let rd = ((instr >> 11) & 0x1F) as usize;
+                let val = self.regs[rt];
+                bus.gte_mut().write_control(rd, val);
+                None
+            }
+            0x10..=0x1F => None,
+            _ => None,
+        }
+    }
+
+    fn lwc2_op(&mut self, instr: u32, bus: &mut Bus) -> Option<(usize, u32)> {
+        let rs = ((instr >> 21) & 0x1F) as usize;
+        let rt = ((instr >> 16) & 0x1F) as usize;
+        let imm = (instr & 0xFFFF) as u16 as i16 as i32 as u32;
+        let addr = self.regs[rs].wrapping_add(imm);
+        let val = bus.read32::<BusRead>(addr);
+        bus.gte_mut().write_data(rt, val);
+        None
+    }
+
+    fn swc2_op(&mut self, instr: u32, bus: &mut Bus) -> Option<(usize, u32)> {
+        let rs = ((instr >> 21) & 0x1F) as usize;
+        let rt = ((instr >> 16) & 0x1F) as usize;
+        let imm = (instr & 0xFFFF) as u16 as i16 as i32 as u32;
+        let addr = self.regs[rs].wrapping_add(imm);
+        let val = bus.gte().read_data(rt);
+        bus.write32::<BusWrite>(addr, val);
+        None
     }
 
     fn set_reg(&mut self, idx: usize, val: u32) {

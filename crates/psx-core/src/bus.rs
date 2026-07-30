@@ -2,6 +2,7 @@ use crate::cdrom::Cdrom;
 use crate::cdrom_bin_cue::DiscLayout;
 use crate::dma::Dma;
 use crate::gpu::Gpu;
+use crate::gte::Gte;
 use crate::irq::Irq;
 use crate::scheduler::{EventId, ScheduleKey, Scheduler};
 use crate::timers::Timers;
@@ -114,6 +115,7 @@ pub struct Bus {
     ram: Ram,
     bios: Bios,
     gpu: Gpu,
+    gte: Gte,
     irq: Irq,
     dma: Dma,
     cdrom: Cdrom,
@@ -137,6 +139,14 @@ impl Bus {
         &mut self.gpu
     }
 
+    pub fn gte(&self) -> &Gte {
+        &self.gte
+    }
+
+    pub fn gte_mut(&mut self) -> &mut Gte {
+        &mut self.gte
+    }
+
     pub fn new(ram: Ram, bios: Bios) -> Self {
         let mut gpu = Gpu::new();
         let frame = gpu.frame_cycles();
@@ -158,6 +168,7 @@ impl Bus {
             ram,
             bios,
             gpu,
+            gte: Gte::new(),
             irq: Irq::new(),
             dma: Dma::new(),
             cdrom: Cdrom::new(),

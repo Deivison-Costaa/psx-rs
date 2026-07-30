@@ -7,38 +7,31 @@
 
 ## Última iteração concluída
 
-**0108** — diagnostico do segundo crash do boot: `$ra` restaurado da pilha vale 4 (ROADMAP 4.4h).
+**0109** — referencia da tela real obtida; a conclusao da 0107 estava errada e foi corrigida; tres
+hipoteses para o 2.2d medidas e descartadas (ROADMAP 2.2d).
 
 ## Próxima tarefa
 
-**ROADMAP 4.4h — o boot morre de novo, no passo 85 544 264, com `$ra = 4`.**
-Medido pelo orquestrador em 30/07, BIOS real + disco, com watchpoint. A cadeia:
+**ROADMAP 2.2e — o texto do logo sai vermelho; deveria ser azul-escuro.**
+Escolhido antes do 2.2d porque tem suspeito nomeado e e independente. Medido em 30/07 contra a
+referencia oficial: fundo deveria ser branco e sai cinza (180,180,180); "SONY" deveria ser
+azul-escuro e sai vermelho. A geometria do texto esta certa desde o item 2.2c — e so a cor.
+Suspeito primario: **item 10.13**, `GP0(24h)` e modulacao e o bit 24 do comando (raw texture) nao
+e lido. Os quads do logo sao `2Ch`, com bit 24 = 0, isto e, **modulados**.
+Spec: `docs/reference/03-gpu.md` L1080 (tabela de Shaded Textures) e a secao de Render Polygon.
+Arquivos-alvo: `crates/psx-core/src/gpu.rs`.
+Critério de aceitação: no despejo da VRAM o texto "SONY" sai azul-escuro sobre fundo branco.
+Invariantes relevantes: 21.
 
-1. Passo 85 544 264, `PC=0x8003FA18`, instrucao `8FBF002C` = `lw $ra, 0x2C($sp)` com
-   `$sp=0x801FFDA0` — le de **0x801FFDCC** e traz **4**.
-2. `jr $ra` em `0x8003FA24` salta para `0x00000004`, que contem o stub
-   `addiu $k0,$k1,0xC80 / jr $k0` e leva a `A0(15h)`.
-3. Alguem executa `0x8005B6D0`, cujo conteudo e `0x77800000` — opcode primario `0x1D`, **que nao
-   existe no MIPS I**. Levantamos RI (excode 10) corretamente; o kernel nao resolve e entra em
-   `A0(40h)` = `SystemErrorUnresolvedException` para sempre (1,4 milhao de chamadas).
-4. **Watchpoint em 0x801FFDCC: UMA unica escrita em 85 milhoes de passos**, no passo 133 574, de
-   `PC=0xBFC018FC` (`sw $v1, 0x1C($sp)`), valor 4. Ou seja o prologo daquela funcao **nunca**
-   salvou `$ra` nesse slot: o `$sp` do prologo e diferente do `$sp` do epilogo.
+**Ja medido e descartado para o 2.2d — nao repetir:** (1) projecao do GTE — **zero** chamadas de
+`rtps` em 85 M passos, o logo nao passa pelo GTE; (2) resolucao vertical mal reportada —
+`GPUSTAT=0x1406260D`, 640x240 sem entrelacamento, correto; (3) vertice escrito direto pela CPU —
+nenhum `sw` com o valor do vertice, a lista de display vai por **DMA**. O proximo passo do 2.2d e
+interceptar o canal 2 do DMA e ler os pacotes na RAM.
 
-E a mesma familia do 4.4f (`$ra = 3`, tambem de `0x2C($sp)`), mas o conserto de la — interrupcao
-no delay slot descartando o salto pendente — nao cobre este caso. Falta achar o segundo mecanismo
-que desalinha o `$sp`.
-Arquivos-alvo: `crates/psx-core/src/cpu.rs`.
-Critério de aceitação: `psx-cli --bios <BIOS> --disc <CUE>` passa do passo 85 544 264 sem entrar em
-`A0(40h)`; hoje entra e nunca sai.
-Invariantes relevantes: 16.
-
-**Primeiro passo:** watchpoint em `$sp` na janela do prologo — achar onde `$sp` muda sem um
-`addiu $sp` correspondente, exatamente como se achou o 4.4f.
-
-**Ja medido, nao repetir:** a BIOS **nao emite nenhum comando de CD-ROM** em 800 M passos (contador
-no `send_command`), e a corrida de 3 bilhoes de passos (129 s emulados) nao produz TTY novo depois
-de `ResetCallback`. Os dois sao consequencia deste crash, nao causas.
+**Cuidado registrado (invariante 21):** no despejo da VRAM, a regiao de texpage aparece rosa/azul
+porque cada halfword vira um pixel de 15 bits; ali sao quatro indices de CLUT. Para julgar COR,
+olhe so o que foi rasterizado.
 
 ## Repositório
 

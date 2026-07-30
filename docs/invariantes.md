@@ -113,10 +113,17 @@ Regra imposta por `status_handoff.rs`.
     `(x + col) & 0x3FF`, e como `0x400` divide `2^16` a mascara de fora nao muda nada — foi o
     equivalente m3 da bateria 0105. Para Y a conta nao vale: `0x200` nao divide `2^16`, entao
     `& 0x1FF` na entrada e observavel. Quem for otimizar isto nao pode tratar os dois eixos igual.
-20. **O losango do logo da BIOS ser cortado pode NAO ser defeito nosso.** Medido em 30/07:
-    a BIOS programa area de desenho `(0,1)-(639,240)` e offset `(0,1)` para o buffer 1 (e
-    `(0,241)-(639,480)` / `(0,241)` para o buffer 2), e emite triangulos gouraud cujo Y cru vai de
-    112 a 368 — **256 linhas dentro de uma area de 240**. Recortamos pela area, que e o que
-    `docs/reference/03-gpu.md` manda. Antes de "consertar" isto, e preciso uma REFERENCIA (foto de
-    console, suite de hardware ou outro emulador): mexer no offset ou no recorte para deixar o
-    losango bonito quebraria o recorte, que e testado. Item 2.2d.
+20. **CORRIGIDA EM 30/07 — o losango cortado E defeito nosso.** A versao anterior desta nota dizia
+    que talvez nao fosse, por falta de referencia. O usuario forneceu a referencia (a tela oficial
+    "SONY COMPUTER ENTERTAINMENT"): o losango real e **completo**, quatro pontas, centralizado,
+    com o "S" vazado; "SONY" fica **acima** em azul-escuro e "COMPUTER ENTERTAINMENT" **abaixo**,
+    tambem azul-escuro, sobre fundo **branco**. Continua valendo o que foi medido — a BIOS emite
+    triangulos de 256 linhas para uma area de desenho de 240 que ela mesma programou, e nos
+    recortamos certo. Logo o erro esta ANTES do recorte: as coordenadas chegam grandes demais e
+    deslocadas para baixo. O losango e 3D e passa pelo GTE, entao a suspeita primaria e a projecao
+    (RTPS/RTPT, divisao UNR, OFX/OFY). **Nao mexer no recorte** — ele tem teste proprio e esta
+    certo. Itens 2.2d, 2.2e e 2.2f.
+21. **A visualizacao da VRAM como cor engana em regiao de textura 4bpp.** No despejo, a area da
+    texpage aparece rosa/azul porque cada halfword vira um pixel de 15 bits; ali cada halfword sao
+    **quatro indices de CLUT**, nao uma cor. Ja me levou a suspeitar de cor errada na textura onde
+    nao havia. Para julgar cor, olhe o que foi RASTERIZADO, nunca a texpage crua.

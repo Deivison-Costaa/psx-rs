@@ -350,8 +350,20 @@ impl Gpu {
         }
     }
 
+    pub fn total_scanlines(&self) -> u16 {
+        if self.video_mode.get() { 314 } else { 263 }
+    }
+
+    pub fn cpu_cycles_per_scanline(&self) -> u64 {
+        self.frame_cycles() / self.total_scanlines() as u64
+    }
+
     pub fn set_odd_line(&mut self, odd: bool) {
         self.odd_line.set(odd);
+    }
+
+    pub fn toggle_odd_line(&mut self) {
+        self.odd_line.set(!self.odd_line.get());
     }
 
     pub fn video_cycles_per_scanline(&self) -> u16 {

@@ -3,6 +3,7 @@ use crate::cdrom_bin_cue::DiscLayout;
 use crate::dma::Dma;
 use crate::gpu::Gpu;
 use crate::irq::Irq;
+use crate::scheduler::{EventId, ScheduleKey, Scheduler};
 use crate::timers::Timers;
 
 const SCRATCHPAD_SIZE: usize = 1024;
@@ -105,6 +106,9 @@ impl MemoryOp for BusWrite {
     const WRITE: bool = true;
 }
 
+const VBLANK_ENTER: u32 = 0;
+const VBLANK_EXIT: u32 = 1;
+
 #[derive(Debug)]
 pub struct Bus {
     ram: Ram,
@@ -120,6 +124,8 @@ pub struct Bus {
     mem_ctrl: MemCtrl,
     bcc: Bcc,
     tty_buffer: Vec<u8>,
+    scheduler: Scheduler,
+    total_cycles: u64,
 }
 
 impl Bus {
@@ -132,10 +138,26 @@ impl Bus {
     }
 
     pub fn new(ram: Ram, bios: Bios) -> Self {
+        let mut gpu = Gpu::new();
+        let frame = gpu.frame_cycles();
+        let total_sl = if gpu.video_mode() { 314u64 } else { 263u64 };
+        let y1 = gpu.display_range_y1() as u64;
+        let y2 = gpu.display_range_y2() as u64;
+
+        let vblank_enter_offset = frame * y2 / total_sl;
+        let vblank_exit_offset = frame * y1 / total_sl;
+
+        let mut scheduler = Scheduler::new();
+        scheduler.schedule(ScheduleKey::new(vblank_exit_offset), EventId(VBLANK_EXIT));
+        scheduler.schedule(ScheduleKey::new(vblank_enter_offset), EventId(VBLANK_ENTER));
+
+        // Raster starts at scanline 0, which is in top blanking (0 < y1)
+        gpu.enter_vblank();
+
         Bus {
             ram,
             bios,
-            gpu: Gpu::new(),
+            gpu,
             irq: Irq::new(),
             dma: Dma::new(),
             cdrom: Cdrom::new(),
@@ -146,6 +168,8 @@ impl Bus {
             mem_ctrl: MemCtrl::new(),
             bcc: Bcc::new(),
             tty_buffer: Vec::new(),
+            scheduler,
+            total_cycles: 0,
         }
     }
 
@@ -175,6 +199,31 @@ impl Bus {
     }
 
     pub fn tick_timers(&mut self, cycles: u32) {
+        self.total_cycles += cycles as u64;
+
+        let frame = self.gpu.frame_cycles();
+        while let Some(EventId(id)) = self.scheduler.advance_to(self.total_cycles) {
+            match id {
+                VBLANK_ENTER => {
+                    self.gpu.enter_vblank();
+                    self.irq.raise(0);
+                    self.scheduler.schedule(
+                        ScheduleKey::new(self.total_cycles + frame),
+                        EventId(VBLANK_ENTER),
+                    );
+                }
+                VBLANK_EXIT => {
+                    self.gpu.exit_vblank();
+                    self.gpu.toggle_odd_line();
+                    self.scheduler.schedule(
+                        ScheduleKey::new(self.total_cycles + frame),
+                        EventId(VBLANK_EXIT),
+                    );
+                }
+                _ => {}
+            }
+        }
+
         let hb = self.gpu.hblank_active();
         let vb = self.gpu.vblank_active();
         for base in &[0x1F80_1100u32, 0x1F80_1110, 0x1F80_1120] {
@@ -182,6 +231,10 @@ impl Bus {
                 self.irq.raise(bit);
             }
         }
+    }
+
+    pub fn scheduler_pending_count(&self) -> usize {
+        self.scheduler.pending_events().len()
     }
 
     pub fn tty_push(&mut self, byte: u8) {

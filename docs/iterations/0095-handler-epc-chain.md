@@ -34,7 +34,17 @@ Nove padrões conferidos:
 
 ## Bateria de mutação
 
-Placar da bateria: X/X mutantes mortos, 2/2 controles verdes, 0 equivalente — docs/mutantes/0095-handler-epc-chain.mut
+Placar da bateria: 5/5 mutantes mortos, 2/2 controles verdes, 0 equivalente — docs/mutantes/0095-handler-epc-chain.mut
+
+| Registro | Rótulo | Testes que pegaram, conforme o `.resultado` |
+|---|---|---|
+| m1 | handler sem mfc0 — k0 com lixo | `handler_retorna_ao_epc_apos_interrupcao` |
+| m2 | handler sem jr — não salta para EPC | `handler_retorna_ao_epc_apos_interrupcao` |
+| m3 | rfe no lugar do jr (inverte) | `handler_retorna_ao_epc_apos_interrupcao` |
+| m4 | handler sem RFE | `handler_no_vector_0x80_acknowledge_istat_e_rfe_restaura_iec` |
+| m5 | jr r0 em vez de jr k0 | `handler_retorna_ao_epc_apos_interrupcao` |
+| c1 | comentário inofensivo antes do handler | sobreviveu |
+| c2 | nop extra ao final do handler | sobreviveu |
 
 ## Placar antes → depois
 

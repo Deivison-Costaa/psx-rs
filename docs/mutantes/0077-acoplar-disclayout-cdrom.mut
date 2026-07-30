@@ -1,0 +1,69 @@
+# Manifesto de mutação da iteração 0077 — acoplar-disclayout-cdrom
+formato: 1
+iteracao: 0077
+item: 4.3b
+alvo: crates/psx-core/src/cdrom.rs
+teste: cdrom_read
+
+mutante: m1
+rotulo: troca minuto com segundo no calculo do setor absoluto
+@@DE
+    let abs_sector =
+        bcd_to_int(min_bcd) * 60 * 75 + bcd_to_int(sec_bcd) * 75 + bcd_to_int(sect_bcd);
+@@PARA
+    let abs_sector =
+        bcd_to_int(sec_bcd) * 60 * 75 + bcd_to_int(min_bcd) * 75 + bcd_to_int(sect_bcd);
+@@FIM
+
+mutante: m2
+rotulo: data_start com offset 0x18 em vez de 0x10 no setor raw
+@@DE
+    let data_start = offset + 0x10;
+@@PARA
+    let data_start = offset + 0x18;
+@@FIM
+
+mutante: m3
+rotulo: bcd_to_int inverte dezena com unidade
+@@DE
+    ((b >> 4) as u32) * 10 + (b as u32 & 0xF)
+@@PARA
+    (b as u32 & 0xF) * 10 + ((b >> 4) as u32)
+@@FIM
+
+mutante: m4
+rotulo: multiplicador de bytes por setor 2353 em vez de 2352
+@@DE
+    let offset = abs_sector as usize * 2352;
+@@PARA
+    let offset = abs_sector as usize * 2353;
+@@FIM
+
+mutante: m5
+rotulo: sempre usa stub — read_sector_from_disc sempre retorna None
+@@DE
+    if data_end > bin.len() {
+@@PARA
+    if true {
+@@FIM
+
+controle: c1
+rotulo: renomeia abs_sector para sector em todo o escopo (cosmetico)
+@@DE
+    let abs_sector =
+        bcd_to_int(min_bcd) * 60 * 75 + bcd_to_int(sec_bcd) * 75 + bcd_to_int(sect_bcd);
+    let offset = abs_sector as usize * 2352;
+@@PARA
+    let sector =
+        bcd_to_int(min_bcd) * 60 * 75 + bcd_to_int(sec_bcd) * 75 + bcd_to_int(sect_bcd);
+    let offset = sector as usize * 2352;
+@@FIM
+
+controle: c2
+rotulo: acrescenta comentario antes do calculo do setor (cosmetico)
+@@DE
+fn read_sector_from_disc(
+@@PARA
+// le o setor a partir do layout de disco e do buffer BIN
+fn read_sector_from_disc(
+@@FIM

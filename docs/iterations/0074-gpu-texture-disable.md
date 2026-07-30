@@ -45,7 +45,7 @@ Placar da bateria: 6/6 mutantes mortos, 2/2 controles verdes, 0 equivalente — 
 | Registro | Rótulo | Testes que pegaram, conforme o `.resultado` |
 |---|---|---|
 | m1 | GP1(09h) lê bit 1 em vez de bit 0 (gate invertido) | `e1h_com_gate_aberto_mantem_bits_0_10`, `gp1_09h_abre_o_gate_do_bit_15`, `poligono_texturizado_com_gate_aberto_seta_gpustat_15` |
-| m2 | GP1(09h) nunca fecha o gate (não limpa stat.15) | `gp1_09h_bit0_zero_proibe_gpustat_15` |
+| m2 | GP1(09h) inverte o gate (bit == 0 em vez de != 0) — substituído na iter 0076 (o original certificava o defeito) | `gp1_09h_abre_o_gate_do_bit_15`, `gp1_09h_fecha_gate_reescrever_e1h_limpa_gpustat_15` |
 | m3 | GP1(00h) esquece de resetar allow_upper_y | `gp1_00h_reset_fecha_o_gate_do_bit_15` |
 | m4 | E1h sempre seta bit 15 (ignora o gate) | `apos_reset_gpustat_15_nao_reflete_e1h_bit11`, `comando_e1h_sozinho_nao_altera_gpustat_15`, `e1h_com_gate_fechado_ainda_escreve_bits_0_10`, `gp1_00h_reset_fecha_o_gate_do_bit_15` |
 | m5 | apply_texpage_if_second sempre seta bit 15 (ignora o gate) | `poligono_texturizado_com_gate_fechado_nao_seta_gpustat_15` |
@@ -68,9 +68,10 @@ Workspace: **558** → **560** testes (+2: `poligono_texturizado_com_gate_fechad
 ## Decisões e notas
 
 1. O gate é aplicado na **escrita** do GPUSTAT, não na leitura. O bit 15 é limpo na máscara de
-   bits do E1h e do `apply_texpage_if_second` quando `allow_upper_y` é false, e o GP1(09h).0=0
-   também limpa o bit 15 ativamente. Não há latch separado para restaurar o valor quando o gate
-   reabre — o software precisa reescrever E1h.
+   bits do E1h e do `apply_texpage_if_second` quando `allow_upper_y` é false. A implementação
+   original também limpava o bit 15 **ativamente** quando GP1(09h).0=0 — esse comportamento foi
+   corrigido na iter 0076: fechar o gate não limpa o latch, apenas o próximo write de E1h
+   (via máscara) o faz.
 2. O manifesto 0050-display-regs.mut (K2) teve a âncora reparada: a adição do handler GP1(09h)
    entre GP1(08h) e o `_ => {}` quebrou o casamento de padrão de 4 linhas. Ambos os blocos
    `@@DE` e `@@PARA` receberam o novo bloco `0x09 => { ... }`.

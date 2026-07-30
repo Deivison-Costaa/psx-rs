@@ -16,7 +16,7 @@ rotulo: GP1(09h) armazena bit 1 em vez de bit 0 (gate invertido)
 @@FIM
 
 mutante: m2
-rotulo: GP1(09h) inverte o gate (allow_upper_y = bit==0 em vez de bit!=0)
+rotulo: GP1(09h) inverte o gate (allow_upper_y = bit == 0 em vez de bit != 0)
 @@DE
                 self.allow_upper_y.set(bit != 0);
 @@PARA

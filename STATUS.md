@@ -5,21 +5,24 @@
 
 ## Última iteração concluída
 
-**0075** — Mask-bit (force-bit15 e write-protect) aplicado a transferências CPU→VRAM.
-`gpu/mask-bit` foi de **3p/2f para 5p/0f** (ROADMAP 10.22).
+**0078** — Flag --disc no psx-cli: parseia CUE, monta DiscLayout, injeta no Cdrom (ROADMAP 4.3c).
 
 ## Próxima tarefa
 
-**ROADMAP 4.3b — CDROM — Acoplar DiscLayout + dados do .bin.**
-Substituir o buffer stub (`data_buffer` preenchido com `(i+1) & 0xFF`) por dados reais do
-arquivo .bin, usando o `DiscLayout` (item 4.2b). ReadN/ReadS devem ler setores do BIN a partir
-da posição definida por Setloc. Armadilha: o `Cdrom` hoje não tem referência ao `DiscLayout`
-nem ao buffer `.bin`; `Bus` precisa injetá-los ou o `Cdrom` precisa guardar uma referência.
-Spec, em `docs/reference/06-cdrom.md`: seção "ReadN/ReadS" (L924).
-Sequência de entrega do setor, na seção "CDROM Incoming Data / Buffer Overrun Timings" (L928)
-do mesmo arquivo: "Copy Data to Main RAM" (L940).
-Arquivos-alvo: `crates/psx-core/src/cdrom.rs` (injetar DiscLayout + buffer BIN, ler setor real
-no deliver_second), `crates/psx-core/src/bus.rs` (passar dados do BIN para o Cdrom).
+**ROADMAP 4.4a — Boot da BIOS no psx-cli (--bios sozinho).**
+`psx-cli --bios <caminho>` hoje só lê a BIOS e imprime tamanho + SHA-256. Fazer `--bios`
+sozinho bootar: `Bus::new(ram, bios)` + `Cpu::new()` (que já nasce com pc=0xBFC00000) + laço
+de `cpu.step`, imprimindo o TTY no fim. Teste de aceitação: com a BIOS presente o TTY tem de
+conter `PS-X Realtime Kernel`. Se a BIOS não existir (a CI não tem), o teste tem de ser **skip
+explícito**, nunca verde silencioso.
+Arquivos-alvo: `crates/psx-cli/src/main.rs`, teste em `crates/psx-cli/tests/`.
+
+**ROADMAP 4.4b — Base de tempo: scheduler ligado + vblank + IRQ0.**
+Ligar o `scheduler` ao laço, dirigir o tempo de vídeo por ciclos, e levantar IRQ0 ao entrar em
+vblank. Com o 4.4a pronto, o boot da BIOS não pode mais imprimir `VSync: timeout` no TTY.
+Pôr o TTY de antes e de depois no doc.
+Arquivos-alvo: `crates/psx-core/src/scheduler.rs`, `crates/psx-core/src/gpu.rs`,
+`crates/psx-core/src/bus.rs`, `crates/psx-core/src/irq.rs`.
 
 ## Repositório
 
@@ -33,7 +36,7 @@ no deliver_second), `crates/psx-core/src/bus.rs` (passar dados do BIN para o Cdr
 
 ## Placar de testes
 
-Workspace: **561** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 29 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 11 cpu_opcode_reservado + 11 cpu_irq + 14 dma_otc + 14 dma_gpu + 12 cdrom_dma + 7 dma_dpcr_gate + 13 timers + 11 timers_sync + 9 timers_dotclock_hblank + 14 timers_irq + 16 gpu_status_gp0_gp1 + 9 ci_scoreboard + 9 cli_runner + 21 gpu_vram_transfers + 20 gpu_triangulos_flat_gouraud + 20 gpu_linhas_retangulos + 4 gpu_linhas_retangulos_continuacao + 6 gpu_textura_15bpp + 6 gpu_texturas_4bpp_8bpp + 5 gpu_texture_window + 6 gpu_semi_transparencia + 7 gpu_dithering + 8 gpu_mask_bit + 7 gpu_display_regs + 9 gpu_timing_vblank + 6 gpu_framebuffer + 3 gpu_desktop_egui + 6 gpu_scoreboard + 9 gpu_texture_disable + 13 cdrom_regs + 11 cdrom_seek_pause + 11 cdrom_bin_cue + 10 cdrom_read + 1 spec_citations + 2 mutation_manifest + 2 mutation_anchors + 5 mutation_battery + 1 mutation_reconciliation).
+Workspace: **567** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 29 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 11 cpu_opcode_reservado + 11 cpu_irq + 14 dma_otc + 14 dma_gpu + 12 cdrom_dma + 7 dma_dpcr_gate + 13 timers + 11 timers_sync + 9 timers_dotclock_hblank + 14 timers_irq + 16 gpu_status_gp0_gp1 + 9 ci_scoreboard + 9 cli_runner + 21 gpu_vram_transfers + 20 gpu_triangulos_flat_gouraud + 20 gpu_linhas_retangulos + 4 gpu_linhas_retangulos_continuacao + 6 gpu_textura_15bpp + 6 gpu_texturas_4bpp_8bpp + 5 gpu_texture_window + 6 gpu_semi_transparencia + 7 gpu_dithering + 8 gpu_mask_bit + 7 gpu_display_regs + 9 gpu_timing_vblank + 6 gpu_framebuffer + 3 gpu_desktop_egui + 6 gpu_scoreboard + 11 gpu_texture_disable + 13 cdrom_regs + 11 cdrom_seek_pause + 11 cdrom_bin_cue + 11 cdrom_read + 3 disc_flag + 1 spec_citations + 2 mutation_manifest + 2 mutation_anchors + 5 mutation_battery + 1 mutation_reconciliation).
 
 ## Bloqueios
 

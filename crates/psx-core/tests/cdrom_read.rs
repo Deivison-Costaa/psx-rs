@@ -1,6 +1,7 @@
 mod support;
 
 use psx_core::bus::{Bus, BusRead};
+use psx_core::cdrom_bin_cue::{DiscLayout, TrackInfo, TrackType};
 use support::asm;
 
 const CD_BASE: u32 = 0x1F80_1800;
@@ -327,4 +328,70 @@ fn setloc_consumido_pelo_read_n() {
     hclrctl_write(&mut bus, 0x07);
     let hintsts = hintsts_read_bank1(&mut bus);
     assert_eq!(hintsts & 0x7, 1, "ReadN continua — Setloc foi consumido");
+}
+
+fn disc_layout_track1_dois_segundos() -> DiscLayout {
+    DiscLayout {
+        bin_path: "test.bin".to_string(),
+        tracks: vec![TrackInfo {
+            number: 1,
+            track_type: TrackType::Mode1_2048,
+            index01_mm: 0,
+            index01_ss: 2,
+            index01_ff: 0,
+            index00_mm: None,
+            index00_ss: None,
+            index00_ff: None,
+            pregap_mm: None,
+            pregap_ss: None,
+            pregap_ff: None,
+        }],
+    }
+}
+
+fn bin_com_setor_no_frame(frame: u32, dados: &[u8; 2048]) -> Vec<u8> {
+    let inicio_setor = frame as usize * 2352;
+    let tamanho_total = inicio_setor + 2352;
+    let mut bin = vec![0u8; tamanho_total];
+    let dados_inicio = inicio_setor + 0x10;
+    bin[dados_inicio..dados_inicio + 2048].copy_from_slice(dados);
+    bin
+}
+
+#[test]
+fn read_n_retorna_dados_do_bin_no_setor_correto() {
+    let mut bus = bus();
+
+    let mut dados_setor = [0u8; 2048];
+    dados_setor[0] = 0xDE;
+    dados_setor[1] = 0xAD;
+    dados_setor[2] = 0xBE;
+    dados_setor[3] = 0xEF;
+    let bin = bin_com_setor_no_frame(150, &dados_setor);
+    let layout = disc_layout_track1_dois_segundos();
+
+    bus.inject_disc(layout, bin);
+    insert_stub_disc(&mut bus);
+
+    param_write(&mut bus, bcd_minute(0x00));
+    param_write(&mut bus, bcd_second(0x02));
+    param_write(&mut bus, bcd_sector(0x00));
+    send_command(&mut bus, 0x02);
+    let stat_setloc = result_read(&mut bus);
+    assert_eq!(stat_setloc & 0x01, 0, "Setloc sem erro");
+
+    send_command(&mut bus, 0x06);
+    let _ = result_read(&mut bus);
+    hclrctl_write(&mut bus, 0x07);
+    let _ = result_read(&mut bus);
+
+    let b0 = rddata_read(&mut bus);
+    let b1 = rddata_read(&mut bus);
+    let b2 = rddata_read(&mut bus);
+    let b3 = rddata_read(&mut bus);
+
+    assert_eq!(b0, 0xDE, "primeiro byte do setor no BIN");
+    assert_eq!(b1, 0xAD, "segundo byte do setor no BIN");
+    assert_eq!(b2, 0xBE, "terceiro byte do setor no BIN");
+    assert_eq!(b3, 0xEF, "quarto byte do setor no BIN");
 }

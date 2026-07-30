@@ -179,3 +179,26 @@ fn poligono_texturizado_com_gate_aberto_seta_gpustat_15() {
         "texpage do poligono texturizado com gate aberto: GPUSTAT.15=1"
     );
 }
+
+#[test]
+fn poligono_abre_gate_fecha_e_latch_mantem_gpustat_15() {
+    let mut gpu = Gpu::new();
+
+    gpu.write32(4, (0x09 << 24) | 0x01);
+    gpu.write32(0, 0x24 << 24);
+    gpu.write32(0, 0x0000_0000);
+    gpu.write32(0, 0x0080_0000);
+    gpu.write32(0, 0x0001_0001);
+    gpu.write32(0, 0x0800_0000);
+    gpu.write32(0, 0x0002_0002);
+    gpu.write32(0, 0x0000_0000);
+
+    gpu.write32(4, 0x09 << 24);
+
+    let stat = gpu.read32(4);
+    assert_eq!(
+        (stat >> 15) & 1,
+        1,
+        "fechar GP1(09h).0 apos poligono texturizado setar bit 15: latch mantido, bit=1"
+    );
+}

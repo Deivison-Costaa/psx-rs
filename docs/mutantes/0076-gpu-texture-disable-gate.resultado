@@ -1,0 +1,10 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: b7b59b5cf7d162b62f69bf1fd4855451429673b7
+# rodado_em: 2026-07-29T23:01:12-03:00
+m1,mutante,morreu,morreu,0.8,gp1_09h_fecha_gate_nao_limpa_gpustat_15_latch;poligono_abre_gate_fecha_e_latch_mantem_gpustat_15
+m2,mutante,morreu,morreu,0.7,gp1_09h_fecha_gate_reescrever_e1h_limpa_gpustat_15
+m3,mutante,morreu,morreu,0.7,gp1_00h_reset_fecha_o_gate_do_bit_15
+m4,mutante,morreu,morreu,0.7,apos_reset_gpustat_15_nao_reflete_e1h_bit11;comando_e1h_sozinho_nao_altera_gpustat_15;e1h_com_gate_aberto_mantem_bits_0_10;e1h_com_gate_fechado_ainda_escreve_bits_0_10;gp1_00h_reset_fecha_o_gate_do_bit_15;gp1_09h_abre_o_gate_do_bit_15;gp1_09h_fecha_gate_nao_limpa_gpustat_15_latch;gp1_09h_fecha_gate_reescrever_e1h_limpa_gpustat_15
+m5,mutante,morreu,morreu,0.7,poligono_abre_gate_fecha_e_latch_mantem_gpustat_15;poligono_texturizado_com_gate_aberto_seta_gpustat_15;poligono_texturizado_com_gate_fechado_nao_seta_gpustat_15
+c1,controle,sobreviveu,sobreviveu,0.7,
+c2,controle,sobreviveu,sobreviveu,0.7,

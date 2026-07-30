@@ -40,6 +40,7 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 ## M2 — GPU (rasterizador por software)
 - [x] 2.1 GPUSTAT + decodificação GP0/GP1 (iter 0035)
 - [x] 2.2 VRAM 1MB + transfers (fill, CPU↔VRAM) (iter 0038)
+- [ ] 2.2b VRAM->VRAM copy GP0(80h) — no-op hoje, bloqueio de boot de jogo
 - [x] 2.3 Triângulos flat + gouraud (iter 0039)
 - [x] 2.4 Quads, retângulos, linhas (iter 0042)
 - [x] 2.5a Texpage GP0(E1h) + amostragem de textura 15bpp (iter 0044)
@@ -68,9 +69,12 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [x] 4.2a Setloc/SeekL/Pause + estado do drive (iter 0063)
 - [x] 4.2b Parser BIN/CUE (iter 0064)
 - [x] 4.2c ReadN/ReadS + INT1/DRQSTS (máquina de estados) (iter 0065)
-- [x] 4.3a DMA canal 3 (registradores + gate BFRD no DRQSTS + transferência) (iter 0066)
-- [ ] 4.3b Acoplar DiscLayout + dados do .bin à entrega de setores
+- [x] 4.3a DMA canal 3 (registradores + gate BFRD no DRQSTS + transferencia) (iter 0066)
+- [x] 4.3b Acoplar DiscLayout + dados do .bin a entrega de setores (iter 0077)
+- [x] 4.3c Flag --disc/--cue no psx-cli (iter 0078)
 - [ ] 4.4 Boot de jogo 2D/menu
+- [ ] 4.4a Boot da BIOS no psx-cli (--bios sozinho)
+- [ ] 4.4b Base de tempo: scheduler + vblank + IRQ0
 
 ## M5 — GTE
 - [ ] 5.1 Registradores + MFC2/MTC2/CFC2/CTC2/LWC2/SWC2
@@ -106,37 +110,38 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 ## M10 — Precisão e compatibilidade
 - [ ] 10.1 Timings finos (ps1-tests de timing)
 - [ ] 10.2 Passe de compatibilidade (bugs viram itens 10.x)
-- [x] 10.2a Placar do ps1-tests lido e convertido em itens (iter 0068)
+- [x] 10.2a Placar do ps1-tests convertido em itens (iter 0068)
 - [ ] 10.3 Bus error ao executar codigo do scratchpad (exposto por ps1-tests/cpu/code-in-io)
 - [ ] 10.4 CAUSE.CE nao preenchido nas excecoes de Coprocessor Unusable (02-cpu.md L681)
 - [ ] 10.5 Amidog psxtest_cpu para apos "args: 0" — causa nao investigada (medido na iter 0032)
 - [ ] 10.6 GP0(80h) VRAM->VRAM blit (hoje consumido e ignorado)
 - [ ] 10.7 Mask setting GP0(E6h) aplicado a CPU->VRAM e VRAM->VRAM (03-gpu.md L590-592)
 - [ ] 10.8 SWL/SWR fazem read-modify-write e leem portas de I/O de leitura destrutiva
-- [x] 10.9 UV/CLUT de polígonos texturizados (iter 0045)
+- [x] 10.9 UV/CLUT dos polígonos texturizados (iter 0045)
 - [ ] 10.10 Drawing Area GP0(E3h/E4h) e Drawing Offset GP0(E5h) sem suite de hardware que os meça
 - [ ] 10.11 Textura e Texpage de retângulos (hoje UV consumido e ignorado)
-- [x] 10.12 Portão do placar pulava separador nativo (iter 0069)
+- [x] 10.12 Meta-teste do placar pulava em silencio desde a 0041 (iter 0069)
 - [ ] 10.28 A tabela por registro nos docs não é conferida contra o `.resultado`, só a linha `Placar da bateria:`. A 0071 errou 3 de 9 linhas; a 0038 inflou dois créditos
 - [ ] 10.29 `dma_dpcr_gate.rs:141` usa `assert_ne!` como única asserção numa correção de defeito, em vez de afirmar o valor produzido
 - [ ] 10.30 Habilitar um canal no DPCR não dispara transferência pendente: o modelo só dispara na escrita de CHCR
-- [ ] 10.31 `oc-loop` não parqueia o resto de rodada morta: `reset --hard` não apaga não rastreado e 19 rodadas queimaram nisso. Já para e imprime (iter 0073)
+- [ ] 10.31 `oc-loop` nao parqueia rodada morta (iter 0073)
+- [x] 10.32 GP1(09h) fecha gate nao limpa latch GPUSTAT.15 (iter 0076)
 - [ ] 10.25 Varrer os outros `unwrap_or("")` sobre caminho nos meta-testes: foi o que transformou a falha de `strip_prefix` em silêncio na 10.12, e o separador foi só o gatilho
 - [ ] 10.13 GP0(24h) é modulação, não raw texture: bit 24 do comando não é lido e o texel vai cru (03-gpu.md L264 e L1610)
 - [ ] 10.14 U/V e cor gouraud são reinterpolados sobre o span já recortado pela drawing area — a textura estica em vez de só perder os pixels de fora (03-gpu.md L452-454)
 - [ ] 10.16 `spec_citations.rs` usa o primeiro título entre aspas para todos os refs da linha em vez de parear pelo mais próximo, e deu diagnóstico errado na 0066 — ou pareia por proximidade, ou falha como ambíguo
-- [x] 10.15 Âncoras do manifesto 0059 reparadas (iter 0067)
+- [x] 10.15 Reparar ancoras do manifesto 0059 arquivado na 0060 (iter 0067)
 - [ ] 10.17 `mutantes.ps1` recusa árvore suja, então reparo de âncora só pode ser verificado depois de commitado às cegas — permitir sujeira restrita a `docs/mutantes/*.mut`
-- [x] 10.19 DPCR gate nos canais DMA (iter 0071)
-- [x] 10.20 OTC valor de 24 bits por palavra (iter 0073)
+- [x] 10.19 DPCR gate nos tres canais do DMA (iter 0071)
+- [x] 10.20 OTC grava o espelho do hardware (iter 0073)
 - [x] 10.21 GPUSTAT.15 gateado por GP1(09h) (iter 0074)
-- [x] 10.22 `gpu/mask-bit` 2/5 reprovam — mask-bit em CPU→VRAM (iter 0075)
-- [ ] 10.32 GP1(09h).0=0 limpa GPUSTAT.15 indevidamente (correção da 0074)
+- [x] 10.22 Mask-bit em CPU→VRAM (iter 0075)
 - [ ] 10.24 O job `scoreboard` da CI sai VERDE medindo zero: sem BIOS rotula as 51 suítes `sem-bios` e encerra 0, e 1981 das 1982 linhas de `scoreboard-data` são isso (medido na iter 0072)
 - [ ] 10.26 Nenhum dos 9 testes de `ci_scoreboard.rs` afirma que o job mede algo, e um aceita `sem-bios` como rótulo normal: rodada sem suíte executada não pode passar por placar
 - [ ] 10.27 O placar local (gitignored) é o único com veredito real e não é versionado. Some se o 10.24 for resolvido pela BIOS em secret
 - [ ] 10.23 45 das 51 suites do scoreboard não dão veredito porque renderizam na VRAM: 88% do placar não mede nada. A `diffvram` do ps1-tests já está baixada
 - [ ] 10.18 Nada torna `arquivada:` caro: em 0052 e 0059, arquivar descartou 17 registros dos quais 12 ainda casavam. Exigir no header quantos casam e falhar se algum casar
+- [ ] 10.33 `mutantes.ps1` só roda `cargo test -p psx-core` (linha 290); testes de outros crates precisam de bateria manual
 
 ## M11 — Apresentação (incremental desde o M1)
 - [ ] 11.1 Relatório consolidado (docs/relatorio.md — atualizado a cada marco)

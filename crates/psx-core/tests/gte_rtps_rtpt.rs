@@ -24,102 +24,68 @@ fn cop2_cmd(real_cmd: u32, sf: bool, lm: bool) -> u32 {
     (0x12 << 26) | (1 << 25) | (real_cmd & 0x3F) | ((sf as u32) << 19) | ((lm as u32) << 10)
 }
 
-fn passo_instrucoes(cpu: &mut Cpu, bus: &mut psx_core::bus::Bus, n: usize) {
-    for _ in 0..n {
-        cpu.step(bus);
-    }
+fn escreve_e_executa(cpu: &mut Cpu, bus: &mut psx_core::bus::Bus, addr: u32, instr: u32) {
+    bus.write32::<BusRead>(addr, instr);
+    cpu.pc = addr;
+    cpu.step(bus);
 }
 
-fn setup_rot_identidade(bus: &mut psx_core::bus::Bus, cpu: &mut Cpu, addr: &mut u32) {
-    cpu.regs[8] = 0x1000;
-    bus.write32::<BusRead>(*addr, ctc2(8, 0));
-    *addr += 4;
-    bus.write32::<BusRead>(*addr, ctc2(8, 1));
-    *addr += 4;
-    bus.write32::<BusRead>(*addr, ctc2(8, 5));
-    *addr += 4;
+fn ctc2_r8(cpu: &mut Cpu, bus: &mut psx_core::bus::Bus, addr: u32, rd: u32, val: u32) {
+    cpu.regs[8] = val;
+    escreve_e_executa(cpu, bus, addr, ctc2(8, rd));
+}
+
+fn mtc2_r8(cpu: &mut Cpu, bus: &mut psx_core::bus::Bus, addr: u32, rd: u32, val: u32) {
+    cpu.regs[8] = val;
+    escreve_e_executa(cpu, bus, addr, mtc2(8, rd));
 }
 
 #[test]
 fn rtps_perspectiva_simples_sem_saturacao() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
-    cpu.pc = 0;
-    let mut a = 0u32;
+    let a = 0x0000u32;
 
-    cpu.regs[8] = 0x1000;
-    bus.write32::<BusRead>(a, ctc2(8, 0));
-    a += 4;
-    bus.write32::<BusRead>(a, ctc2(8, 1));
-    a += 4;
-    bus.write32::<BusRead>(a, ctc2(8, 5));
-    a += 4;
+    ctc2_r8(&mut cpu, &mut bus, a, 0, 0x0000_1000);
+    ctc2_r8(&mut cpu, &mut bus, a, 1, 0);
+    ctc2_r8(&mut cpu, &mut bus, a, 2, 0x0000_1000);
+    ctc2_r8(&mut cpu, &mut bus, a, 3, 0);
+    ctc2_r8(&mut cpu, &mut bus, a, 4, 0x1000);
 
-    cpu.regs[8] = 0;
-    bus.write32::<BusRead>(a, ctc2(8, 5));
-    a += 4;
-    bus.write32::<BusRead>(a, ctc2(8, 6));
-    a += 4;
-    cpu.regs[8] = 256;
-    bus.write32::<BusRead>(a, ctc2(8, 7));
-    a += 4;
+    ctc2_r8(&mut cpu, &mut bus, a, 5, 0);
+    ctc2_r8(&mut cpu, &mut bus, a, 6, 0);
+    ctc2_r8(&mut cpu, &mut bus, a, 7, 256);
 
-    cpu.regs[8] = 0x0000_0100;
-    bus.write32::<BusRead>(a, ctc2(8, 26));
-    a += 4;
-    cpu.regs[8] = 0x0002_0000;
-    bus.write32::<BusRead>(a, ctc2(8, 24));
-    a += 4;
-    bus.write32::<BusRead>(a, ctc2(8, 25));
-    a += 4;
+    ctc2_r8(&mut cpu, &mut bus, a, 26, 0x0000_0100);
+    ctc2_r8(&mut cpu, &mut bus, a, 24, 0);
+    ctc2_r8(&mut cpu, &mut bus, a, 25, 0);
+    ctc2_r8(&mut cpu, &mut bus, a, 27, 0);
+    ctc2_r8(&mut cpu, &mut bus, a, 28, 0);
 
-    cpu.regs[8] = 100;
-    bus.write32::<BusRead>(a, mtc2(8, 0));
-    a += 4;
-    cpu.regs[8] = 50;
-    bus.write32::<BusRead>(a, mtc2(8, 1));
-    a += 4;
-    cpu.regs[8] = 0;
-    bus.write32::<BusRead>(a, mtc2(8, 2));
-    a += 4;
+    mtc2_r8(&mut cpu, &mut bus, a, 0, 0x0032_0064);
+    mtc2_r8(&mut cpu, &mut bus, a, 1, 0);
 
-    bus.write32::<BusRead>(a, cop2_cmd(0x01, true, false));
-    a += 4;
-    bus.write32::<BusRead>(a, nop());
-    a += 4;
+    escreve_e_executa(&mut cpu, &mut bus, a, cop2_cmd(0x01, true, false));
+    escreve_e_executa(&mut cpu, &mut bus, a, nop());
 
-    bus.write32::<BusRead>(a, mfc2(10, 9));
-    a += 4;
-    bus.write32::<BusRead>(a, nop());
-    a += 4;
-    bus.write32::<BusRead>(a, mfc2(11, 10));
-    a += 4;
-    bus.write32::<BusRead>(a, nop());
-    a += 4;
-    bus.write32::<BusRead>(a, mfc2(12, 11));
-    a += 4;
-    bus.write32::<BusRead>(a, nop());
-    a += 4;
-    bus.write32::<BusRead>(a, mfc2(13, 14));
-    a += 4;
-    bus.write32::<BusRead>(a, nop());
-    a += 4;
-    bus.write32::<BusRead>(a, mfc2(14, 19));
-    a += 4;
-    bus.write32::<BusRead>(a, nop());
-    a += 4;
-    bus.write32::<BusRead>(a, cfc2(15, 31));
-    a += 4;
-    bus.write32::<BusRead>(a, nop());
-    a += 4;
+    escreve_e_executa(&mut cpu, &mut bus, a, mfc2(10, 9));
+    escreve_e_executa(&mut cpu, &mut bus, a, nop());
+    escreve_e_executa(&mut cpu, &mut bus, a, mfc2(11, 10));
+    escreve_e_executa(&mut cpu, &mut bus, a, nop());
+    escreve_e_executa(&mut cpu, &mut bus, a, mfc2(12, 11));
+    escreve_e_executa(&mut cpu, &mut bus, a, nop());
+    escreve_e_executa(&mut cpu, &mut bus, a, mfc2(13, 14));
+    escreve_e_executa(&mut cpu, &mut bus, a, nop());
+    escreve_e_executa(&mut cpu, &mut bus, a, mfc2(14, 19));
+    escreve_e_executa(&mut cpu, &mut bus, a, nop());
+    escreve_e_executa(&mut cpu, &mut bus, a, cfc2(15, 31));
+    escreve_e_executa(&mut cpu, &mut bus, a, nop());
 
-    passo_instrucoes(&mut cpu, &mut bus, (a / 4) as usize);
-
-    assert_eq!(cpu.regs[10], 0xA0, "IR1 apos RTPS: 160");
-    assert_eq!(cpu.regs[11], 0x32, "IR2 apos RTPS: 50");
-    assert_eq!(cpu.regs[12], 0x100, "IR3 apos RTPS: 256");
-    assert_eq!(cpu.regs[13], 0x0032_00A0, "SXY2 apos RTPS: SY2=50 SX2=160");
-    assert_eq!(cpu.regs[14], 0x100, "SZ3 apos RTPS: 256");
+    assert_eq!(cpu.regs[10], 100, "IR1 apos RTPS: VX=100");
+    assert_eq!(cpu.regs[11], 50, "IR2 apos RTPS: VY=50");
+    assert_eq!(cpu.regs[12], 256, "IR3 apos RTPS: 256");
+    assert_eq!(cpu.regs[13], 0x0032_0064, "SXY2: SY2=50 SX2=100");
+    assert_eq!(cpu.regs[14], 256, "SZ3 apos RTPS: 256");
     assert_eq!(
         cpu.regs[15] & 0x7FFF_F800,
         0,
@@ -131,105 +97,72 @@ fn rtps_perspectiva_simples_sem_saturacao() {
 fn rtpt_processa_tres_vertices_e_desloca_fifos() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
-    cpu.pc = 0;
-    let mut a = 0u32;
+    let a = 0x0000u32;
 
-    setup_rot_identidade(&mut bus, &mut cpu, &mut a);
+    ctc2_r8(&mut cpu, &mut bus, a, 0, 0x0000_1000);
+    ctc2_r8(&mut cpu, &mut bus, a, 1, 0);
+    ctc2_r8(&mut cpu, &mut bus, a, 2, 0x0000_1000);
+    ctc2_r8(&mut cpu, &mut bus, a, 3, 0);
+    ctc2_r8(&mut cpu, &mut bus, a, 4, 0x1000);
 
-    cpu.regs[8] = 0;
-    bus.write32::<BusRead>(a, ctc2(8, 5));
-    a += 4;
-    bus.write32::<BusRead>(a, ctc2(8, 6));
-    a += 4;
-    cpu.regs[8] = 0x100;
-    bus.write32::<BusRead>(a, ctc2(8, 7));
-    a += 4;
+    ctc2_r8(&mut cpu, &mut bus, a, 5, 0);
+    ctc2_r8(&mut cpu, &mut bus, a, 6, 0);
+    ctc2_r8(&mut cpu, &mut bus, a, 7, 0x100);
 
-    cpu.regs[8] = 0x0000_0100;
-    bus.write32::<BusRead>(a, ctc2(8, 26));
-    a += 4;
-    cpu.regs[8] = 0x0001_0000;
-    bus.write32::<BusRead>(a, ctc2(8, 24));
-    a += 4;
-    bus.write32::<BusRead>(a, ctc2(8, 25));
-    a += 4;
+    ctc2_r8(&mut cpu, &mut bus, a, 26, 0x0000_0100);
+    ctc2_r8(&mut cpu, &mut bus, a, 24, 0);
+    ctc2_r8(&mut cpu, &mut bus, a, 25, 0);
+    ctc2_r8(&mut cpu, &mut bus, a, 27, 0);
+    ctc2_r8(&mut cpu, &mut bus, a, 28, 0);
 
-    cpu.regs[8] = 100;
-    bus.write32::<BusRead>(a, mtc2(8, 0));
-    a += 4;
-    cpu.regs[8] = 50;
-    bus.write32::<BusRead>(a, mtc2(8, 1));
-    a += 4;
-    cpu.regs[8] = 0;
-    bus.write32::<BusRead>(a, mtc2(8, 2));
-    a += 4;
+    mtc2_r8(&mut cpu, &mut bus, a, 0, 0x0032_0064);
+    mtc2_r8(&mut cpu, &mut bus, a, 1, 0);
 
-    cpu.regs[8] = 200;
-    bus.write32::<BusRead>(a, mtc2(8, 3));
-    a += 4;
-    cpu.regs[8] = 100;
-    bus.write32::<BusRead>(a, mtc2(8, 4));
-    a += 4;
-    cpu.regs[8] = 0;
-    bus.write32::<BusRead>(a, mtc2(8, 5));
-    a += 4;
+    mtc2_r8(&mut cpu, &mut bus, a, 2, 0x0064_00C8);
+    mtc2_r8(&mut cpu, &mut bus, a, 3, 0);
 
-    bus.write32::<BusRead>(a, cop2_cmd(0x30, true, false));
-    a += 4;
-    bus.write32::<BusRead>(a, nop());
-    a += 4;
+    mtc2_r8(&mut cpu, &mut bus, a, 4, 0x0064_00C8);
+    mtc2_r8(&mut cpu, &mut bus, a, 5, 0);
 
-    bus.write32::<BusRead>(a, mfc2(10, 12));
-    a += 4;
-    bus.write32::<BusRead>(a, nop());
-    a += 4;
-    bus.write32::<BusRead>(a, mfc2(11, 13));
-    a += 4;
-    bus.write32::<BusRead>(a, nop());
-    a += 4;
-    bus.write32::<BusRead>(a, mfc2(12, 14));
-    a += 4;
-    bus.write32::<BusRead>(a, nop());
-    a += 4;
-    bus.write32::<BusRead>(a, mfc2(13, 16));
-    a += 4;
-    bus.write32::<BusRead>(a, nop());
-    a += 4;
-    bus.write32::<BusRead>(a, mfc2(14, 17));
-    a += 4;
-    bus.write32::<BusRead>(a, nop());
-    a += 4;
-    bus.write32::<BusRead>(a, mfc2(15, 18));
-    a += 4;
-    bus.write32::<BusRead>(a, nop());
-    a += 4;
-    bus.write32::<BusRead>(a, mfc2(16, 19));
-    a += 4;
-    bus.write32::<BusRead>(a, nop());
-    a += 4;
-    bus.write32::<BusRead>(a, cfc2(17, 31));
-    a += 4;
-    bus.write32::<BusRead>(a, nop());
-    a += 4;
+    escreve_e_executa(&mut cpu, &mut bus, a, cop2_cmd(0x30, true, false));
+    escreve_e_executa(&mut cpu, &mut bus, a, nop());
 
-    passo_instrucoes(&mut cpu, &mut bus, (a / 4) as usize);
+    escreve_e_executa(&mut cpu, &mut bus, a, mfc2(10, 12));
+    escreve_e_executa(&mut cpu, &mut bus, a, nop());
+    escreve_e_executa(&mut cpu, &mut bus, a, mfc2(11, 13));
+    escreve_e_executa(&mut cpu, &mut bus, a, nop());
+    escreve_e_executa(&mut cpu, &mut bus, a, mfc2(12, 14));
+    escreve_e_executa(&mut cpu, &mut bus, a, nop());
+    escreve_e_executa(&mut cpu, &mut bus, a, mfc2(13, 16));
+    escreve_e_executa(&mut cpu, &mut bus, a, nop());
+    escreve_e_executa(&mut cpu, &mut bus, a, mfc2(14, 17));
+    escreve_e_executa(&mut cpu, &mut bus, a, nop());
+    escreve_e_executa(&mut cpu, &mut bus, a, mfc2(15, 18));
+    escreve_e_executa(&mut cpu, &mut bus, a, nop());
+    escreve_e_executa(&mut cpu, &mut bus, a, mfc2(16, 19));
+    escreve_e_executa(&mut cpu, &mut bus, a, nop());
+    escreve_e_executa(&mut cpu, &mut bus, a, cfc2(17, 31));
+    escreve_e_executa(&mut cpu, &mut bus, a, nop());
 
     assert_eq!(
-        cpu.regs[10], 0x0032_00A0,
-        "SXY0: resultado de V0 (SY=50, SX=160) deslocado para SXY0"
+        cpu.regs[10], 0x0032_0064,
+        "SXY0: resultado de V0 (SY=50, SX=100)"
     );
     assert_eq!(
         cpu.regs[11], 0x0064_00C8,
-        "SXY1: resultado de V1 (SY=100, SX=200) deslocado para SXY1"
+        "SXY1: resultado de V1 (SY=100, SX=200)"
     );
     assert_eq!(
         cpu.regs[12], 0x0064_00C8,
         "SXY2: resultado de V2 (SY=100, SX=200)"
     );
-    assert_eq!(cpu.regs[13], 0x100, "SZ0: SZ de V0 (256)");
-    assert_eq!(cpu.regs[14], 0x100, "SZ1: SZ de V1 (256)");
-    assert_eq!(cpu.regs[15], 0x100, "SZ2: SZ de V2 (256)");
-    assert_eq!(cpu.regs[16], 0x100, "SZ3: SZ de V2 (256) — ultimo");
+    assert_eq!(
+        cpu.regs[13], 0,
+        "SZ0: valor previo (0) — FIFO tem 4 estagios"
+    );
+    assert_eq!(cpu.regs[14], 0x100, "SZ1: SZ de V0 deslocado (256)");
+    assert_eq!(cpu.regs[15], 0x100, "SZ2: SZ de V1 deslocado (256)");
+    assert_eq!(cpu.regs[16], 0x100, "SZ3: SZ de V2 — ultimo (256)");
     assert_eq!(
         cpu.regs[17] & 0x7FFF_F800,
         0,
@@ -241,63 +174,45 @@ fn rtpt_processa_tres_vertices_e_desloca_fifos() {
 fn rtps_com_sf_zero_irao_diferentes_de_sf_um() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
-    cpu.pc = 0;
-    let mut a = 0u32;
+    let a = 0x0000u32;
 
-    setup_rot_identidade(&mut bus, &mut cpu, &mut a);
+    ctc2_r8(&mut cpu, &mut bus, a, 0, 0x0000_1000);
+    ctc2_r8(&mut cpu, &mut bus, a, 1, 0);
+    ctc2_r8(&mut cpu, &mut bus, a, 2, 0x0000_1000);
+    ctc2_r8(&mut cpu, &mut bus, a, 3, 0);
+    ctc2_r8(&mut cpu, &mut bus, a, 4, 0x1000);
 
-    cpu.regs[8] = 0;
-    bus.write32::<BusRead>(a, ctc2(8, 5));
-    a += 4;
-    bus.write32::<BusRead>(a, ctc2(8, 6));
-    a += 4;
-    bus.write32::<BusRead>(a, ctc2(8, 7));
-    a += 4;
+    ctc2_r8(&mut cpu, &mut bus, a, 5, 0);
+    ctc2_r8(&mut cpu, &mut bus, a, 6, 0);
+    ctc2_r8(&mut cpu, &mut bus, a, 7, 0);
 
-    cpu.regs[8] = 0x0000_0100;
-    bus.write32::<BusRead>(a, ctc2(8, 26));
-    a += 4;
-    cpu.regs[8] = 0;
-    bus.write32::<BusRead>(a, ctc2(8, 24));
-    a += 4;
-    bus.write32::<BusRead>(a, ctc2(8, 25));
-    a += 4;
+    ctc2_r8(&mut cpu, &mut bus, a, 26, 0);
+    ctc2_r8(&mut cpu, &mut bus, a, 24, 0);
+    ctc2_r8(&mut cpu, &mut bus, a, 25, 0);
 
-    cpu.regs[8] = 5;
-    bus.write32::<BusRead>(a, mtc2(8, 0));
-    a += 4;
-    bus.write32::<BusRead>(a, mtc2(8, 1));
-    a += 4;
-    cpu.regs[8] = 4;
-    bus.write32::<BusRead>(a, mtc2(8, 2));
-    a += 4;
+    mtc2_r8(&mut cpu, &mut bus, a, 0, 5);
+    mtc2_r8(&mut cpu, &mut bus, a, 1, 4);
 
-    bus.write32::<BusRead>(a, cop2_cmd(0x01, false, false));
-    a += 4;
-    bus.write32::<BusRead>(a, nop());
-    a += 4;
+    escreve_e_executa(&mut cpu, &mut bus, a, cop2_cmd(0x01, false, false));
+    escreve_e_executa(&mut cpu, &mut bus, a, nop());
 
-    bus.write32::<BusRead>(a, mfc2(10, 9));
-    a += 4;
-    bus.write32::<BusRead>(a, nop());
-    a += 4;
-    bus.write32::<BusRead>(a, mfc2(11, 11));
-    a += 4;
-    bus.write32::<BusRead>(a, nop());
-    a += 4;
-    bus.write32::<BusRead>(a, mfc2(12, 19));
-    a += 4;
-    bus.write32::<BusRead>(a, nop());
-    a += 4;
-    bus.write32::<BusRead>(a, cfc2(13, 31));
-    a += 4;
-    bus.write32::<BusRead>(a, nop());
-    a += 4;
+    escreve_e_executa(&mut cpu, &mut bus, a, mfc2(10, 9));
+    escreve_e_executa(&mut cpu, &mut bus, a, nop());
+    escreve_e_executa(&mut cpu, &mut bus, a, mfc2(11, 11));
+    escreve_e_executa(&mut cpu, &mut bus, a, nop());
+    escreve_e_executa(&mut cpu, &mut bus, a, mfc2(12, 19));
+    escreve_e_executa(&mut cpu, &mut bus, a, nop());
+    escreve_e_executa(&mut cpu, &mut bus, a, cfc2(13, 31));
+    escreve_e_executa(&mut cpu, &mut bus, a, nop());
 
-    passo_instrucoes(&mut cpu, &mut bus, (a / 4) as usize);
-
-    assert_eq!(cpu.regs[10], 0x5000, "IR1 com sf=0: 4096*5 = 20480 = 0x5000");
-    assert_eq!(cpu.regs[11], 0x4000, "IR3 com sf=0: 4096*4 = 16384 = 0x4000");
+    assert_eq!(
+        cpu.regs[10], 0x5000,
+        "IR1 com sf=0: 4096*5 = 20480 = 0x5000"
+    );
+    assert_eq!(
+        cpu.regs[11], 0x4000,
+        "IR3 com sf=0: 4096*4 = 16384 = 0x4000"
+    );
     assert_eq!(cpu.regs[12], 4, "SZ3 com sf=0: raw3>>12 = 0x4000>>12 = 4");
     assert_eq!(
         cpu.regs[13] & 0x7FFF_F800,

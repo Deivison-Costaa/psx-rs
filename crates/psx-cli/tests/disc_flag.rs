@@ -39,8 +39,8 @@ fn disc_flag_cue_minimo_aceito_com_bios() {
         "G1: --bios --disc deve retornar codigo 0"
     );
     assert!(
-        stdout.contains("DISCO: 1 faixa(s)"),
-        "G1: stdout deve conter 'DISCO: 1 faixa(s)'; stdout={stdout:?}"
+        stdout.contains("DISCO: 1 faixa(s)") && stdout.contains("BIN: disc.bin"),
+        "G1: stdout deve conter track info e BIN path; stdout={stdout:?}"
     );
 
     let _ = fs::remove_dir_all(&tmp);
@@ -74,6 +74,10 @@ fn disc_flag_sem_bios_erro() {
     assert!(
         !stderr.is_empty(),
         "G1b: stderr deve conter mensagem de erro"
+    );
+    assert!(
+        stderr.contains("--disc requer --bios"),
+        "G1b: stderr deve mencionar '--disc requer --bios'; stderr={stderr:?}"
     );
 
     let _ = fs::remove_dir_all(&tmp);

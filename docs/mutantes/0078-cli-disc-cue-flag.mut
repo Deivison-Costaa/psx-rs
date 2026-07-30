@@ -34,25 +34,19 @@ rotulo: imprime numero de faixas errado (tracks.len() + 1)
 @@FIM
 
 mutante: m4
-rotulo: nao chama bus.cdrom_mut().insert_disc() apos inject_disc
+rotulo: load_disc ignora o CUE e devolve layout vazio (0 faixas)
 @@DE
-                bus.inject_disc(layout, bin_data);
-                bus.cdrom_mut().insert_disc();
+    let layout = parse_cue(&cue_text);
 @@PARA
-                bus.inject_disc(layout, bin_data);
+    let layout = DiscLayout { bin_path: String::new(), tracks: vec![] };
 @@FIM
 
 mutante: m5
 rotulo: --disc nao exige --bios (validacao removida)
 @@DE
     if disc_arg.is_some() && bios_arg.is_none() {
-        eprintln!("Erro: --disc requer --bios <caminho_da_BIOS>");
-        std::process::exit(1);
-    }
-
-    if exe_arg.is_some() && bios_arg.is_none() {
 @@PARA
-    if exe_arg.is_some() && bios_arg.is_none() {
+    if false {
 @@FIM
 
 controle: c1

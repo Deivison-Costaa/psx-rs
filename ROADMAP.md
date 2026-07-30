@@ -71,7 +71,7 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [x] 4.2c ReadN/ReadS + INT1/DRQSTS (máquina de estados) (iter 0065)
 - [x] 4.3a DMA canal 3 (registradores + gate BFRD no DRQSTS + transferencia) (iter 0066)
 - [x] 4.3b Acoplar DiscLayout + dados do .bin a entrega de setores (iter 0077)
-- [ ] 4.3c Flag --disc/--cue no psx-cli
+- [x] 4.3c Flag --disc/--cue no psx-cli (iter 0078)
 - [ ] 4.4 Boot de jogo 2D/menu
 - [ ] 4.4a Boot da BIOS no psx-cli (--bios sozinho)
 - [ ] 4.4b Base de tempo: scheduler + vblank + IRQ0
@@ -141,6 +141,7 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [ ] 10.27 O placar local (gitignored) é o único com veredito real e não é versionado. Some se o 10.24 for resolvido pela BIOS em secret
 - [ ] 10.23 45 das 51 suites do scoreboard não dão veredito porque renderizam na VRAM: 88% do placar não mede nada. A `diffvram` do ps1-tests já está baixada
 - [ ] 10.18 Nada torna `arquivada:` caro: em 0052 e 0059, arquivar descartou 17 registros dos quais 12 ainda casavam. Exigir no header quantos casam e falhar se algum casar
+- [ ] 10.33 `mutantes.ps1` só roda `cargo test -p psx-core` (linha 290); testes de outros crates precisam de bateria manual
 
 ## M11 — Apresentação (incremental desde o M1)
 - [ ] 11.1 Relatório consolidado (docs/relatorio.md — atualizado a cada marco)

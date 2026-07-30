@@ -19,12 +19,16 @@ rotulo: read_data retorna 0 em vez do valor armazenado
 @@FIM
 
 mutante: m2
-rotulo: read_control nao sign-extende registradores 16-bit
+rotulo: read_control nao sign-extende nem computa flag bit31
 @@DE
     pub fn read_control(&self, rd: usize) -> u32 {
         let idx = 32 + rd;
         let val = self.regs[idx];
-        if is_standalone_s16_control(rd) {
+        if rd == 31 {
+            let raw = val & 0x7FFF_F800;
+            let error_flag = flag_error_bit(raw);
+            raw | error_flag
+        } else if is_standalone_s16_control(rd) {
             (val as i16 as i32) as u32
         } else {
             val

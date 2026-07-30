@@ -5,20 +5,19 @@
 
 ## Última iteração concluída
 
-**0085** — I_MASK: write16/write8 descartados silenciosamente — BIOS nunca setava I_MASK (ROADMAP 4.4c).
+**0086** — GTE: RTPS/RTPT + divisão UNR + FIFOs + saturação (ROADMAP 5.2).
 
 ## Próxima tarefa
 
-**ROADMAP 5.2 — RTPS/RTPT + divisão UNR.**
+**ROADMAP 5.3 — NCLIP/AVSZ3/AVSZ4/SQR/OP.**
 Spec: `docs/reference/07-gte.md` (offset +72).
-Seções: RTPS (L481), RTPT (L482), GTE Division Inaccuracy for RTPS/RTPT (L684).
+Seções: NCLIP (L513), AVSZ3 (L523), AVSZ4 (L524), SQR (L566), OP (L574).
 Arquivos-alvo: `crates/psx-core/src/gte.rs`, `crates/psx-core/src/cpu.rs`.
-Armadilha: a divisão do RTPS satura (L496-499): resultado acima de 1FFFFh é limitado a +1FFFFh e acende bit 17 do FLAG.
-GTE load delay (MFC2/CFC2) já implementado em 5.1; GTE store delay (2-3 ciclos para MTC2/CTC2) ainda não implementado.
+Armadilha: NCLIP usa SXY0-2 como entrada (valores do FIFO preenchidos por RTPS/RTPT).
 
 ## Prioridade — boot da BIOS travado
 
-Após o 4.4c (I_MASK via SH), verificar se o TTY do boot da BIOS (`--bios` sozinho) avançou além de `VSync: timeout`. Se ainda travar, o 4.4c não era a causa raiz e o bloqueio real precisa de nova investigação.
+Após o 4.4c (I_MASK via SH), verificado: TTY do boot da BIOS ainda mostra `VSync: timeout` (557 bytes). I_MASK permanece 0x0000 — a BIOS não escreve I_MASK por nenhum caminho. O bloqueio real do boot ainda não foi resolvido e merece investigação adicional (possível item 4.4d).
 
 ## Repositório
 
@@ -32,7 +31,7 @@ Após o 4.4c (I_MASK via SH), verificar se o TTY do boot da BIOS (`--bios` sozin
 
 ## Placar de testes
 
-Workspace: **637** testes.
+Workspace: **643** testes.
 
 ## Bloqueios
 

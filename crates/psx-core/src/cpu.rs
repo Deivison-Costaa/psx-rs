@@ -891,7 +891,11 @@ impl Cpu {
                 bus.gte_mut().write_control(rd, val);
                 None
             }
-            0x10..=0x1F => None,
+            0x10..=0x1F => {
+                let func = instr & 0x01FF_FFFF;
+                bus.gte_mut().execute_command(func);
+                None
+            }
             _ => None,
         }
     }

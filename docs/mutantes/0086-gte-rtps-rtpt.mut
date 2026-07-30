@@ -1,0 +1,99 @@
+# Manifesto de mutação da iteração 0086 — gte-rtps-rtpt
+formato: 1
+iteracao: 0086
+item: 5.2
+alvo: crates/psx-core/src/gte.rs
+teste: gte_rtps_rtpt
+
+mutante: m1
+rotulo: sf sempre 0 no execute_command (ignora bit 19)
+@@DE
+        let sf = (func >> 19) & 1;
+@@PARA
+        let sf = 0u32;
+@@FIM
+
+mutante: m2
+rotulo: saturate_ir nunca satura (retorna val sem clamp)
+@@DE
+fn saturate_ir(val: i64, lm: u32, flag_bit: u32, flag: &mut u32, force_lm0: bool) -> i32 {
+    let use_lm0 = force_lm0 || lm == 0;
+    let (min_val, max_val) = if use_lm0 {
+        (-0x8000i64, 0x7FFFi64)
+    } else {
+        (0i64, 0x7FFFi64)
+    };
+    if val > max_val {
+        *flag |= 1 << flag_bit;
+        max_val as i32
+    } else if val < min_val {
+        *flag |= 1 << flag_bit;
+        min_val as i32
+    } else {
+        val as i32
+    }
+}
+@@PARA
+fn saturate_ir(val: i64, lm: u32, flag_bit: u32, flag: &mut u32, force_lm0: bool) -> i32 {
+    val as i32
+}
+@@FIM
+
+mutante: m3
+rotulo: SXY FIFO nao desloca (escreve direto em SXY2 sem shift)
+@@DE
+        self.regs[12] = self.regs[13];
+        self.regs[13] = self.regs[14];
+        self.regs[14] = (sy2_clamped as u32) << 16 | (sx2_clamped as u32 & 0xFFFF);
+@@PARA
+        self.regs[14] = (sy2_clamped as u32) << 16 | (sx2_clamped as u32 & 0xFFFF);
+@@FIM
+
+mutante: m4
+rotulo: UNR overflow (h >= sz3*2) nao seta flag bit 17
+@@DE
+    if sz3 == 0 || (h as u32) >= (sz3 as u32) * 2 {
+        *flag |= 1 << 17;
+        return 0x1FFFF;
+    }
+@@PARA
+    if sz3 == 0 || (h as u32) >= (sz3 as u32) * 2 {
+        return 0x1FFFF;
+    }
+@@FIM
+
+mutante: m5
+rotulo: SZ3 nao satura (retorna mac3 bruto sem clamp)
+@@DE
+        let sz3_raw = mac3 as i64 >> (12 - shift);
+        let sz3 = if sz3_raw > 0xFFFF {
+            flag |= 1 << 18;
+            0xFFFFu32
+        } else if sz3_raw < 0 {
+            flag |= 1 << 18;
+            0u32
+        } else {
+            sz3_raw as u32
+        };
+@@PARA
+        let sz3_raw = mac3 as i64 >> (12 - shift);
+        let sz3 = sz3_raw as u32 & 0xFFFF;
+@@FIM
+
+controle: c1
+rotulo: adiciona comentario antes de execute_command
+@@DE
+    pub fn execute_command(&mut self, func: u32) {
+@@PARA
+    // executa comando GTE com codificacao imm25
+    pub fn execute_command(&mut self, func: u32) {
+@@FIM
+
+controle: c2
+rotulo: adiciona comentario antes de rtps
+@@DE
+    fn rtps(&mut self, sf: u32, lm: u32) {
+@@PARA
+    // perspectiva simples: um vertice
+    fn rtps(&mut self, sf: u32, lm: u32) {
+@@FIM

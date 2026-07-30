@@ -1,0 +1,107 @@
+# Manifesto de mutação da iteração 0096 — i-mask-investigacao
+formato: 1
+iteracao: 0096
+item: 4.4d
+alvo: crates/psx-core/src/irq.rs
+teste: bios_i_mask_investigacao
+
+mutante: m1
+rotulo: write_mask nao incrementa contador
+@@DE
+    pub fn write_mask(&mut self, val: u32) {
+        self.mask = val & 0x7FF;
+        self.mask_write_count = self.mask_write_count.wrapping_add(1);
+    }
+@@PARA
+    pub fn write_mask(&mut self, val: u32) {
+        self.mask = val & 0x7FF;
+    }
+@@FIM
+
+mutante: m2
+rotulo: write_mask_byte nao incrementa contador
+@@DE
+    pub fn write_mask_byte(&mut self, offset: u32, byte: u8) {
+        let shift = offset * 8;
+        let mask_byte = ((byte as u32) << shift) & 0x7FF;
+        let clear = !(0xFFu32 << shift);
+        self.mask = (self.mask & clear) | mask_byte;
+        self.mask_write_count = self.mask_write_count.wrapping_add(1);
+    }
+@@PARA
+    pub fn write_mask_byte(&mut self, offset: u32, byte: u8) {
+        let shift = offset * 8;
+        let mask_byte = ((byte as u32) << shift) & 0x7FF;
+        let clear = !(0xFFu32 << shift);
+        self.mask = (self.mask & clear) | mask_byte;
+    }
+@@FIM
+
+mutante: m3
+rotulo: write_mask_half nao incrementa contador
+@@DE
+    pub fn write_mask_half(&mut self, offset: u32, val: u16) {
+        let shift = offset * 8;
+        let mask_half = ((val as u32) << shift) & 0x7FF;
+        let clear = !(0xFFFFu32 << shift);
+        self.mask = (self.mask & clear) | mask_half;
+        self.mask_write_count = self.mask_write_count.wrapping_add(1);
+    }
+@@PARA
+    pub fn write_mask_half(&mut self, offset: u32, val: u16) {
+        let shift = offset * 8;
+        let mask_half = ((val as u32) << shift) & 0x7FF;
+        let clear = !(0xFFFFu32 << shift);
+        self.mask = (self.mask & clear) | mask_half;
+    }
+@@FIM
+
+mutante: m4
+rotulo: contador comeca em 1 em vez de 0
+@@DE
+        Irq {
+            stat: 0,
+            mask: 0,
+            mask_write_count: 0,
+        }
+@@PARA
+        Irq {
+            stat: 0,
+            mask: 0,
+            mask_write_count: 1,
+        }
+@@FIM
+
+mutante: m5
+rotulo: write_mask incrementa contador em 2 em vez de 1
+@@DE
+    pub fn write_mask(&mut self, val: u32) {
+        self.mask = val & 0x7FF;
+        self.mask_write_count = self.mask_write_count.wrapping_add(1);
+    }
+@@PARA
+    pub fn write_mask(&mut self, val: u32) {
+        self.mask = val & 0x7FF;
+        self.mask_write_count = self.mask_write_count.wrapping_add(2);
+    }
+@@FIM
+
+controle: c1
+rotulo: comentario inofensivo antes de write_mask
+@@DE
+    pub fn write_mask(&mut self, val: u32) {
+@@PARA
+    // contador de escritas na mascara de interrupcao
+    pub fn write_mask(&mut self, val: u32) {
+@@FIM
+
+controle: c2
+rotulo: comentario no corpo de write_mask_half (cosmetico)
+@@DE
+        self.mask = (self.mask & clear) | mask_half;
+        self.mask_write_count = self.mask_write_count.wrapping_add(1);
+@@PARA
+        // mescla halfword na mascara e incrementa contador
+        self.mask = (self.mask & clear) | mask_half;
+        self.mask_write_count = self.mask_write_count.wrapping_add(1);
+@@FIM

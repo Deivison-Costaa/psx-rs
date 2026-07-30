@@ -29,12 +29,14 @@ rotulo: write_mask_half nao limpa bits antes de OR (mistura com valor velho)
         let mask_half = ((val as u32) << shift) & 0x7FF;
         let clear = !(0xFFFFu32 << shift);
         self.mask = (self.mask & clear) | mask_half;
+        self.mask_write_count = self.mask_write_count.wrapping_add(1);
     }
 @@PARA
     pub fn write_mask_half(&mut self, offset: u32, val: u16) {
         let shift = offset * 8;
         let mask_half = ((val as u32) << shift) & 0x7FF;
         self.mask |= mask_half;
+        self.mask_write_count = self.mask_write_count.wrapping_add(1);
     }
 @@FIM
 
@@ -56,11 +58,13 @@ rotulo: write_mask_byte substitui mask inteira em vez de mesclar no byte alvo
         let mask_byte = ((byte as u32) << shift) & 0x7FF;
         let clear = !(0xFFu32 << shift);
         self.mask = (self.mask & clear) | mask_byte;
+        self.mask_write_count = self.mask_write_count.wrapping_add(1);
     }
 @@PARA
     pub fn write_mask_byte(&mut self, offset: u32, byte: u8) {
         let shift = offset * 8;
         self.mask = ((byte as u32) << shift) & 0x7FF;
+        self.mask_write_count = self.mask_write_count.wrapping_add(1);
     }
 @@FIM
 

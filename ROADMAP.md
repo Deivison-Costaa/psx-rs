@@ -11,7 +11,8 @@ M3 (DMA/IRQ/timers). Regra imposta por `roadmap_arquivo.rs`.
 - [x] 2.1 GPUSTAT + decodificação GP0/GP1 (iter 0035)
 - [x] 2.2 VRAM 1MB + transfers (fill, CPU↔VRAM) (iter 0038)
 - [x] 2.2b VRAM->VRAM copy GP0(80h) — mascara, wrap e coordenadas absolutas (iter 0105)
-- [ ] 2.2c Quad texturizado GP0(2Ch) sai como barra chapada — 360 no boot da BIOS, e o defeito visivel
+- [x] 2.2c Endereco do texel 4bpp/8bpp somava a linha duas vezes — logo da BIOS legivel (iter 0106)
+- [ ] 2.2d Metade de cima do losango do logo nunca e desenhada
 - [x] 2.3 Triângulos flat + gouraud (iter 0039)
 - [x] 2.4 Quads, retângulos, linhas (iter 0042)
 - [x] 2.5a Texpage GP0(E1h) + amostragem de textura 15bpp (iter 0044)

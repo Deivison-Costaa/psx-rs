@@ -7,30 +7,25 @@
 
 ## Última iteração concluída
 
-**0105** — GP0(80h), copia VRAM->VRAM, com mascara, wrap e coordenadas absolutas (ROADMAP 2.2b).
+**0106** — endereco do texel 4bpp/8bpp somava a linha duas vezes; o logo da BIOS passa a sair
+legivel (ROADMAP 2.2c).
 
 ## Próxima tarefa
 
-**ROADMAP 2.2c — o quad texturizado GP0(2Ch) sai como barra chapada.**
-Medido pelo orquestrador em 30/07 com histograma exato no ponto de decodificacao do GP0, BIOS real
-+ disco, 400M passos. O boot emite **360 comandos 2Ch** (quad texturizado, opaco, modulado) e
-**nenhum 80h**. Sao os 2Ch que desenham a palavra "PlayStation" no logo, e hoje ela sai como duas
-barras vermelhas horizontais chapadas. O sprite `SONY COMPUTER ENTERTAINMENT` esta carregado na
-VRAM (canto superior direito) pelos 63 comandos A0h, e tambem nao aparece composto.
-Spec: `docs/reference/03-gpu.md`, secoes de Polygon e de Texpage/CLUT (offset +115 sobre o indice).
-Arquivos-alvo: `crates/psx-core/src/gpu.rs`.
-Critério de aceitação: as barras viram texto legivel no despejo da VRAM.
-Invariantes relevantes: 13, 18, 19.
+**ROADMAP 2.2d — a metade de baixo de cada triangulo do losango nunca e desenhada.**
+Medido pelo orquestrador em 30/07, BIOS real, 400M passos, despejo dos poligonos nao texturizados.
+O losango do logo e feito de triangulos gouraud como `(195,240),(320,115),(320,365)`: ordenados
+por y, o topo e `(320,115)`, o meio e `(195,240)` e a base e `(320,365)`. Na VRAM aparece **so** o
+trecho de y=115 a y=240 — a metade **acima** do vertice do meio. A metade de baixo some.
+E o padrao classico de rasterizador que divide o triangulo em meia-superior e meia-inferior e
+perde a segunda. Os testes de 2.3 nao pegam porque usam triangulos simples.
+Spec: `docs/reference/03-gpu.md`, secao Render Polygon (offset +115 sobre o indice).
+Arquivos-alvo: `crates/psx-core/src/gpu.rs`, funcao `render_triangle`.
+Critério de aceitação: o losango do logo fecha nas quatro pontas no despejo da VRAM.
+Invariantes relevantes: 13.
 
-**Primeiro passo, barato:** conte as cores distintas na regiao das barras. Cor unica = a textura
-nao esta sendo amostrada; varias = amostra mas a modulacao ou a UV estao erradas. Os itens 10.13
-(modulacao vs raw texture) e 10.11 (textura de retangulo) sao vizinhos e ainda NAO foram medidos
-contra este caso.
-
-**Erro que ja custou uma iteracao — nao repetir:** o handoff da 0104 afirmava que os tres defeitos
-visiveis do logo eram culpa do blit VRAM->VRAM faltando. Era falso. Implementei o blit inteiro e a
-VRAM saiu **byte a byte identica**. Antes de atribuir defeito visual a um comando, MEÇA se o
-comando e sequer emitido.
+**Primeiro passo:** um teste com triangulo cujo vertice do meio esteja a ESQUERDA da aresta
+longa e outro com ele a direita — os dois casos de divisao. Depois compare com o despejo real.
 
 ## Repositório
 

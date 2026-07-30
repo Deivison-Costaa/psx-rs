@@ -1,3 +1,5 @@
+#![allow(clippy::erasing_op, clippy::identity_op)]
+
 use psx_core::bus::BusRead;
 use psx_core::cpu::Cpu;
 
@@ -98,15 +100,18 @@ fn mvmva_rt_v0_tr_sf1_lm0() {
     le_mfc2(&mut cpu, &mut bus, a, 12, 11);
 
     assert_eq!(
-        cpu.regs[10] as i32, 10 + 50,
+        cpu.regs[10] as i32,
+        10 + 50,
         "MVMVA RT,V0,TR sf=1: IR1 = TRX + VX = 10 + 50 = 60"
     );
     assert_eq!(
-        cpu.regs[11] as i32, 20 + 100,
+        cpu.regs[11] as i32,
+        20 + 100,
         "MVMVA RT,V0,TR sf=1: IR2 = TRY + VY = 20 + 100 = 120"
     );
     assert_eq!(
-        cpu.regs[12] as i32, 30 + 10,
+        cpu.regs[12] as i32,
+        30 + 10,
         "MVMVA RT,V0,TR sf=1: IR3 = TRZ + VZ = 30 + 10 = 40"
     );
 }
@@ -267,14 +272,8 @@ fn mvmva_rt_ir_none_sf1_lm0() {
         cpu.regs[12] as i32, 10,
         "MVMVA RT,IR,None sf=1: IR1 = 1.0*IR1+0+0 = 10"
     );
-    assert_eq!(
-        cpu.regs[13] as i32, 20,
-        "MVMVA RT,IR,None sf=1: IR2 = 20"
-    );
-    assert_eq!(
-        cpu.regs[14] as i32, 30,
-        "MVMVA RT,IR,None sf=1: IR3 = 30"
-    );
+    assert_eq!(cpu.regs[13] as i32, 20, "MVMVA RT,IR,None sf=1: IR2 = 20");
+    assert_eq!(cpu.regs[14] as i32, 30, "MVMVA RT,IR,None sf=1: IR3 = 30");
 }
 
 // ── MVMVA: saturacao IR com lm=1 ──

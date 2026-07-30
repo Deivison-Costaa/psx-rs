@@ -277,9 +277,7 @@ impl Gte {
             ),
         };
 
-        let (tx, ty, tz): (i64, i64, i64) = if cv == 2 {
-            (0, 0, 0)
-        } else if cv == 3 {
+        let (tx, ty, tz): (i64, i64, i64) = if cv == 2 || cv == 3 {
             (0, 0, 0)
         } else {
             let t = base_tr;

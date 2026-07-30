@@ -6,11 +6,19 @@ alvo: crates/psx-core/src/dma.rs
 teste: dma_otc
 
 mutante: m1
-rotulo: terminador zerado (0x00FF_FFFF → 0x00000000)
+rotulo: troca os dois bracos: terminador no penultimo e ponteiro no ultimo
 @@DE
+                let val = if i == count - 1 {
                     0x00FF_FFFF
+                } else {
+                    addr.wrapping_sub(4) & 0x00FF_FFFC
+                };
 @@PARA
-                    0x0000_0000
+                let val = if i == count - 1 {
+                    addr.wrapping_sub(4) & 0x00FF_FFFC
+                } else {
+                    0x00FF_FFFF
+                };
 @@FIM
 
 mutante: m2
@@ -38,11 +46,11 @@ rotulo: mascara de 21 bits em vez de 24 (0x1F_FFFC)
 @@FIM
 
 mutante: m5
-rotulo: passo do loop invertido (sobe em vez de descer)
+rotulo: cada palavra aponta para si mesma em vez de para a de baixo
 @@DE
-            addr = addr.wrapping_sub(4);
+                    addr.wrapping_sub(4) & 0x00FF_FFFC
 @@PARA
-            addr = addr.wrapping_add(4);
+                    addr & 0x00FF_FFFC
 @@FIM
 
 mutante: m6

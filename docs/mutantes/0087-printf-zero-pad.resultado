@@ -1,9 +1,10 @@
 # gerado por scripts/mutantes.ps1 — NAO editar a mao
-# commit: 417717c5e524f9e48250fbbe97cc0e5c0cd34b12
-# rodado_em: 2026-07-30T06:03:22-03:00
-m1,mutante,morreu,morreu,0.8,printf_04x_zero_pad_largura_4;printf_08x_maiusculo_zero_pad_hex;printf_08x_zero_pad_hex_minusculo
+# commit: b1db12d963b4793e585720399e555dd3fbe50c71
+# rodado_em: 2026-07-30T06:04:05-03:00
+m1,mutante,morreu,morreu,0.9,printf_04x_zero_pad_largura_4;printf_08x_maiusculo_zero_pad_hex;printf_08x_zero_pad_hex_minusculo
 m2,mutante,morreu,morreu,0.9,printf_04x_zero_pad_largura_4;printf_08x_maiusculo_zero_pad_hex;printf_08x_zero_pad_hex_minusculo;printf_2d_largura_minima_dois;printf_4d_largura_quatro;printf_4u_largura_unsigned
 m3,mutante,morreu,morreu,0.9,printf_04x_zero_pad_largura_4;printf_08x_maiusculo_zero_pad_hex;printf_08x_zero_pad_hex_minusculo
 m4,mutante,morreu,morreu,0.9,printf_2d_largura_minima_dois;printf_4d_largura_quatro;printf_4u_largura_unsigned
 m5,mutante,morreu,morreu,0.9,printf_04x_zero_pad_largura_4;printf_08x_maiusculo_zero_pad_hex;printf_08x_zero_pad_hex_minusculo;printf_2d_largura_minima_dois;printf_3d_nao_trunca_valor_maior_que_largura;printf_4d_largura_quatro;printf_4u_largura_unsigned
-c1,controle,sobreviveu,sobreviveu,0.9,
+c1,controle,sobreviveu,sobreviveu,0.8,
+c2,controle,sobreviveu,sobreviveu,0.9,

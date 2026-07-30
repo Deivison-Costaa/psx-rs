@@ -5,6 +5,7 @@ use crate::gpu::Gpu;
 use crate::gte::Gte;
 use crate::irq::Irq;
 use crate::scheduler::{EventId, ScheduleKey, Scheduler};
+use crate::sio::Sio;
 use crate::timers::Timers;
 
 const SCRATCHPAD_SIZE: usize = 1024;
@@ -122,6 +123,7 @@ pub struct Bus {
     disc_layout: Option<DiscLayout>,
     disc_bin: Option<Vec<u8>>,
     timers: Timers,
+    sio: Sio,
     scratchpad: Scratchpad,
     mem_ctrl: MemCtrl,
     bcc: Bcc,
@@ -175,6 +177,7 @@ impl Bus {
             disc_layout: None,
             disc_bin: None,
             timers: Timers::new(),
+            sio: Sio::new(),
             scratchpad: Scratchpad::new(),
             mem_ctrl: MemCtrl::new(),
             bcc: Bcc::new(),
@@ -207,6 +210,16 @@ impl Bus {
 
     pub fn timers_mut(&mut self) -> &mut Timers {
         &mut self.timers
+    }
+
+    pub fn sio_mut(&mut self) -> &mut Sio {
+        &mut self.sio
+    }
+
+    fn service_sio_irq(&mut self) {
+        if self.sio.take_irq7() {
+            self.irq.raise(7);
+        }
     }
 
     pub fn tick_timers(&mut self, cycles: u32) {
@@ -300,9 +313,13 @@ impl Bus {
                 let b3 = self.cdrom.read8(3) as u32;
                 Some(b0 | (b1 << 8) | (b2 << 16) | (b3 << 24))
             }
-            0x1F80_1024..=0x1F80_105F | 0x1F80_1061..=0x1F80_10FF | 0x1F80_1130..=0x1F80_1FFF => {
-                Some(0)
-            }
+            0x1F80_1024..=0x1F80_103F
+            | 0x1F80_1041..=0x1F80_1043
+            | 0x1F80_1045..=0x1F80_105F
+            | 0x1F80_1061..=0x1F80_10FF
+            | 0x1F80_1130..=0x1F80_1FFF => Some(0),
+            0x1F80_1040 => Some(self.sio.read_data()),
+            0x1F80_1044 => Some(self.sio.read_stat()),
             _ => None,
         }
     }
@@ -384,7 +401,13 @@ impl Bus {
                     .write8(3, (val >> 24) as u8, disc_layout, disc_bin);
                 true
             }
-            0x1F80_1024..=0x1F80_105F | 0x1F80_1061..=0x1F80_10FF | 0x1F80_1130..=0x1F80_1FFF => {
+            0x1F80_1024..=0x1F80_103F
+            | 0x1F80_1041..=0x1F80_105F
+            | 0x1F80_1061..=0x1F80_10FF
+            | 0x1F80_1130..=0x1F80_1FFF => true,
+            0x1F80_1040 => {
+                self.sio.write_data(val);
+                self.service_sio_irq();
                 true
             }
             _ => false,
@@ -423,7 +446,11 @@ impl Bus {
                 let reg = (phys - 0x1F80_1800 + offset) & 0x3;
                 Some(self.cdrom.read8(reg))
             }
-            0x1F80_1024..=0x1F80_105F | 0x1F80_1064..=0x1F80_1FFF => Some(0),
+            0x1F80_1024..=0x1F80_103F | 0x1F80_1041..=0x1F80_1043 | 0x1F80_1064..=0x1F80_1FFF => {
+                Some(0)
+            }
+            0x1F80_1040 => Some(self.sio.read_byte(phys)),
+            0x1F80_1044..=0x1F80_104F => Some(self.sio.read_byte(phys)),
             _ => None,
         }
     }
@@ -449,7 +476,14 @@ impl Bus {
                 );
                 true
             }
-            0x1F80_1024..=0x1F80_105F | 0x1F80_1061..=0x1F80_1FFF => true,
+            0x1F80_1024..=0x1F80_103F | 0x1F80_1041..=0x1F80_1043 | 0x1F80_1061..=0x1F80_1FFF => {
+                true
+            }
+            0x1F80_1040 | 0x1F80_1044..=0x1F80_104F => {
+                self.sio.write_byte(phys, val);
+                self.service_sio_irq();
+                true
+            }
             _ => false,
         }
     }

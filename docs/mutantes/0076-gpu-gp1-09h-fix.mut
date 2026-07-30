@@ -1,0 +1,91 @@
+# Manifesto de mutação da iteração 0076 — gpu-gp1-09h-fix
+formato: 1
+iteracao: 0076
+item: 10.32
+alvo: crates/psx-core/src/gpu.rs
+teste: gpu_texture_disable
+
+mutante: m1
+rotulo: re-adiciona if bit==0 que limpa GPUSTAT.15 ativamente (regressao)
+@@DE
+            }
+            0x09 => {
+                let bit = val & 1;
+                self.allow_upper_y.set(bit != 0);
+            }
+            _ => {}
+@@PARA
+            }
+            0x09 => {
+                let bit = val & 1;
+                self.allow_upper_y.set(bit != 0);
+                if bit == 0 {
+                    let s = self.stat.get();
+                    self.stat.set(s & !(1 << 15));
+                }
+            }
+            _ => {}
+@@FIM
+
+mutante: m2
+rotulo: GP1(09h) nao atualiza allow_upper_y (corpo vazio)
+@@DE
+                self.allow_upper_y.set(bit != 0);
+@@PARA
+                let _ = bit;
+@@FIM
+
+mutante: m3
+rotulo: GP1(09h) le bit 3 em vez de bit 0 (val >> 3)
+@@DE
+            0x09 => {
+                let bit = val & 1;
+@@PARA
+            0x09 => {
+                let bit = (val >> 3) & 1;
+@@FIM
+
+mutante: m4
+rotulo: GP1(09h) sempre abre o gate (allow_upper_y = true)
+@@DE
+                self.allow_upper_y.set(bit != 0);
+            }
+            _ => {}
+@@PARA
+                self.allow_upper_y.set(true);
+            }
+            _ => {}
+@@FIM
+
+mutante: m5
+rotulo: GP1(09h) sempre fecha o gate usando mascara zero (allow_upper_y = bit & 0)
+@@DE
+                self.allow_upper_y.set(bit != 0);
+@@PARA
+                self.allow_upper_y.set((bit & 0) != 0);
+@@FIM
+
+controle: c1
+rotulo: renomeia bit para gate_bit no braco 0x09 (cosmetico)
+@@DE
+            0x09 => {
+                let bit = val & 1;
+@@PARA
+            0x09 => {
+                let gate_bit = val & 1;
+@@FIM
+@@DE
+                self.allow_upper_y.set(bit != 0);
+@@PARA
+                self.allow_upper_y.set(gate_bit != 0);
+@@FIM
+
+controle: c2
+rotulo: embrulha allow_upper_y.set em if true (cosmetico)
+@@DE
+                self.allow_upper_y.set(bit != 0);
+@@PARA
+                if true {
+                    self.allow_upper_y.set(bit != 0);
+                }
+@@FIM

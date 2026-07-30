@@ -5,7 +5,7 @@
 
 ## Última iteração concluída
 
-**0078** — Flag --disc no psx-cli: parseia CUE, monta DiscLayout, injeta no Cdrom (ROADMAP 4.3c).
+**0076** — GP1(09h): remoção das 4 linhas `if bit == 0` que limpavam GPUSTAT.15 ativamente. Fechar o gate não limpa o latch (ROADMAP 10.32).
 
 ## Próxima tarefa
 

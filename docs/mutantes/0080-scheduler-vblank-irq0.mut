@@ -1,0 +1,104 @@
+# Manifesto de mutação da iteração 0080 — scheduler-vblank-irq0
+formato: 1
+iteracao: 0080
+item: 4.4b
+alvo: crates/psx-core/src/bus.rs
+teste: gpu_vblank_irq
+
+mutante: m1
+rotulo: nao agenda eventos de vblank (comenta scheduler.schedule)
+@@DE
+        scheduler.schedule(ScheduleKey::new(vblank_exit_offset), EventId(VBLANK_EXIT));
+        scheduler.schedule(ScheduleKey::new(vblank_enter_offset), EventId(VBLANK_ENTER));
+@@PARA
+        let _ = (vblank_exit_offset, vblank_enter_offset);
+@@FIM
+
+mutante: m2
+rotulo: nao processa eventos no tick_timers (comenta while do scheduler)
+@@DE
+        while let Some(EventId(id)) = self.scheduler.advance_to(self.total_cycles) {
+            match id {
+                VBLANK_ENTER => {
+                    self.gpu.enter_vblank();
+                    self.irq.raise(0);
+                    self.scheduler.schedule(
+                        ScheduleKey::new(self.total_cycles + frame),
+                        EventId(VBLANK_ENTER),
+                    );
+                }
+                VBLANK_EXIT => {
+                    self.gpu.exit_vblank();
+                    self.gpu.toggle_odd_line();
+                    self.scheduler.schedule(
+                        ScheduleKey::new(self.total_cycles + frame),
+                        EventId(VBLANK_EXIT),
+                    );
+                }
+                _ => {}
+            }
+        }
+@@PARA
+        // scheduler desabilitado — eventos nunca processados
+@@FIM
+
+mutante: m3
+rotulo: VBLANK_ENTER nao levanta IRQ0 (raise(0) removido)
+@@DE
+                    self.irq.raise(0);
+@@PARA
+                    let _ = self.total_cycles;
+@@FIM
+
+mutante: m4
+rotulo: VBLANK_EXIT nao alterna odd_line (toggle_odd_line removido)
+@@DE
+                    self.gpu.toggle_odd_line();
+@@PARA
+                    let _ = self.total_cycles;
+@@FIM
+
+mutante: m5
+rotulo: nao chama enter_vblank no evento VBLANK_ENTER
+@@DE
+                    self.gpu.enter_vblank();
+                    self.irq.raise(0);
+@@PARA
+                    self.irq.raise(0);
+@@FIM
+
+mutante: m6
+rotulo: nao chama exit_vblank no evento VBLANK_EXIT
+@@DE
+                    self.gpu.exit_vblank();
+                    self.gpu.toggle_odd_line();
+@@PARA
+                    self.gpu.toggle_odd_line();
+@@FIM
+
+mutante: m7
+rotulo: usa frame_cycles errado (frame * 2) no reagendamento
+ocorrencias: 2
+@@DE
+                        ScheduleKey::new(self.total_cycles + frame),
+@@PARA
+                        ScheduleKey::new(self.total_cycles + frame * 2),
+@@FIM
+
+controle: c1
+rotulo: renomeia variavel local frame para frm (cosmetico)
+ocorrencias: 2
+@@DE
+        let frame = self.gpu.frame_cycles();
+@@PARA
+        let frm = self.gpu.frame_cycles();
+@@FIM
+
+controle: c2
+rotulo: adiciona comentario antes do tick_timers (cosmetico)
+@@DE
+    pub fn tick_timers(&mut self, cycles: u32) {
+@@PARA
+    pub fn tick_timers(&mut self, cycles: u32) {
+        // avanca o tempo de video e processa eventos do scheduler
+@@FIM

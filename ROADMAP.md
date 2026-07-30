@@ -74,7 +74,7 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [ ] 4.4 Boot de jogo 2D/menu
 - [x] 4.4a Boot da BIOS no psx-cli (--bios sozinho) (iter 0079)
 - [x] 4.4b Base de tempo: scheduler + vblank + IRQ0 (iter 0080)
-- [ ] 4.4c BIOS nunca escreve I_MASK — IRQ0 acende mas CPU nao vetora (bloqueio real do boot)
+- [x] 4.4c BIOS nunca escreve I_MASK — IRQ0 acende mas CPU nao vetora (iter 0085)
 
 ## M5 — GTE
 - [x] 5.1 Registradores + MFC2/MTC2/CFC2/CTC2/LWC2/SWC2 (iter 0084)

@@ -489,6 +489,11 @@ impl Bus {
         if (0x1FC0_0000..0x1FC0_0000 + 0x80000).contains(&phys) {
             return self.bios.raw()[(phys - 0x1FC0_0000) as usize];
         }
+        match phys {
+            0x1F80_1070..=0x1F80_1073 => return self.irq.read_stat_byte(phys - 0x1F80_1070),
+            0x1F80_1074..=0x1F80_1077 => return self.irq.read_mask_byte(phys - 0x1F80_1074),
+            _ => {}
+        }
         if let Some(val) = self.region_read_byte(phys, Self::kseg(addr), 0) {
             return val;
         }
@@ -500,6 +505,13 @@ impl Bus {
         if (0x1FC0_0000..0x1FC0_0000 + 0x80000).contains(&phys) {
             let offset = (phys - 0x1FC0_0000) as usize;
             return u16::from_le_bytes([self.bios.raw()[offset], self.bios.raw()[offset + 1]]);
+        }
+        match phys {
+            0x1F80_1070 => return (self.irq.read_stat() & 0xFFFF) as u16,
+            0x1F80_1072 => return ((self.irq.read_stat() >> 16) & 0xFFFF) as u16,
+            0x1F80_1074 => return (self.irq.read_mask() & 0xFFFF) as u16,
+            0x1F80_1076 => return ((self.irq.read_mask() >> 16) & 0xFFFF) as u16,
+            _ => {}
         }
         if let (Some(lo), Some(hi)) = (
             self.region_read_byte(phys, Self::kseg(addr), 0),
@@ -515,6 +527,17 @@ impl Bus {
 
     pub fn write8<Op: MemoryOp>(&mut self, addr: u32, val: u8) {
         let phys = Self::to_physical(addr);
+        match phys {
+            0x1F80_1070..=0x1F80_1073 => {
+                self.irq.write_stat_byte(phys - 0x1F80_1070, val);
+                return;
+            }
+            0x1F80_1074..=0x1F80_1077 => {
+                self.irq.write_mask_byte(phys - 0x1F80_1074, val);
+                return;
+            }
+            _ => {}
+        }
         if self.region_write_byte(phys, Self::kseg(addr), 0, val) {
             return;
         }
@@ -524,6 +547,17 @@ impl Bus {
 
     pub fn write16<Op: MemoryOp>(&mut self, addr: u32, val: u16) {
         let phys = Self::to_physical(addr);
+        match phys {
+            0x1F80_1070 | 0x1F80_1072 => {
+                self.irq.write_stat_half(phys - 0x1F80_1070, val);
+                return;
+            }
+            0x1F80_1074 | 0x1F80_1076 => {
+                self.irq.write_mask_half(phys - 0x1F80_1074, val);
+                return;
+            }
+            _ => {}
+        }
         if self.region_write_byte(phys, Self::kseg(addr), 0, val as u8)
             && self.region_write_byte(phys, Self::kseg(addr), 1, (val >> 8) as u8)
         {

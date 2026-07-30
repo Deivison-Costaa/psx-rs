@@ -1,0 +1,95 @@
+# Manifesto de mutação da iteração 0085 — bios-i-mask
+formato: 1
+iteracao: 0085
+item: 4.4c
+alvo: crates/psx-core/src/irq.rs
+teste: irq_halfword
+
+mutante: m1
+rotulo: write_stat_half substitui stat em vez de AND com mascara
+@@DE
+    pub fn write_stat_half(&mut self, offset: u32, val: u16) {
+        let shift = offset * 8;
+        let val32 = (val as u32) << shift;
+        let preserved = !(0xFFFFu32 << shift);
+        self.stat &= val32 | preserved;
+    }
+@@PARA
+    pub fn write_stat_half(&mut self, offset: u32, val: u16) {
+        let shift = offset * 8;
+        self.stat = (val as u32) << shift;
+    }
+@@FIM
+
+mutante: m2
+rotulo: write_mask_half nao limpa bits antes de OR (mistura com valor velho)
+@@DE
+    pub fn write_mask_half(&mut self, offset: u32, val: u16) {
+        let shift = offset * 8;
+        let mask_half = ((val as u32) << shift) & 0x7FF;
+        let clear = !(0xFFFFu32 << shift);
+        self.mask = (self.mask & clear) | mask_half;
+    }
+@@PARA
+    pub fn write_mask_half(&mut self, offset: u32, val: u16) {
+        let shift = offset * 8;
+        let mask_half = ((val as u32) << shift) & 0x7FF;
+        self.mask |= mask_half;
+    }
+@@FIM
+
+mutante: m3
+rotulo: write_stat_byte escreve no bit errado (shift dobrado)
+@@DE
+        let shift = offset * 8;
+        let val = (byte as u32) << shift;
+@@PARA
+        let shift = offset * 8;
+        let val = (byte as u32) << (shift * 2);
+@@FIM
+
+mutante: m4
+rotulo: write_mask_byte substitui mask inteira em vez de mesclar no byte alvo
+@@DE
+    pub fn write_mask_byte(&mut self, offset: u32, byte: u8) {
+        let shift = offset * 8;
+        let mask_byte = ((byte as u32) << shift) & 0x7FF;
+        let clear = !(0xFFu32 << shift);
+        self.mask = (self.mask & clear) | mask_byte;
+    }
+@@PARA
+    pub fn write_mask_byte(&mut self, offset: u32, byte: u8) {
+        let shift = offset * 8;
+        self.mask = ((byte as u32) << shift) & 0x7FF;
+    }
+@@FIM
+
+mutante: m5
+rotulo: write_stat_half trunca val para u8 (perde byte alto do halfword)
+@@DE
+    pub fn write_stat_half(&mut self, offset: u32, val: u16) {
+        let shift = offset * 8;
+        let val32 = (val as u32) << shift;
+@@PARA
+    pub fn write_stat_half(&mut self, offset: u32, val: u16) {
+        let shift = offset * 8;
+        let val32 = (val as u8 as u32) << shift;
+@@FIM
+
+controle: c1
+rotulo: adiciona comentario antes de write_stat_half (cosmetico)
+@@DE
+    pub fn write_stat_half(&mut self, offset: u32, val: u16) {
+@@PARA
+    // reconhece interrupcao por halfword: 0 limpa, 1 preserva
+    pub fn write_stat_half(&mut self, offset: u32, val: u16) {
+@@FIM
+
+controle: c2
+rotulo: adiciona comentario antes de write_mask_half (cosmetico)
+@@DE
+    pub fn write_mask_half(&mut self, offset: u32, val: u16) {
+@@PARA
+    // mascara de interrupcao via halfword store
+    pub fn write_mask_half(&mut self, offset: u32, val: u16) {
+@@FIM

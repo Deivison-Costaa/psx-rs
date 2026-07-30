@@ -72,9 +72,9 @@ fn handler_nao_e_sequestrado_pelo_salto_pendente() {
     cpu.step(&mut bus);
 
     armar_irq(&mut bus, &mut cpu);
-    bus.irq_mut().write_mask(0x0000);
     cpu.step(&mut bus);
     assert_eq!(cpu.pc, VETOR);
+    bus.irq_mut().write_mask(0x0000);
 
     bus.write32::<BusRead>(VETOR, nop());
     bus.write32::<BusRead>(VETOR + 4, nop());
@@ -98,8 +98,8 @@ fn retorno_pelo_epc_refaz_o_salto_e_o_delay_slot() {
     cpu.step(&mut bus);
 
     armar_irq(&mut bus, &mut cpu);
-    bus.irq_mut().write_mask(0x0000);
     cpu.step(&mut bus);
+    bus.irq_mut().write_mask(0x0000);
 
     let epc = cpu.cop0[14];
     cpu.pc = epc;

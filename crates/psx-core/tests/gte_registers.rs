@@ -269,8 +269,33 @@ fn mtc2_nao_dispara_saturacao_em_reg_16bit() {
     let gte = bus.gte();
     let flag = gte.regs[63];
     assert_eq!(
-        flag & 0x7FFF_F800,
+        flag & 0x7FFF_F000,
         0,
         "MTC2 nao deve disparar flag de saturacao (FLAG limpo apos escrita)"
+    );
+}
+
+#[test]
+fn flag_bit11_read_only_escrita_com_bit11_retorna_0() {
+    let mut bus = bus_with_bios_empty();
+    let mut cpu = Cpu::new();
+
+    cpu.regs[8] = 0x0000_0800;
+    bus.write32::<BusRead>(0x0000, ctc2(8, 31));
+    bus.write32::<BusRead>(0x0004, nop());
+
+    cpu.step(&mut bus);
+    cpu.step(&mut bus);
+
+    bus.write32::<BusRead>(0x0008, cfc2(9, 31));
+    bus.write32::<BusRead>(0x000C, nop());
+
+    cpu.step(&mut bus);
+    cpu.step(&mut bus);
+
+    assert_eq!(
+        cpu.regs[9] & 0x800,
+        0,
+        "FLAG bit 11 deve ser sempre zero (bits 0-11 sao read-only)"
     );
 }

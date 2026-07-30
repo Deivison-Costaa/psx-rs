@@ -951,16 +951,14 @@ impl Cpu {
                 bus.tty_push(byte);
                 continue;
             }
-            if i >= 1_048_576 {
-                break;
-            }
-            let spec = bus.read8::<BusRead>(fmt.wrapping_add(i));
-            i = i.wrapping_add(1);
-            if spec == 0 {
-                bus.tty_push(b'%');
-                break;
-            }
+
+            let (spec, zero_pad, width) = self.parse_printf_spec(fmt, &mut i, bus);
+
             match spec {
+                0 => {
+                    bus.tty_push(b'%');
+                    break;
+                }
                 b'%' => bus.tty_push(b'%'),
                 b'c' => {
                     let val = self.next_printf_arg(&regs, sp, &mut arg_idx, bus);
@@ -978,19 +976,19 @@ impl Cpu {
                 }
                 b'd' | b'i' => {
                     let val = self.next_printf_arg(&regs, sp, &mut arg_idx, bus) as i32;
-                    emit_signed(bus, val);
+                    emit_signed(bus, val, zero_pad, width);
                 }
                 b'u' => {
                     let val = self.next_printf_arg(&regs, sp, &mut arg_idx, bus);
-                    emit_unsigned(bus, val);
+                    emit_unsigned(bus, val, zero_pad, width);
                 }
                 b'x' => {
                     let val = self.next_printf_arg(&regs, sp, &mut arg_idx, bus);
-                    emit_hex(bus, val, false);
+                    emit_hex(bus, val, false, zero_pad, width);
                 }
                 b'X' => {
                     let val = self.next_printf_arg(&regs, sp, &mut arg_idx, bus);
-                    emit_hex(bus, val, true);
+                    emit_hex(bus, val, true, zero_pad, width);
                 }
                 _ => {
                     bus.tty_push(b'%');
@@ -998,6 +996,46 @@ impl Cpu {
                 }
             }
         }
+    }
+
+    fn parse_printf_spec(&self, fmt: u32, i: &mut u32, bus: &Bus) -> (u8, bool, usize) {
+        let first = bus.read8::<BusRead>(fmt.wrapping_add(*i));
+        *i = i.wrapping_add(1);
+        if first == 0 {
+            return (0, false, 0);
+        }
+
+        let mut zero_pad = false;
+        let mut ch = first;
+        let mut width = 0usize;
+
+        if ch == b'0' {
+            zero_pad = true;
+            if *i >= 1_048_576 {
+                return (b'0', false, 0);
+            }
+            ch = bus.read8::<BusRead>(fmt.wrapping_add(*i));
+            *i = i.wrapping_add(1);
+            if ch == 0 {
+                return (0, zero_pad, 0);
+            }
+        }
+
+        while ch.is_ascii_digit() {
+            width = width
+                .saturating_mul(10)
+                .saturating_add((ch - b'0') as usize);
+            if *i >= 1_048_576 {
+                return (ch, zero_pad, width);
+            }
+            ch = bus.read8::<BusRead>(fmt.wrapping_add(*i));
+            *i = i.wrapping_add(1);
+            if ch == 0 {
+                return (0, zero_pad, width);
+            }
+        }
+
+        (ch, zero_pad, width)
     }
 
     fn next_printf_arg(&self, regs: &[u32; 3], sp: u32, idx: &mut u32, bus: &Bus) -> u32 {
@@ -1012,27 +1050,49 @@ impl Cpu {
     }
 }
 
-fn emit_signed(bus: &mut Bus, val: i32) {
-    let s = format!("{}", val);
-    for b in s.bytes() {
-        bus.tty_push(b);
-    }
+fn emit_signed(bus: &mut Bus, val: i32, zero_pad: bool, width: usize) {
+    let negative = val < 0;
+    let abs = (val as i64).unsigned_abs();
+    let body = format!("{}", abs);
+    emit_padded_signed(bus, &body, zero_pad, width, negative);
 }
 
-fn emit_unsigned(bus: &mut Bus, val: u32) {
+fn emit_unsigned(bus: &mut Bus, val: u32, zero_pad: bool, width: usize) {
     let s = format!("{}", val);
-    for b in s.bytes() {
-        bus.tty_push(b);
-    }
+    emit_padded_signed(bus, &s, zero_pad, width, false);
 }
 
-fn emit_hex(bus: &mut Bus, val: u32, upper: bool) {
+fn emit_hex(bus: &mut Bus, val: u32, upper: bool, zero_pad: bool, width: usize) {
     let s = if upper {
         format!("{:X}", val)
     } else {
         format!("{:x}", val)
     };
-    for b in s.bytes() {
+    emit_padded_signed(bus, &s, zero_pad, width, false);
+}
+
+fn emit_padded_signed(bus: &mut Bus, body: &str, zero_pad: bool, width: usize, negative: bool) {
+    let body_len = body.len();
+    let sign_len = if negative { 1 } else { 0 };
+    let total_len = body_len + sign_len;
+
+    let pad_char = if zero_pad { b'0' } else { b' ' };
+
+    if zero_pad && negative {
+        bus.tty_push(b'-');
+        for _ in 0..(width.saturating_sub(total_len)) {
+            bus.tty_push(pad_char);
+        }
+    } else {
+        for _ in 0..(width.saturating_sub(total_len)) {
+            bus.tty_push(pad_char);
+        }
+        if negative {
+            bus.tty_push(b'-');
+        }
+    }
+
+    for b in body.bytes() {
         bus.tty_push(b);
     }
 }

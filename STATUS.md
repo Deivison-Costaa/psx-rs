@@ -5,15 +5,14 @@
 
 ## Última iteração concluída
 
-**0093** — Diagnóstico do pad test + handler de exceção no sideload de PS-EXE (ROADMAP 10.36).
+**0095** — Handler de exceção corrigido (mfc0+jr+rfe) e registrado item 4.4e (ROADMAP 4.4e).
 
 ## Próxima tarefa
 
-**ROADMAP 6.3 — Memory card (.mcd).**
-Spec: `docs/reference/10-controllers-memcards.md`.
-Arquivos-alvo: `crates/psx-core/src/sio.rs` (ampliar para responder ao address byte 81h com protocolo de memory card).
-Armadilha: o memory card usa address byte 81h (não 01h como o pad); a resposta inclui FLAG byte e ACK; comandos ReadS/WriteS/GetID têm timing de setor.
-A fila: depois volta GTE 5.4b.
+**ROADMAP 4.4d — Investigar por que I_MASK permanece 0x0000 durante o boot da BIOS.**
+O handler de exceção foi corrigido na 0095 (mfc0+jr+rfe) mas sem I_MASK != 0, interrupções nunca vetoram.
+Spec: `docs/reference/11-interrupts.md`. Arquivos-alvo: `crates/psx-core/src/bus.rs`, `crates/psx-core/src/cpu.rs`.
+Armadilha: o BIOS pode escrever I_MASK via `sh` (já resolvido na 0085), mas I_MASK continua 0x0000 — o BIOS pode não alcançar o código que escreve I_MASK.
 
 ## Prioridade — boot da BIOS travado
 
@@ -31,7 +30,7 @@ Após o 4.4c (I_MASK via SH), verificado: TTY do boot da BIOS ainda mostra `VSyn
 
 ## Placar de testes
 
-Workspace: **685** testes.
+Workspace: **689** testes.
 
 ## Bloqueios
 

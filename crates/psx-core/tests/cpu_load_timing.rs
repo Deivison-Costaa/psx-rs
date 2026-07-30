@@ -1,4 +1,4 @@
-use psx_core::bus::{Bus, BusRead};
+use psx_core::bus::BusRead;
 use psx_core::cpu::Cpu;
 
 mod support;

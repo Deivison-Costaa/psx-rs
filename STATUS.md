@@ -40,7 +40,7 @@ caíram.
 
 ## Placar de testes
 
-Workspace: **713** testes.
+Workspace: **720** testes.
 
 ## Bloqueios
 

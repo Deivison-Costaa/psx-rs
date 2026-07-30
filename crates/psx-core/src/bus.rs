@@ -607,6 +607,15 @@ impl Bus {
         self.ram.data[idx + 1] = bytes[1];
     }
 
+    pub fn load_cycles(addr: u32) -> u32 {
+        match Self::to_physical(addr) {
+            0x1F80_0000..=0x1F80_03FF => 1,
+            0x1F80_1000..=0x1F80_2FFF => 5,
+            0x1FC0_0000..=0x1FC7_FFFF => 27,
+            _ => 7,
+        }
+    }
+
     fn to_physical(addr: u32) -> u32 {
         match addr >> 29 {
             0b010 => addr & 0x1FFF_FFFF, // 0x4000_0000..0x5FFF_FFFF

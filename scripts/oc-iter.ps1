@@ -8,7 +8,11 @@
 param(
     [string]$Model = "deepseek/deepseek-v4-pro",
     [string]$TaskOverride = "",
-    [int]$TimeoutMin = 45,
+    # Parede da rodada. Era 45 min e matava rodada VIVA: 3 das 25 rodadas de 29-30/07 morreram
+    # exatas em 2 700 023 ms com o JSON ainda crescendo. A rodada boa mediana leva 28 min, e
+    # rodada morta de verdade agora cai em ~90 s pelo $TravamentoMin — a parede so precisa
+    # cobrir a cauda lenta.
+    [int]$TimeoutMin = 75,
     # Janela sem NENHUM byte novo no JSON da rodada que caracteriza provedor mudo. Ver o doc
     # da iteracao 0098 para as duas medicoes que fixaram este valor.
     [int]$TravamentoMin = 5,

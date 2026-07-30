@@ -10,9 +10,14 @@ se algo aqui conflitar com outro doc, este ganha e o outro deve ser corrigido.
 
 ## Passo 0 — Contexto mínimo
 
-Leia `STATUS.md` inteiro (é curto). A seção **Próxima tarefa** define o item e as seções de
-spec. Abra no `ROADMAP.md` SÓ a linha do item. Não leia mais nada "de graça" (R8) — nem
-`tests/` inteiro, nem specs inteiras, nem iterações antigas.
+Leia `STATUS.md` inteiro (é curto — teto de 6 KB). A seção **Próxima tarefa** define o item e
+as seções de spec. Abra no `ROADMAP.md` SÓ a linha do item. Em `docs/invariantes.md` abra SÓ as
+entradas listadas na linha `Invariantes relevantes:` do handoff — o arquivo inteiro é referência
+de 8 KB e ler tudo é justamente o que o teto do STATUS existe para evitar. Não leia mais nada
+"de graça" (R8) — nem `tests/` inteiro, nem specs inteiras, nem iterações antigas.
+
+No passo 8, ao atualizar o `STATUS.md`: invariante nova vai para o **fim** de
+`docs/invariantes.md` com número novo, nunca para o STATUS, e nunca renumerando as existentes.
 
 ## Passo 1 — Bloqueios
 

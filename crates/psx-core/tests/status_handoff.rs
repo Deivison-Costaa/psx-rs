@@ -60,7 +60,8 @@ fn numerados(texto: &str) -> HashSet<u32> {
 #[test]
 fn proxima_tarefa_cita_item_que_existe_no_roadmap() {
     let status = ler("STATUS.md");
-    let tarefa = secao(&status, "Próxima tarefa").expect("STATUS.md precisa da secao 'Próxima tarefa'");
+    let tarefa =
+        secao(&status, "Próxima tarefa").expect("STATUS.md precisa da secao 'Próxima tarefa'");
     let citados = ids_citados(tarefa);
 
     assert!(
@@ -71,7 +72,10 @@ fn proxima_tarefa_cita_item_que_existe_no_roadmap() {
     );
 
     let existentes = ids_existentes();
-    let fantasmas: Vec<&String> = citados.iter().filter(|id| !existentes.contains(*id)).collect();
+    let fantasmas: Vec<&String> = citados
+        .iter()
+        .filter(|id| !existentes.contains(*id))
+        .collect();
     assert!(
         fantasmas.is_empty(),
         "a 'Próxima tarefa' aponta para item que nao existe nem no ROADMAP.md nem no arquivo de \
@@ -137,7 +141,8 @@ fn placar_do_status_bate_com_a_contagem_de_testes() {
 #[test]
 fn handoff_aponta_invariantes_por_numero() {
     let status = ler("STATUS.md");
-    let tarefa = secao(&status, "Próxima tarefa").expect("STATUS.md precisa da secao 'Próxima tarefa'");
+    let tarefa =
+        secao(&status, "Próxima tarefa").expect("STATUS.md precisa da secao 'Próxima tarefa'");
     let linha = tarefa
         .lines()
         .find(|l| l.contains("Invariantes relevantes:"))
@@ -165,7 +170,10 @@ fn handoff_aponta_invariantes_por_numero() {
     );
 
     let existentes = numerados(&ler(INVARIANTES));
-    let fantasmas: Vec<&u32> = citados.iter().filter(|n| !existentes.contains(*n)).collect();
+    let fantasmas: Vec<&u32> = citados
+        .iter()
+        .filter(|n| !existentes.contains(*n))
+        .collect();
     assert!(
         fantasmas.is_empty(),
         "o handoff cita invariante que nao existe em {INVARIANTES}: {fantasmas:?}. Numero errado \

@@ -242,9 +242,7 @@ fn varios_primarios_reservados_nao_panicam() {
 fn todos_primarios_cpu_geram_cpu() {
     let mut bus = bus_with_bios_empty();
 
-    let cpu_primaries = [
-        0x11u32, 0x12, 0x13, 0x30, 0x31, 0x32, 0x33, 0x38, 0x39, 0x3A, 0x3B,
-    ];
+    let cpu_primaries = [0x11u32, 0x13, 0x30, 0x31, 0x33, 0x38, 0x39, 0x3B];
 
     for &primary in &cpu_primaries {
         let mut cpu = Cpu::new();

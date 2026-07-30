@@ -109,7 +109,13 @@ rotulo: inverte ordem dos ifs em index_match_ambiguity (cosmetico)
     if matches.len() <= 1 {
         return None;
     }
+    if matches.iter().any(|e| normalize_title(&e.title) == s) {
+        return None;
+    }
     let max_len = matches
 @@PARA
+    if matches.iter().any(|e| normalize_title(&e.title) == s) {
+        return None;
+    }
     let max_len = matches
 @@FIM

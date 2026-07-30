@@ -31,12 +31,17 @@ fn triangulo_texturizado(
 fn textura_4bpp_le_a_linha_certa_para_v_maior_que_zero() {
     let mut gpu = Gpu::new();
 
-    escreve_vram(&mut gpu, 0, 0, 0x0001);
-    escreve_vram(&mut gpu, 0, 1, 0x0002);
-    escreve_vram(&mut gpu, 0, 2, 0x0003);
+    escreve_vram(&mut gpu, 0, 0, 0x000A);
+    escreve_vram(&mut gpu, 0, 1, 0x4321);
+    escreve_vram(&mut gpu, 1, 1, 0x5555);
+    escreve_vram(&mut gpu, 0, 2, 0x0006);
     escreve_vram(&mut gpu, 1, 100, 0x1111);
     escreve_vram(&mut gpu, 2, 100, 0x2222);
     escreve_vram(&mut gpu, 3, 100, 0x3333);
+    escreve_vram(&mut gpu, 4, 100, 0x4444);
+    escreve_vram(&mut gpu, 5, 100, 0x5555);
+    escreve_vram(&mut gpu, 6, 100, 0x6666);
+    escreve_vram(&mut gpu, 10, 100, 0xAAAA);
 
     triangulo_texturizado(
         &mut gpu,
@@ -47,12 +52,12 @@ fn textura_4bpp_le_a_linha_certa_para_v_maior_que_zero() {
 
     assert_eq!(
         gpu.vram_pixel(10, 10),
-        0x1111,
+        0xAAAA,
         "v=0 le a linha 0 da textura — este e o unico caso que os testes antigos cobriam"
     );
     assert_eq!(
         gpu.vram_pixel(10, 11),
-        0x2222,
+        0x1111,
         "v=1 tem de ler a LINHA 1 da textura. `docs/reference/03-gpu.md` L246-252: a coordenada \
          horizontal endereca a VRAM em unidades de 4 bits, e a linha e escolhida separadamente por \
          v. Somar v*256 ao deslocamento horizontal conta a linha DUAS vezes: cada linha anda 64 \
@@ -61,8 +66,20 @@ fn textura_4bpp_le_a_linha_certa_para_v_maior_que_zero() {
     );
     assert_eq!(
         gpu.vram_pixel(10, 12),
-        0x3333,
+        0x6666,
         "v=2 le a linha 2 da textura"
+    );
+
+    assert_eq!(
+        [
+            gpu.vram_pixel(11, 11),
+            gpu.vram_pixel(12, 11),
+            gpu.vram_pixel(13, 11),
+        ],
+        [0x2222, 0x3333, 0x4444],
+        "dentro da MESMA linha v=1, os quatro texels de um halfword vem dos quatro nibbles: o \
+         deslocamento horizontal e u/4 e o nibble e u%4. Ler u/2 faria u=2 e u=3 cairem no \
+         halfword seguinte (que aqui vale 0x5555) em vez de continuarem no primeiro"
     );
 }
 
@@ -71,9 +88,12 @@ fn textura_8bpp_le_a_linha_certa_para_v_maior_que_zero() {
     let mut gpu = Gpu::new();
 
     escreve_vram(&mut gpu, 0, 0, 0x0001);
-    escreve_vram(&mut gpu, 0, 1, 0x0002);
+    escreve_vram(&mut gpu, 0, 1, 0x0201);
+    escreve_vram(&mut gpu, 1, 1, 0x0403);
     escreve_vram(&mut gpu, 1, 100, 0x4444);
     escreve_vram(&mut gpu, 2, 100, 0x5555);
+    escreve_vram(&mut gpu, 3, 100, 0x6666);
+    escreve_vram(&mut gpu, 4, 100, 0x7777);
 
     triangulo_texturizado(
         &mut gpu,
@@ -85,9 +105,19 @@ fn textura_8bpp_le_a_linha_certa_para_v_maior_que_zero() {
     assert_eq!(gpu.vram_pixel(20, 20), 0x4444, "8bpp, v=0, linha 0");
     assert_eq!(
         gpu.vram_pixel(20, 21),
-        0x5555,
+        0x4444,
         "8bpp com v=1 tem o mesmo defeito de endereco do 4bpp: o deslocamento horizontal e u/2, \
          nao (v*256 + u)/2"
+    );
+    assert_eq!(
+        [
+            gpu.vram_pixel(21, 21),
+            gpu.vram_pixel(22, 21),
+            gpu.vram_pixel(23, 21),
+        ],
+        [0x5555, 0x6666, 0x7777],
+        "em 8bpp cabem DOIS texels por halfword: u/2 escolhe o halfword e u%2 escolhe o byte. \
+         Dividir por 4 faria u=2 e u=3 lerem o primeiro halfword de novo"
     );
 }
 

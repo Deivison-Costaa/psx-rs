@@ -1,0 +1,11 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: 0a49cdf2e2601fbab91115d140d32fca473e178e
+# rodado_em: 2026-07-30T17:59:40-03:00
+m1,mutante,morreu,morreu,0.8,laco_de_espera_da_bios_cobre_um_frame;lw_da_ram_principal_custa_7_ciclos
+m2,mutante,morreu,morreu,0.8,lw_do_scratchpad_custa_1_ciclo
+m3,mutante,morreu,morreu,0.8,lw_de_io_on_die_custa_5_ciclos
+m4,mutante,morreu,morreu,0.8,lw_da_bios_custa_27_ciclos
+m5,mutante,morreu,morreu,0.8,lw_de_io_on_die_custa_5_ciclos
+m6,mutante,morreu,morreu,0.8,lw_da_bios_custa_27_ciclos
+c1,controle,sobreviveu,sobreviveu,0.7,
+c2,controle,sobreviveu,sobreviveu,0.8,

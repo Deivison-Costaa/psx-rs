@@ -222,6 +222,10 @@ impl Bus {
         }
     }
 
+    pub fn total_cycles(&self) -> u64 {
+        self.total_cycles
+    }
+
     pub fn tick_timers(&mut self, cycles: u32) {
         self.total_cycles += cycles as u64;
 
@@ -601,6 +605,15 @@ impl Bus {
         let bytes = val.to_le_bytes();
         self.ram.data[idx] = bytes[0];
         self.ram.data[idx + 1] = bytes[1];
+    }
+
+    pub fn load_cycles(addr: u32) -> u32 {
+        match Self::to_physical(addr) {
+            0x1F80_0000..=0x1F80_03FF => 1,
+            0x1F80_1000..=0x1F80_2FFF => 5,
+            0x1FC0_0000..=0x1FC7_FFFF => 27,
+            _ => 7,
+        }
     }
 
     fn to_physical(addr: u32) -> u32 {

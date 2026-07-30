@@ -7,26 +7,26 @@
 
 ## Última iteração concluída
 
-**0103** — interrupção no delay slot descarta o salto pendente e recua o EPC; o boot da BIOS passa
-do passo 26 595 832 (ROADMAP 4.4f).
+**0104** — custo em ciclos do load por regiao de memoria; a BIOS boota sem nenhum `VSync: timeout`
+e desenha o logo da PlayStation (ROADMAP 4.4g).
 
 ## Próxima tarefa
 
-**ROADMAP 4.4g — a BIOS ainda imprime `VSync: timeout`, agora com o contador avançando.**
-Depois do 4.4f o boot não morre mais: sobrevive aos 50 M passos, com **0** chamadas a
-`A0(40h)` (eram 1 071 429) e **0** buscas em PC=3. O TTY foi de **557** para **2 029** bytes e
-agora chega a `ResetCallback: _96_remove ..`. O que sobra é a espera de VSync não ser satisfeita:
-as mensagens seguem de `(2:1)` até `(55:54)` em 50 M passos, isto é, o kernel **conta** os vblanks
-mas quem espera nunca é acordado. Comparar com o 4.4e: o handler agora roda inteiro (antes durava
-uma instrução), então a hipótese a testar primeiro é o **acordar do evento**, não o dispatch.
-Arquivos-alvo: `crates/psx-core/src/bus.rs`, `crates/psx-core/src/cpu.rs`.
-Critério de aceitação: o TTY do boot passa de `ResetCallback` sem nova mensagem de `VSync: timeout`.
-Invariantes relevantes: 16.
+**ROADMAP 2.2b — GP0(80h), o blit VRAM->VRAM, hoje consumido e ignorado.**
+Com o 4.4g fechado a BIOS chega a desenhar: 179 774 pixels nao-zero na VRAM, 540 cores, display
+configurado (x=0, y=241, range 608..3168). Mas a tela sai errada em tres pontos que apontam para o
+mesmo comando: o losango do logo aparece so pela metade de baixo; onde deveria estar a palavra
+"PlayStation" saem barras vermelhas horizontais; e o sprite `SONY COMPUTER ENTERTAINMENT` esta
+carregado na VRAM (canto superior direito) mas nunca e composto na tela. Os tres sao copia de
+retangulo dentro da VRAM.
+Spec: `docs/reference/03-gpu.md`, secao GP0(80h) VRAM-to-VRAM (offset +115 sobre o indice).
+Arquivos-alvo: `crates/psx-core/src/gpu.rs`.
+Critério de aceitação: o losango do logo fica inteiro e o texto "PlayStation" deixa de ser barra.
+Invariantes relevantes: 13, 17.
 
-**Medido e descartado — não repetir:** dispatch de eventos do kernel (a trilha vai de `80000080`
-ao kernel em RAM), base de tempo (89 vblanks em 50 M passos) e bit10 do modo do timer.
-**TTY idêntico ao da `main` significa que não consertou nada** — foi assim que os PRs #114 e #115
-caíram.
+**Como medir sem chute:** rode `psx-cli --bios <BIOS>` por ~400M passos e despeje a VRAM
+(1024x512, 16bpp) — a comparacao e visual e direta. O item 10.7 (mask setting aplicado ao
+VRAM->VRAM) e vizinho e NAO entra aqui (R4).
 
 ## Repositório
 
@@ -40,9 +40,10 @@ caíram.
 
 ## Placar de testes
 
-Workspace: **713** testes.
+Workspace: **720** testes.
 
 ## Bloqueios
 
-- **4.4 Boot de jogo**: depende de imagem BIN/CUE fornecida pelo usuário. Não inventar,
-  não baixar, não marcar. Quando a imagem estiver disponível, desbloquear.
+- **4.4 Boot de jogo**: DESBLOQUEADO em 30/07 — o usuário forneceu as imagens. Ficam fora do
+  repositório, em `C:\psx-roms\` (extraídas dos zips em `.../roms`). **Nunca commitar imagem de
+  disco.** Depende agora do 2.2b.

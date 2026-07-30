@@ -13,6 +13,7 @@ pub struct Cpu {
     branch_taken: bool,
     pending_exception: Option<u8>,
     exception_badvaddr: Option<u32>,
+    load_extra_cycles: u32,
 }
 
 impl Cpu {
@@ -39,6 +40,7 @@ impl Cpu {
             branch_taken: false,
             pending_exception: None,
             exception_badvaddr: None,
+            load_extra_cycles: 0,
         }
     }
 
@@ -169,11 +171,16 @@ impl Cpu {
                 self.load_delay = Some((reg, val));
             }
         }
-        bus.tick_timers(1);
+        bus.tick_timers(1 + std::mem::take(&mut self.load_extra_cycles));
     }
 
     fn execute(&mut self, instr: u32, bus: &mut Bus) -> Option<(usize, u32)> {
         let primary = instr >> 26;
+        if (0x20..=0x26).contains(&primary) {
+            let rs = ((instr >> 21) & 0x1F) as usize;
+            let addr = self.reg(rs).wrapping_add(Self::sign_extend_imm(instr));
+            self.load_extra_cycles = Bus::load_cycles(addr) - 1;
+        }
         match primary {
             0x00 => {
                 self.special(instr);

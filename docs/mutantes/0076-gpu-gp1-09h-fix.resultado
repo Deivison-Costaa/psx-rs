@@ -1,10 +1,10 @@
 # gerado por scripts/mutantes.ps1 — NAO editar a mao
-# commit: c3f3d10a0bbdc484928351a90dcf0923e599cc1f
-# rodado_em: 2026-07-29T22:04:16-03:00
-m1,mutante,morreu,morreu,0.7,gp1_09h_fechar_gate_nao_limpa_gpustat_15
-m2,mutante,morreu,morreu,0.8,e1h_com_gate_aberto_mantem_bits_0_10;gp1_09h_abre_o_gate_do_bit_15;gp1_09h_fechar_gate_nao_limpa_gpustat_15;poligono_texturizado_com_gate_aberto_seta_gpustat_15
+# commit: d7c3a6eedffded7c4df85065dab1bde6fdcde322
+# rodado_em: 2026-07-29T22:06:45-03:00
+m1,mutante,morreu,morreu,0.8,gp1_09h_fechar_gate_nao_limpa_gpustat_15
+m2,mutante,morreu,morreu,0.7,e1h_com_gate_aberto_mantem_bits_0_10;gp1_09h_abre_o_gate_do_bit_15;gp1_09h_fechar_gate_nao_limpa_gpustat_15;poligono_texturizado_com_gate_aberto_seta_gpustat_15
 m3,mutante,morreu,morreu,0.7,e1h_com_gate_aberto_mantem_bits_0_10;gp1_09h_abre_o_gate_do_bit_15;gp1_09h_fechar_gate_nao_limpa_gpustat_15;poligono_texturizado_com_gate_aberto_seta_gpustat_15
 m4,mutante,morreu,morreu,0.7,gp1_09h_gate_fechado_mascara_reescrita_e1h
-m5,mutante,morreu,morreu,0.8,e1h_com_gate_aberto_mantem_bits_0_10;gp1_09h_abre_o_gate_do_bit_15;gp1_09h_fechar_gate_nao_limpa_gpustat_15;poligono_texturizado_com_gate_aberto_seta_gpustat_15
-c1,controle,sobreviveu,sobreviveu,0.8,
+m5,mutante,morreu,morreu,0.7,e1h_com_gate_aberto_mantem_bits_0_10;gp1_09h_abre_o_gate_do_bit_15;gp1_09h_fechar_gate_nao_limpa_gpustat_15;poligono_texturizado_com_gate_aberto_seta_gpustat_15
+c1,controle,sobreviveu,sobreviveu,0.7,
 c2,controle,sobreviveu,sobreviveu,0.7,

@@ -49,9 +49,17 @@ impl Gte {
         let cmd = func & 0x3F;
         let sf = (func >> 19) & 1;
         let lm = (func >> 10) & 1;
+
+        self.regs[63] &= 0x7FFF_F000;
+
         match cmd {
             0x01 => self.rtps(sf, lm),
             0x30 => self.rtpt(sf, lm),
+            0x06 => self.nclip(),
+            0x2D => self.avsz3(),
+            0x2E => self.avsz4(),
+            0x28 => self.sqr(sf),
+            0x0C => self.op(sf, lm),
             _ => {}
         }
     }
@@ -64,6 +72,137 @@ impl Gte {
         self.exec_rtps_vertex(0, sf, lm);
         self.exec_rtps_vertex(1, sf, lm);
         self.exec_rtps_vertex(2, sf, lm);
+    }
+
+    fn nclip(&mut self) {
+        let mut flag: u32 = 0;
+
+        let sx0 = self.regs[12] as i16 as i64;
+        let sy0 = (self.regs[12] >> 16) as i16 as i64;
+        let sx1 = self.regs[13] as i16 as i64;
+        let sy1 = (self.regs[13] >> 16) as i16 as i64;
+        let sx2 = self.regs[14] as i16 as i64;
+        let sy2 = (self.regs[14] >> 16) as i16 as i64;
+
+        let mac0 = sx0 * sy1 + sx1 * sy2 + sx2 * sy0 - sx0 * sy2 - sx1 * sy0 - sx2 * sy1;
+
+        if mac0 > 0x7FFF_FFFF {
+            flag |= 1 << 16;
+        } else if mac0 < -0x8000_0000i64 {
+            flag |= 1 << 15;
+        }
+
+        self.regs[24] = mac0 as u32;
+        self.regs[63] |= flag;
+    }
+
+    fn avsz3(&mut self) {
+        let mut flag: u32 = 0;
+
+        let zsf3 = self.regs[61] as i16 as i64;
+        let sz1 = self.regs[17] as i64;
+        let sz2 = self.regs[18] as i64;
+        let sz3 = self.regs[19] as i64;
+
+        let mac0 = zsf3 * (sz1 + sz2 + sz3);
+        self.regs[24] = mac0 as u32;
+
+        let otz = mac0 / 0x1000;
+        let otz_clamped = if otz > 0xFFFF {
+            flag |= 1 << 18;
+            0xFFFFu32
+        } else if otz < 0 {
+            flag |= 1 << 18;
+            0u32
+        } else {
+            otz as u32
+        };
+
+        self.regs[7] = otz_clamped;
+        self.regs[63] |= flag;
+    }
+
+    fn avsz4(&mut self) {
+        let mut flag: u32 = 0;
+
+        let zsf4 = self.regs[62] as i16 as i64;
+        let sz0 = self.regs[16] as i64;
+        let sz1 = self.regs[17] as i64;
+        let sz2 = self.regs[18] as i64;
+        let sz3 = self.regs[19] as i64;
+
+        let mac0 = zsf4 * (sz0 + sz1 + sz2 + sz3);
+        self.regs[24] = mac0 as u32;
+
+        let otz = mac0 / 0x1000;
+        let otz_clamped = if otz > 0xFFFF {
+            flag |= 1 << 18;
+            0xFFFFu32
+        } else if otz < 0 {
+            flag |= 1 << 18;
+            0u32
+        } else {
+            otz as u32
+        };
+
+        self.regs[7] = otz_clamped;
+        self.regs[63] |= flag;
+    }
+
+    fn sqr(&mut self, sf: u32) {
+        let mut flag: u32 = 0;
+
+        let ir1 = self.regs[9] as i16 as i64;
+        let ir2 = self.regs[10] as i16 as i64;
+        let ir3 = self.regs[11] as i16 as i64;
+
+        let shift = sf * 12;
+        let mac1 = (ir1 * ir1) >> shift;
+        let mac2 = (ir2 * ir2) >> shift;
+        let mac3 = (ir3 * ir3) >> shift;
+
+        self.regs[25] = mac1 as u32;
+        self.regs[26] = mac2 as u32;
+        self.regs[27] = mac3 as u32;
+
+        let ir1_clamped = saturate_ir(mac1, 1, 24, &mut flag, false);
+        let ir2_clamped = saturate_ir(mac2, 1, 23, &mut flag, false);
+        let ir3_clamped = saturate_ir(mac3, 1, 22, &mut flag, false);
+
+        self.regs[9] = ir1_clamped as u32;
+        self.regs[10] = ir2_clamped as u32;
+        self.regs[11] = ir3_clamped as u32;
+        self.regs[63] |= flag;
+    }
+
+    fn op(&mut self, sf: u32, lm: u32) {
+        let mut flag: u32 = 0;
+
+        let ir1 = self.regs[9] as i16 as i64;
+        let ir2 = self.regs[10] as i16 as i64;
+        let ir3 = self.regs[11] as i16 as i64;
+
+        let d1 = self.regs[32] as i16 as i64;
+        let d2 = self.regs[34] as i16 as i64;
+        let d3 = self.regs[36] as i16 as i64;
+
+        let shift = sf * 12;
+        let mac1 = (ir3 * d2 - ir2 * d3) >> shift;
+        let mac2 = (ir1 * d3 - ir3 * d1) >> shift;
+        let mac3 = (ir2 * d1 - ir1 * d2) >> shift;
+
+        self.regs[25] = mac1 as u32;
+        self.regs[26] = mac2 as u32;
+        self.regs[27] = mac3 as u32;
+
+        let ir1_clamped = saturate_ir(mac1, lm, 24, &mut flag, false);
+        let ir2_clamped = saturate_ir(mac2, lm, 23, &mut flag, false);
+        let ir3_clamped = saturate_ir(mac3, lm, 22, &mut flag, false);
+
+        self.regs[9] = ir1_clamped as u32;
+        self.regs[10] = ir2_clamped as u32;
+        self.regs[11] = ir3_clamped as u32;
+        self.regs[63] |= flag;
     }
 
     fn exec_rtps_vertex(&mut self, vi: usize, sf: u32, lm: u32) {

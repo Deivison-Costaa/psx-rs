@@ -27,7 +27,6 @@ rotulo: retorna primeiro match em vez do mais longo (regressao)
 
 mutante: m2
 rotulo: retorna None quando ha multiplos matches (ignora comprimento)
-ocorrencias: 2
 @@DE
         .filter(|e| title_contains(&s, &e.title))
         .collect();
@@ -56,7 +55,6 @@ ocorrencias: 2
 
 mutante: m4
 rotulo: longest.len() >= 1 aceita empate silencioso
-ocorrencias: 2
 @@DE
     if longest.len() == 1 {
         return Some(longest[0]);

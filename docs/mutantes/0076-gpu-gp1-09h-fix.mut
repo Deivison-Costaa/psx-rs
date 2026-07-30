@@ -34,8 +34,10 @@ rotulo: GP1(09h) nao atualiza allow_upper_y (corpo vazio)
 mutante: m3
 rotulo: GP1(09h) le bit 3 em vez de bit 0 (val >> 3)
 @@DE
+            0x09 => {
                 let bit = val & 1;
 @@PARA
+            0x09 => {
                 let bit = (val >> 3) & 1;
 @@FIM
 

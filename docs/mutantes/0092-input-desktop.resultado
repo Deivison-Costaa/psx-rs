@@ -1,7 +1,10 @@
 # gerado por scripts/mutantes.ps1 — NAO editar a mao
-# commit: 90d9e7a256e85a10e6be7742c7344147b4e5dd54
-# rodado_em: 2026-07-30T08:52:19-03:00
+# commit: 23b8f4216996b4305ba5c7120a4ff723cddc7708
+# rodado_em: 2026-07-30T08:53:26-03:00
 m1,mutante,morreu,morreu,0.8,botoes_pressionados_aparecem_na_resposta_42h
-m2,mutante,morreu,morreu,0.8,botoes_pressionados_aparecem_na_resposta_42h
+m2,mutante,morreu,morreu,0.7,botoes_pressionados_aparecem_na_resposta_42h
 m3,mutante,morreu,morreu,0.7,botoes_pressionados_aparecem_na_resposta_42h
 m4,mutante,morreu,morreu,0.7,pad_digital_responde_5a41_ffff_ao_comando_42h
+m5,mutante,morreu,morreu,0.7,botoes_pressionados_aparecem_na_resposta_42h;botoes_soltos_retornam_ff;pad_digital_responde_5a41_ffff_ao_comando_42h
+c1,controle,sobreviveu,sobreviveu,0.8,
+c2,controle,sobreviveu,sobreviveu,0.8,

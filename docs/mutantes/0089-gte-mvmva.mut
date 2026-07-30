@@ -47,12 +47,11 @@ ocorrencias: 2
 @@FIM
 
 mutante: m6
-rotulo: MVMVA forca shift=0 (ignora sf)
-ocorrencias: 4
+rotulo: MVMVA raw2 usa tx em vez de ty
 @@DE
-        let shift = sf * 12;
+            raw2 = ty * 0x1000
 @@PARA
-        let shift = 0;
+            raw2 = tx * 0x1000
 @@FIM
 
 mutante: m7

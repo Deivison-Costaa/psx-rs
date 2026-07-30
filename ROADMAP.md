@@ -81,7 +81,10 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [x] 5.1 Registradores + MFC2/MTC2/CFC2/CTC2/LWC2/SWC2 (iter 0084)
 - [x] 5.2 RTPS/RTPT + divisão UNR (iter 0086)
 - [x] 5.3 NCLIP/AVSZ3/AVSZ4/SQR/OP (iter 0088)
-- [ ] 5.4 MVMVA + comandos de iluminação (NCS/NCT/NCDS/NCCS...)
+- [x] 5.4a MVMVA (iter 0089)
+- [ ] 5.4b NCS/NCT/NCCS/NCCT
+- [ ] 5.4c NCDS/NCDT/CC/CDP
+- [ ] 5.4d DCPL/DPCS/DPCT/INTPL
 - [ ] 5.5 Flags de saturação/overflow completos
 - [ ] 5.6 Amidog psxtest_gte no scoreboard → jogo 3D jogável
 

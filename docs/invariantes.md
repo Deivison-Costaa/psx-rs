@@ -113,16 +113,22 @@ Regra imposta por `status_handoff.rs`.
     `(x + col) & 0x3FF`, e como `0x400` divide `2^16` a mascara de fora nao muda nada — foi o
     equivalente m3 da bateria 0105. Para Y a conta nao vale: `0x200` nao divide `2^16`, entao
     `& 0x1FF` na entrada e observavel. Quem for otimizar isto nao pode tratar os dois eixos igual.
-20. **CORRIGIDA EM 30/07 — o losango cortado E defeito nosso.** A versao anterior desta nota dizia
-    que talvez nao fosse, por falta de referencia. O usuario forneceu a referencia (a tela oficial
-    "SONY COMPUTER ENTERTAINMENT"): o losango real e **completo**, quatro pontas, centralizado,
-    com o "S" vazado; "SONY" fica **acima** em azul-escuro e "COMPUTER ENTERTAINMENT" **abaixo**,
-    tambem azul-escuro, sobre fundo **branco**. Continua valendo o que foi medido — a BIOS emite
-    triangulos de 256 linhas para uma area de desenho de 240 que ela mesma programou, e nos
-    recortamos certo. Logo o erro esta ANTES do recorte: as coordenadas chegam grandes demais e
-    deslocadas para baixo. O losango e 3D e passa pelo GTE, entao a suspeita primaria e a projecao
-    (RTPS/RTPT, divisao UNR, OFX/OFY). **Nao mexer no recorte** — ele tem teste proprio e esta
-    certo. Itens 2.2d, 2.2e e 2.2f.
+20. **A tela de boot esperada, e as hipoteses ja eliminadas.** Referencia fornecida pelo usuario
+    em 30/07 (tela oficial "SONY COMPUTER ENTERTAINMENT"): fundo **branco**; "SONY" **acima**, em
+    azul-escuro; losango **completo**, quatro pontas, dourado/laranja com o "S" vazado, centrado;
+    "COMPUTER ENTERTAINMENT" **abaixo**, azul-escuro. Ver `docs/referencias/tela-de-boot.md`.
+    Nosso desvio medido: fundo cinza (180,180,180), "SONY" vermelho, losango so pela metade de
+    baixo, texto de baixo ausente. Itens 2.2d (geometria), 2.2e (cor), 2.2f (texto ausente).
+    O losango ocupa `y=112..368` (centro 240, altura 256) num framebuffer de 640x240, onde o centro
+    devia ser 120 e a altura ~128: **Y e exatamente o dobro, X esta certo**.
+    **Nao mexer no recorte pela area de desenho** — ele tem teste proprio, esta certo, e e o
+    caminho mais tentador para deixar a tela bonita escondendo a causa. A BIOS realmente emite
+    256 linhas para uma area de 240 que ela mesma programou; o erro esta ANTES do recorte.
+    **Hipoteses ja medidas e ELIMINADAS para o 2.2d — nao repetir:** (a) projecao do GTE — **zero**
+    chamadas de `rtps` em 85 M passos, o logo nao passa pelo GTE; (b) resolucao vertical mal
+    reportada — `GPUSTAT=0x1406260D`, 640x240 sem entrelacamento, correto; (c) vertice escrito
+    direto pela CPU — nenhum `sw` com o valor do vertice, a lista de display vai por **DMA**.
+    Proximo passo: interceptar o canal 2 do DMA e ler os pacotes na RAM.
 21. **A visualizacao da VRAM como cor engana em regiao de textura 4bpp.** No despejo, a area da
     texpage aparece rosa/azul porque cada halfword vira um pixel de 15 bits; ali cada halfword sao
     **quatro indices de CLUT**, nao uma cor. Ja me levou a suspeitar de cor errada na textura onde

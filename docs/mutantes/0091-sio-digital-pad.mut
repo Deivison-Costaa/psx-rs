@@ -1,0 +1,110 @@
+# Manifesto de mutação da iteração 0091 — sio-digital-pad
+formato: 1
+iteracao: 0091
+item: 6.1
+alvo: crates/psx-core/src/sio.rs
+teste: sio_digital_pad
+
+mutante: m1
+rotulo: resposta de pad digital sempre 0xFF (ignora pad_connected)
+@@DE
+        } else if self.pad_connected.get() {
+@@PARA
+        } else if false {
+@@FIM
+
+mutante: m2
+rotulo: STAT.1 nunca reporta RX data (rx_fifo sempre vazio)
+@@DE
+        if self.rx_fifo.borrow().is_empty() {
+            s &= !0x02;
+        } else {
+            s |= 0x02;
+        }
+@@PARA
+        s &= !0x02;
+@@FIM
+
+mutante: m3
+rotulo: send_byte nao empurra resposta para rx_fifo
+@@DE
+        self.rx_fifo.borrow_mut().push(response);
+@@PARA
+        // nao empurra
+@@FIM
+
+mutante: m4
+rotulo: cs_asserted sempre retorna false
+@@DE
+        (self.ctrl.get() & (1 << 1)) != 0
+@@PARA
+        false
+@@FIM
+
+mutante: m5
+rotulo: ctrl bit4 ack nao limpa STAT.9
+@@DE
+            let mut s = self.stat.get();
+            s &= !(1 << 9);
+            self.stat.set(s);
+            self.irq7_pending.set(false);
+            self.ctrl.set(self.ctrl.get() & !(1 << 4));
+@@PARA
+            self.ctrl.set(self.ctrl.get() & !(1 << 4));
+@@FIM
+
+mutante: m6
+rotulo: DTR transicao nao reseta byte_count (desassert de /CS nao reseta contagem)
+@@DE
+        if !self.cs_asserted() && prev_cs {
+            self.byte_count.set(0);
+            self.rx_fifo.borrow_mut().clear();
+            let mut s = self.stat.get();
+            s &= !0x02;
+            s &= !0x80;
+            self.stat.set(s);
+        }
+@@PARA
+        // nao reseta contagem de bytes ao desassertar /CS
+@@FIM
+
+controle: c1
+rotulo: variavel _unused no inicio de read_stat
+@@DE
+    pub fn read_stat(&self) -> u32 {
+        let mut s = self.stat.get();
+@@PARA
+    pub fn read_stat(&self) -> u32 {
+        let _unused = 0;
+        let mut s = self.stat.get();
+@@FIM
+
+controle: c2
+rotulo: reordena match de read_byte (1044..104F antes de 1040, funcionalmente equivalente)
+@@DE
+            0x1F80_1040 => self.pop_rx(),
+            0x1F80_1044 => (self.read_stat() & 0xFF) as u8,
+            0x1F80_1045 => ((self.read_stat() >> 8) & 0xFF) as u8,
+            0x1F80_1046 => ((self.read_stat() >> 16) & 0xFF) as u8,
+            0x1F80_1047 => ((self.read_stat() >> 24) & 0xFF) as u8,
+            0x1F80_1048 => (self.mode.get() & 0xFF) as u8,
+            0x1F80_1049 => ((self.mode.get() >> 8) & 0xFF) as u8,
+            0x1F80_104A => (self.ctrl.get() & 0xFF) as u8,
+            0x1F80_104B => ((self.ctrl.get() >> 8) & 0xFF) as u8,
+            0x1F80_104C | 0x1F80_104D => 0,
+            0x1F80_104E => (self.baud.get() & 0xFF) as u8,
+            0x1F80_104F => ((self.baud.get() >> 8) & 0xFF) as u8,
+@@PARA
+            0x1F80_1044 => (self.read_stat() & 0xFF) as u8,
+            0x1F80_1045 => ((self.read_stat() >> 8) & 0xFF) as u8,
+            0x1F80_1046 => ((self.read_stat() >> 16) & 0xFF) as u8,
+            0x1F80_1047 => ((self.read_stat() >> 24) & 0xFF) as u8,
+            0x1F80_1048 => (self.mode.get() & 0xFF) as u8,
+            0x1F80_1049 => ((self.mode.get() >> 8) & 0xFF) as u8,
+            0x1F80_104A => (self.ctrl.get() & 0xFF) as u8,
+            0x1F80_104B => ((self.ctrl.get() >> 8) & 0xFF) as u8,
+            0x1F80_104C | 0x1F80_104D => 0,
+            0x1F80_104E => (self.baud.get() & 0xFF) as u8,
+            0x1F80_104F => ((self.baud.get() >> 8) & 0xFF) as u8,
+            0x1F80_1040 => self.pop_rx(),
+@@FIM

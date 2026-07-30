@@ -1,0 +1,72 @@
+# Manifesto de mutação da iteração 0104 — vsync-evento
+formato: 1
+iteracao: 0104
+item: 4.4g
+alvo: crates/psx-core/src/bus.rs
+teste: cpu_load_timing
+
+mutante: m1
+rotulo: RAM principal volta a custar 1 ciclo, laco de espera nao cobre o frame
+@@DE
+            _ => 7,
+@@PARA
+            _ => 1,
+@@FIM
+
+mutante: m2
+rotulo: scratchpad custa o mesmo que a RAM, ignorando que e SRAM on-chip
+@@DE
+            0x1F80_0000..=0x1F80_03FF => 1,
+@@PARA
+            0x1F80_0000..=0x1F80_03FF => 7,
+@@FIM
+
+mutante: m3
+rotulo: I/O on-die custa o mesmo que a RAM, ignorando o decodificador compartilhado
+@@DE
+            0x1F80_1000..=0x1F80_2FFF => 5,
+@@PARA
+            0x1F80_1000..=0x1F80_2FFF => 7,
+@@FIM
+
+mutante: m4
+rotulo: ROM da BIOS custa como RAM, ignorando o barramento de 8 bits
+@@DE
+            0x1FC0_0000..=0x1FC7_FFFF => 27,
+@@PARA
+            0x1FC0_0000..=0x1FC7_FFFF => 7,
+@@FIM
+
+mutante: m5
+rotulo: faixa do I/O on-die encurtada, registrador alto cai no caso da RAM
+@@DE
+            0x1F80_1000..=0x1F80_2FFF => 5,
+@@PARA
+            0x1F80_1000..=0x1F80_1060 => 5,
+@@FIM
+
+mutante: m6
+rotulo: classificacao feita sobre o endereco virtual, sem traduzir KSEG
+@@DE
+        match Self::to_physical(addr) {
+@@PARA
+        match addr {
+@@FIM
+
+controle: c1
+rotulo: faixa da ROM escrita com o mesmo fim por outra aritmetica (cosmetico)
+@@DE
+            0x1FC0_0000..=0x1FC7_FFFF => 27,
+@@PARA
+            0x1FC0_0000..=0x1FC0_0000 + 0x7_FFFF => 27,
+@@FIM
+
+controle: c2
+rotulo: braco do scratchpad movido para depois do braco do I/O (cosmetico, faixas disjuntas)
+@@DE
+            0x1F80_0000..=0x1F80_03FF => 1,
+            0x1F80_1000..=0x1F80_2FFF => 5,
+@@PARA
+            0x1F80_1000..=0x1F80_2FFF => 5,
+            0x1F80_0000..=0x1F80_03FF => 1,
+@@FIM

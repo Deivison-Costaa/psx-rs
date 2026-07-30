@@ -1,0 +1,10 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: afda4f0e9000a6754911952d25bb4461af17b5f3
+# rodado_em: 2026-07-30T04:40:48-03:00
+m1,mutante,morreu,morreu,0.8,rtps_perspectiva_simples_sem_saturacao;rtpt_processa_tres_vertices_e_desloca_fifos
+m2,mutante,morreu,sobreviveu,0.8,
+m3,mutante,morreu,morreu,0.8,rtpt_processa_tres_vertices_e_desloca_fifos
+m4,mutante,morreu,sobreviveu,0.8,
+m5,mutante,morreu,sobreviveu,0.7,
+c1,controle,sobreviveu,sobreviveu,0.7,
+c2,controle,sobreviveu,sobreviveu,0.7,

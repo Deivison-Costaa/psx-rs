@@ -1,0 +1,67 @@
+# Manifesto de mutação da iteração 0077 — acoplar-disclayout-cdrom
+formato: 1
+iteracao: 0077
+item: 4.3b
+alvo: crates/psx-core/src/cdrom.rs
+teste: cdrom_read
+
+mutante: m1
+rotulo: troca minuto com segundo no calculo do setor absoluto
+@@DE
+    let abs_sector =
+        bcd_to_int(min_bcd) * 60 * 75 + bcd_to_int(sec_bcd) * 75 + bcd_to_int(sect_bcd);
+@@PARA
+    let abs_sector =
+        bcd_to_int(sec_bcd) * 60 * 75 + bcd_to_int(min_bcd) * 75 + bcd_to_int(sect_bcd);
+@@FIM
+
+mutante: m2
+rotulo: data_start com offset 0x18 em vez de 0x10 no setor raw
+@@DE
+    let data_start = offset + 0x10;
+@@PARA
+    let data_start = offset + 0x18;
+@@FIM
+
+mutante: m3
+rotulo: bcd_to_int inverte dezena com unidade
+@@DE
+    ((b >> 4) as u32) * 10 + (b as u32 & 0xF)
+@@PARA
+    (b as u32 & 0xF) * 10 + ((b >> 4) as u32)
+@@FIM
+
+mutante: m4
+rotulo: multiplicador de bytes por setor 2353 em vez de 2352
+@@DE
+    let offset = abs_sector as usize * 2352;
+@@PARA
+    let offset = abs_sector as usize * 2353;
+@@FIM
+
+mutante: m5
+rotulo: sempre usa stub — nunca le dados reais do BIN
+@@DE
+                let buf = if let (Some(layout), Some(bin)) = (disc_layout, disc_bin) {
+@@PARA
+                let buf = if false {
+@@FIM
+
+controle: c1
+rotulo: renomeia abs_sector para sector (cosmetico)
+@@DE
+    let abs_sector =
+@@PARA
+    let sector =
+@@FIM
+
+controle: c2
+rotulo: extrai bcd_to_int_resultados em variaveis locais (cosmetico)
+@@DE
+        bcd_to_int(min_bcd) * 60 * 75 + bcd_to_int(sec_bcd) * 75 + bcd_to_int(sect_bcd);
+@@PARA
+        let m = bcd_to_int(min_bcd);
+        let s = bcd_to_int(sec_bcd);
+        let f = bcd_to_int(sect_bcd);
+        m * 60 * 75 + s * 75 + f;
+@@FIM

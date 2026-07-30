@@ -1,0 +1,104 @@
+# Manifesto de mutação da iteração 0084 — gte-registers
+formato: 1
+iteracao: 0084
+item: 5.1
+alvo: crates/psx-core/src/gte.rs
+teste: gte_registers
+
+mutante: m1
+rotulo: read_data retorna 0 em vez do valor armazenado
+@@DE
+    pub fn read_data(&self, rd: usize) -> u32 {
+        self.regs[rd]
+    }
+@@PARA
+    pub fn read_data(&self, rd: usize) -> u32 {
+        let _ = rd;
+        0
+    }
+@@FIM
+
+mutante: m2
+rotulo: read_control nao sign-extende registradores 16-bit
+@@DE
+    pub fn read_control(&self, rd: usize) -> u32 {
+        let idx = 32 + rd;
+        let val = self.regs[idx];
+        if is_standalone_s16_control(rd) {
+            (val as i16 as i32) as u32
+        } else {
+            val
+        }
+    }
+@@PARA
+    pub fn read_control(&self, rd: usize) -> u32 {
+        let idx = 32 + rd;
+        self.regs[idx]
+    }
+@@FIM
+
+mutante: m3
+rotulo: write_data indice deslocado (+1)
+@@DE
+    pub fn write_data(&mut self, rd: usize, val: u32) {
+        self.regs[rd] = val;
+    }
+@@PARA
+    pub fn write_data(&mut self, rd: usize, val: u32) {
+        self.regs[rd + 1] = val;
+    }
+@@FIM
+
+mutante: m4
+rotulo: is_standalone_s16_control sempre false (nunca sign-extende)
+@@DE
+fn is_standalone_s16_control(rd: usize) -> bool {
+    matches!(rd, 4 | 12 | 20 | 27 | 29 | 30)
+}
+@@PARA
+fn is_standalone_s16_control(rd: usize) -> bool {
+    let _ = rd;
+    false
+}
+@@FIM
+
+mutante: m5
+rotulo: is_standalone_s16_control sempre true (sign-extende todos)
+@@DE
+fn is_standalone_s16_control(rd: usize) -> bool {
+    matches!(rd, 4 | 12 | 20 | 27 | 29 | 30)
+}
+@@PARA
+fn is_standalone_s16_control(rd: usize) -> bool {
+    let _ = rd;
+    true
+}
+@@FIM
+
+controle: c1
+rotulo: adiciona comentario antes de read_data
+@@DE
+    pub fn read_data(&self, rd: usize) -> u32 {
+        self.regs[rd]
+    }
+@@PARA
+    // leitura de registrador de dados
+    pub fn read_data(&self, rd: usize) -> u32 {
+        self.regs[rd]
+    }
+@@FIM
+
+controle: c2
+rotulo: adiciona comentario antes do return
+@@DE
+        } else {
+            val
+        }
+    }
+@@PARA
+        } else {
+            val
+        }
+        // retorna valor lido
+    }
+@@FIM

@@ -9,6 +9,16 @@ fn bios_com_padrao() -> Bios {
 }
 
 #[test]
+fn mirror_nao_afeta_enderecos_acima_de_512kb() {
+    let bios = bios_com_padrao();
+    let ram = Ram::new();
+    let bus = Bus::new(ram, bios);
+
+    let val = bus.read32::<BusRead>(0x0008_0000);
+    assert_eq!(val, 0, "enderecos >= 512KB devem ler da RAM (zeros), nao da BIOS");
+}
+
+#[test]
 fn mirror_ativo_leitura_kuseg_retorna_bios() {
     let bios = bios_com_padrao();
     let ram = Ram::new();

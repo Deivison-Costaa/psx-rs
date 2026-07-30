@@ -60,11 +60,18 @@ rotulo: mirror desativado no write8 mas nao no write32 — write de byte mantem 
 @@FIM
 
 controle: c1
-rotulo: renomear campo bios_mirror_active para bios_mirror (cosmetico)
+rotulo: mensagem de log do read32 inclui o valor do phys (cosmetico, sem efeito funcional)
 @@DE
-    bios_mirror_active: bool,
+    pub fn read32<Op: MemoryOp>(&self, addr: u32) -> u32 {
+        let phys = Self::to_physical(addr);
+        if self.bios_mirror_active && Self::kseg(addr) != 0b101 && phys < 0x8_0000 {
+            return self.bios.read32(phys as usize);
 @@PARA
-    bios_mirror: bool,
+    pub fn read32<Op: MemoryOp>(&self, addr: u32) -> u32 {
+        let phys = Self::to_physical(addr);
+        let _mirror_check = phys; // cosmético
+        if self.bios_mirror_active && Self::kseg(addr) != 0b101 && phys < 0x8_0000 {
+            return self.bios.read32(phys as usize);
 @@FIM
 
 controle: c2

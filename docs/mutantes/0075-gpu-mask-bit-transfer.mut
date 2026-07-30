@@ -59,8 +59,9 @@ rotulo: write-protect aplica a hw1 mas nao a hw2 (remove guarda so do hw2)
                     self.vram[idx2] = hw2;
 @@FIM
 
-mutante: m6
+equivalente: m6
 rotulo: mask-bit aplicado ANTES do write-protect (ordem trocada)
+justificativa: check-protect le o pixel antigo da VRAM e force-bit15 modifica o pixel novo local — sao operacoes independentes. Nenhum teste pode distinguir a ordem.
 @@DE
                 let idx1 = py as usize * 1024 + px as usize;
                 if !check_mask || (self.vram[idx1] & 0x8000) == 0 {

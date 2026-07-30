@@ -75,9 +75,15 @@ rotulo: contador comeca em 1 em vez de 0
 mutante: m5
 rotulo: write_mask usa + em vez de wrapping_add (panic em overflow)
 @@DE
+    pub fn write_mask(&mut self, val: u32) {
+        self.mask = val & 0x7FF;
         self.mask_write_count = self.mask_write_count.wrapping_add(1);
+    }
 @@PARA
+    pub fn write_mask(&mut self, val: u32) {
+        self.mask = val & 0x7FF;
         self.mask_write_count = self.mask_write_count + 1;
+    }
 @@FIM
 
 controle: c1

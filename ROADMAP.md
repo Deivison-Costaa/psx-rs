@@ -155,6 +155,6 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [x] 10.37 `oc-loop.ps1` anunciava merge que nao aconteceu: `Wait-Checks` lia estado do commit anterior e falha de `gh pr merge` passava por sucesso (iter 0094)
 
 ## M11 — Apresentação (incremental desde o M1)
-- [ ] 11.1 Relatório consolidado (docs/relatorio.md — atualizado a cada marco)
+- [x] 11.1 Relatório consolidado (docs/relatorio.md — atualizado a cada marco) (iter 0096)
 - [ ] 11.2 Gráficos de metricas.csv + scoreboard-data
 - [ ] 11.3 Roteiro de demo

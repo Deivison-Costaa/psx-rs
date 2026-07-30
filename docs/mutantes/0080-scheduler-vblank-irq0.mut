@@ -87,7 +87,6 @@ ocorrencias: 2
 
 controle: c1
 rotulo: renomeia variavel local frame para frm (cosmetico)
-ocorrencias: 2
 @@DE
         let frame = self.gpu.frame_cycles();
 @@PARA

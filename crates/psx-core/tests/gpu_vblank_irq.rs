@@ -125,9 +125,29 @@ fn t8_total_scanlines_consistente_com_frame_cycles() {
 }
 
 #[test]
-fn t9_gpu_vblank_irq_bios_boot_placeholder() {
+fn t9_odd_line_alterna_apos_vblank_exit() {
+    let mut bus = make_bus();
+
+    let exit_cycle = bus.gpu().frame_cycles() * bus.gpu().display_range_y1() as u64
+        / bus.gpu().total_scanlines() as u64;
+
+    for _ in 0..exit_cycle as usize + 1 {
+        bus.tick_timers(1);
+    }
+
+    let gpustat = bus.gpu().read32(4);
+    let bit31 = (gpustat >> 31) & 1;
+    assert_eq!(
+        bit31, 1,
+        "T9: GPUSTAT bit31 deve ser 1 apos sair do vblank (odd_line toggled); \
+         gpustat={gpustat:#010X}"
+    );
+}
+
+#[test]
+fn t10_gpu_vblank_irq_bios_boot_placeholder() {
     eprintln!(
-        "T9: teste de aceitacao manual — rodar psx-cli --bios <BIOS> e \
+        "T10: teste de aceitacao manual — rodar psx-cli --bios <BIOS> e \
          conferir que o TTY nao contem 'VSync: timeout'"
     );
 }

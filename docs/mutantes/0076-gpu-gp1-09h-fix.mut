@@ -73,14 +73,11 @@ rotulo: renomeia bit para gate_bit no braco 0x09 (cosmetico)
 @@FIM
 
 controle: c2
-rotulo: extrai allow_upper_y.get() para variavel local no handler de E1h (cosmetico)
+rotulo: embrulha allow_upper_y.set em if true (cosmetico)
 @@DE
-                            if self.allow_upper_y.get() {
-                                bits |= ((param >> 11) & 1) << 15;
-                            }
+                self.allow_upper_y.set(bit != 0);
 @@PARA
-                            let gate = self.allow_upper_y.get();
-                            if gate {
-                                bits |= ((param >> 11) & 1) << 15;
-                            }
+                if true {
+                    self.allow_upper_y.set(bit != 0);
+                }
 @@FIM

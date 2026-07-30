@@ -16,9 +16,9 @@ rotulo: handoff volta a apontar para item que nao existe no ROADMAP
 mutante: m2
 rotulo: handoff deixa de citar item nenhum, trabalhador nao sabe que checkbox marcar
 @@DE
-Critério de aceitação: `psx-cli --bios <BIOS>` passa do passo 26 595 832 sem entrar em `A0(40h)`.
+**ROADMAP 4.4f — o boot morre num `jr $ra` com `$ra = 3`.**
 @@PARA
-Criterio de aceitacao: psx-cli passa do passo 26 595 832 sem entrar em A0(40h). Item: o do boot.
+**O boot morre num `jr $ra` com `$ra = 3`.**
 @@FIM
 
 mutante: m3

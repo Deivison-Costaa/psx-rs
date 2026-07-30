@@ -2,11 +2,16 @@
 pub struct Irq {
     stat: u32,
     mask: u32,
+    pub mask_write_count: u64,
 }
 
 impl Irq {
     pub fn new() -> Self {
-        Irq { stat: 0, mask: 0 }
+        Irq {
+            stat: 0,
+            mask: 0,
+            mask_write_count: 0,
+        }
     }
 
     pub fn pending(&self) -> bool {
@@ -27,6 +32,7 @@ impl Irq {
 
     pub fn write_mask(&mut self, val: u32) {
         self.mask = val & 0x7FF;
+        self.mask_write_count = self.mask_write_count.wrapping_add(1);
     }
 
     pub fn raise(&mut self, bit: u32) {
@@ -52,6 +58,7 @@ impl Irq {
         let mask_byte = ((byte as u32) << shift) & 0x7FF;
         let clear = !(0xFFu32 << shift);
         self.mask = (self.mask & clear) | mask_byte;
+        self.mask_write_count = self.mask_write_count.wrapping_add(1);
     }
 
     pub fn write_mask_half(&mut self, offset: u32, val: u16) {
@@ -59,6 +66,7 @@ impl Irq {
         let mask_half = ((val as u32) << shift) & 0x7FF;
         let clear = !(0xFFFFu32 << shift);
         self.mask = (self.mask & clear) | mask_half;
+        self.mask_write_count = self.mask_write_count.wrapping_add(1);
     }
 
     pub fn read_stat_byte(&self, offset: u32) -> u8 {

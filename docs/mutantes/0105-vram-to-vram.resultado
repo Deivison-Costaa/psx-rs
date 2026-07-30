@@ -1,0 +1,12 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: 1bafa1f40e2581e0dfdaeb8018ed94f48e4bf8c3
+# rodado_em: 2026-07-30T18:14:06-03:00
+m1,mutante,morreu,sobreviveu,0.8,
+m2,mutante,morreu,morreu,0.8,tamanho_zero_vale_o_maximo
+m3,mutante,morreu,sobreviveu,0.8,
+m4,mutante,morreu,morreu,0.8,copia_envolve_na_borda_sem_carry_de_x_para_y
+m5,mutante,morreu,morreu,0.9,origem_e_lida_antes_de_qualquer_escrita_em_regiao_sobreposta
+m6,mutante,morreu,morreu,0.9,mask_check_protege_o_pixel_de_destino_com_bit15
+m7,mutante,morreu,morreu,0.8,set_mask_marca_bit15_no_destino
+c1,controle,sobreviveu,sobreviveu,0.9,
+c2,controle,sobreviveu,sobreviveu,0.8,

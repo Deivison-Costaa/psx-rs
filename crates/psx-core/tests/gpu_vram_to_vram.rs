@@ -200,3 +200,21 @@ fn set_mask_marca_bit15_no_destino() {
         "`docs/reference/03-gpu.md` L615: com set-mask ligado, o bit15 e forcado no que for escrito"
     );
 }
+
+#[test]
+fn ysiz_com_bit9_ligado_conta_so_os_9_bits_baixos() {
+    let mut gpu = Gpu::new();
+    pinta(&mut gpu, 0, 0, 0x0777);
+    pinta(&mut gpu, 0, 1, 0x0888);
+
+    blit(&mut gpu, coord(0, 0), coord(500, 300), coord(1, 0x201));
+
+    assert_eq!(gpu.vram_pixel(500, 300), 0x0777, "a primeira linha e copiada");
+    assert_eq!(
+        gpu.vram_pixel(500, 301),
+        0,
+        "`docs/reference/03-gpu.md` L669-670 e L672-675: Ysiz=((Ysiz-1) AND 1FFh)+1. O valor bruto \
+         0x201 vira UMA linha, nao 513 — a formula e nao-monotona de proposito para valores com o \
+         bit 9 ligado. Mascarar em 10 bits aqui copiaria 513 linhas e passaria por cima de meia VRAM."
+    );
+}

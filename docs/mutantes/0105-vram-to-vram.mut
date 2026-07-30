@@ -21,8 +21,12 @@ rotulo: tamanho zero deixa de valer o maximo, vira zero
         let width = (size_word & 0xFFFF) as u16 & 0x3FF;
 @@FIM
 
-mutante: m3
-rotulo: origem lida sem mascarar Xpos, coordenada alta sai do lugar
+equivalente: m3
+rotulo: origem lida sem mascarar Xpos
+justificativa: imatavel por construcao. O laco ja faz (sx + col) & 0x3FF a cada pixel, e como
+  0x400 divide 2^16, ((a & 0x3FF) + b) & 0x3FF == (a + b) & 0x3FF para qualquer a de 16 bits. A
+  mascara de fora e redundante com a de dentro; nenhum valor de entrada distingue as duas versoes.
+  O mesmo NAO vale para sy: 0x200 nao divide 2^16, entao la a mascara e observavel (mutante m1).
 @@DE
         let sx = (src_word & 0xFFFF) as u16 & 0x3FF;
 @@PARA

@@ -222,6 +222,10 @@ impl Bus {
         }
     }
 
+    pub fn total_cycles(&self) -> u64 {
+        self.total_cycles
+    }
+
     pub fn tick_timers(&mut self, cycles: u32) {
         self.total_cycles += cycles as u64;
 

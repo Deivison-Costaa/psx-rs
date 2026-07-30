@@ -180,14 +180,14 @@ fn botoes_pressionados_aparecem_na_resposta_42h() {
     assert_eq!(
         sio.read_rx(),
         0xBF,
-        "buttons high: Start(bit3)=0, Cross(bit14)=0 → bit15-8 = 10111111 = 0xBF"
+        "buttons high: Start(bit3)=0, Cross(bit14)=0 -> bit15-8 = 10111111 = 0xBF"
     );
 
     sio.write_tx(0x00);
     assert_eq!(
         sio.read_rx(),
         0xF7,
-        "buttons low: Cross(bit14) no low, Start(bit3)=0 → bit7-0 = 11110111 = 0xF7"
+        "buttons low: Cross(bit14) no low, Start(bit3)=0 -> bit7-0 = 11110111 = 0xF7"
     );
 
     sio.write_ctrl(0x0000);
@@ -214,6 +214,33 @@ fn botoes_soltos_retornam_ff() {
 
     sio.write_tx(0x00);
     assert_eq!(sio.read_rx(), 0xFF, "todos soltos -> low = 0xFF");
+
+    sio.write_ctrl(0x0000);
+}
+
+#[test]
+fn leitura_32bit_do_sio_data_consome_byte_do_fifo() {
+    let sio = Sio::new();
+    sio.connect_digital_pad(true);
+
+    sio.write_ctrl(0x0002);
+    sio.write_tx(0x01);
+    let _ = sio.read_rx();
+
+    sio.write_tx(0x42);
+    let primeira = sio.read_data();
+    assert_eq!(
+        primeira & 0xFF,
+        0x41,
+        "leitura 32bit deve retornar ID low 0x41"
+    );
+
+    let segunda = sio.read_data();
+    assert_eq!(
+        segunda & 0xFF,
+        0xFF,
+        "segunda leitura 32bit deve retornar 0xFF (FIFO vazio = HiZ)"
+    );
 
     sio.write_ctrl(0x0000);
 }

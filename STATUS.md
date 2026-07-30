@@ -5,16 +5,16 @@
 
 ## Última iteração concluída
 
-**0089** — GTE: MVMVA (ROADMAP 5.4a).
+**0090** — psx-desktop: boot da BIOS com display (ROADMAP 9.0).
 
 ## Próxima tarefa
 
-**ROADMAP 5.4b — NCS/NCT/NCCS/NCCT (comandos de cor normal).**
-Spec: `docs/reference/07-gte.md` (offset +72).
-Seções: NCS/NCT/NCCS/NCCT (L592), com fórmula LLM*V + BK*1000h + LCM*IR + [R*IR1,G*IR2,B*IR3] SHL 4 + SAR(sf*12).
-Arquivos-alvo: `crates/psx-core/src/gte.rs`.
-Armadilha: os comandos single/triple repetem a fórmula com V0/V1/V2; NCCS/NCCT aplicam `[R*IR1,G*IR2,B*IR3] SHL 4`.
-A fila: 5.4c (NCDS/NCDT/CC/CDP), 5.4d (DCPL/DPCS/DPCT/INTPL), 5.5 (flags), 5.6.
+**ROADMAP 6.1 — SIO0 + digital pad.**
+Spec: `docs/reference/13-sio.md`.
+Arquivos-alvo: `crates/psx-core/src/sio.rs` (a criar) + `crates/psx-core/src/bus.rs` (mapa de memória).
+Armadilha: o pad digital responde na porta SIO0 com protocolo de half-duplex; o registrador de controle TX/RX tem timing assíncrono.
+Teste: suite `ps1-tests/input/pad` para medição antes/depois.
+A fila: 6.2 (input no psx-desktop), depois volta GTE 5.4b.
 
 ## Prioridade — boot da BIOS travado
 

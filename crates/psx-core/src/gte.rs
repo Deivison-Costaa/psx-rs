@@ -293,9 +293,9 @@ impl Gte {
         let raw3: i64;
 
         if cv == 2 {
-            raw1 = (m12 as i64) * (vx as i64) + (m13 as i64) * (vy as i64);
-            raw2 = (m22 as i64) * (vx as i64) + (m23 as i64) * (vy as i64);
-            raw3 = (m32 as i64) * (vx as i64) + (m33 as i64) * (vy as i64);
+            raw1 = (m12 as i64) * (vy as i64) + (m13 as i64) * (vz as i64);
+            raw2 = (m22 as i64) * (vy as i64) + (m23 as i64) * (vz as i64);
+            raw3 = (m32 as i64) * (vy as i64) + (m33 as i64) * (vz as i64);
         } else {
             raw1 = tx * 0x1000
                 + (m11 as i64) * (vx as i64)

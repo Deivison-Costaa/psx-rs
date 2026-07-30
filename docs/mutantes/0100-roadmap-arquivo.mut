@@ -1,0 +1,62 @@
+# Manifesto de mutação da iteração 0100 — roadmap-arquivo
+formato: 1
+iteracao: 0100
+item: 10.39
+alvo: ROADMAP.md
+teste: roadmap_arquivo
+
+mutante: m1
+rotulo: M6 fica 100% fechado e continua ocupando bytes da escada
+@@DE
+- [ ] 6.3 Memory card (.mcd)
+@@PARA
+- [x] 6.3 Memory card (.mcd)
+@@FIM
+
+mutante: m2
+rotulo: M2 fica 100% fechado e continua ocupando bytes da escada
+@@DE
+- [ ] 2.2b VRAM->VRAM copy GP0(80h) — no-op hoje, bloqueio de boot de jogo
+@@PARA
+- [x] 2.2b VRAM->VRAM copy GP0(80h) — no-op hoje, bloqueio de boot de jogo
+@@FIM
+
+mutante: m3
+rotulo: ponteiro para o arquivo de historico some do ROADMAP
+@@DE
+Marco que fecha 100% sai daqui para `docs/ROADMAP-fechado.md` — hoje M0 (infra), M1 (CPU) e
+@@PARA
+Marco que fecha 100% sai daqui para outro lugar — hoje M0 (infra), M1 (CPU) e
+@@FIM
+
+mutante: m4
+rotulo: item reaparece na escada com id que ja vive no arquivo de historico
+@@DE
+- [ ] 6.3 Memory card (.mcd)
+@@PARA
+- [ ] 0.1 Memory card (.mcd)
+@@FIM
+
+mutante: m5
+rotulo: segundo id repetido entre escada e historico, por outro caminho
+@@DE
+- [ ] 5.5 Flags de saturação/overflow completos
+@@PARA
+- [ ] 0.2 Flags de saturação/overflow completos
+@@FIM
+
+controle: c1
+rotulo: rotulo de item aberto reescrito sem mudar id nem estado (cosmetico)
+@@DE
+- [ ] 6.3 Memory card (.mcd)
+@@PARA
+- [ ] 6.3 Memory card (arquivo .mcd)
+@@FIM
+
+controle: c2
+rotulo: segunda linha do ponteiro reescrita sem tirar o caminho (cosmetico)
+@@DE
+M3 (DMA/IRQ/timers). Regra imposta por `roadmap_arquivo.rs`.
+@@PARA
+M3 (DMA, IRQ e timers). Regra imposta por `roadmap_arquivo.rs`.
+@@FIM

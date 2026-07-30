@@ -129,7 +129,7 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [ ] 10.17 `mutantes.ps1` recusa árvore suja, então reparo de âncora só pode ser verificado depois de commitado às cegas — permitir sujeira restrita a `docs/mutantes/*.mut`
 - [x] 10.19 DPCR não era consultado por nenhum canal do DMA; gate posto nos três `try_execute_*`. `otc-test` foi de 6p/34f a 7p/30f (iter 0071)
 - [x] 10.20 OTC gravava o espelho do hardware: valor por palavra, ponta do terminador e máscara de 24 bits. `otc-test` de 7p/30f a **15p/0f** (iter 0073)
-- [ ] 10.21 GP0(E1h) escreve o bit 15 do GPUSTAT (Texture Disable) sem o gate de GP1(09h) — `gpu/gp0-e1` reprova 3 de 10
+- [x] 10.21 GP0(E1h) escreve o bit 15 do GPUSTAT (Texture Disable) sem o gate de GP1(09h) — `gpu/gp0-e1` reprova 3 de 10 (iter 0074)
 - [ ] 10.22 `gpu/mask-bit` reprova 2 de 5 desde que passou a dar veredito; provável sobreposição com 10.7
 - [ ] 10.24 O job `scoreboard` da CI sai VERDE medindo zero: sem BIOS rotula as 51 suítes `sem-bios` e encerra 0, e 1981 das 1982 linhas de `scoreboard-data` são isso (medido na iter 0072)
 - [ ] 10.26 Nenhum dos 9 testes de `ci_scoreboard.rs` afirma que o job mede algo, e um aceita `sem-bios` como rótulo normal: rodada sem suíte executada não pode passar por placar

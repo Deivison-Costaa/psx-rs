@@ -34,26 +34,15 @@ rotulo: pad_char sempre espaco (zero-pad ignorado)
 @@FIM
 
 mutante: m4
-rotulo: emit_padded_signed poe sign apos body (ordem invertida)
+rotulo: padding no else branch usa zero pad (ignora espaco)
 @@DE
-        if negative {
-            bus.tty_push(b'-');
-        }
-    }
-
-    for b in body.bytes() {
+    } else {
+        for _ in 0..(width.saturating_sub(total_len)) {
+            bus.tty_push(pad_char);
 @@PARA
-    }
-
-    for b in body.bytes() {
-        bus.tty_push(b);
-    }
-    if negative {
-        bus.tty_push(b'-');
-    }
-    return;
-
-    for b in body.bytes() {
+    } else {
+        for _ in 0..(width.saturating_sub(total_len)) {
+            bus.tty_push(b'0');
 @@FIM
 
 mutante: m5

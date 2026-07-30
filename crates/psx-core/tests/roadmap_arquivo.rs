@@ -97,10 +97,18 @@ fn nenhum_item_aparece_nos_dois_arquivos() {
 #[test]
 fn roadmap_aponta_para_o_arquivo_de_fechados() {
     let roadmap = ler("ROADMAP.md");
+    let cabecalho = roadmap
+        .split_once("\n## ")
+        .map(|(antes, _)| antes.to_string())
+        .unwrap_or_else(|| roadmap.clone());
+
     assert!(
-        roadmap.contains(ARQUIVO),
-        "o ROADMAP tem de citar {ARQUIVO} em algum lugar: sem o ponteiro, quem le a escada \
-         nao descobre que existe historico e reabre item ja fechado"
+        cabecalho.contains(ARQUIVO),
+        "o ponteiro para {ARQUIVO} tem de estar no CABECALHO do ROADMAP, antes do primeiro \
+         marco. Nao basta o caminho aparecer em algum lugar do arquivo: a linha do proprio \
+         item 10.39 tambem o cita, e com isso um teste de 'contains' no arquivo inteiro fica \
+         verde mesmo com o ponteiro apagado — foi o mutante m3 da bateria 0100, que sobreviveu \
+         a primeira versao deste teste. Quem le a escada tem de topar com o historico no topo."
     );
     let _ = ler(ARQUIVO);
 }

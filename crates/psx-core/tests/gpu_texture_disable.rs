@@ -39,7 +39,7 @@ fn gp1_09h_abre_o_gate_do_bit_15() {
 }
 
 #[test]
-fn gp1_09h_bit0_zero_proibe_gpustat_15() {
+fn gp1_09h_fecha_gate_nao_limpa_gpustat_15_latch() {
     let mut bus = bus_zerado();
 
     bus.write32::<BusRead>(GP1, (0x09 << 24) | 0x01);
@@ -49,8 +49,25 @@ fn gp1_09h_bit0_zero_proibe_gpustat_15() {
 
     assert_eq!(
         (stat >> 15) & 1,
+        1,
+        "GP1(09h).0=0 fecha o gate do decodificador de Y — nao limpa o latch GPUSTAT.15"
+    );
+}
+
+#[test]
+fn gp1_09h_fecha_gate_reescrever_e1h_limpa_gpustat_15() {
+    let mut bus = bus_zerado();
+
+    bus.write32::<BusRead>(GP1, (0x09 << 24) | 0x01);
+    bus.write32::<BusRead>(GP0, (0xE1 << 24) | 0x800);
+    bus.write32::<BusRead>(GP1, 0x09 << 24);
+    bus.write32::<BusRead>(GP0, (0xE1 << 24) | 0x800);
+    let stat = bus.read32::<BusRead>(GP1);
+
+    assert_eq!(
+        (stat >> 15) & 1,
         0,
-        "GP1(09h).0=0 → fecha o gate e GPUSTAT.15 volta a 0"
+        "reescrever E1h com gate fechado: mascara de E1h limpa bit 15, gate fechado nao o reinsere"
     );
 }
 
@@ -159,5 +176,28 @@ fn poligono_texturizado_com_gate_aberto_seta_gpustat_15() {
         (stat >> 15) & 1,
         1,
         "texpage do poligono texturizado com gate aberto: GPUSTAT.15=1"
+    );
+}
+
+#[test]
+fn poligono_abre_gate_fecha_e_latch_mantem_gpustat_15() {
+    let mut gpu = Gpu::new();
+
+    gpu.write32(4, (0x09 << 24) | 0x01);
+    gpu.write32(0, 0x24 << 24);
+    gpu.write32(0, 0x0000_0000);
+    gpu.write32(0, 0x0080_0000);
+    gpu.write32(0, 0x0001_0001);
+    gpu.write32(0, 0x0800_0000);
+    gpu.write32(0, 0x0002_0002);
+    gpu.write32(0, 0x0000_0000);
+
+    gpu.write32(4, 0x09 << 24);
+
+    let stat = gpu.read32(4);
+    assert_eq!(
+        (stat >> 15) & 1,
+        1,
+        "fechar GP1(09h).0 apos poligono texturizado setar bit 15: latch mantido, bit=1"
     );
 }

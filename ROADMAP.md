@@ -12,9 +12,9 @@ M3 (DMA/IRQ/timers). Regra imposta por `roadmap_arquivo.rs`.
 - [x] 2.2 VRAM 1MB + transfers (fill, CPU↔VRAM) (iter 0038)
 - [x] 2.2b VRAM->VRAM copy GP0(80h) — mascara, wrap e coordenadas absolutas (iter 0105)
 - [x] 2.2c Endereco do texel 4bpp/8bpp somava a linha duas vezes — logo da BIOS legivel (iter 0106)
-- [ ] 2.2d Losango do logo sai grande demais e deslocado — cena de 480 linhas desenhada 2x com a mesma metade; BLOQUEADO por 4.4h (invariante 22)
-- [ ] 2.2e Cores do logo: fundo cinza = fade congelado pelo 4.4h; SONY vermelho = CLUT pisoteada pelo losango (2.2d) — sem bug de cor no GPU; rejulgar apos 4.4h (iter 0110)
-- [ ] 2.2f `COMPUTER ENTERTAINMENT` nunca e desenhado na tela; BLOQUEADO por 4.4h (invariante 22)
+- [x] 2.2d Losango do logo — era fotografia de boot morto no 4.4h; com o fix, losango completo e centrado na cena 480i (iter 0111)
+- [x] 2.2e Cores do logo — SONY e COMPUTER ENTERTAINMENT azul-escuro; fundo termina em B4B4B4 (fade completo; render de referencia mostra branco — diferenca anotada) (iter 0111)
+- [x] 2.2f `COMPUTER ENTERTAINMENT` desenhado apos o 4.4h cair (iter 0111)
 - [x] 2.3 Triângulos flat + gouraud (iter 0039)
 - [x] 2.4 Quads, retângulos, linhas (iter 0042)
 - [x] 2.5a Texpage GP0(E1h) + amostragem de textura 15bpp (iter 0044)
@@ -27,6 +27,7 @@ M3 (DMA/IRQ/timers). Regra imposta por `roadmap_arquivo.rs`.
 - [x] 2.7b Timing NTSC/PAL, vblank IRQ (dividido da 2.7 por R4 — display regs ja implementado) (iter 0051)
 - [x] 2.8 psx-desktop eframe/egui (iter 0052/0053)
 - [x] 2.9 Suíte GPU do ps1-tests no scoreboard (iter 0054)
+- [ ] 2.10 `framebuffer_for_display` le GPUSTAT.23 invertido — `docs/reference/03-gpu.md` § GPU Status Register (L1001): bit23 0=Enabled; hoje devolve None com display LIGADO (testes d1/d2 da 0053 codificam a polaridade errada)
 
 ## M4 — CDROM
 - [x] 4.1 Regs/FIFOs/IRQs + GetStat/GetID/Test (iter 0062)
@@ -37,7 +38,7 @@ M3 (DMA/IRQ/timers). Regra imposta por `roadmap_arquivo.rs`.
 - [x] 4.3b Acoplar DiscLayout + dados do .bin a entrega de setores (iter 0077)
 - [x] 4.3c Flag --disc/--cue no psx-cli (iter 0078)
 - [ ] 4.4 Boot de jogo 2D/menu
-- [ ] 4.4h Segundo crash: `$ra` restaurado da pilha vale 4 no passo 85 544 264 — BLOQUEIA 2.2d/e/f: o display so ligaria depois dele (iter 0110)
+- [x] 4.4h Segundo crash: `$ra=4` era load pendente esmagando a escrita do delay slot; escrita agora vence (iter 0111)
 - [x] 4.4a Boot da BIOS no psx-cli (--bios sozinho) (iter 0079)
 - [x] 4.4b Base de tempo: scheduler + vblank + IRQ0 (iter 0080)
 - [x] 4.4c BIOS nunca escreve I_MASK (iter 0085)

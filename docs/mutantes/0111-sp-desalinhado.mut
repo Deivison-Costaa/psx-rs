@@ -1,0 +1,62 @@
+# Manifesto de mutação da iteração 0111 — sp-desalinhado
+formato: 1
+iteracao: 0111
+item: 4.4h
+alvo: crates/psx-core/src/cpu.rs
+teste: cpu_load_delay_escrita_vence
+
+mutante: m1
+rotulo: guarda invertida — aplica o load pendente SO quando ha conflito
+@@DE
+            if self.written_gpr != Some(reg) {
+@@PARA
+            if self.written_gpr == Some(reg) {
+@@FIM
+
+mutante: m2
+rotulo: guarda removida — load pendente sempre aplica (o defeito original do 4.4h)
+@@DE
+            if self.written_gpr != Some(reg) {
+@@PARA
+            if true {
+@@FIM
+
+mutante: m3
+rotulo: set_reg nunca registra a escrita — conflito nunca e detectado
+@@DE
+        self.written_gpr = Some(idx);
+@@PARA
+        self.written_gpr = None;
+@@FIM
+
+mutante: m4
+rotulo: set_reg registra o registrador errado (idx^1)
+@@DE
+        self.written_gpr = Some(idx);
+@@PARA
+        self.written_gpr = Some(idx ^ 1);
+@@FIM
+
+mutante: m5
+rotulo: limpeza pre-execute vira Some(31) — load pendente para $ra some sem conflito
+@@DE
+        self.written_gpr = None;
+@@PARA
+        self.written_gpr = Some(31);
+@@FIM
+
+controle: c1
+rotulo: None qualificado (cosmetico)
+@@DE
+        self.written_gpr = None;
+@@PARA
+        self.written_gpr = Option::None;
+@@FIM
+
+controle: c2
+rotulo: comparacao da guarda espelhada (cosmetico)
+@@DE
+            if self.written_gpr != Some(reg) {
+@@PARA
+            if Some(reg) != self.written_gpr {
+@@FIM

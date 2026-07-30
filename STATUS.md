@@ -7,30 +7,28 @@
 
 ## Última iteração concluída
 
-**0110** — 2.2e resolvido por medição, sem código: "SONY" vermelho e CLUT pisoteada pelo losango
-(2.2d) e fundo cinza e o fade congelado pelo crash; o display nem chega a ligar (ROADMAP 2.2e).
+**0111** — 4.4h corrigido: escrita no delay slot de load agora cancela o load pendente (a BIOS
+exige). Boot completa o logo, liga 480i, e 2.2d/e/f cairam junto (ROADMAP 4.4h).
 
 ## Próxima tarefa
 
-**ROADMAP 4.4h — segundo crash do boot: `$ra` restaurado da pilha vale 4, passo 85 544 264.**
-Promovido porque a 0110 mediu que ele **bloqueia toda a tela do logo**: a BIOS desenha o fade
-inteiro com o display desligado (GPUSTAT.23=0 do inicio ao crash) e so ligaria o display — e
-definiria o modo final de video — depois do ponto onde morre. Fundo branco, texto azul e modo
-480i/240p sao incognosciveis ate ele cair (invariante 22).
-O que ja se sabe: `$ra` volta da pilha valendo 4, logo alguem corrompeu o slot na RAM ou o load
-veio do endereco errado. Caminho: harness `psx-estado/instrumentacao/vramshot.rs` (ou bootbios)
-+ log condicional perto do passo 85,5 M; achar o `sw` que gravou 4 naquele endereco de pilha ou o
-`lw` que leu de endereco errado.
-Spec: `docs/reference/13-kernel-bios.md` (convencao de chamada/pilha) so se a medicao pedir.
-Arquivos-alvo: `crates/psx-core/src/cpu.rs`; talvez `bus.rs`/`dma.rs` se a corrupcao vier de fora.
-Critério de aceitação: boot passa do passo 85 544 264 sem `$ra=4`; bonus se o display ligar
-(GPUSTAT.23=1) e o fade completar em `FFFFFF`.
-Invariantes relevantes: 21, 22.
+**ROADMAP 2.10 — `framebuffer_for_display` le GPUSTAT.23 invertido.**
+Spec: `docs/reference/03-gpu.md` § GPU Status Register (L1001) — bit23 e **0=Enabled, 1=Disabled**
+(e § GP1(03h) - Display Enable (L779): param 0=On). `gpu.rs:446` devolve `None` quando bit23==0,
+ou seja, esconde a imagem com o display LIGADO. Com o boot agora vivo (0111), a BIOS liga o
+display e o psx-desktop mostraria "Display desligado" na tela do logo.
+**Armadilha:** os testes d1/d2 da iteracao 0053 (`gpu_desktop_egui.rs`) codificam a polaridade
+errada — precisam VIRAR junto, como o teste "assumido" de load delay virou na 0111. Conferir
+tambem quem mais le o bit 23 (`GP1(03h)` em gpu.rs escreve certo: 1=set=disabled).
+Arquivos-alvo: `crates/psx-core/src/gpu.rs` (fn `framebuffer_for_display`).
+Critério de aceitação: com a BIOS real a 120 M passos, `framebuffer_for_display()` devolve
+`Some(640x480)` e o despejo bate com a tela do logo; apos `GP1(03h)=1`, devolve `None`.
+Invariantes relevantes: 23.
 
-**Estado do 2.2d apos a 0110:** a lista da BIOS e uma cena de 480 linhas (losango 112..368,
-centro 240 — proporcoes exatas da referencia) desenhada 2x por frame, offsets (0,1)/(0,241),
-display start alternando 1/241, GP1(08h)=03 sempre; as duas metades da VRAM recebem a MESMA
-metade superior da cena. Nao gastar iteracao tentando "consertar geometria" antes do 4.4h.
+**Estado do boot apos a 0111:** para no laco de espera de VSync (`PC=0x80059DCC`) com a tela do
+logo completa na VRAM e `GPUSTAT=0x144E220D` (640x480 entrelacado). O proximo passo funcional e
+o M4/item 4.4 (boot de jogo via CD-ROM). Fundo do logo termina em `B4B4B4`; o render de
+referencia mostra branco — diferenca anotada no 2.2e fechado, rejulgar se aparecer fonte melhor.
 
 ## Repositório
 
@@ -44,10 +42,10 @@ metade superior da cena. Nao gastar iteracao tentando "consertar geometria" ante
 
 ## Placar de testes
 
-Workspace: **735** testes.
+Workspace: **741** testes.
 
 ## Bloqueios
 
-- **4.4 Boot de jogo**: DESBLOQUEADO em 30/07 — o usuário forneceu as imagens. Ficam fora do
-  repositório, em `C:\psx-roms\` (extraídas dos zips em `.../roms`). **Nunca commitar imagem de
-  disco.** Depende agora do 2.2b.
+- **4.4 Boot de jogo**: sem bloqueio conhecido desde a 0111 (o boot chega vivo ao laco de VSync
+  pos-logo). Imagens de disco ficam fora do repositório, em
+  `.../Programacao com agentes/roms/extraido/`. **Nunca commitar imagem de disco.**

@@ -335,7 +335,7 @@ fn sb_offset_negativo() {
 }
 
 #[test]
-fn load_delay_vs_escrita_no_mesmo_registrador_comportamento_assumido() {
+fn load_delay_vs_escrita_no_mesmo_registrador_escrita_vence() {
     let mut bus = bus_with_bios_empty();
     setup_test_patterns(&mut bus);
     let mut cpu = Cpu::new();
@@ -346,8 +346,9 @@ fn load_delay_vs_escrita_no_mesmo_registrador_comportamento_assumido() {
     cpu.step(&mut bus);
     cpu.step(&mut bus);
     assert_eq!(
-        cpu.regs[10], 0xDEAD_BEEF,
-        "comportamento ASSUMIDO (nao verificado em hardware): o load vence a escrita \
-         do delay slot. Confirmar com Amidog psxtest_cpu no item 1.11 — ver nota 3 do STATUS"
+        cpu.regs[10], 0x0000_0005,
+        "a versao anterior deste teste ASSUMIA que o load vencia; a BIOS SCPH1001 \
+         (beq nao tomado com lw $ra no delay slot, seguido de jal, em 0x8004723C-40) \
+         prova que a escrita da instrucao seguinte vence — iter 0111, item 4.4h"
     );
 }

@@ -16,13 +16,9 @@ rotulo: M6 fica 100% fechado e continua ocupando bytes da escada
 mutante: m2
 rotulo: M2 fica 100% fechado e continua ocupando bytes da escada
 @@DE
-- [ ] 2.2d Losango do logo sai grande demais e deslocado — cena de 480 linhas desenhada 2x com a mesma metade; BLOQUEADO por 4.4h (invariante 22)
-- [ ] 2.2e Cores do logo: fundo cinza = fade congelado pelo 4.4h; SONY vermelho = CLUT pisoteada pelo losango (2.2d) — sem bug de cor no GPU; rejulgar apos 4.4h (iter 0110)
-- [ ] 2.2f `COMPUTER ENTERTAINMENT` nunca e desenhado na tela; BLOQUEADO por 4.4h (invariante 22)
+- [ ] 2.10 `framebuffer_for_display` le GPUSTAT.23 invertido — `docs/reference/03-gpu.md` § GPU Status Register (L1001): bit23 0=Enabled; hoje devolve None com display LIGADO (testes d1/d2 da 0053 codificam a polaridade errada)
 @@PARA
-- [x] 2.2d Losango do logo sai grande demais e deslocado — cena de 480 linhas desenhada 2x com a mesma metade; BLOQUEADO por 4.4h (invariante 22)
-- [x] 2.2e Cores do logo: fundo cinza = fade congelado pelo 4.4h; SONY vermelho = CLUT pisoteada pelo losango (2.2d) — sem bug de cor no GPU; rejulgar apos 4.4h (iter 0110)
-- [x] 2.2f `COMPUTER ENTERTAINMENT` nunca e desenhado na tela; BLOQUEADO por 4.4h (invariante 22)
+- [x] 2.10 `framebuffer_for_display` le GPUSTAT.23 invertido — `docs/reference/03-gpu.md` § GPU Status Register (L1001): bit23 0=Enabled; hoje devolve None com display LIGADO (testes d1/d2 da 0053 codificam a polaridade errada)
 @@FIM
 
 mutante: m3

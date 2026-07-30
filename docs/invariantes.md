@@ -113,7 +113,11 @@ Regra imposta por `status_handoff.rs`.
     `(x + col) & 0x3FF`, e como `0x400` divide `2^16` a mascara de fora nao muda nada — foi o
     equivalente m3 da bateria 0105. Para Y a conta nao vale: `0x200` nao divide `2^16`, entao
     `& 0x1FF` na entrada e observavel. Quem for otimizar isto nao pode tratar os dois eixos igual.
-20. **A tela de boot esperada, e as hipoteses ja eliminadas.** Referencia fornecida pelo usuario
+20. **[RESOLVIDA na 0111 — historico]** A tela de boot esperada, e as hipoteses eliminadas do
+    antigo 2.2d. O "Y dobrado" nao era defeito de geometria: era a tela transitoria de um boot
+    que morria no 4.4h antes de ligar o modo 480i. Corrigido o load delay (invariante 23), a
+    cena aparece inteira. O resto fica como registro do que foi eliminado.
+    Texto original: Referencia fornecida pelo usuario
     em 30/07 (tela oficial "SONY COMPUTER ENTERTAINMENT"): fundo **branco**; "SONY" **acima**, em
     azul-escuro; losango **completo**, quatro pontas, dourado/laranja com o "S" vazado, centrado;
     "COMPUTER ENTERTAINMENT" **abaixo**, azul-escuro. Ver `docs/referencias/tela-de-boot.md`.
@@ -133,8 +137,10 @@ Regra imposta por `status_handoff.rs`.
     texpage aparece rosa/azul porque cada halfword vira um pixel de 15 bits; ali cada halfword sao
     **quatro indices de CLUT**, nao uma cor. Ja me levou a suspeitar de cor errada na textura onde
     nao havia. Para julgar cor, olhe o que foi RASTERIZADO, nunca a texpage crua.
-22. **A tela do logo aos 85 M passos e estado INTERMEDIARIO — nao julgar cor contra a referencia
-    antes do 4.4h.** Medido na 0110: o display fica desligado (GPUSTAT.23=0) do inicio ao crash;
+22. **[RESOLVIDA na 0111 — historico]** A tela do logo aos 85 M passos era estado INTERMEDIARIO
+    de um boot que morria no 4.4h; com o fix da invariante 23 o boot completa, liga 480i e
+    desenha a cena inteira. A licao que sobrevive: **tela de boot so se julga com o boot vivo e o
+    display ligado.** Medido na 0110: o display fica desligado do inicio ao crash;
     o fundo e um fade `000000 -> B4B4B4` congelado pelo crash (o cinza (180,180,180) da 0109 e o
     ultimo quad do fade, nao bug de cor); e o "SONY" vermelho e CLUT pisoteada: as tres CLUTs do
     texto moram na linha 480 da VRAM (x=192/256/320), DENTRO da area de desenho (0,241)-(639,480)
@@ -144,3 +150,12 @@ Regra imposta por `status_handoff.rs`.
     desenhada 2x por frame com offsets (0,1)/(0,241) e display start alternando 1/241 — do nosso
     jeito, as duas metades recebem a MESMA metade superior da cena; o modo final de video e
     incognoscivel ate o boot sobreviver ao 4.4h.
+23. **No load delay slot, a escrita da instrucao seguinte VENCE o load pendente.** `lw rX` seguido
+    de instrucao que escreve `rX`: o valor do load e descartado (no pipeline, a instrucao emitida
+    depois escreve por ultimo). A spec local (§ Caution - Load Delay, 02-cpu.md) so cobre a
+    LEITURA no delay slot; a prova da regra de escrita e a propria BIOS SCPH1001: `beq` nao
+    tomado com `lw $ra,0x24($sp)` no delay slot seguido de `jal` (0x8004723C-40) — o link do
+    `jal` tem de sobreviver, senao o retorno pula um epilogo e o `$sp` fica 0x28 desalinhado por
+    65 M passos ate estourar como `$ra=4` (era o item 4.4h). Excecao: IRQ entre o load e a
+    instrucao seguinte completa o load antes do handler (§ Caution - Load Delay, L255-257).
+    Bateria 0111; teste `cpu_load_delay_escrita_vence.rs`.

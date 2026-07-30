@@ -75,11 +75,10 @@ fn irq_target_pulse_retorna_irq_bit4() {
         Some(4),
         "IRQ4 deve ser retornado quando target alcancado em pulse mode"
     );
-    let mode_after_read = bus.read32::<BusRead>(T0_MODE);
+    let bit10_after = bus.read32::<BusRead>(T0_MODE) & (1 << 10);
     assert_eq!(
-        mode_after_read & (1 << 10),
-        1 << 10,
-        "bit10 volta a 1 apos o pulso"
+        bit10_after, 0,
+        "bit10 fica em 0 apos IRQ pulse — BIOS precisa ler 0 para detectar o IRQ do timer"
     );
 }
 

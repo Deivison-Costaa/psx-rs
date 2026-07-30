@@ -11,6 +11,7 @@ struct Timer {
     prev_sync_signal: Cell<bool>,
     mode3_triggered: Cell<bool>,
     irq_fired_oneshot: Cell<bool>,
+    bit10_restore_needed: Cell<bool>,
 }
 
 #[derive(Debug)]
@@ -30,6 +31,7 @@ impl Timer {
             prev_sync_signal: Cell::new(false),
             mode3_triggered: Cell::new(false),
             irq_fired_oneshot: Cell::new(false),
+            bit10_restore_needed: Cell::new(false),
         }
     }
 }
@@ -83,6 +85,7 @@ impl Timers {
                 t.prev_sync_signal.set(false);
                 t.mode3_triggered.set(false);
                 t.irq_fired_oneshot.set(false);
+                t.bit10_restore_needed.set(false);
             }
             0x8 => {
                 self.timers[idx].target = (val & 0xFFFF) as u16;
@@ -106,6 +109,11 @@ impl Timers {
     ) -> Option<u32> {
         let idx = Self::timer_index(base_addr);
         let t = &self.timers[idx];
+        if t.bit10_restore_needed.get() {
+            let m = t.mode.get();
+            t.mode.set(m | (1 << 10));
+            t.bit10_restore_needed.set(false);
+        }
         let mode = t.mode.get();
         let sync_enable = mode & 1 != 0;
         let sync_mode = (mode >> 1) & 0x3;
@@ -199,6 +207,7 @@ impl Timers {
                         mode_now ^= 1 << 10;
                     } else {
                         mode_now &= !(1 << 10);
+                        t.bit10_restore_needed.set(true);
                     }
                     mode_changed = true;
                     let new_bit10 = (mode_now >> 10) & 1;
@@ -223,6 +232,7 @@ impl Timers {
                         mode_now ^= 1 << 10;
                     } else {
                         mode_now &= !(1 << 10);
+                        t.bit10_restore_needed.set(true);
                     }
                     mode_changed = true;
                     let new_bit10 = (mode_now >> 10) & 1;
@@ -240,7 +250,7 @@ impl Timers {
             }
         }
 
-        if !irq_toggle {
+        if !irq_toggle && !t.bit10_restore_needed.get() {
             let m = t.mode.get();
             t.mode.set(m | (1 << 10));
         }

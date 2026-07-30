@@ -78,7 +78,7 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [ ] 4.4c BIOS nunca escreve I_MASK durante boot — bloqueio real de IRQ0
 
 ## M5 — GTE
-- [ ] 5.1 Registradores + MFC2/MTC2/CFC2/CTC2/LWC2/SWC2
+- [x] 5.1 Registradores + MFC2/MTC2/CFC2/CTC2/LWC2/SWC2 (iter 0082)
 - [ ] 5.2 RTPS/RTPT + divisão UNR
 - [ ] 5.3 NCLIP/AVSZ3/AVSZ4/SQR/OP
 - [ ] 5.4 MVMVA + comandos de iluminação (NCS/NCT/NCDS/NCCS...)

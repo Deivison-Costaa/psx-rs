@@ -5,19 +5,16 @@
 
 ## Última iteração concluída
 
-**0081** — Revisão do #95: correção de t10 + verificação de 10.22 (sem item de ROADMAP).
+**0082** — GTE: registradores + MFC2/MTC2/CFC2/CTC2/LWC2/SWC2 (ROADMAP 5.1).
 
 ## Próxima tarefa
 
-**ROADMAP 5.1 — GTE: Registradores + MFC2/MTC2/CFC2/CTC2/LWC2/SWC2.**
-M4 bloqueado em 4.4 (imagem de disco). M5 é o próximo marco.
-Spec: `docs/reference/07-gte.md` (offset +72, ver índice) + `docs/reference/02-cpu.md` (offset +80).
-Seções relevantes: GTE Load Delay Slots, GTE Command Encoding, Data/Control Register Summary
-(cop2r0-63) no 07-gte; Coprocessor Opcode/Parameter Encoding, CPU Coprocessor Opcodes,
-Coprocessor Instructions COP0..COP3 no 02-cpu.
-Arquivos-alvo: `crates/psx-core/src/gte.rs`, `crates/psx-core/src/cpu.rs`.
-Armadilha: escrever por software em registrador GTE de 16 bits não dispara flag nem satura
-(07-gte.md L379-381). MTC2 não é o mesmo caminho de saturação que resultado de comando.
+**ROADMAP 5.2 — GTE: RTPS/RTPT + divisão UNR.**
+Spec: `docs/reference/07-gte.md` — RTPS (L481), RTPT (L482), GTE Division Inaccuracy (L684).
+Arquivos-alvo: `crates/psx-core/src/gte.rs` (implementar comandos), `crates/psx-core/src/cpu.rs`
+(dispatch de COP2 imm25).
+Armadilha: a divisão do RTPS satura — (((H\*20000h/SZ3)+1)/2) acima de 1FFFFh é limitada a
++1FFFFh e acende bit 17 do FLAG (07-gte.md L496-499).
 
 ## Repositório
 
@@ -31,7 +28,7 @@ Armadilha: escrever por software em registrador GTE de 16 bits não dispara flag
 
 ## Placar de testes
 
-Workspace: **583** testes (10 meta-testes + 8 bus_bios + 6 bios_boot + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 29 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 11 cpu_opcode_reservado + 11 cpu_irq + 14 dma_otc + 14 dma_gpu + 12 cdrom_dma + 7 dma_dpcr_gate + 13 timers + 11 timers_sync + 9 timers_dotclock_hblank + 14 timers_irq + 16 gpu_status_gp0_gp1 + 9 ci_scoreboard + 9 cli_runner + 21 gpu_vram_transfers + 20 gpu_triangulos_flat_gouraud + 20 gpu_linhas_retangulos + 4 gpu_linhas_retangulos_continuacao + 6 gpu_textura_15bpp + 6 gpu_texturas_4bpp_8bpp + 5 gpu_texture_window + 6 gpu_semi_transparencia + 7 gpu_dithering + 8 gpu_mask_bit + 7 gpu_display_regs + 9 gpu_timing_vblank + 10 gpu_vblank_irq + 6 gpu_framebuffer + 3 gpu_desktop_egui + 6 gpu_scoreboard + 11 gpu_texture_disable + 13 cdrom_regs + 11 cdrom_seek_pause + 11 cdrom_bin_cue + 11 cdrom_read + 3 disc_flag + 1 spec_citations + 2 mutation_manifest + 2 mutation_anchors + 5 mutation_battery + 1 mutation_reconciliation).
+Workspace: **~598** testes (10 meta-testes + 8 bus_bios + 6 bios_boot + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 29 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 11 cpu_opcode_reservado + 11 cpu_irq + 14 dma_otc + 14 dma_gpu + 12 cdrom_dma + 7 dma_dpcr_gate + 13 timers + 11 timers_sync + 9 timers_dotclock_hblank + 14 timers_irq + 16 gpu_status_gp0_gp1 + 9 ci_scoreboard + 9 cli_runner + 21 gpu_vram_transfers + 20 gpu_triangulos_flat_gouraud + 20 gpu_linhas_retangulos + 4 gpu_linhas_retangulos_continuacao + 6 gpu_textura_15bpp + 6 gpu_texturas_4bpp_8bpp + 5 gpu_texture_window + 6 gpu_semi_transparencia + 7 gpu_dithering + 8 gpu_mask_bit + 7 gpu_display_regs + 9 gpu_timing_vblank + 10 gpu_vblank_irq + 6 gpu_framebuffer + 3 gpu_desktop_egui + 6 gpu_scoreboard + 11 gpu_texture_disable + 13 cdrom_regs + 11 cdrom_seek_pause + 11 cdrom_bin_cue + 11 cdrom_read + 3 disc_flag + 15 gte_regs_instructions + 1 spec_citations + 2 mutation_manifest + 2 mutation_anchors + 5 mutation_battery + 1 mutation_reconciliation).
 
 ## Bloqueios
 

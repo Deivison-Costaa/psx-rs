@@ -32,11 +32,11 @@ rotulo: rfe no lugar do jr (inverte — rfe antes do salto)
 @@FIM
 
 mutante: m4
-rotulo: handler sem RFE — IEc nunca restaurado
+rotulo: RFE escrito fora do handler (0xA0) — o slot 0x98 fica NOP e IEc nunca e restaurado
 @@DE
     bus.write32::<BusRead>(0x8000_0098, 0x42000010);
 @@PARA
-    bus.write32::<BusRead>(0x8000_0098, 0x00000000);
+    bus.write32::<BusRead>(0x8000_00A0, 0x42000010);
 @@FIM
 
 mutante: m5

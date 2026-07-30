@@ -1,0 +1,11 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: e828b1dda388c2dfd24a0ec7738ca95e7df48a6e
+# rodado_em: 2026-07-30T08:21:10-03:00
+m1,mutante,morreu,morreu,0.7,dtr_transicao_reseta_contagem_de_bytes;pad_digital_responde_5a41_ffff_ao_comando_42h
+m2,mutante,morreu,morreu,0.8,ctrl_bit4_ack_limpa_stat_bit9;pad_digital_responde_5a41_ffff_ao_comando_42h;stat_bit1_reflete_rx_fifo
+m3,mutante,morreu,morreu,0.8,ctrl_bit4_ack_limpa_stat_bit9;dtr_transicao_reseta_contagem_de_bytes;pad_digital_responde_5a41_ffff_ao_comando_42h;stat_bit1_reflete_rx_fifo
+m4,mutante,morreu,morreu,0.8,ctrl_bit4_ack_limpa_stat_bit9;dtr_transicao_reseta_contagem_de_bytes;pad_digital_responde_5a41_ffff_ao_comando_42h;stat_bit1_reflete_rx_fifo
+m5,mutante,morreu,morreu,0.8,ctrl_bit4_ack_limpa_stat_bit9
+m6,mutante,morreu,morreu,0.7,dtr_transicao_reseta_contagem_de_bytes
+c1,controle,sobreviveu,sobreviveu,0.8,
+c2,controle,sobreviveu,sobreviveu,0.8,

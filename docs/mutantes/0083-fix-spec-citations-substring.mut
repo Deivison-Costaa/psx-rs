@@ -94,12 +94,13 @@ rotulo: index_match_ambiguity inverte condicao de retorno
 @@FIM
 
 controle: c1
-rotulo: renomeia variavel local s para busca (cosmetico)
+rotulo: adiciona comentario antes do filter (cosmetico)
 ocorrencias: 2
 @@DE
-    let s = normalize_title(search);
+        .filter(|e| title_contains(&s, &e.title))
 @@PARA
-    let busca = normalize_title(search);
+        // filtra titulos que contem o termo de busca
+        .filter(|e| title_contains(&s, &e.title))
 @@FIM
 
 controle: c2

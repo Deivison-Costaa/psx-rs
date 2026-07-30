@@ -74,7 +74,7 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [x] 4.3c Flag --disc/--cue no psx-cli (iter 0078)
 - [ ] 4.4 Boot de jogo 2D/menu
 - [x] 4.4a Boot da BIOS no psx-cli (--bios sozinho) (iter 0079)
-- [ ] 4.4b Base de tempo: scheduler + vblank + IRQ0
+- [x] 4.4b Base de tempo: scheduler + vblank + IRQ0 (iter 0080)
 
 ## M5 — GTE
 - [ ] 5.1 Registradores + MFC2/MTC2/CFC2/CTC2/LWC2/SWC2

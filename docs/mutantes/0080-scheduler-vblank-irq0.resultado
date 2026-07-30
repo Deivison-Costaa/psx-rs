@@ -1,0 +1,12 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: 1e204f63ac5f8489af6650f7ab6f6730f3dc2483
+# rodado_em: 2026-07-30T01:09:28-03:00
+m1,mutante,morreu,morreu,0.9,t3_bus_agenda_evento_de_vblank;t4_bus_levanta_irq0_em_vblank_enter;t5_gpu_vblank_active_durante_evento;t6_eventos_de_vblank_repetem;t7_vblank_nao_fica_preso_em_true;t9_odd_line_alterna_apos_vblank_exit
+m2,mutante,morreu,morreu,1,t4_bus_levanta_irq0_em_vblank_enter;t5_gpu_vblank_active_durante_evento;t6_eventos_de_vblank_repetem;t7_vblank_nao_fica_preso_em_true;t9_odd_line_alterna_apos_vblank_exit
+m3,mutante,morreu,morreu,0.9,t4_bus_levanta_irq0_em_vblank_enter;t5_gpu_vblank_active_durante_evento;t6_eventos_de_vblank_repetem
+m4,mutante,morreu,morreu,1,t9_odd_line_alterna_apos_vblank_exit
+m5,mutante,morreu,morreu,0.9,t5_gpu_vblank_active_durante_evento
+m6,mutante,morreu,morreu,0.9,t7_vblank_nao_fica_preso_em_true;t9_odd_line_alterna_apos_vblank_exit
+m7,mutante,morreu,morreu,1,t7_vblank_nao_fica_preso_em_true
+c1,controle,sobreviveu,sobreviveu,0.9,
+c2,controle,sobreviveu,sobreviveu,0.9,

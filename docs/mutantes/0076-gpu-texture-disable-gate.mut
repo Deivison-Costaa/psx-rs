@@ -32,8 +32,10 @@ rotulo: GP1(09h) sempre fecha o gate (ignora bit, seta false)
 mutante: m4
 rotulo: GP1(09h) le bit 1 em vez de bit 0
 @@DE
+            0x09 => {
                 let bit = val & 1;
 @@PARA
+            0x09 => {
                 let bit = (val >> 1) & 1;
 @@FIM
 

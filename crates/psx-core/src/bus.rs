@@ -185,8 +185,12 @@ impl Bus {
             tty_buffer: Vec::new(),
             scheduler,
             total_cycles: 0,
-            bios_mirror_active: true,
+            bios_mirror_active: false,
         }
+    }
+
+    pub fn enable_bios_mirror(&mut self) {
+        self.bios_mirror_active = true;
     }
 
     pub fn irq(&self) -> &Irq {
@@ -512,7 +516,7 @@ impl Bus {
 
     pub fn write32<Op: MemoryOp>(&mut self, addr: u32, val: u32) {
         let phys = Self::to_physical(addr);
-        if self.bios_mirror_active && phys == 0x1F80_1000 {
+        if self.bios_mirror_active && (0x1F80_1000..=0x1F80_1023).contains(&phys) {
             self.bios_mirror_active = false;
         }
         if self.region_write32(phys, Self::kseg(addr), val) {

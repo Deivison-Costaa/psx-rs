@@ -5,8 +5,8 @@ narrativa mora em `docs/iterations/NNNN-*.md`. Trabalho fora da escada ganha suf
 Teto de tamanho imposto por `roadmap_size.rs`.
 
 ## M0 — Infra e processo
-- [x] 0.1 Repo público, merge-commit-only, template de PR (iter 0001)
-- [x] 0.2 Workspace 3 crates + esqueleto de módulos (iter 0002)
+- [x] 0.1 Repo, merge-commit-only, PR template (iter 0001)
+- [x] 0.2 Workspace 3 crates + esqueleto (iter 0002)
 - [x] 0.3 Meta-testes de processo (7) (iter 0005)
 - [x] 0.4 CI check + commit-lint + proteção de branch (iter 0004)
 - [x] 0.5 Docs de gestão (iter 0003)
@@ -104,7 +104,8 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [ ] 8.2 Macroblocos (RLE, IDCT, YUV→RGB) → FMVs
 
 ## M9 — App desktop
-- [ ] 9.1 Biblioteca: pasta de jogos, scan BIN/CUE, título/serial/região, lista
+- [ ] 9.0 psx-desktop boota BIOS (--bios CLI, CPU loop, framebuffer) (iter 0090)
+- [ ] 9.1 Biblioteca: scan BIN/CUE, título/serial/região, lista
 - [ ] 9.2 Snapshot do core (serde) → save states F5/F8 + slots
 - [ ] 9.3 Memory cards automáticos por serial + tela de saves
 - [ ] 9.4 Controles PS/Xbox (gilrs) + tela de mapeamento + perfis

@@ -53,9 +53,9 @@ Placar da bateria: 5/5 mutantes mortos, 2/2 controles verdes, 0 equivalente - do
 | m2 | GP1(09h) sempre abre o gate (ignora bit, seta true) | `gp1_09h_fecha_gate_reescrever_e1h_limpa_gpustat_15` |
 | m3 | GP1(09h) sempre fecha o gate (ignora bit, seta false) | `gp1_09h_abre_o_gate_do_bit_15`, `poligono_texturizado_com_gate_aberto_seta_gpustat_15` |
 | m4 | GP1(09h) lê bit 1 em vez de bit 0 | `gp1_09h_abre_o_gate_do_bit_15`, `gp1_09h_fecha_gate_reescrever_e1h_limpa_gpustat_15` |
-| m5 | GP1(00h) esquece de resetar allow_upper_y | `gp1_00h_reset_fecha_o_gate_do_bit_15` |
-| c1 | renomeia bit para gate_bit (cosmético) | sobreviveu |
-| c2 | extrai condição para variável local (cosmético) | sobreviveu |
+| m5 | GP1(00h) seta allow_upper_y=true em vez de false no reset | `gp1_00h_reset_fecha_o_gate_do_bit_15`, `apos_reset_gpustat_15_nao_reflete_e1h_bit11` |
+| c1 | renomeia bit para gate_bit no handler GP1(09h) (cosmético) | sobreviveu |
+| c2 | acrescenta comentário antes do gate do E1h (cosmético) | sobreviveu |
 
 ### Manifesto 0074 (rerrodado após reparo de âncora)
 

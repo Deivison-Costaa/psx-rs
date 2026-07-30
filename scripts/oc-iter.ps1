@@ -47,11 +47,11 @@ $oc = if ($shim) {
 } else { $null }
 if (-not ($oc -and (Test-Path $oc))) { Write-Error "opencode.exe nao encontrado (npm i -g opencode-ai)" }
 
-$up = Test-Connection -TargetName localhost -TcpPort $Port -Quiet -TimeoutSeconds 2
+$up = Test-Connection -TargetName 127.0.0.1 -TcpPort $Port -Quiet -TimeoutSeconds 2
 if (-not $up) {
     Start-Process $oc -ArgumentList "serve", "--port", $Port -WindowStyle Hidden
     foreach ($i in 1..30) {
-        if (Test-Connection -TargetName localhost -TcpPort $Port -Quiet -TimeoutSeconds 2) { break }
+        if (Test-Connection -TargetName 127.0.0.1 -TcpPort $Port -Quiet -TimeoutSeconds 2) { break }
         Start-Sleep 1
     }
 }
@@ -117,6 +117,27 @@ while (-not $p.HasExited) {
 }
 if ($null -eq $resultado) {
     $resultado = if ($p.ExitCode -ne 0) { "falha:exit-$($p.ExitCode)" } else { "ok" }
+}
+
+# Matar o cliente NAO encerra a sessao: ela vive no daemon `opencode serve` e segue commitando
+# na arvore compartilhada. Ver o doc da iteracao 0101 para as sete escritas medidas depois da
+# morte da rodada, incluindo tres commits direto na main.
+function Stop-SessaoDoTrabalhador {
+    param([int]$Porta)
+    Get-Process -Name "opencode" -ErrorAction SilentlyContinue | ForEach-Object {
+        Stop-Process -Id $_.Id -Force -Confirm:$false -ErrorAction SilentlyContinue
+    }
+    $limite = (Get-Date).AddSeconds(30)
+    while ((Get-Date) -lt $limite) {
+        if (-not (Test-Connection -TargetName 127.0.0.1 -TcpPort $Porta -Quiet -TimeoutSeconds 2)) {
+            break
+        }
+        Start-Sleep -Seconds 1
+    }
+}
+
+if ($resultado -like "falha:*") {
+    Stop-SessaoDoTrabalhador -Porta $Port
 }
 $sw.Stop()
 # Exit 0 nao basta: no smoke 0008b/2 o CLI imprimiu a versao e saiu com 0 sem rodar nada.

@@ -1,0 +1,62 @@
+# Manifesto de mutação da iteração 0101 — matar-sessao
+formato: 1
+iteracao: 0101
+item: 10.31
+alvo: scripts/oc-iter.ps1
+teste: ci_oc_iter
+
+mutante: m1
+rotulo: funcao de encerramento da sessao renomeada, some do script
+@@DE
+function Stop-SessaoDoTrabalhador {
+@@PARA
+function Stop-SessaoDesativada {
+@@FIM
+
+mutante: m2
+rotulo: volta a alcancar so o cliente, sem o processo do daemon
+@@DE
+    Get-Process -Name "opencode" -ErrorAction SilentlyContinue | ForEach-Object {
+@@PARA
+    @($p) | ForEach-Object {
+@@FIM
+
+mutante: m3
+rotulo: encerramento amarrado a um rotulo so, o outro modo de morte fica com sessao viva
+@@DE
+if ($resultado -like "falha:*") {
+@@PARA
+if ($resultado -eq "ok") {
+@@FIM
+
+mutante: m4
+rotulo: nao espera a porta liberar, a proxima rodada anexa num daemon morrendo
+@@DE
+        if (-not (Test-Connection -TargetName 127.0.0.1 -TcpPort $Porta -Quiet -TimeoutSeconds 2)) {
+@@PARA
+        if ($true) {
+@@FIM
+
+mutante: m5
+rotulo: deteccao volta para localhost, que resolve IPv6 e nunca ve o daemon
+@@DE
+$up = Test-Connection -TargetName 127.0.0.1 -TcpPort $Port -Quiet -TimeoutSeconds 2
+@@PARA
+$up = Test-Connection -TargetName localhost -TcpPort $Port -Quiet -TimeoutSeconds 2
+@@FIM
+
+controle: c1
+rotulo: teto de espera de 30 para 40 segundos (cosmetico)
+@@DE
+    $limite = (Get-Date).AddSeconds(30)
+@@PARA
+    $limite = (Get-Date).AddSeconds(40)
+@@FIM
+
+controle: c2
+rotulo: intervalo de sondagem da porta de 1 para 2 segundos (cosmetico)
+@@DE
+        Start-Sleep -Seconds 1
+@@PARA
+        Start-Sleep -Seconds 2
+@@FIM

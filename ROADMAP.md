@@ -91,7 +91,7 @@ M3 (DMA/IRQ/timers). Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 10.28 Tabela por registro nos docs vs `.resultado` — 0071 errou 3/9, 0038 inflou 2 creditos
 - [ ] 10.29 `dma_dpcr_gate.rs:141` usa `assert_ne!` como unica assercao numa correcao de defeito
 - [ ] 10.30 Habilitar canal no DPCR nao dispara transferencia pendente (so na escrita de CHCR)
-- [ ] 10.31 `oc-loop` nao parqueia rodada morta (iter 0073)
+- [x] 10.31 Rodada morta seguia escrevendo: sessao vive no daemon, nao no cliente (iter 0101)
 - [x] 10.32 GP1(09h) fecha gate nao limpa latch GPUSTAT.15 (iter 0076)
 - [ ] 10.25 `unwrap_or(\"\")` sobre caminho nos meta-testes — transformou falha de `strip_prefix` em silencio (10.12)
 - [ ] 10.13 GP0(24h) e modulacao, nao raw texture — bit 24 do comando nao e lido (`docs/reference/03-gpu.md` L264 e L1610)

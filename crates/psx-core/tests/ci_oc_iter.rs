@@ -21,6 +21,18 @@ fn parametro_inteiro(script: &str, nome: &str) -> i64 {
         .unwrap_or_else(|_| panic!("valor de ${nome} deve ser inteiro"))
 }
 
+fn corpo_da_funcao(script: &str, inicio: usize) -> &str {
+    let resto = &script[inicio..];
+    match resto.find(
+        "
+}
+",
+    ) {
+        Some(fim) => &resto[..fim],
+        None => resto,
+    }
+}
+
 #[test]
 fn espera_da_rodada_nao_e_um_waitforexit_cego_de_parede_inteira() {
     let script = oc_iter_content();
@@ -100,5 +112,84 @@ fn janela_de_travamento_e_menor_que_a_parede_da_rodada() {
         "a janela de travamento ({travamento} min) tem de ser MENOR que a parede da rodada \
          ({parede} min). Igual ou maior, o detector nunca dispara antes do timeout e o conserto \
          inteiro vira decoracao."
+    );
+}
+
+#[test]
+fn rodada_morta_encerra_a_sessao_no_daemon_e_nao_so_o_cliente() {
+    let script = oc_iter_content();
+
+    let pos_funcao = script.find("function Stop-SessaoDoTrabalhador").expect(
+        "oc-iter.ps1 deve ter uma funcao que encerra a SESSAO, nao so o processo cliente. \
+         `Stop-Process` no `opencode run --attach` mata o cliente; a sessao vive dentro do \
+         daemon `opencode serve` e continua escrevendo na arvore. Medido em 30/07: depois de a \
+         rodada ser declarada morta, ela commitou 3x direto na main local, resetou HEAD e \
+         renomeou branch, por ~3 min.",
+    );
+    let corpo = corpo_da_funcao(&script, pos_funcao);
+    assert!(
+        corpo.contains("Get-Process") && corpo.contains("opencode"),
+        "a funcao tem de alcancar o processo do DAEMON pelo nome (`Get-Process ... opencode`); \
+         matar so `$p.Id` e o que ja se fazia e nao resolve. Conferido dentro do CORPO da          funcao: procurar no resto do arquivo deixa passar, porque `opencode` aparece adiante."
+    );
+}
+
+#[test]
+fn encerramento_da_sessao_esta_no_caminho_de_falha() {
+    let script = oc_iter_content();
+
+    let pos_guarda = script
+        .find("$resultado -like \"falha:")
+        .expect("o encerramento da sessao tem de ser disparado por uma guarda de FALHA generica");
+    let depois = &script[pos_guarda..];
+    let pos_chamada = depois.find("Stop-SessaoDoTrabalhador").unwrap_or_else(|| {
+        panic!(
+            "dentro da guarda de falha tem de haver a chamada a Stop-SessaoDoTrabalhador. \
+             Amarrar o encerramento a UM rotulo so deixa o outro modo de morte com sessao viva."
+        )
+    });
+    let entre = &depois[..pos_chamada];
+    assert!(
+        entre.len() < 400,
+        "a chamada deve estar DENTRO do bloco da guarda de falha, nao centenas de caracteres \
+         adiante (distancia atual: {} chars)",
+        entre.len()
+    );
+}
+
+#[test]
+fn apos_matar_o_daemon_espera_a_porta_liberar() {
+    let script = oc_iter_content();
+    let pos_funcao = script
+        .find("function Stop-SessaoDoTrabalhador")
+        .expect("funcao de encerramento deve existir");
+    let corpo = corpo_da_funcao(&script, pos_funcao);
+    let pos_kill = corpo
+        .find("Stop-Process")
+        .expect("a funcao deve matar o processo do daemon");
+    let depois_do_kill = &corpo[pos_kill..];
+
+    assert!(
+        depois_do_kill.contains("Test-Connection"),
+        "depois de matar o daemon a funcao tem de ESPERAR a porta liberar (`Test-Connection`): \
+         a proxima rodada faz `--attach` na porta e, se o daemon ainda estiver morrendo, ela \
+         anexa num processo que vai sumir — troca uma corrida por outra"
+    );
+}
+
+#[test]
+fn deteccao_da_porta_usa_o_endereco_em_que_o_daemon_escuta() {
+    let script = oc_iter_content();
+
+    assert!(
+        !script.contains("-TargetName localhost -TcpPort"),
+        "`Test-Connection -TargetName localhost` resolve para ::1 (IPv6), e o `opencode serve` \
+         escuta em 127.0.0.1 (IPv4): medido em 30/07 com o daemon vivo, `localhost` responde \
+         False e `127.0.0.1` responde True. Com `localhost` a checagem de subida acha que o \
+         daemon esta morto em TODA rodada, e a espera pela porta liberar nunca espera."
+    );
+    assert!(
+        script.contains("-TargetName 127.0.0.1 -TcpPort"),
+        "a checagem da porta tem de existir usando 127.0.0.1"
     );
 }

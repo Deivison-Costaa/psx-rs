@@ -57,49 +57,20 @@ fn le_cfc2(cpu: &mut Cpu, bus: &mut psx_core::bus::Bus, a: u32, dst: usize, rd: 
     escreve_e_executa(cpu, bus, a, nop());
 }
 
-// ── MVMVA: RT/V0/TR ──
+fn setup_rt_identity(cpu: &mut Cpu, bus: &mut psx_core::bus::Bus, a: u32) {
+    ctc2_r8(cpu, bus, a, 0, 0x0000_1000);
+    ctc2_r8(cpu, bus, a, 1, 0);
+    ctc2_r8(cpu, bus, a, 2, 0x0000_1000);
+    ctc2_r8(cpu, bus, a, 3, 0);
+    ctc2_r8(cpu, bus, a, 4, 0x1000);
+}
 
-#[test]
-fn mvmva_rt_v0_tr_sf0_lm0() {
-    let mut bus = bus_with_bios_empty();
-    let mut cpu = Cpu::new();
-    let a = 0x0000u32;
-
-    ctc2_r8(&mut cpu, &mut bus, a, 0, 0x0000_1000);
-    ctc2_r8(&mut cpu, &mut bus, a, 1, 0);
-    ctc2_r8(&mut cpu, &mut bus, a, 2, 0x0000_1000);
-    ctc2_r8(&mut cpu, &mut bus, a, 3, 0);
-    ctc2_r8(&mut cpu, &mut bus, a, 4, 0x1000);
-
-    ctc2_r8(&mut cpu, &mut bus, a, 5, 0x0000_0064);
-    ctc2_r8(&mut cpu, &mut bus, a, 6, 0x0000_00C8);
-    ctc2_r8(&mut cpu, &mut bus, a, 7, 0x0000_012C);
-
-    mtc2_r8(&mut cpu, &mut bus, a, 0, 0x0001_0002);
-    mtc2_r8(&mut cpu, &mut bus, a, 1, 0x0003);
-
-    escreve_e_executa(&mut cpu, &mut bus, a, cop2_mvmva(false, 0, 0, 0, false));
-    escreve_e_executa(&mut cpu, &mut bus, a, nop());
-
-    le_mfc2(&mut cpu, &mut bus, a, 10, 9);
-    le_mfc2(&mut cpu, &mut bus, a, 11, 10);
-    le_mfc2(&mut cpu, &mut bus, a, 12, 11);
-
-    assert_eq!(
-        cpu.regs[10] as i32,
-        0x1000 * 1 + 0 * 2 + 0 * 3 + 100,
-        "MVMVA RT,V0,TR sf=0: IR1 = RT11*Vx + RT12*Vy + RT13*Vz + TRX = 0x1000*1+0*2+0*3+100 = 4196"
-    );
-    assert_eq!(
-        cpu.regs[11] as i32,
-        0 * 1 + 0x1000 * 2 + 0 * 3 + 200,
-        "MVMVA RT,V0,TR sf=0: IR2 = RT21*Vx + RT22*Vy + RT23*Vz + TRY = 0*1+0x1000*2+0*3+200 = 8392"
-    );
-    assert_eq!(
-        cpu.regs[12] as i32,
-        0 * 1 + 0 * 2 + 0x1000 * 3 + 300,
-        "MVMVA RT,V0,TR sf=0: IR3 = RT31*Vx + RT32*Vy + RT33*Vz + TRZ = 0*1+0*2+0x1000*3+300 = 12588"
-    );
+fn setup_light_matrix(cpu: &mut Cpu, bus: &mut psx_core::bus::Bus, a: u32) {
+    ctc2_r8(cpu, bus, a, 8, 0x0000_0800);
+    ctc2_r8(cpu, bus, a, 9, 0x0000_0400);
+    ctc2_r8(cpu, bus, a, 10, 0x0000_0C00);
+    ctc2_r8(cpu, bus, a, 11, 0x0000_0200);
+    ctc2_r8(cpu, bus, a, 12, 0x1000);
 }
 
 // ── MVMVA: RT/V0/TR sf=1 ──
@@ -110,18 +81,14 @@ fn mvmva_rt_v0_tr_sf1_lm0() {
     let mut cpu = Cpu::new();
     let a = 0x0000u32;
 
-    ctc2_r8(&mut cpu, &mut bus, a, 0, 0x0000_1000);
-    ctc2_r8(&mut cpu, &mut bus, a, 1, 0);
-    ctc2_r8(&mut cpu, &mut bus, a, 2, 0x0000_1000);
-    ctc2_r8(&mut cpu, &mut bus, a, 3, 0);
-    ctc2_r8(&mut cpu, &mut bus, a, 4, 0x1000);
+    setup_rt_identity(&mut cpu, &mut bus, a);
 
-    ctc2_r8(&mut cpu, &mut bus, a, 5, 0x0000_1000);
-    ctc2_r8(&mut cpu, &mut bus, a, 6, 0x0000_2000);
-    ctc2_r8(&mut cpu, &mut bus, a, 7, 0x0000_3000);
+    ctc2_r8(&mut cpu, &mut bus, a, 5, 10);
+    ctc2_r8(&mut cpu, &mut bus, a, 6, 20);
+    ctc2_r8(&mut cpu, &mut bus, a, 7, 30);
 
-    mtc2_r8(&mut cpu, &mut bus, a, 0, 0x0002_0001);
-    mtc2_r8(&mut cpu, &mut bus, a, 1, 0);
+    mtc2_r8(&mut cpu, &mut bus, a, 0, 0x0064_0032);
+    mtc2_r8(&mut cpu, &mut bus, a, 1, 0x0000_000A);
 
     escreve_e_executa(&mut cpu, &mut bus, a, cop2_mvmva(true, 0, 0, 0, false));
     escreve_e_executa(&mut cpu, &mut bus, a, nop());
@@ -130,94 +97,42 @@ fn mvmva_rt_v0_tr_sf1_lm0() {
     le_mfc2(&mut cpu, &mut bus, a, 11, 10);
     le_mfc2(&mut cpu, &mut bus, a, 12, 11);
 
-    let raw1 = 0x1000 * 2 + 0 * 1 + 0 * 0 + 0x1000;
-    let raw2 = 0 * 2 + 0x1000 * 1 + 0 * 0 + 0x2000;
-    let raw3 = 0 * 2 + 0 * 1 + 0x1000 * 0 + 0x3000;
-
     assert_eq!(
-        cpu.regs[10] as i32,
-        raw1 >> 12,
-        "MVMVA sf=1: IR1 = (TRX*1000h + RT11*Vx + RT12*Vy + RT13*Vz) >> 12"
+        cpu.regs[10] as i32, 10 + 50,
+        "MVMVA RT,V0,TR sf=1: IR1 = TRX + VX = 10 + 50 = 60"
     );
     assert_eq!(
-        cpu.regs[11] as i32,
-        raw2 >> 12,
-        "MVMVA sf=1: IR2"
+        cpu.regs[11] as i32, 20 + 100,
+        "MVMVA RT,V0,TR sf=1: IR2 = TRY + VY = 20 + 100 = 120"
     );
     assert_eq!(
-        cpu.regs[12] as i32,
-        raw3 >> 12,
-        "MVMVA sf=1: IR3"
+        cpu.regs[12] as i32, 30 + 10,
+        "MVMVA RT,V0,TR sf=1: IR3 = TRZ + VZ = 30 + 10 = 40"
     );
 }
 
-// ── MVMVA: LLM/V1/BK ──
+// ── MVMVA: RT/V0/TR sf=0 (resultados em 1.3.12, saturam para IR 16-bit) ──
 
 #[test]
-fn mvmva_llm_v1_bk_sf0_lm0() {
+fn mvmva_rt_v0_tr_sf0_lm0() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
     let a = 0x0000u32;
 
-    ctc2_r8(&mut cpu, &mut bus, a, 8, 0x0000_0100);
-    ctc2_r8(&mut cpu, &mut bus, a, 9, 0);
-    ctc2_r8(&mut cpu, &mut bus, a, 10, 0x0000_0200);
-    ctc2_r8(&mut cpu, &mut bus, a, 11, 0);
-    ctc2_r8(&mut cpu, &mut bus, a, 12, 0x0300);
+    ctc2_r8(&mut cpu, &mut bus, a, 0, 0x0000_0001);
+    ctc2_r8(&mut cpu, &mut bus, a, 1, 0);
+    ctc2_r8(&mut cpu, &mut bus, a, 2, 0x0000_0002);
+    ctc2_r8(&mut cpu, &mut bus, a, 3, 0);
+    ctc2_r8(&mut cpu, &mut bus, a, 4, 0x0003);
 
-    ctc2_r8(&mut cpu, &mut bus, a, 13, 0x0000_000A);
-    ctc2_r8(&mut cpu, &mut bus, a, 14, 0x0000_0014);
-    ctc2_r8(&mut cpu, &mut bus, a, 15, 0x0000_001E);
-
-    mtc2_r8(&mut cpu, &mut bus, a, 2, 0x0001_0002);
-    mtc2_r8(&mut cpu, &mut bus, a, 3, 0x0003);
-
-    escreve_e_executa(&mut cpu, &mut bus, a, cop2_mvmva(false, 1, 1, 1, false));
-    escreve_e_executa(&mut cpu, &mut bus, a, nop());
-
-    le_mfc2(&mut cpu, &mut bus, a, 10, 9);
-    le_mfc2(&mut cpu, &mut bus, a, 11, 10);
-    le_mfc2(&mut cpu, &mut bus, a, 12, 11);
-
-    assert_eq!(
-        cpu.regs[10] as i32,
-        0x100 * 1 + 0 * 2 + 0 * 3 + 10,
-        "MVMVA LLM,V1,BK: IR1 = L11*Vx + L12*Vy + L13*Vz + RBK"
-    );
-    assert_eq!(
-        cpu.regs[11] as i32,
-        0 * 1 + 0x200 * 2 + 0 * 3 + 20,
-        "MVMVA LLM,V1,BK: IR2"
-    );
-    assert_eq!(
-        cpu.regs[12] as i32,
-        0 * 1 + 0 * 2 + 0x300 * 3 + 30,
-        "MVMVA LLM,V1,BK: IR3"
-    );
-}
-
-// ── MVMVA: LCM/V2/TR ──
-
-#[test]
-fn mvmva_lcm_v2_tr_sf0_lm0() {
-    let mut bus = bus_with_bios_empty();
-    let mut cpu = Cpu::new();
-    let a = 0x0000u32;
-
-    ctc2_r8(&mut cpu, &mut bus, a, 16, 0x0000_0010);
-    ctc2_r8(&mut cpu, &mut bus, a, 17, 0x0000_0020);
-    ctc2_r8(&mut cpu, &mut bus, a, 18, 0x0000_0030);
-    ctc2_r8(&mut cpu, &mut bus, a, 19, 0);
-    ctc2_r8(&mut cpu, &mut bus, a, 20, 0x0040);
-
-    ctc2_r8(&mut cpu, &mut bus, a, 5, 0x0000_0064);
+    ctc2_r8(&mut cpu, &mut bus, a, 5, 0);
     ctc2_r8(&mut cpu, &mut bus, a, 6, 0);
     ctc2_r8(&mut cpu, &mut bus, a, 7, 0);
 
-    mtc2_r8(&mut cpu, &mut bus, a, 4, 0x0003_0002);
-    mtc2_r8(&mut cpu, &mut bus, a, 5, 0x0001);
+    mtc2_r8(&mut cpu, &mut bus, a, 0, 0x0010_0008);
+    mtc2_r8(&mut cpu, &mut bus, a, 1, 0x0020);
 
-    escreve_e_executa(&mut cpu, &mut bus, a, cop2_mvmva(false, 2, 2, 0, false));
+    escreve_e_executa(&mut cpu, &mut bus, a, cop2_mvmva(false, 0, 0, 3, false));
     escreve_e_executa(&mut cpu, &mut bus, a, nop());
 
     le_mfc2(&mut cpu, &mut bus, a, 10, 9);
@@ -226,40 +141,122 @@ fn mvmva_lcm_v2_tr_sf0_lm0() {
 
     assert_eq!(
         cpu.regs[10] as i32,
-        0x10 * 3 + 0x20 * 2 + 0 * 1 + 100,
-        "MVMVA LCM,V2,TR: IR1 = LR1*Vx + LR2*Vy + LR3*Vz + TRX"
+        1 * 8 + 0 * 16 + 0 * 32,
+        "MVMVA sf=0: IR1 = RT11*VX = 8, sem saturacao"
     );
     assert_eq!(
         cpu.regs[11] as i32,
-        0x30 * 3 + 0 * 2 + 0 * 1 + 0,
-        "MVMVA LCM,V2,TR: IR2"
+        0 * 8 + 2 * 16 + 0 * 32,
+        "MVMVA sf=0: IR2 = RT22*VY = 32"
     );
     assert_eq!(
         cpu.regs[12] as i32,
-        0 * 3 + 0 * 2 + 0x40 * 1 + 0,
-        "MVMVA LCM,V2,TR: IR3"
+        0 * 8 + 0 * 16 + 3 * 32,
+        "MVMVA sf=0: IR3 = RT33*VZ = 96"
     );
 }
 
-// ── MVMVA: RT/IR/None ──
+// ── MVMVA: LLM/V1/BK sf=1 ──
 
 #[test]
-fn mvmva_rt_ir_none_sf0_lm0() {
+fn mvmva_llm_v1_bk_sf1_lm0() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
     let a = 0x0000u32;
 
-    ctc2_r8(&mut cpu, &mut bus, a, 0, 0x0000_0002);
-    ctc2_r8(&mut cpu, &mut bus, a, 1, 0);
-    ctc2_r8(&mut cpu, &mut bus, a, 2, 0x0000_0003);
-    ctc2_r8(&mut cpu, &mut bus, a, 3, 0);
-    ctc2_r8(&mut cpu, &mut bus, a, 4, 0x0005);
+    setup_light_matrix(&mut cpu, &mut bus, a);
+
+    ctc2_r8(&mut cpu, &mut bus, a, 13, 0);
+    ctc2_r8(&mut cpu, &mut bus, a, 14, 0);
+    ctc2_r8(&mut cpu, &mut bus, a, 15, 0);
+
+    mtc2_r8(&mut cpu, &mut bus, a, 2, 0x0004_0003);
+    mtc2_r8(&mut cpu, &mut bus, a, 3, 0x0005);
+
+    escreve_e_executa(&mut cpu, &mut bus, a, cop2_mvmva(true, 1, 1, 1, false));
+    escreve_e_executa(&mut cpu, &mut bus, a, nop());
+
+    le_mfc2(&mut cpu, &mut bus, a, 10, 9);
+    le_mfc2(&mut cpu, &mut bus, a, 11, 10);
+    le_mfc2(&mut cpu, &mut bus, a, 12, 11);
+
+    assert_eq!(
+        cpu.regs[10] as i32,
+        (0x0800i32 * 3 + 0 * 4 + 0x0400i32 * 5) / 0x1000,
+        "MVMVA LLM,V1,BK sf=1: IR1 = (L11*VX+L12*VY+L13*VZ)>>12 = (6144+5120)/4096 = 2"
+    );
+    assert_eq!(
+        cpu.regs[11] as i32,
+        (0 * 3 + 0x0C00i32 * 4 + 0 * 5) / 0x1000,
+        "MVMVA LLM,V1,BK sf=1: IR2 = (L21*VX+L22*VY+L23*VZ)>>12 = 12288/4096 = 3"
+    );
+    assert_eq!(
+        cpu.regs[12] as i32,
+        (0x0200i32 * 3 + 0 * 4 + 0x1000i32 * 5) / 0x1000,
+        "MVMVA LLM,V1,BK sf=1: IR3 = (L31*VX+L32*VY+L33*VZ)>>12 = (1536+20480)/4096 = 5"
+    );
+}
+
+// ── MVMVA: LCM/V2/TR sf=1 ──
+
+#[test]
+fn mvmva_lcm_v2_tr_sf1_lm0() {
+    let mut bus = bus_with_bios_empty();
+    let mut cpu = Cpu::new();
+    let a = 0x0000u32;
+
+    ctc2_r8(&mut cpu, &mut bus, a, 16, 0x0000_0800);
+    ctc2_r8(&mut cpu, &mut bus, a, 17, 0);
+    ctc2_r8(&mut cpu, &mut bus, a, 18, 0x0000_0400);
+    ctc2_r8(&mut cpu, &mut bus, a, 19, 0);
+    ctc2_r8(&mut cpu, &mut bus, a, 20, 0x0C00);
+
+    ctc2_r8(&mut cpu, &mut bus, a, 5, 0);
+    ctc2_r8(&mut cpu, &mut bus, a, 6, 0);
+    ctc2_r8(&mut cpu, &mut bus, a, 7, 0);
+
+    mtc2_r8(&mut cpu, &mut bus, a, 4, 0x0020_0010);
+    mtc2_r8(&mut cpu, &mut bus, a, 5, 0x0008);
+
+    escreve_e_executa(&mut cpu, &mut bus, a, cop2_mvmva(true, 2, 2, 0, false));
+    escreve_e_executa(&mut cpu, &mut bus, a, nop());
+
+    le_mfc2(&mut cpu, &mut bus, a, 10, 9);
+    le_mfc2(&mut cpu, &mut bus, a, 11, 10);
+    le_mfc2(&mut cpu, &mut bus, a, 12, 11);
+
+    assert_eq!(
+        cpu.regs[10] as i32,
+        (0x0800i32 * 16 + 0 * 32 + 0 * 8) / 0x1000,
+        "MVMVA LCM,V2,TR sf=1: IR1 = (LR1*VX+LR2*VY+LR3*VZ)>>12 = 32768/4096 = 8"
+    );
+    assert_eq!(
+        cpu.regs[11] as i32,
+        (0 * 16 + 0x0400i32 * 32 + 0 * 8) / 0x1000,
+        "MVMVA LCM,V2,TR sf=1: IR2 = (LG1*VX+LG2*VY+LG3*VZ)>>12 = 32768/4096 = 8"
+    );
+    assert_eq!(
+        cpu.regs[12] as i32,
+        (0 * 16 + 0 * 32 + 0x0C00i32 * 8) / 0x1000,
+        "MVMVA LCM,V2,TR sf=1: IR3 = (LB1*VX+LB2*VY+LB3*VZ)>>12 = 24576/4096 = 6"
+    );
+}
+
+// ── MVMVA: RT/IR/None sf=1 ──
+
+#[test]
+fn mvmva_rt_ir_none_sf1_lm0() {
+    let mut bus = bus_with_bios_empty();
+    let mut cpu = Cpu::new();
+    let a = 0x0000u32;
+
+    setup_rt_identity(&mut cpu, &mut bus, a);
 
     mtc2_r8(&mut cpu, &mut bus, a, 9, 0x000A);
     mtc2_r8(&mut cpu, &mut bus, a, 10, 0x0014);
     mtc2_r8(&mut cpu, &mut bus, a, 11, 0x001E);
 
-    escreve_e_executa(&mut cpu, &mut bus, a, cop2_mvmva(false, 0, 3, 3, false));
+    escreve_e_executa(&mut cpu, &mut bus, a, cop2_mvmva(true, 0, 3, 3, false));
     escreve_e_executa(&mut cpu, &mut bus, a, nop());
 
     le_mfc2(&mut cpu, &mut bus, a, 12, 9);
@@ -267,48 +264,45 @@ fn mvmva_rt_ir_none_sf0_lm0() {
     le_mfc2(&mut cpu, &mut bus, a, 14, 11);
 
     assert_eq!(
-        cpu.regs[12] as i32,
-        0x2 * 10 + 0 * 20 + 0 * 30,
-        "MVMVA RT,IR,None: IR1 = RT11*IR1 + RT12*IR2 + RT13*IR3, sem translacao"
+        cpu.regs[12] as i32, 10,
+        "MVMVA RT,IR,None sf=1: IR1 = 1.0*IR1+0+0 = 10"
     );
     assert_eq!(
-        cpu.regs[13] as i32,
-        0 * 10 + 0x3 * 20 + 0 * 30,
-        "MVMVA RT,IR,None: IR2"
+        cpu.regs[13] as i32, 20,
+        "MVMVA RT,IR,None sf=1: IR2 = 20"
     );
     assert_eq!(
-        cpu.regs[14] as i32,
-        0 * 10 + 0 * 20 + 0x5 * 30,
-        "MVMVA RT,IR,None: IR3"
+        cpu.regs[14] as i32, 30,
+        "MVMVA RT,IR,None sf=1: IR3 = 30"
     );
 }
 
-// ── MVMVA: saturacao ──
+// ── MVMVA: saturacao IR com lm=1 ──
 
 #[test]
-fn mvmva_saturacao_ir_lm1() {
+fn mvmva_saturacao_ir_lm1_negativo_saturado_em_zero() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
     let a = 0x0000u32;
 
-    ctc2_r8(&mut cpu, &mut bus, a, 0, 0x7FFF);
+    ctc2_r8(&mut cpu, &mut bus, a, 0, 0x8000u32);
     ctc2_r8(&mut cpu, &mut bus, a, 1, 0);
-    ctc2_r8(&mut cpu, &mut bus, a, 2, 0x7FFF);
+    ctc2_r8(&mut cpu, &mut bus, a, 2, 0x0000_1000);
     ctc2_r8(&mut cpu, &mut bus, a, 3, 0);
-    ctc2_r8(&mut cpu, &mut bus, a, 4, 0x7FFF);
+    ctc2_r8(&mut cpu, &mut bus, a, 4, 0x1000);
 
-    mtc2_r8(&mut cpu, &mut bus, a, 0, 0x7FFF_7FFF);
-    mtc2_r8(&mut cpu, &mut bus, a, 1, 0x7FFF);
+    mtc2_r8(&mut cpu, &mut bus, a, 0, 0x0001_0001);
+    mtc2_r8(&mut cpu, &mut bus, a, 1, 0);
 
-    escreve_e_executa(&mut cpu, &mut bus, a, cop2_mvmva(false, 0, 0, 3, true));
+    escreve_e_executa(&mut cpu, &mut bus, a, cop2_mvmva(true, 0, 0, 3, true));
     escreve_e_executa(&mut cpu, &mut bus, a, nop());
 
     le_mfc2(&mut cpu, &mut bus, a, 10, 9);
     le_cfc2(&mut cpu, &mut bus, a, 11, 31);
 
     assert_eq!(
-        cpu.regs[10] as i32, 0x7FFF,
-        "MVMVA lm=1: IR1 saturado em 0x7FFF quando resultado excede"
+        cpu.regs[10] as i32, 0,
+        "MVMVA lm=1: IR1 de -1 saturado em 0 com lm=1"
     );
     assert_ne!(
         cpu.regs[11] & (1 << 24),
@@ -317,31 +311,36 @@ fn mvmva_saturacao_ir_lm1() {
     );
 }
 
-// ── MVMVA: V1 ──
+// ── MVMVA: RT/V1/None sf=1 ──
 
 #[test]
-fn mvmva_rt_v1_tr_sf0_lm0() {
+fn mvmva_rt_v1_tr_sf1_lm0() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
     let a = 0x0000u32;
 
-    ctc2_r8(&mut cpu, &mut bus, a, 0, 0x0010);
-    ctc2_r8(&mut cpu, &mut bus, a, 1, 0);
-    ctc2_r8(&mut cpu, &mut bus, a, 2, 0x0000_0020);
-    ctc2_r8(&mut cpu, &mut bus, a, 3, 0);
-    ctc2_r8(&mut cpu, &mut bus, a, 4, 0x0030);
+    setup_rt_identity(&mut cpu, &mut bus, a);
 
-    mtc2_r8(&mut cpu, &mut bus, a, 2, 0x0001_0001);
-    mtc2_r8(&mut cpu, &mut bus, a, 3, 0x0001);
+    mtc2_r8(&mut cpu, &mut bus, a, 2, 0x0004_0003);
+    mtc2_r8(&mut cpu, &mut bus, a, 3, 0x0005);
 
-    escreve_e_executa(&mut cpu, &mut bus, a, cop2_mvmva(false, 0, 1, 3, false));
+    escreve_e_executa(&mut cpu, &mut bus, a, cop2_mvmva(true, 0, 1, 3, false));
     escreve_e_executa(&mut cpu, &mut bus, a, nop());
 
     le_mfc2(&mut cpu, &mut bus, a, 10, 9);
+    le_mfc2(&mut cpu, &mut bus, a, 11, 10);
+    le_mfc2(&mut cpu, &mut bus, a, 12, 11);
 
     assert_eq!(
-        cpu.regs[10] as i32,
-        0x10 * 1 + 0 * 1 + 0 * 1,
-        "MVMVA RT,V1,None: usa V1 em vez de V0"
+        cpu.regs[10] as i32, 3,
+        "MVMVA RT,V1,None sf=1: IR1 = V1_X = 3"
+    );
+    assert_eq!(
+        cpu.regs[11] as i32, 4,
+        "MVMVA RT,V1,None sf=1: IR2 = V1_Y = 4"
+    );
+    assert_eq!(
+        cpu.regs[12] as i32, 5,
+        "MVMVA RT,V1,None sf=1: IR3 = V1_Z = 5"
     );
 }

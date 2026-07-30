@@ -39,7 +39,7 @@ fn gp1_09h_abre_o_gate_do_bit_15() {
 }
 
 #[test]
-fn gp1_09h_bit0_zero_proibe_gpustat_15() {
+fn gp1_09h_fechar_gate_nao_limpa_gpustat_15() {
     let mut bus = bus_zerado();
 
     bus.write32::<BusRead>(GP1, (0x09 << 24) | 0x01);
@@ -49,8 +49,26 @@ fn gp1_09h_bit0_zero_proibe_gpustat_15() {
 
     assert_eq!(
         (stat >> 15) & 1,
+        1,
+        "GP1(09h).0=0 fecha o gate mas GPUSTAT.15 retem o latch (nao e limpo ativamente)"
+    );
+}
+
+#[test]
+fn gp1_09h_gate_fechado_mascara_reescrita_e1h() {
+    let mut bus = bus_zerado();
+
+    bus.write32::<BusRead>(GP1, (0x09 << 24) | 0x01);
+    bus.write32::<BusRead>(GP0, (0xE1 << 24) | 0x800);
+
+    bus.write32::<BusRead>(GP1, 0x09 << 24);
+    bus.write32::<BusRead>(GP0, (0xE1 << 24) | 0x800);
+    let stat = bus.read32::<BusRead>(GP1);
+
+    assert_eq!(
+        (stat >> 15) & 1,
         0,
-        "GP1(09h).0=0 → fecha o gate e GPUSTAT.15 volta a 0"
+        "gate fechado + reescrever E1h → GPUSTAT.15=0 (bit11 mascarado na reescrita)"
     );
 }
 

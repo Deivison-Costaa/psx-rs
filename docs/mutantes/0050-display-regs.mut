@@ -89,10 +89,6 @@ rotulo: declara variavel local nao usada _nop dentro de write_gp1 (cosmetico)
             0x09 => {
                 let bit = val & 1;
                 self.allow_upper_y.set(bit != 0);
-                if bit == 0 {
-                    let s = self.stat.get();
-                    self.stat.set(s & !(1 << 15));
-                }
             }
             _ => {}
 @@PARA
@@ -108,10 +104,6 @@ rotulo: declara variavel local nao usada _nop dentro de write_gp1 (cosmetico)
             0x09 => {
                 let bit = val & 1;
                 self.allow_upper_y.set(bit != 0);
-                if bit == 0 {
-                    let s = self.stat.get();
-                    self.stat.set(s & !(1 << 15));
-                }
             }
             _ => {}
 @@FIM

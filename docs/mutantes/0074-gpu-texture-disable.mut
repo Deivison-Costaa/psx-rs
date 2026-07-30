@@ -16,16 +16,11 @@ rotulo: GP1(09h) armazena bit 1 em vez de bit 0 (gate invertido)
 @@FIM
 
 mutante: m2
-rotulo: GP1(09h) nunca fecha o gate (bit == 0 nao limpa stat.15)
+rotulo: GP1(09h) inverte o gate (allow_upper_y = bit == 0 em vez de bit != 0)
 @@DE
-                if bit == 0 {
-                    let s = self.stat.get();
-                    self.stat.set(s & !(1 << 15));
-                }
+                self.allow_upper_y.set(bit != 0);
 @@PARA
-                {
-                    let _ = bit;
-                }
+                self.allow_upper_y.set(bit == 0);
 @@FIM
 
 mutante: m3

@@ -1,0 +1,11 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: f57322f71c538c148715af0797a3b22a84388010
+# rodado_em: 2026-07-30T17:30:35-03:00
+m1,mutante,morreu,morreu,0.8,handler_nao_e_sequestrado_pelo_salto_pendente;retorno_pelo_epc_refaz_o_salto_e_o_delay_slot
+m2,mutante,morreu,morreu,0.8,interrupcao_no_delay_slot_aponta_epc_para_o_branch;retorno_pelo_epc_refaz_o_salto_e_o_delay_slot
+m3,mutante,morreu,morreu,0.8,interrupcao_no_delay_slot_aponta_epc_para_o_branch
+m4,mutante,morreu,morreu,0.8,bt_indica_branch_tomado_no_delay_slot
+m5,mutante,morreu,morreu,0.8,interrupcao_fora_de_delay_slot_nao_marca_bd
+m6,mutante,morreu,morreu,0.8,interrupcao_fora_de_delay_slot_nao_marca_bd
+c1,controle,sobreviveu,sobreviveu,0.8,
+c2,controle,sobreviveu,sobreviveu,0.8,

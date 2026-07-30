@@ -38,7 +38,8 @@ M3 (DMA/IRQ/timers). Regra imposta por `roadmap_arquivo.rs`.
 - [x] 4.4c BIOS nunca escreve I_MASK (iter 0085)
 - [x] 4.4d I_MASK=0x0000 por todo o boot — bloqueio real, IRQs nunca vetoram (iter 0096)
 - [x] 4.4e Handler de excecao em 0x80000080 despacha para tabela de eventos do kernel (ehk) — VSync callbacks nao rodam (iter 0095)
-- [ ] 4.4f Boot morre em `jr $ra` com `$ra = 3` no passo 26 595 832 — quem corrompe `$ra`
+- [x] 4.4f Interrupcao no delay slot sequestrava o handler e sumia com o `addiu $sp` (iter 0103)
+- [ ] 4.4g BIOS ainda imprime `VSync: timeout` apos o 4.4f — contador avanca, espera nao e satisfeita
 
 ## M5 — GTE
 - [x] 5.1 Registradores + MFC2/MTC2/CFC2/CTC2/LWC2/SWC2 (iter 0084)
@@ -119,6 +120,8 @@ M3 (DMA/IRQ/timers). Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 10.40 `mutantes.ps1` so casa ancora em arquivo LF; em CRLF diz 'encontrada 0 vez(es)'
 - [x] 10.41 STATUS.md e handoff puro; invariantes em `docs/invariantes.md` citadas por numero (iter 0102)
 - [ ] 10.42 Manifesto trata `#` como comentario dentro de `@@DE`/`@@PARA` — alvo `.md` nao ancora em cabecalho
+- [ ] 10.43 Todo texto do TTY sai duplicado (2 linhas 'System ROM' na main e depois do 0103)
+- [ ] 10.44 Manifesto com alvo em documento vivo (STATUS.md) envelhece na iteracao seguinte, sempre
 
 ## M11 — Apresentação (incremental desde o M1)
 - [x] 11.1 Relatório consolidado (docs/relatorio.md — atualizado a cada marco) (iter 0096)

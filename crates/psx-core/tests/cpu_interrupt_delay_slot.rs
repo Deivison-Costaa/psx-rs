@@ -89,7 +89,11 @@ fn handler_nao_e_sequestrado_pelo_salto_pendente() {
     );
 
     cpu.step(&mut bus);
-    assert_eq!(cpu.pc, VETOR + 8, "e continua dentro do handler no passo seguinte");
+    assert_eq!(
+        cpu.pc,
+        VETOR + 8,
+        "e continua dentro do handler no passo seguinte"
+    );
 }
 
 #[test]
@@ -126,7 +130,10 @@ fn interrupcao_fora_de_delay_slot_nao_marca_bd() {
     cpu.step(&mut bus);
 
     assert_eq!(cpu.pc, VETOR);
-    assert_eq!(cpu.cop0[14], BRANCH, "fora de delay slot, EPC e o proprio PC");
+    assert_eq!(
+        cpu.cop0[14], BRANCH,
+        "fora de delay slot, EPC e o proprio PC"
+    );
     assert_eq!(
         cpu.cop0[13] & (1 << 31),
         0,

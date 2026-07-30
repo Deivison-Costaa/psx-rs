@@ -7,25 +7,27 @@
 
 ## Última iteração concluída
 
-**0106** — endereco do texel 4bpp/8bpp somava a linha duas vezes; o logo da BIOS passa a sair
-legivel (ROADMAP 2.2c).
+**0107** — o losango cortado do logo NAO e defeito nosso: a BIOS desenha 256 linhas numa area de
+desenho de 240 que ela mesma programou (ROADMAP 2.2d, fica aberto por falta de referencia).
 
 ## Próxima tarefa
 
-**ROADMAP 2.2d — a metade de baixo de cada triangulo do losango nunca e desenhada.**
-Medido pelo orquestrador em 30/07, BIOS real, 400M passos, despejo dos poligonos nao texturizados.
-O losango do logo e feito de triangulos gouraud como `(195,240),(320,115),(320,365)`: ordenados
-por y, o topo e `(320,115)`, o meio e `(195,240)` e a base e `(320,365)`. Na VRAM aparece **so** o
-trecho de y=115 a y=240 — a metade **acima** do vertice do meio. A metade de baixo some.
-E o padrao classico de rasterizador que divide o triangulo em meia-superior e meia-inferior e
-perde a segunda. Os testes de 2.3 nao pegam porque usam triangulos simples.
-Spec: `docs/reference/03-gpu.md`, secao Render Polygon (offset +115 sobre o indice).
-Arquivos-alvo: `crates/psx-core/src/gpu.rs`, funcao `render_triangle`.
-Critério de aceitação: o losango do logo fecha nas quatro pontas no despejo da VRAM.
-Invariantes relevantes: 13.
+**ROADMAP 4.4 — o boot de jogo.** As imagens BIN/CUE chegaram (30/07) e ficam FORA do repositorio,
+em `../roms/extraido/`. **Nunca commitar imagem de disco.**
+O boot da BIOS ja funciona de ponta a ponta: 0 `VSync: timeout`, kernel inicializado, logo desenhado
+com o texto "SONY" legivel. Falta medir se a BIOS chega a ler o disco e passar o controle ao jogo.
+Arquivos-alvo: `crates/psx-core/src/cdrom.rs`, `crates/psx-core/src/bus.rs`.
+Critério de aceitação: o TTY ou a VRAM mostram conteudo vindo do disco, nao mais so o logo.
+Invariantes relevantes: nenhum.
 
-**Primeiro passo:** um teste com triangulo cujo vertice do meio esteja a ESQUERDA da aresta
-longa e outro com ele a direita — os dois casos de divisao. Depois compare com o despejo real.
+**Primeiro passo:** rodar `psx-cli --bios <BIOS> --disc <CUE>` por alguns bilhoes de passos e ver
+se o TTY muda depois de `ResetCallback`. Se nao mudar, medir se a BIOS chega a emitir comando de
+leitura ao CDROM — o M4 esta 12/13 fechado, entao a maquina de estados existe.
+
+**Erro que ja custou DUAS iteracoes seguidas — nao repetir:** nas 0105 e 0106 eu atribui um defeito
+visivel a um componente antes de medir se ele participava. Na 0105 era o blit VRAM->VRAM (que a
+BIOS nem emite); na 0107 era o rasterizador (que estava certo). MEÇA se o componente participa
+antes de acusa-lo.
 
 ## Repositório
 

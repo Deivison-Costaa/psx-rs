@@ -78,6 +78,7 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [x] 4.4c BIOS nunca escreve I_MASK (iter 0085)
 - [x] 4.4d I_MASK=0x0000 por todo o boot — bloqueio real, IRQs nunca vetoram (iter 0096)
 - [x] 4.4e Handler de excecao em 0x80000080 despacha para tabela de eventos do kernel (ehk) — VSync callbacks nao rodam (iter 0095)
+- [ ] 4.4f Boot morre em jr $ra com $ra=3 — registrador de retorno corrompido
 
 ## M5 — GTE
 - [x] 5.1 Registradores + MFC2/MTC2/CFC2/CTC2/LWC2/SWC2 (iter 0084)
@@ -154,6 +155,7 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [x] 10.36 Interrupcoes nao funcionam em sideload de PS-EXE — vetor 0x80000080 nao configurado (iter 0093)
 - [x] 10.37 `oc-loop.ps1` anunciava merge que nao aconteceu: `Wait-Checks` lia estado do commit anterior e falha de `gh pr merge` passava por sucesso (iter 0094)
 - [x] 10.38 `oc-iter.ps1` pagava a parede de 45 min por rodada travada de 90 s de vida (iter 0098)
+- [ ] 10.39 Fetch desalinhado levanta AdEL (excode 4), nao RI (excode 10)
 
 ## M11 — Apresentação (incremental desde o M1)
 - [x] 11.1 Relatório consolidado (docs/relatorio.md — atualizado a cada marco) (iter 0096)

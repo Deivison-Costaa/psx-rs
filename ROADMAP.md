@@ -153,6 +153,7 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [ ] 10.35 `mutantes.ps1` escreve nome qualificado no .resultado e `mutation_battery.rs` procura fn literal — nunca casam em modulo
 - [x] 10.36 Interrupcoes nao funcionam em sideload de PS-EXE — vetor 0x80000080 nao configurado (iter 0093)
 - [x] 10.37 `oc-loop.ps1` anunciava merge que nao aconteceu: `Wait-Checks` lia estado do commit anterior e falha de `gh pr merge` passava por sucesso (iter 0094)
+- [x] 10.38 `oc-iter.ps1` pagava a parede de 45 min por rodada travada de 90 s de vida (iter 0098)
 
 ## M11 — Apresentação (incremental desde o M1)
 - [x] 11.1 Relatório consolidado (docs/relatorio.md — atualizado a cada marco) (iter 0096)

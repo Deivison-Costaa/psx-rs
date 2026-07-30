@@ -1,0 +1,78 @@
+# Manifesto de mutação da iteração 0087 — printf-zero-pad
+formato: 1
+iteracao: 0087
+item: 1.11c
+alvo: crates/psx-core/src/cpu.rs
+teste: cpu_printf_hook
+
+mutante: m1
+rotulo: zero_pad nunca true (flag '0' ignorada)
+@@DE
+        if ch == b'0' {
+            zero_pad = true;
+@@PARA
+        if false {
+            zero_pad = true;
+@@FIM
+
+mutante: m2
+rotulo: width sempre 0 (largura ignorada)
+@@DE
+            width = width
+                .saturating_mul(10)
+                .saturating_add((ch - b'0') as usize);
+@@PARA
+            width = 0usize;
+@@FIM
+
+mutante: m3
+rotulo: pad_char sempre espaco (zero-pad ignorado)
+@@DE
+    let pad_char = if zero_pad { b'0' } else { b' ' };
+@@PARA
+    let pad_char = b' ';
+@@FIM
+
+mutante: m4
+rotulo: padding no else branch usa zero pad (ignora espaco)
+@@DE
+    } else {
+        for _ in 0..(width.saturating_sub(total_len)) {
+            bus.tty_push(pad_char);
+@@PARA
+    } else {
+        for _ in 0..(width.saturating_sub(total_len)) {
+            bus.tty_push(b'0');
+@@FIM
+
+mutante: m5
+rotulo: parse_printf_spec nao parseia digitos como largura
+@@DE
+        while ch.is_ascii_digit() {
+            width = width
+                .saturating_mul(10)
+                .saturating_add((ch - b'0') as usize);
+@@PARA
+        while false {
+            let _ = width;
+@@FIM
+
+controle: c1
+rotulo: adiciona declaracao let _ = body_len;
+@@DE
+    let sign_len = if negative { 1 } else { 0 };
+@@PARA
+    let _ = body_len;
+    let sign_len = if negative { 1 } else { 0 };
+@@FIM
+
+controle: c2
+rotulo: adiciona let _ = 0 no inicio de emit_signed
+@@DE
+fn emit_signed(bus: &mut Bus, val: i32, zero_pad: bool, width: usize) {
+    let negative = val < 0;
+@@PARA
+fn emit_signed(bus: &mut Bus, val: i32, zero_pad: bool, width: usize) {
+    let _ = 0;
+    let negative = val < 0;
+@@FIM

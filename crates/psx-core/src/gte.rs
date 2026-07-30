@@ -26,7 +26,7 @@ impl Gte {
         let idx = 32 + rd;
         let val = self.regs[idx];
         if rd == 31 {
-            let raw = val & 0x7FFF_F800;
+            let raw = val & 0x7FFF_F000;
             let error_flag = flag_error_bit(raw);
             raw | error_flag
         } else if is_standalone_s16_control(rd) {
@@ -39,7 +39,7 @@ impl Gte {
     pub fn write_control(&mut self, rd: usize, val: u32) {
         let idx = 32 + rd;
         if rd == 31 {
-            self.regs[idx] = val & 0x7FFF_F800;
+            self.regs[idx] = val & 0x7FFF_F000;
         } else {
             self.regs[idx] = val;
         }

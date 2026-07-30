@@ -5,7 +5,7 @@
 
 ## Última iteração concluída
 
-**0086** — GTE: RTPS/RTPT + divisão UNR + FIFOs + saturação (ROADMAP 5.2).
+**0087** — printf: flags de largura e zero-pad (ROADMAP 1.11c).
 
 ## Próxima tarefa
 

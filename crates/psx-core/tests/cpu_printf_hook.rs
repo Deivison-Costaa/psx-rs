@@ -301,3 +301,131 @@ fn printf_percent_no_final_da_string() {
         "A10: %% truncado no final da string deve emitir 'x%%'"
     );
 }
+
+#[test]
+fn printf_08x_zero_pad_hex_minusculo() {
+    let mut bus = bus_with_bios_empty();
+    let mut cpu = Cpu::new();
+
+    setup_printf(&mut cpu, &mut bus, "v=%08x\n", 0x100, &[0x1F], 0x1FF0);
+
+    step_n(&mut cpu, &mut bus, 3);
+
+    assert_eq!(
+        bus.take_tty(),
+        b"v=0000001f\n",
+        "%%08x com 0x1F deve gerar '0000001f' (zero-pad, 8 digitos)"
+    );
+}
+
+#[test]
+fn printf_08x_maiusculo_zero_pad_hex() {
+    let mut bus = bus_with_bios_empty();
+    let mut cpu = Cpu::new();
+
+    setup_printf(&mut cpu, &mut bus, "v=%08X\n", 0x100, &[0x1F], 0x1FF0);
+
+    step_n(&mut cpu, &mut bus, 3);
+
+    assert_eq!(
+        bus.take_tty(),
+        b"v=0000001F\n",
+        "%%08X com 0x1F deve gerar '0000001F' (zero-pad maiusculo)"
+    );
+}
+
+#[test]
+fn printf_2d_largura_minima_dois() {
+    let mut bus = bus_with_bios_empty();
+    let mut cpu = Cpu::new();
+
+    setup_printf(&mut cpu, &mut bus, "v=%2d\n", 0x100, &[7], 0x1FF0);
+
+    step_n(&mut cpu, &mut bus, 3);
+
+    assert_eq!(
+        bus.take_tty(),
+        b"v= 7\n",
+        "%%2d com 7 deve gerar ' 7' (largura minima 2, alinhado a direita)"
+    );
+}
+
+#[test]
+fn printf_4d_largura_quatro() {
+    let mut bus = bus_with_bios_empty();
+    let mut cpu = Cpu::new();
+
+    setup_printf(&mut cpu, &mut bus, "v=%4d\n", 0x100, &[42], 0x1FF0);
+
+    step_n(&mut cpu, &mut bus, 3);
+
+    assert_eq!(
+        bus.take_tty(),
+        b"v=  42\n",
+        "%%4d com 42 deve gerar '  42' (largura minima 4)"
+    );
+}
+
+#[test]
+fn printf_3d_nao_trunca_valor_maior_que_largura() {
+    let mut bus = bus_with_bios_empty();
+    let mut cpu = Cpu::new();
+
+    setup_printf(&mut cpu, &mut bus, "v=%3d\n", 0x100, &[12345], 0x1FF0);
+
+    step_n(&mut cpu, &mut bus, 3);
+
+    assert_eq!(
+        bus.take_tty(),
+        b"v=12345\n",
+        "%%3d com 12345 deve gerar '12345' (largura minima, nao trunca)"
+    );
+}
+
+#[test]
+fn printf_04x_zero_pad_largura_4() {
+    let mut bus = bus_with_bios_empty();
+    let mut cpu = Cpu::new();
+
+    setup_printf(&mut cpu, &mut bus, "v=%04x\n", 0x100, &[0xAB], 0x1FF0);
+
+    step_n(&mut cpu, &mut bus, 3);
+
+    assert_eq!(
+        bus.take_tty(),
+        b"v=00ab\n",
+        "%%04x com 0xAB deve gerar '00ab' (zero-pad, largura 4)"
+    );
+}
+
+#[test]
+fn printf_4u_largura_unsigned() {
+    let mut bus = bus_with_bios_empty();
+    let mut cpu = Cpu::new();
+
+    setup_printf(&mut cpu, &mut bus, "v=%4u\n", 0x100, &[7], 0x1FF0);
+
+    step_n(&mut cpu, &mut bus, 3);
+
+    assert_eq!(
+        bus.take_tty(),
+        b"v=   7\n",
+        "%%4u com 7 deve gerar '   7' (largura minima 4, sem zero-pad)"
+    );
+}
+
+#[test]
+fn printf_0_flag_sem_largura_nao_altera_saida() {
+    let mut bus = bus_with_bios_empty();
+    let mut cpu = Cpu::new();
+
+    setup_printf(&mut cpu, &mut bus, "v=%0d\n", 0x100, &[42], 0x1FF0);
+
+    step_n(&mut cpu, &mut bus, 3);
+
+    assert_eq!(
+        bus.take_tty(),
+        b"v=42\n",
+        "%%0d sem largura deve gerar '42' (flag sem efeito visivel)"
+    );
+}

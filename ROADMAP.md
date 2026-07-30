@@ -33,6 +33,7 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [x] 1.10 Hook de TTY (A0h/B0h) → BIOS imprimindo no console (iter 0025)
 - [x] 1.11 Sideload de PS-EXE no psx-cli + Amidog psxtest_cpu no scoreboard (iter 0027)
 - [x] 1.11b Hook de printf A(3Fh) com expansão de % → Amidog imprimindo no TTY (iter 0029)
+- [x] 1.11c printf: flags de largura e zero-pad (iter 0087)
 - [x] 1.12 CI: job scoreboard ligado (iter 0031)
 - [x] 1.13 Veredito no scoreboard: parse de saida das suites (iter 0036)
 - [x] 1.14 Opcode nao implementado gera excecao (RI 0Ah / CpU 0Bh) em vez de panic (iter 0033)

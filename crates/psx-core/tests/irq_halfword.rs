@@ -232,6 +232,39 @@ fn sh_i_mask_segundo_halfword_preserva_bits_baixos() {
 }
 
 #[test]
+fn sh_i_mask_com_valor_previo_substitui_nao_concatenado() {
+    let mut bus = bus_irq();
+    bus.write32::<BusRead>(0x1F80_1074, 0x3FF);
+    bus.write16::<BusRead>(0x1F80_1074, 0x005);
+    assert_eq!(bus.read32::<BusRead>(0x1F80_1074) & 0x7FF, 0x005);
+}
+
+#[test]
+fn sb_i_stat_offset_1_preserva_bit_8_com_0xff() {
+    let mut bus = bus_irq();
+    bus.irq_mut().raise(8);
+    bus.write8::<BusRead>(0x1F80_1071, 0xFF);
+    assert_eq!(bus.read32::<BusRead>(0x1F80_1070) & 0x7FF, 0x100);
+}
+
+#[test]
+fn sb_i_mask_offset_0_preserva_bits_superiores() {
+    let mut bus = bus_irq();
+    bus.write32::<BusRead>(0x1F80_1074, 0x3FF);
+    bus.write8::<BusRead>(0x1F80_1074, 0x00);
+    assert_eq!(bus.read32::<BusRead>(0x1F80_1074) & 0x7FF, 0x300);
+}
+
+#[test]
+fn sh_i_stat_valor_com_byte_alto_nao_trunca_para_u8() {
+    let mut bus = bus_irq();
+    bus.irq_mut().raise(0);
+    bus.irq_mut().raise(8);
+    bus.write16::<BusRead>(0x1F80_1070, 0xFF00);
+    assert_eq!(bus.read32::<BusRead>(0x1F80_1070) & 0x7FF, 0x100);
+}
+
+#[test]
 fn sh_i_stat_segundo_halfword_preserva_bits_baixos() {
     let mut bus = bus_irq();
     let mut cpu = Cpu::new();

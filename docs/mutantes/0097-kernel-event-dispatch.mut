@@ -93,8 +93,9 @@ justificativa: Escrever no mode register ja seta bit10=1 explicitamente, e a fla
             }
 @@FIM
 
-mutante: m4b
+equivalente: m4b
 rotulo: restauracao do bit10 no inicio do tick zera bit10 em vez de setar para 1
+justificativa: Zerar bit10 na restauracao de inicio de tick e inofensivo porque o bloco de fim de tick restaura bit10=1 logo em seguida (desde que a flag tenha sido limpa, o que acontece na mesma linha). Nenhum teste consegue observar bit10=0 entre os dois momentos porque a leitura so ocorre apos o tick completo.
 @@DE
         if t.bit10_restore_needed.get() {
             let m = t.mode.get();
@@ -111,7 +112,52 @@ rotulo: restauracao do bit10 no inicio do tick zera bit10 em vez de setar para 1
 
 mutante: m5b
 rotulo: FFFF overflow em pulse mode nao seta flag de adiamento do bit10
-ocorrencias: 2
+ocorrencias: 1
+@@DE
+                if irq_enable_ffff && (!irq_once || !t.irq_fired_oneshot.get()) {
+                    let old_bit10 = (mode_now >> 10) & 1;
+                    if irq_toggle {
+                        mode_now ^= 1 << 10;
+                    } else {
+                        mode_now &= !(1 << 10);
+                        t.bit10_restore_needed.set(true);
+                    }
+@@PARA
+                if irq_enable_ffff && (!irq_once || !t.irq_fired_oneshot.get()) {
+                    let old_bit10 = (mode_now >> 10) & 1;
+                    if irq_toggle {
+                        mode_now ^= 1 << 10;
+                    } else {
+                        mode_now &= !(1 << 10);
+                    }
+@@FIM
+
+mutante: m6
+rotulo: bit10_restore_needed inicializado com true em vez de false
+@@DE
+            bit10_restore_needed: Cell::new(false),
+@@PARA
+            bit10_restore_needed: Cell::new(true),
+@@FIM
+
+mutante: m7
+rotulo: escrever mode register seta flag em vez de limpar
+@@DE
+                t.bit10_restore_needed.set(false);
+@@PARA
+                t.bit10_restore_needed.set(true);
+@@FIM
+
+mutante: m6
+rotulo: condicao de restauracao no fim do tick usa OU em vez de E (restaura tambem em toggle)
+@@DE
+        if !irq_toggle && !t.bit10_restore_needed.get() {
+@@PARA
+        if !irq_toggle || !t.bit10_restore_needed.get() {
+@@FIM
+
+mutante: m7
+rotulo: IRQ de FFFF overflow nao seta a flag de adiamento (paralelo ao m1 para overflow)
 @@DE
                 if irq_enable_ffff && (!irq_once || !t.irq_fired_oneshot.get()) {
                     let old_bit10 = (mode_now >> 10) & 1;

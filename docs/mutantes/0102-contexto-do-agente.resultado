@@ -1,8 +1,8 @@
 # gerado por scripts/mutantes.ps1 — NAO editar a mao
-# commit: a15157f82e4d34a77a3c0828cfb495c6ab7b2e44
-# rodado_em: 2026-07-30T17:16:50-03:00
+# commit: ab06a39fa74465bbceb3651bd8b8f491e4bb6b5b
+# rodado_em: 2026-07-30T17:17:20-03:00
 m1,mutante,morreu,morreu,0.1,proxima_tarefa_cita_item_que_existe_no_roadmap
-m2,mutante,morreu,sobreviveu,0.1,
+m2,mutante,morreu,morreu,0.1,proxima_tarefa_cita_item_que_existe_no_roadmap
 m3,mutante,morreu,morreu,0.1,handoff_aponta_invariantes_por_numero
 m4,mutante,morreu,morreu,0.1,handoff_aponta_invariantes_por_numero
 m5,mutante,morreu,morreu,0.1,placar_do_status_bate_com_a_contagem_de_testes

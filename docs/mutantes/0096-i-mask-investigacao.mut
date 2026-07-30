@@ -96,11 +96,12 @@ rotulo: comentario inofensivo antes de write_mask
 @@FIM
 
 controle: c2
-rotulo: espaco extra no final de write_mask_half (cosmetico)
+rotulo: comentario no corpo de write_mask_half (cosmetico)
 @@DE
         self.mask = (self.mask & clear) | mask_half;
         self.mask_write_count = self.mask_write_count.wrapping_add(1);
 @@PARA
+        // mescla halfword na mascara e incrementa contador
         self.mask = (self.mask & clear) | mask_half;
-
         self.mask_write_count = self.mask_write_count.wrapping_add(1);
+@@FIM

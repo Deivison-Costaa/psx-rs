@@ -5,18 +5,17 @@
 
 ## Última iteração concluída
 
-**0095** — Handler de exceção corrigido (mfc0+jr+rfe) e registrado item 4.4e (ROADMAP 4.4e).
+**0096** — Investigação de I_MASK: BIOS escreve I_MASK com valores não-zero após ~19M passos (ROADMAP 4.4d).
 
 ## Próxima tarefa
 
-**ROADMAP 4.4d — Investigar por que I_MASK permanece 0x0000 durante o boot da BIOS.**
-O handler de exceção foi corrigido na 0095 (mfc0+jr+rfe) mas sem I_MASK != 0, interrupções nunca vetoram.
+**ROADMAP 4.4d (encerrado) — próximo item: dispatch de eventos do kernel.**
+O handler em 0x80000080 despacha para 0x00000C80, reconhece I_STAT, mas o callback de VSync não é invocado — BIOS imprime `VSync: timeout (2:1)`. O dispatch de eventos do kernel (ehk) precisa ser investigado.
 Spec: `docs/reference/11-interrupts.md`. Arquivos-alvo: `crates/psx-core/src/bus.rs`, `crates/psx-core/src/cpu.rs`.
-Armadilha: o BIOS pode escrever I_MASK via `sh` (já resolvido na 0085), mas I_MASK continua 0x0000 — o BIOS pode não alcançar o código que escreve I_MASK.
 
 ## Prioridade — boot da BIOS travado
 
-Após o 4.4c (I_MASK via SH), verificado: TTY do boot da BIOS ainda mostra `VSync: timeout` (557 bytes). I_MASK permanece 0x0000 — a BIOS não escreve I_MASK por nenhum caminho. O bloqueio real do boot ainda não foi resolvido e merece investigação adicional (possível item 4.4d).
+Após o 4.4d, confirmado: I_MASK vira 0x0009 (~19M passos), I_STAT é acknowledged (vai a 0x0000), handler executa e retorna ao EPC. O bloqueio agora é o dispatch de eventos: o handler chama o código em 0x00000C80 mas o evento de VSync não é entregue ao callback do kernel, resultando em `VSync: timeout (2:1)`.
 
 ## Repositório
 
@@ -30,7 +29,7 @@ Após o 4.4c (I_MASK via SH), verificado: TTY do boot da BIOS ainda mostra `VSyn
 
 ## Placar de testes
 
-Workspace: **689** testes.
+Workspace: **690** testes.
 
 ## Bloqueios
 

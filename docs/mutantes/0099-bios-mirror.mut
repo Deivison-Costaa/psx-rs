@@ -55,7 +55,7 @@ rotulo: teto do mirror maior que 512KB — cobre endereco de RAM fora da BIOS
 @@FIM
 
 mutante: m5
-rotulo: mirror desativado no write8 mas nao no write32 — write de byte mantem mirror ativo
+rotulo: mirror desativado no write32 removido — write de byte mantem mirror ativo
 @@DE
         if self.bios_mirror_active && phys == 0x1F80_1000 {
             self.bios_mirror_active = false;
@@ -66,7 +66,7 @@ rotulo: mirror desativado no write8 mas nao no write32 — write de byte mantem 
 @@FIM
 
 controle: c1
-rotulo: mensagem de log do read32 inclui o valor do phys (cosmetico, sem efeito funcional)
+rotulo: variavel cosmetica adicionada no read32 (sem efeito funcional)
 @@DE
     pub fn read32<Op: MemoryOp>(&self, addr: u32) -> u32 {
         let phys = Self::to_physical(addr);
@@ -75,7 +75,7 @@ rotulo: mensagem de log do read32 inclui o valor do phys (cosmetico, sem efeito 
 @@PARA
     pub fn read32<Op: MemoryOp>(&self, addr: u32) -> u32 {
         let phys = Self::to_physical(addr);
-        let _mirror_check = phys; // cosmético
+        let _mirror_check = phys;
         if self.bios_mirror_active && Self::kseg(addr) != 0b101 && phys < 0x8_0000 {
             return self.bios.read32(phys as usize);
 @@FIM

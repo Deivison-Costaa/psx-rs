@@ -16,25 +16,25 @@ rotulo: load_psexe nao configura SR (IEc=0, IM=0)
 mutante: m2
 rotulo: handler nao le I_STAT (instrucao lw ausente)
 @@DE
-    bus.write32::<BusRead>(0x8000_0088, 0x8D280000);
+    bus.write32::<BusRead>(0x8000_008C, 0x8D280000);
 @@PARA
-    bus.write32::<BusRead>(0x8000_0088, 0x00000000);
+    bus.write32::<BusRead>(0x8000_008C, 0x00000000);
 @@FIM
 
 mutante: m3
 rotulo: handler nao escreve I_STAT (sw ausente — nao faz ack)
 @@DE
-    bus.write32::<BusRead>(0x8000_008C, 0xAD280000);
+    bus.write32::<BusRead>(0x8000_0090, 0xAD280000);
 @@PARA
-    bus.write32::<BusRead>(0x8000_008C, 0x00000000);
+    bus.write32::<BusRead>(0x8000_0090, 0x00000000);
 @@FIM
 
 mutante: m4
 rotulo: handler sem RFE — IEc nunca restaurado
 @@DE
-    bus.write32::<BusRead>(0x8000_0090, 0x42000010);
+    bus.write32::<BusRead>(0x8000_0098, 0x42000010);
 @@PARA
-    bus.write32::<BusRead>(0x8000_0090, 0x00000000);
+    bus.write32::<BusRead>(0x8000_0098, 0x00000000);
 @@FIM
 
 mutante: m5

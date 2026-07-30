@@ -1,0 +1,68 @@
+# Manifesto de mutação da iteração 0095 — handler-epc-chain
+formato: 1
+iteracao: 0095
+item: 4.4e
+alvo: crates/psx-core/src/psexe.rs
+teste: psexe_interrupt_handler
+
+mutante: m1
+rotulo: handler sem mfc0 k0,EPC — k0 fica com lixo
+@@DE
+    bus.write32::<BusRead>(0x8000_0080, 0x4034E000);
+@@PARA
+    bus.write32::<BusRead>(0x8000_0080, 0x00000000);
+@@FIM
+
+mutante: m2
+rotulo: handler sem jr k0 — nao salta para EPC
+@@DE
+    bus.write32::<BusRead>(0x8000_0094, 0x03400008);
+@@PARA
+    bus.write32::<BusRead>(0x8000_0094, 0x00000000);
+@@FIM
+
+mutante: m3
+rotulo: rfe no lugar do jr (inverte — rfe antes do salto)
+@@DE
+    bus.write32::<BusRead>(0x8000_0094, 0x03400008);
+    bus.write32::<BusRead>(0x8000_0098, 0x42000010);
+@@PARA
+    bus.write32::<BusRead>(0x8000_0094, 0x42000010);
+    bus.write32::<BusRead>(0x8000_0098, 0x03400008);
+@@FIM
+
+mutante: m4
+rotulo: handler sem RFE — IEc nunca restaurado
+@@DE
+    bus.write32::<BusRead>(0x8000_0098, 0x42000010);
+@@PARA
+    bus.write32::<BusRead>(0x8000_0098, 0x00000000);
+@@FIM
+
+mutante: m5
+rotulo: jr k0 aponta para r0 em vez de k0 — salto para 0
+@@DE
+    bus.write32::<BusRead>(0x8000_0094, 0x03400008);
+@@PARA
+    bus.write32::<BusRead>(0x8000_0094, 0x00000008);
+@@FIM
+
+controle: c1
+rotulo: renomeia nop local para no_operation
+@@DE
+    let nop: u32 = 0x0000_0000;
+@@PARA
+    let noop: u32 = 0x0000_0000;
+@@FIM
+
+controle: c2
+rotulo: adiciona handler como vetor separado
+@@DE
+    bus.write32::<BusRead>(0x8000_0080, 0x4034E000);
+@@PARA
+    let handler: [u32; 8] = [0x4034E000, 0x3C081F80, 0x35091070, 0x8D280000, 0xAD280000, 0x03400008, 0x42000010, 0x00000000];
+    for (i, &word) in handler.iter().enumerate() { bus.write32::<BusRead>(0x8000_0080 + (i as u32) * 4, word); }
+    // prox
+    let _ = nop;
+    bus.write32::<BusRead>(0x8000_0080, 0x4034E000);
+@@FIM

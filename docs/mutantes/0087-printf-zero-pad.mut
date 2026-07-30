@@ -67,12 +67,11 @@ rotulo: adiciona declaracao let _ = body_len;
 @@FIM
 
 controle: c2
-rotulo: adiciona comentario antes do parse_printf_spec
+rotulo: adiciona espaco em branco no fim de linha (sem efeito)
 @@DE
-    fn parse_printf_spec(&self, fmt: u32, i: &mut u32, bus: &Bus) -> (u8, bool, usize) {
         let first = bus.read8::<BusRead>(fmt.wrapping_add(*i));
+        *i = i.wrapping_add(1);
 @@PARA
-    fn parse_printf_spec(&self, fmt: u32, i: &mut u32, bus: &Bus) -> (u8, bool, usize) {
-        let _ = (fmt, i, bus);
         let first = bus.read8::<BusRead>(fmt.wrapping_add(*i));
+        *i = i.wrapping_add(1);  
 @@FIM

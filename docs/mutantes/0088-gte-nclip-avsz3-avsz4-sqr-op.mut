@@ -1,0 +1,88 @@
+# Manifesto de mutação da iteração 0088 — gte-nclip-avsz3-avsz4-sqr-op
+formato: 1
+iteracao: 0088
+item: 5.3
+alvo: crates/psx-core/src/gte.rs
+teste: gte_nclip_avsz3_avsz4_sqr_op
+
+mutante: m1
+rotulo: NCLIP inverte sinal de MAC0
+@@DE
+        let mac0 = sx0 * sy1 + sx1 * sy2 + sx2 * sy0 - sx0 * sy2 - sx1 * sy0 - sx2 * sy1;
+@@PARA
+        let mac0 = -(sx0 * sy1 + sx1 * sy2 + sx2 * sy0 - sx0 * sy2 - sx1 * sy0 - sx2 * sy1);
+@@FIM
+
+mutante: m2
+rotulo: AVSZ3 usa SZ0 em vez de SZ1
+@@DE
+        let sz1 = self.regs[17] as i64;
+@@PARA
+        let sz1 = self.regs[16] as i64;
+@@FIM
+
+mutante: m3
+rotulo: AVSZ4 usa ZSF3 em vez de ZSF4
+@@DE
+        let zsf4 = self.regs[62] as i16 as i64;
+@@PARA
+        let zsf4 = self.regs[61] as i16 as i64;
+@@FIM
+
+mutante: m4
+rotulo: SQR satura com lm=0 em vez de lm=1
+@@DE
+        let ir1_clamped = saturate_ir(mac1, 1, 24, &mut flag, false);
+@@PARA
+        let ir1_clamped = saturate_ir(mac1, 0, 24, &mut flag, false);
+@@FIM
+
+mutante: m5
+rotulo: OP troca ordem do produto vetorial (MAC1 usa + em vez de -)
+@@DE
+        let mac1 = (ir3 * d2 - ir2 * d3) >> shift;
+@@PARA
+        let mac1 = (ir2 * d3 - ir3 * d2) >> shift;
+@@FIM
+
+mutante: m6
+rotulo: NCLIP nao detecta overflow positivo
+@@DE
+        if mac0 > 0x7FFF_FFFF {
+            flag |= 1 << 16;
+        } else if mac0 < -0x8000_0000i64 {
+            flag |= 1 << 15;
+        }
+@@PARA
+        if mac0 < -0x8000_0000i64 {
+            flag |= 1 << 15;
+        }
+@@FIM
+
+mutante: m7
+rotulo: OTZ nao satura em 0xFFFF (AVSZ3)
+@@DE
+        let otz_clamped = if otz > 0xFFFF {
+@@PARA
+        let otz_clamped = if false {
+@@FIM
+
+controle: c1
+rotulo: variavel local renomeada em nclip
+@@DE
+        let mac0 = sx0 * sy1 + sx1 * sy2 + sx2 * sy0 - sx0 * sy2 - sx1 * sy0 - sx2 * sy1;
+@@PARA
+        let resultado = sx0 * sy1 + sx1 * sy2 + sx2 * sy0 - sx0 * sy2 - sx1 * sy0 - sx2 * sy1;
+        let mac0 = resultado;
+@@FIM
+
+controle: c2
+rotulo: adiciona let _ = 0 no inicio de sqr
+@@DE
+    fn sqr(&mut self, sf: u32) {
+        let mut flag: u32 = 0;
+@@PARA
+    fn sqr(&mut self, sf: u32) {
+        let _ = 0;
+        let mut flag: u32 = 0;
+@@FIM

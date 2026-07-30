@@ -1,0 +1,73 @@
+# Manifesto de mutação da iteração 0106 — quad-texturizado
+formato: 1
+iteracao: 0106
+item: 2.2c
+alvo: crates/psx-core/src/gpu.rs
+teste: gpu_quad_texturizado
+
+mutante: m1
+rotulo: 4bpp volta a somar a linha no deslocamento horizontal
+@@DE
+                let hw_x = page_x.wrapping_add(u_clamped / 4) as usize & 0x3FF;
+@@PARA
+                let hw_x = page_x.wrapping_add(v_clamped * 64 + u_clamped / 4) as usize & 0x3FF;
+@@FIM
+
+mutante: m2
+rotulo: 8bpp volta a somar a linha no deslocamento horizontal
+@@DE
+                let hw_x = page_x.wrapping_add(u_clamped / 2) as usize & 0x3FF;
+@@PARA
+                let hw_x = page_x.wrapping_add(v_clamped * 128 + u_clamped / 2) as usize & 0x3FF;
+@@FIM
+
+mutante: m3
+rotulo: 4bpp empacota 2 texels por halfword em vez de 4
+@@DE
+                let hw_x = page_x.wrapping_add(u_clamped / 4) as usize & 0x3FF;
+@@PARA
+                let hw_x = page_x.wrapping_add(u_clamped / 2) as usize & 0x3FF;
+@@FIM
+
+mutante: m4
+rotulo: 8bpp empacota 4 texels por halfword em vez de 2
+@@DE
+                let hw_x = page_x.wrapping_add(u_clamped / 2) as usize & 0x3FF;
+@@PARA
+                let hw_x = page_x.wrapping_add(u_clamped / 4) as usize & 0x3FF;
+@@FIM
+
+mutante: m5
+rotulo: base horizontal da texpage ignorada no 4bpp
+@@DE
+                let hw_x = page_x.wrapping_add(u_clamped / 4) as usize & 0x3FF;
+@@PARA
+                let hw_x = (u_clamped / 4) as usize & 0x3FF;
+@@FIM
+
+mutante: m6
+rotulo: linha da textura ignora v, todo o quad le a linha da base
+@@DE
+        let page_y = (((stat >> 4) & 1) as u16) * 256;
+@@PARA
+        let page_y = (((stat >> 4) & 1) as u16) * 256;
+        let v_clamped = 0u16;
+@@FIM
+
+controle: c1
+rotulo: passo de 64 halfwords da base X escrito como deslocamento (cosmetico)
+@@DE
+        let page_x = ((stat & 0xF) as u16) * 64;
+@@PARA
+        let page_x = ((stat & 0xF) as u16) << 6;
+@@FIM
+
+controle: c2
+rotulo: ordem de leitura das mascaras da janela de textura trocada (cosmetico)
+@@DE
+        let mask_x = self.tex_window_mask_x.get() as u32;
+        let mask_y = self.tex_window_mask_y.get() as u32;
+@@PARA
+        let mask_y = self.tex_window_mask_y.get() as u32;
+        let mask_x = self.tex_window_mask_x.get() as u32;
+@@FIM

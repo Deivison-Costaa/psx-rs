@@ -44,7 +44,7 @@ comando e sequer emitido.
 
 ## Placar de testes
 
-Workspace: **731** testes.
+Workspace: **735** testes.
 
 ## Bloqueios
 

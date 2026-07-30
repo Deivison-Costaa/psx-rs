@@ -1,0 +1,10 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: a1d064593aa4dd3279bec45bd36f81bbf015e88d
+# rodado_em: 2026-07-30T16:08:43-03:00
+m1,mutante,morreu,morreu,0.7,mirror_ativo_leitura_kseg0_retorna_bios;mirror_ativo_leitura_kuseg_retorna_bios;mirror_nao_desativado_por_outros_registradores
+m2,mutante,morreu,morreu,0.8,mirror_ativo_leitura_kseg1_retorna_ram
+m3,mutante,morreu,morreu,0.7,mirror_nao_desativado_por_outros_registradores
+m4,mutante,morreu,morreu,0.8,mirror_nao_afeta_enderecos_acima_de_512kb
+m5,mutante,morreu,morreu,0.7,mirror_desativado_por_write_na_exp1_base
+c1,controle,sobreviveu,sobreviveu,0.7,
+c2,controle,sobreviveu,sobreviveu,0.7,

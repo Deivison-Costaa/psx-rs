@@ -2,7 +2,7 @@ mod support;
 
 use std::fs;
 
-const MAX_BYTES: u64 = 16_000;
+const MAX_BYTES: u64 = 6_000;
 
 #[test]
 fn status_dentro_do_teto() {
@@ -13,6 +13,7 @@ fn status_dentro_do_teto() {
         "STATUS.md com {size} bytes (teto {MAX_BYTES}). Ele entra em contexto em TODA \
          iteração, então cada byte é pago vezes o número de turnos (no gb-rs chegou a 107 KB \
          e 96% era história no caminho quente). Estado atual fica; narrativa vai para \
-         docs/iterations/ ou docs/orquestracao.md; índices apontam, não repetem."
+         docs/iterations/ ou docs/orquestracao.md; invariante e nota vao para \
+         docs/invariantes.md e sao citadas por numero; índices apontam, não repetem."
     );
 }

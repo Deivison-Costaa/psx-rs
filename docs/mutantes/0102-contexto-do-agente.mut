@@ -1,0 +1,70 @@
+# Manifesto de mutação da iteração 0102 — contexto-do-agente
+formato: 1
+iteracao: 0102
+item: 10.41
+alvo: STATUS.md
+teste: status_handoff
+
+mutante: m1
+rotulo: handoff volta a apontar para item que nao existe no ROADMAP
+@@DE
+**ROADMAP 4.4f — o boot morre num `jr $ra` com `$ra = 3`.**
+@@PARA
+**ROADMAP 4.4z — o boot morre num `jr $ra` com `$ra = 3`.**
+@@FIM
+
+mutante: m2
+rotulo: handoff deixa de citar item nenhum, trabalhador nao sabe que checkbox marcar
+@@DE
+**ROADMAP 4.4f — o boot morre num `jr $ra` com `$ra = 3`.**
+@@PARA
+**O boot morre num `jr $ra` com `$ra = 3`.**
+@@FIM
+
+mutante: m3
+rotulo: some a linha que aponta as invariantes, o arquivo novo deixa de ser lido
+@@DE
+Invariantes relevantes: 2, 10, 15.
+@@PARA
+Ver docs/invariantes.md se precisar.
+@@FIM
+
+mutante: m4
+rotulo: handoff cita invariante que nao existe, manda ler a nota errada
+@@DE
+Invariantes relevantes: 2, 10, 15.
+@@PARA
+Invariantes relevantes: 2, 10, 99.
+@@FIM
+
+mutante: m5
+rotulo: placar volta a mentir em silencio sobre o numero de testes
+@@DE
+Workspace: **707** testes.
+@@PARA
+Workspace: **703** testes.
+@@FIM
+
+mutante: m6
+rotulo: aponta invariantes por prosa em vez de numero, nada resolve para uma entrada
+@@DE
+Invariantes relevantes: 2, 10, 15.
+@@PARA
+Invariantes relevantes: as que falarem de load delay e de imediato.
+@@FIM
+
+controle: c1
+rotulo: prosa da secao Repositorio reescrita sem mudar propriedade nenhuma (cosmetico)
+@@DE
+- Iterações são cronológicas e nem sempre na ordem dos itens (0003↔item 0.5, p.ex.);
+@@PARA
+- Iterações seguem a ordem do tempo, não a dos itens (0003↔item 0.5, p.ex.);
+@@FIM
+
+controle: c2
+rotulo: numero da ultima iteracao concluida trocado (cosmetico, outra secao)
+@@DE
+**0102** — `STATUS.md` vira handoff puro, invariantes saem para `docs/invariantes.md`, portão
+@@PARA
+**0103** — `STATUS.md` vira handoff puro, invariantes saem para `docs/invariantes.md`, portão
+@@FIM

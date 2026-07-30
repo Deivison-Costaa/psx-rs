@@ -65,8 +65,9 @@ rotulo: toggle mode seta flag de restauracao incorretamente (mistura semantica c
                     mode_changed = true;
 @@FIM
 
-mutante: m4
+equivalente: m4
 rotulo: flag bit10_restore_needed nunca e limpa apos restauracao no inicio do tick
+justificativa: A flag presa nao altera comportamento observavel — o inicio de cada tick restaura bit10 (ja em 1), e o final so e suprimido quando flag=true, mas no tick seguinte o inicio restaura novamente. Nenhum teste consegue distinguir o estado da flag presa do estado normal porque bit10 e sempre 1 ao fim de qualquer tick apos o primeiro.
 @@DE
         if t.bit10_restore_needed.get() {
             let m = t.mode.get();
@@ -80,8 +81,9 @@ rotulo: flag bit10_restore_needed nunca e limpa apos restauracao no inicio do ti
         }
 @@FIM
 
-mutante: m5
+equivalente: m5
 rotulo: escrever mode register nao limpa a flag bit10_restore_needed
+justificativa: Escrever no mode register ja seta bit10=1 explicitamente, e a flag de adiamento so impede a restauracao redundante no fim do tick. O inicio do tick seguinte restaura bit10 (ja em 1). Nenhum teste consegue distinguir flag presa de flag limpa apos mode write porque bit10 observavel e sempre 1.
 @@DE
                 t.irq_fired_oneshot.set(false);
                 t.bit10_restore_needed.set(false);
@@ -89,6 +91,44 @@ rotulo: escrever mode register nao limpa a flag bit10_restore_needed
 @@PARA
                 t.irq_fired_oneshot.set(false);
             }
+@@FIM
+
+mutante: m4b
+rotulo: restauracao do bit10 no inicio do tick zera bit10 em vez de setar para 1
+@@DE
+        if t.bit10_restore_needed.get() {
+            let m = t.mode.get();
+            t.mode.set(m | (1 << 10));
+            t.bit10_restore_needed.set(false);
+        }
+@@PARA
+        if t.bit10_restore_needed.get() {
+            let m = t.mode.get();
+            t.mode.set(m & !(1 << 10));
+            t.bit10_restore_needed.set(false);
+        }
+@@FIM
+
+mutante: m5b
+rotulo: FFFF overflow em pulse mode nao seta flag de adiamento do bit10
+ocorrencias: 2
+@@DE
+                if irq_enable_ffff && (!irq_once || !t.irq_fired_oneshot.get()) {
+                    let old_bit10 = (mode_now >> 10) & 1;
+                    if irq_toggle {
+                        mode_now ^= 1 << 10;
+                    } else {
+                        mode_now &= !(1 << 10);
+                        t.bit10_restore_needed.set(true);
+                    }
+@@PARA
+                if irq_enable_ffff && (!irq_once || !t.irq_fired_oneshot.get()) {
+                    let old_bit10 = (mode_now >> 10) & 1;
+                    if irq_toggle {
+                        mode_now ^= 1 << 10;
+                    } else {
+                        mode_now &= !(1 << 10);
+                    }
 @@FIM
 
 controle: c1

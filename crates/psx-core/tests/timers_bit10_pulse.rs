@@ -88,3 +88,19 @@ fn toggle_mode_bit10_nao_e_restaurado_automaticamente() {
     let bit10 = bus.read32::<BusRead>(T0_MODE) & (1 << 10);
     assert_eq!(bit10, 1 << 10, "toggle: bit10 volta a 1 no segundo IRQ");
 }
+
+#[test]
+fn bit10_fica_em_zero_apos_irq_ffff_pulse() {
+    let mut bus = bus();
+    bus.write32::<BusRead>(T0_MODE, 0x0020);
+    bus.write32::<BusRead>(T0_CNT, 0xFFFF);
+
+    let irq = tick(&mut bus, T0_CNT, 1);
+    assert_eq!(irq, Some(4), "IRQ4 deve disparar quando FFFF alcancado com bit5=1");
+
+    let bit10 = bus.read32::<BusRead>(T0_MODE) & (1 << 10);
+    assert_eq!(
+        bit10, 0,
+        "bit10 deve ficar em 0 apos IRQ por overflow de FFFF em pulse mode"
+    );
+}

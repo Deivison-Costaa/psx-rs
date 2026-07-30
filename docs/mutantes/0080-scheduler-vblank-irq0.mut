@@ -86,11 +86,12 @@ ocorrencias: 2
 @@FIM
 
 controle: c1
-rotulo: renomeia variavel local frame para frm (cosmetico)
+rotulo: adiciona variavel descartada antes do while (cosmetico)
 @@DE
-        let frame = self.gpu.frame_cycles();
+        while let Some(EventId(id)) = self.scheduler.advance_to(self.total_cycles) {
 @@PARA
-        let frm = self.gpu.frame_cycles();
+        let _phantom = self.total_cycles;
+        while let Some(EventId(id)) = self.scheduler.advance_to(self.total_cycles) {
 @@FIM
 
 controle: c2

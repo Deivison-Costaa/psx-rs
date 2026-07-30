@@ -343,3 +343,31 @@ fn mvmva_rt_v1_tr_sf1_lm0() {
         "MVMVA RT,V1,None sf=1: IR3 = V1_Z = 5"
     );
 }
+
+// ── MVMVA: m33 negativo (sign-extend) ──
+
+#[test]
+fn mvmva_lcm_m33_negativo_sign_extend() {
+    let mut bus = bus_with_bios_empty();
+    let mut cpu = Cpu::new();
+    let a = 0x0000u32;
+
+    ctc2_r8(&mut cpu, &mut bus, a, 16, 0);
+    ctc2_r8(&mut cpu, &mut bus, a, 17, 0);
+    ctc2_r8(&mut cpu, &mut bus, a, 18, 0);
+    ctc2_r8(&mut cpu, &mut bus, a, 19, 0);
+    ctc2_r8(&mut cpu, &mut bus, a, 20, 0xC000u32);
+
+    mtc2_r8(&mut cpu, &mut bus, a, 4, 0);
+    mtc2_r8(&mut cpu, &mut bus, a, 5, 0x0010);
+
+    escreve_e_executa(&mut cpu, &mut bus, a, cop2_mvmva(true, 2, 2, 3, false));
+    escreve_e_executa(&mut cpu, &mut bus, a, nop());
+
+    le_mfc2(&mut cpu, &mut bus, a, 10, 11);
+
+    assert_eq!(
+        cpu.regs[10] as i32, -64,
+        "MVMVA LCM,V2,None sf=1: LB3=0xC000 sign-extend=-16384, IR3=-16384*16>>12=-64"
+    );
+}

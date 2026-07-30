@@ -1,4 +1,5 @@
 use crate::cdrom::Cdrom;
+use crate::cdrom_bin_cue::DiscLayout;
 use crate::dma::Dma;
 use crate::gpu::Gpu;
 use crate::irq::Irq;
@@ -112,6 +113,8 @@ pub struct Bus {
     irq: Irq,
     dma: Dma,
     cdrom: Cdrom,
+    disc_layout: Option<DiscLayout>,
+    disc_bin: Option<Vec<u8>>,
     timers: Timers,
     scratchpad: Scratchpad,
     mem_ctrl: MemCtrl,
@@ -136,6 +139,8 @@ impl Bus {
             irq: Irq::new(),
             dma: Dma::new(),
             cdrom: Cdrom::new(),
+            disc_layout: None,
+            disc_bin: None,
             timers: Timers::new(),
             scratchpad: Scratchpad::new(),
             mem_ctrl: MemCtrl::new(),
@@ -158,6 +163,11 @@ impl Bus {
 
     pub fn cdrom_mut(&mut self) -> &mut Cdrom {
         &mut self.cdrom
+    }
+
+    pub fn inject_disc(&mut self, layout: DiscLayout, bin: Vec<u8>) {
+        self.disc_layout = Some(layout);
+        self.disc_bin = Some(bin);
     }
 
     pub fn timers_mut(&mut self) -> &mut Timers {
@@ -299,10 +309,15 @@ impl Bus {
                 true
             }
             0x1F80_1800..=0x1F80_1803 => {
-                self.cdrom.write8(0, val as u8);
-                self.cdrom.write8(1, (val >> 8) as u8);
-                self.cdrom.write8(2, (val >> 16) as u8);
-                self.cdrom.write8(3, (val >> 24) as u8);
+                let disc_layout = self.disc_layout.as_ref();
+                let disc_bin = self.disc_bin.as_deref();
+                self.cdrom.write8(0, val as u8, disc_layout, disc_bin);
+                self.cdrom
+                    .write8(1, (val >> 8) as u8, disc_layout, disc_bin);
+                self.cdrom
+                    .write8(2, (val >> 16) as u8, disc_layout, disc_bin);
+                self.cdrom
+                    .write8(3, (val >> 24) as u8, disc_layout, disc_bin);
                 true
             }
             0x1F80_1024..=0x1F80_105F | 0x1F80_1061..=0x1F80_10FF | 0x1F80_1130..=0x1F80_1FFF => {
@@ -362,7 +377,12 @@ impl Bus {
             0x1F80_1810..=0x1F80_1817 => true, // Registradores da GPU sao de 32 bits; escrita de byte e descartada
             0x1F80_1800..=0x1F80_1803 => {
                 let reg = (phys - 0x1F80_1800 + offset) & 0x3;
-                self.cdrom.write8(reg, val);
+                self.cdrom.write8(
+                    reg,
+                    val,
+                    self.disc_layout.as_ref(),
+                    self.disc_bin.as_deref(),
+                );
                 true
             }
             0x1F80_1024..=0x1F80_105F | 0x1F80_1061..=0x1F80_1FFF => true,

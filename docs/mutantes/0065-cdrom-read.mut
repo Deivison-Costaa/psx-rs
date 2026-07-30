@@ -63,9 +63,9 @@ rotulo: ReadN nao encadeia — pending_second nao eh re-setado
 mutante: m5
 rotulo: buffer de dados preenchido com zeros — RDDATA retorna zeros
 @@DE
-                    *b = (i as u8).wrapping_add(1);
+                        *b = (i as u8).wrapping_add(1);
 @@PARA
-                    *b = 0;
+                        *b = 0;
 @@FIM
 
 mutante: m6

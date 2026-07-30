@@ -1,0 +1,6 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: b8bb628555fe1ac1a9691cadd6687e09bb1b5846
+# rodado_em: 2026-07-30T06:01:12-03:00
+m1,mutante,morreu,morreu,0.9,printf_04x_zero_pad_largura_4;printf_08x_maiusculo_zero_pad_hex;printf_08x_zero_pad_hex_minusculo
+m2,mutante,morreu,morreu,0.9,printf_04x_zero_pad_largura_4;printf_08x_maiusculo_zero_pad_hex;printf_08x_zero_pad_hex_minusculo;printf_2d_largura_minima_dois;printf_4d_largura_quatro;printf_4u_largura_unsigned
+m3,mutante,morreu,morreu,0.9,printf_04x_zero_pad_largura_4;printf_08x_maiusculo_zero_pad_hex;printf_08x_zero_pad_hex_minusculo

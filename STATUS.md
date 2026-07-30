@@ -5,19 +5,16 @@
 
 ## Última iteração concluída
 
-**0083** — Correção do `spec_citations.rs`: casamento por título mais longo, não substring (ROADMAP 10.16).
+**0084** — GTE: registradores cop2r0-63 + MFC2/MTC2/CFC2/CTC2/LWC2/SWC2 (ROADMAP 5.1).
 
 ## Próxima tarefa
 
-**ROADMAP 5.1 — GTE: Registradores + MFC2/MTC2/CFC2/CTC2/LWC2/SWC2.**
-M4 bloqueado em 4.4 (imagem de disco). M5 é o próximo marco.
-Spec: `docs/reference/07-gte.md` (offset +72, ver índice) + `docs/reference/02-cpu.md` (offset +80).
-Seções relevantes: GTE Load Delay Slots, GTE Command Encoding, Data/Control Register Summary
-(cop2r0-63) no 07-gte; Coprocessor Opcode/Parameter Encoding, CPU Coprocessor Opcodes,
-Coprocessor Instructions COP0..COP3 no 02-cpu.
+**ROADMAP 5.2 — RTPS/RTPT + divisão UNR.**
+Spec: `docs/reference/07-gte.md` (offset +72).
+Seções: RTPS (L481), RTPT (L482), GTE Division Inaccuracy for RTPS/RTPT (L684).
 Arquivos-alvo: `crates/psx-core/src/gte.rs`, `crates/psx-core/src/cpu.rs`.
-Armadilha: escrever por software em registrador GTE de 16 bits não dispara flag nem satura
-(07-gte.md L379-381). MTC2 não é o mesmo caminho de saturação que resultado de comando.
+Armadilha: a divisão do RTPS satura (L496-499): resultado acima de 1FFFFh é limitado a +1FFFFh e acende bit 17 do FLAG.
+GTE load delay (MFC2/CFC2) já implementado em 5.1; GTE store delay (2-3 ciclos para MTC2/CTC2) ainda não implementado.
 
 ## Repositório
 

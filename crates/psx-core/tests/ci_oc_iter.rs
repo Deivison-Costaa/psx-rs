@@ -21,6 +21,16 @@ fn parametro_inteiro(script: &str, nome: &str) -> i64 {
         .unwrap_or_else(|_| panic!("valor de ${nome} deve ser inteiro"))
 }
 
+fn corpo_da_funcao(script: &str, inicio: usize) -> &str {
+    let resto = &script[inicio..];
+    match resto.find("
+}
+") {
+        Some(fim) => &resto[..fim],
+        None => resto,
+    }
+}
+
 #[test]
 fn espera_da_rodada_nao_e_um_waitforexit_cego_de_parede_inteira() {
     let script = oc_iter_content();
@@ -114,11 +124,11 @@ fn rodada_morta_encerra_a_sessao_no_daemon_e_nao_so_o_cliente() {
          rodada ser declarada morta, ela commitou 3x direto na main local, resetou HEAD e \
          renomeou branch, por ~3 min.",
     );
-    let corpo = &script[pos_funcao..];
+    let corpo = corpo_da_funcao(&script, pos_funcao);
     assert!(
         corpo.contains("Get-Process") && corpo.contains("opencode"),
         "a funcao tem de alcancar o processo do DAEMON pelo nome (`Get-Process ... opencode`); \
-         matar so `$p.Id` e o que ja se fazia e nao resolve"
+         matar so `$p.Id` e o que ja se fazia e nao resolve. Conferido dentro do CORPO da          funcao: procurar no resto do arquivo deixa passar, porque `opencode` aparece adiante."
     );
 }
 
@@ -151,7 +161,7 @@ fn apos_matar_o_daemon_espera_a_porta_liberar() {
     let pos_funcao = script
         .find("function Stop-SessaoDoTrabalhador")
         .expect("funcao de encerramento deve existir");
-    let corpo = &script[pos_funcao..];
+    let corpo = corpo_da_funcao(&script, pos_funcao);
     let pos_kill = corpo
         .find("Stop-Process")
         .expect("a funcao deve matar o processo do daemon");
@@ -162,5 +172,22 @@ fn apos_matar_o_daemon_espera_a_porta_liberar() {
         "depois de matar o daemon a funcao tem de ESPERAR a porta liberar (`Test-Connection`): \
          a proxima rodada faz `--attach` na porta e, se o daemon ainda estiver morrendo, ela \
          anexa num processo que vai sumir — troca uma corrida por outra"
+    );
+}
+
+#[test]
+fn deteccao_da_porta_usa_o_endereco_em_que_o_daemon_escuta() {
+    let script = oc_iter_content();
+
+    assert!(
+        !script.contains("-TargetName localhost -TcpPort"),
+        "`Test-Connection -TargetName localhost` resolve para ::1 (IPv6), e o `opencode serve` \
+         escuta em 127.0.0.1 (IPv4): medido em 30/07 com o daemon vivo, `localhost` responde \
+         False e `127.0.0.1` responde True. Com `localhost` a checagem de subida acha que o \
+         daemon esta morto em TODA rodada, e a espera pela porta liberar nunca espera."
+    );
+    assert!(
+        script.contains("-TargetName 127.0.0.1 -TcpPort"),
+        "a checagem da porta tem de existir usando 127.0.0.1"
     );
 }

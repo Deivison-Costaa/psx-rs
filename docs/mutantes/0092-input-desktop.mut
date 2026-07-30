@@ -50,19 +50,18 @@ rotulo: send_byte retorna 0x00 para bytes de botao em vez do estado real
 @@FIM
 
 controle: c1
-rotulo: renomeia variavel local buttons para b em poll_input
+rotulo: renomeia variavel local button_state para _bs em set_buttons
 @@DE
-        let mut buttons: u16 = 0xFFFF;
+        self.button_state.set(buttons);
 @@PARA
-        let mut b: u16 = 0xFFFF;
+        self.button_state.set({ let _bs = buttons; _bs });
 @@FIM
 
 controle: c2
-rotulo: inverte ordem dos elementos no array de mapeamento
+rotulo: extrai button_state em variavel antes do match
 @@DE
-            (egui::Key::ArrowUp, 4u32),
-            (egui::Key::ArrowDown, 6),
+        let response = if count == 0 {
 @@PARA
-            (egui::Key::ArrowDown, 6u32),
-            (egui::Key::ArrowUp, 4),
+        let bs = self.button_state.get();
+        let response = if count == 0 {
 @@FIM

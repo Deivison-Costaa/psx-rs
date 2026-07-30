@@ -1,0 +1,84 @@
+# Manifesto de mutação da iteração 0103 — ra-corrompido
+formato: 1
+iteracao: 0103
+item: 4.4f
+alvo: crates/psx-core/src/cpu.rs
+teste: cpu_interrupt_delay_slot
+
+mutante: m1
+rotulo: salto pendente sobrevive a vetoracao e sequestra o PC no handler
+@@DE
+            self.branch_target = None;
+            self.delay_slot_pending = false;
+@@PARA
+            self.delay_slot_pending = false;
+@@FIM
+
+mutante: m2
+rotulo: EPC nao recua para o branch, retorno pula o salto
+@@DE
+                self.cop0[14] = self.pc.wrapping_sub(4);
+@@PARA
+                self.cop0[14] = self.pc;
+@@FIM
+
+mutante: m3
+rotulo: CAUSE.BD nao e setado, handler nao sabe que o EPC foi recuado
+@@DE
+                self.cop0[13] |= 1 << 31;
+@@PARA
+                self.cop0[13] |= 0;
+@@FIM
+
+mutante: m4
+rotulo: CAUSE.BT nao e setado, handler nao sabe se o branch seria tomado
+@@DE
+                    self.cop0[13] |= 1 << 30;
+@@PARA
+                    self.cop0[13] |= 0;
+@@FIM
+
+mutante: m5
+rotulo: recuo do EPC aplicado sempre, inclusive fora de delay slot
+@@DE
+            } else {
+                self.cop0[14] = self.pc;
+            }
+@@PARA
+            } else {
+                self.cop0[14] = self.pc.wrapping_sub(4);
+            }
+@@FIM
+
+mutante: m6
+rotulo: BD setado sempre, mentindo sobre exceção fora de delay slot
+@@DE
+            self.cop0[13] &= !0xC000_007C;
+            if self.delay_slot_pending {
+@@PARA
+            self.cop0[13] &= !0xC000_007C;
+            self.cop0[13] |= 1 << 31;
+            if self.delay_slot_pending {
+@@FIM
+
+controle: c1
+rotulo: ordem das duas limpezas de estado de branch trocada (cosmetico)
+@@DE
+            self.delay_slot_pending = false;
+            self.branch_taken = false;
+            self.pc = 0x8000_0080;
+@@PARA
+            self.branch_taken = false;
+            self.delay_slot_pending = false;
+            self.pc = 0x8000_0080;
+@@FIM
+
+controle: c2
+rotulo: mascara do vetor escrita em decimal, mesmo valor (cosmetico)
+@@DE
+            self.pc = 0x8000_0080;
+            return;
+@@PARA
+            self.pc = 2_147_483_776;
+            return;
+@@FIM

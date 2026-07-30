@@ -16,8 +16,12 @@ rotulo: M6 fica 100% fechado e continua ocupando bytes da escada
 mutante: m2
 rotulo: M2 fica 100% fechado e continua ocupando bytes da escada
 @@DE
+- [ ] 2.2d Losango do logo sai grande demais e deslocado — referencia mostra losango inteiro e centrado
+- [ ] 2.2e Cores do logo erradas: SONY sai vermelho, deveria ser azul-escuro; fundo cinza, deveria ser branco
 - [ ] 2.2f `COMPUTER ENTERTAINMENT` nunca e desenhado na tela
 @@PARA
+- [x] 2.2d Losango do logo sai grande demais e deslocado — referencia mostra losango inteiro e centrado
+- [x] 2.2e Cores do logo erradas: SONY sai vermelho, deveria ser azul-escuro; fundo cinza, deveria ser branco
 - [x] 2.2f `COMPUTER ENTERTAINMENT` nunca e desenhado na tela
 @@FIM
 

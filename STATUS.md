@@ -5,16 +5,14 @@
 
 ## Última iteração concluída
 
-**0079** — Boot da BIOS via --bios sozinho no psx-cli (ROADMAP 4.4a).
+**0080** — Base de tempo: scheduler ligado + vblank + IRQ0 (ROADMAP 4.4b).
 
 ## Próxima tarefa
 
-**ROADMAP 4.4b — Base de tempo: scheduler ligado + vblank + IRQ0.**
-Ligar o `scheduler` ao laço, dirigir o tempo de vídeo por ciclos, e levantar IRQ0 ao entrar em
-vblank. Com o 4.4a pronto, o boot da BIOS não pode mais imprimir `VSync: timeout` no TTY.
-Pôr o TTY de antes e de depois no doc.
-Arquivos-alvo: `crates/psx-core/src/scheduler.rs`, `crates/psx-core/src/gpu.rs`,
-`crates/psx-core/src/bus.rs`, `crates/psx-core/src/irq.rs`.
+**ROADMAP 10.22 — gpu/mask-bit (2 de 5 reprovando no scoreboard).**
+Fila do usuário: M4 fechado, voltar para pendências da seção 10.
+Arquivos-alvo: `crates/psx-core/src/gpu.rs` (mask bit), `tests/exes/amidog/` (scoreboard).
+Handoff: o item teve 5 testes de scoreboard, 2 deles ainda falham. Ver `docs/iterations/0049-gpu-mask-bit.md`.
 
 ## Repositório
 
@@ -28,7 +26,7 @@ Arquivos-alvo: `crates/psx-core/src/scheduler.rs`, `crates/psx-core/src/gpu.rs`,
 
 ## Placar de testes
 
-Workspace: **573** testes (10 meta-testes + 8 bus_bios + 6 bios_boot + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 29 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 11 cpu_opcode_reservado + 11 cpu_irq + 14 dma_otc + 14 dma_gpu + 12 cdrom_dma + 7 dma_dpcr_gate + 13 timers + 11 timers_sync + 9 timers_dotclock_hblank + 14 timers_irq + 16 gpu_status_gp0_gp1 + 9 ci_scoreboard + 9 cli_runner + 21 gpu_vram_transfers + 20 gpu_triangulos_flat_gouraud + 20 gpu_linhas_retangulos + 4 gpu_linhas_retangulos_continuacao + 6 gpu_textura_15bpp + 6 gpu_texturas_4bpp_8bpp + 5 gpu_texture_window + 6 gpu_semi_transparencia + 7 gpu_dithering + 8 gpu_mask_bit + 7 gpu_display_regs + 9 gpu_timing_vblank + 6 gpu_framebuffer + 3 gpu_desktop_egui + 6 gpu_scoreboard + 11 gpu_texture_disable + 13 cdrom_regs + 11 cdrom_seek_pause + 11 cdrom_bin_cue + 11 cdrom_read + 3 disc_flag + 1 spec_citations + 2 mutation_manifest + 2 mutation_anchors + 5 mutation_battery + 1 mutation_reconciliation).
+Workspace: **583** testes (10 meta-testes + 8 bus_bios + 6 bios_boot + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 29 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 11 cpu_opcode_reservado + 11 cpu_irq + 14 dma_otc + 14 dma_gpu + 12 cdrom_dma + 7 dma_dpcr_gate + 13 timers + 11 timers_sync + 9 timers_dotclock_hblank + 14 timers_irq + 16 gpu_status_gp0_gp1 + 9 ci_scoreboard + 9 cli_runner + 21 gpu_vram_transfers + 20 gpu_triangulos_flat_gouraud + 20 gpu_linhas_retangulos + 4 gpu_linhas_retangulos_continuacao + 6 gpu_textura_15bpp + 6 gpu_texturas_4bpp_8bpp + 5 gpu_texture_window + 6 gpu_semi_transparencia + 7 gpu_dithering + 8 gpu_mask_bit + 7 gpu_display_regs + 9 gpu_timing_vblank + 10 gpu_vblank_irq + 6 gpu_framebuffer + 3 gpu_desktop_egui + 6 gpu_scoreboard + 11 gpu_texture_disable + 13 cdrom_regs + 11 cdrom_seek_pause + 11 cdrom_bin_cue + 11 cdrom_read + 3 disc_flag + 1 spec_citations + 2 mutation_manifest + 2 mutation_anchors + 5 mutation_battery + 1 mutation_reconciliation).
 
 ## Bloqueios
 

@@ -43,7 +43,23 @@ que afirmava o comportamento errado, e agora a 0076 corrige.
 
 ## Bateria de mutação
 
-Placar da bateria: 6/6 mutantes mortos, 2/2 controles verdes, 0 equivalente — docs/mutantes/0074-gpu-texture-disable.mut
+### Manifesto 0076
+
+Placar da bateria: 5/5 mutantes mortos, 2/2 controles verdes, 0 equivalente - docs/mutantes/0076-gpu-texture-disable-gate.mut
+
+| Registro | Rótulo | Testes que pegaram, conforme o `.resultado` |
+|---|---|---|
+| m1 | GP1(09h) inverte o gate (bit == 0 em vez de bit != 0) | `gp1_09h_abre_o_gate_do_bit_15`, `gp1_09h_fecha_gate_reescrever_e1h_limpa_gpustat_15` |
+| m2 | GP1(09h) sempre abre o gate (ignora bit, seta true) | `gp1_09h_fecha_gate_reescrever_e1h_limpa_gpustat_15` |
+| m3 | GP1(09h) sempre fecha o gate (ignora bit, seta false) | `gp1_09h_abre_o_gate_do_bit_15`, `poligono_texturizado_com_gate_aberto_seta_gpustat_15` |
+| m4 | GP1(09h) lê bit 1 em vez de bit 0 | `gp1_09h_abre_o_gate_do_bit_15`, `gp1_09h_fecha_gate_reescrever_e1h_limpa_gpustat_15` |
+| m5 | GP1(00h) esquece de resetar allow_upper_y | `gp1_00h_reset_fecha_o_gate_do_bit_15` |
+| c1 | renomeia bit para gate_bit (cosmético) | sobreviveu |
+| c2 | extrai condição para variável local (cosmético) | sobreviveu |
+
+### Manifesto 0074 (rerrodado após reparo de âncora)
+
+Placar rerrodado: 6/6 mutantes mortos, 2/2 controles verdes, 0 equivalente — docs/mutantes/0074-gpu-texture-disable.mut
 
 | Registro | Rótulo | Testes que pegaram, conforme o `.resultado` |
 |---|---|---|

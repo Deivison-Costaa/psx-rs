@@ -94,7 +94,59 @@ pub fn title_contains(candidate: &str, target: &str) -> bool {
 
 pub fn find_in_index<'a>(index: &'a [IndexEntry], search: &str) -> Option<&'a IndexEntry> {
     let s = normalize_title(search);
-    index.iter().find(|e| title_contains(&s, &e.title))
+    let matches: Vec<&IndexEntry> = index
+        .iter()
+        .filter(|e| title_contains(&s, &e.title))
+        .collect();
+    if matches.is_empty() {
+        return None;
+    }
+    if matches.len() == 1 {
+        return Some(matches[0]);
+    }
+    let max_len = matches
+        .iter()
+        .map(|e| normalize_title(&e.title).len())
+        .max()
+        .unwrap_or(0);
+    let longest: Vec<&&IndexEntry> = matches
+        .iter()
+        .filter(|e| normalize_title(&e.title).len() == max_len)
+        .collect();
+    if longest.len() == 1 {
+        return Some(longest[0]);
+    }
+    None
+}
+
+pub fn index_match_ambiguity(index: &[IndexEntry], search: &str) -> Option<String> {
+    let s = normalize_title(search);
+    let matches: Vec<&IndexEntry> = index
+        .iter()
+        .filter(|e| title_contains(&s, &e.title))
+        .collect();
+    if matches.len() <= 1 {
+        return None;
+    }
+    let max_len = matches
+        .iter()
+        .map(|e| normalize_title(&e.title).len())
+        .max()
+        .unwrap_or(0);
+    let longest: Vec<&&IndexEntry> = matches
+        .iter()
+        .filter(|e| normalize_title(&e.title).len() == max_len)
+        .collect();
+    if longest.len() <= 1 {
+        return None;
+    }
+    let titles: Vec<String> = longest.iter().map(|e| e.title.clone()).collect();
+    Some(format!(
+        "ambíguo: {} candidatas empatadas para '{}': {}",
+        longest.len(),
+        search,
+        titles.join("', '")
+    ))
 }
 
 pub fn find_next_index_k(index: &[IndexEntry], current_k: u32) -> u32 {

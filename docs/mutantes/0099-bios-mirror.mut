@@ -1,0 +1,76 @@
+# Manifesto de mutação da iteração 0099 — bios-mirror
+formato: 1
+iteracao: 0099
+item: 4.4f
+alvo: crates/psx-core/src/bus.rs
+teste: bus_bios_mirror
+
+mutante: m1
+rotulo: mirror nunca ativo — toda leitura de KUSEG retorna RAM
+@@DE
+        if self.bios_mirror_active && Self::kseg(addr) != 0b101 && phys < 0x8_0000 {
+            return self.bios.read32(phys as usize);
+        }
+        if (0x1FC0_0000..0x1FC0_0000 + 0x80000).contains(&phys) {
+@@PARA
+        if (0x1FC0_0000..0x1FC0_0000 + 0x80000).contains(&phys) {
+@@FIM
+
+mutante: m2
+rotulo: KSEG1 tambem passa pelo mirror — kernel nao consegue ler RAM
+@@DE
+    pub fn read32<Op: MemoryOp>(&self, addr: u32) -> u32 {
+        let phys = Self::to_physical(addr);
+        if self.bios_mirror_active && Self::kseg(addr) != 0b101 && phys < 0x8_0000 {
+@@PARA
+    pub fn read32<Op: MemoryOp>(&self, addr: u32) -> u32 {
+        let phys = Self::to_physical(addr);
+        if self.bios_mirror_active && phys < 0x8_0000 {
+@@FIM
+
+mutante: m3
+rotulo: mirror desativado por qualquer write na faixa de memory control
+@@DE
+        if self.bios_mirror_active && phys == 0x1F80_1000 {
+@@PARA
+        if self.bios_mirror_active && (0x1F80_1000..=0x1F80_1023).contains(&phys) {
+@@FIM
+
+mutante: m4
+rotulo: teto do mirror maior que 512KB — cobre endereco de RAM fora da BIOS
+@@DE
+    pub fn read32<Op: MemoryOp>(&self, addr: u32) -> u32 {
+        let phys = Self::to_physical(addr);
+        if self.bios_mirror_active && Self::kseg(addr) != 0b101 && phys < 0x8_0000 {
+@@PARA
+    pub fn read32<Op: MemoryOp>(&self, addr: u32) -> u32 {
+        let phys = Self::to_physical(addr);
+        if self.bios_mirror_active && Self::kseg(addr) != 0b101 && phys < 0x80_0000 {
+@@FIM
+
+mutante: m5
+rotulo: mirror desativado no write8 mas nao no write32 — write de byte mantem mirror ativo
+@@DE
+        if self.bios_mirror_active && phys == 0x1F80_1000 {
+            self.bios_mirror_active = false;
+        }
+        if self.region_write32(phys, Self::kseg(addr), val) {
+@@PARA
+        if self.region_write32(phys, Self::kseg(addr), val) {
+@@FIM
+
+controle: c1
+rotulo: renomear campo bios_mirror_active para bios_mirror (cosmetico)
+@@DE
+    bios_mirror_active: bool,
+@@PARA
+    bios_mirror: bool,
+@@FIM
+
+controle: c2
+rotulo: constante 0x8_0000 trocada por forma equivalente 524288
+@@DE
+        if self.bios_mirror_active && Self::kseg(addr) != 0b101 && phys < 0x8_0000 {
+@@PARA
+        if self.bios_mirror_active && Self::kseg(addr) != 0b101 && phys < 524288 {
+@@FIM

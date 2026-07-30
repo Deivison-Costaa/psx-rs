@@ -5,16 +5,15 @@
 
 ## Última iteração concluída
 
-**0090** — psx-desktop: boot da BIOS com display (ROADMAP 9.0).
+**0091** — SIO0 + digital pad (ROADMAP 6.1).
 
 ## Próxima tarefa
 
-**ROADMAP 6.1 — SIO0 + digital pad.**
-Spec: `docs/reference/13-sio.md`.
-Arquivos-alvo: `crates/psx-core/src/sio.rs` (a criar) + `crates/psx-core/src/bus.rs` (mapa de memória).
-Armadilha: o pad digital responde na porta SIO0 com protocolo de half-duplex; o registrador de controle TX/RX tem timing assíncrono.
-Teste: suite `ps1-tests/input/pad` para medição antes/depois.
-A fila: 6.2 (input no psx-desktop), depois volta GTE 5.4b.
+**ROADMAP 6.2 — Input no psx-desktop (teclado).**
+Spec: `docs/reference/10-controllers-memcards.md`.
+Arquivos-alvo: `crates/psx-desktop/src/main.rs` (mapeamento de teclas) + `crates/psx-core/src/sio.rs` (injeção de estado de botões).
+Armadilha: o digital pad responde com `0=Pressed, 1=Released`; o mapeamento de teclado deve injetar no `rx_fifo` do SIO ou em um campo de estado de botões.
+A fila: depois volta GTE 5.4b.
 
 ## Prioridade — boot da BIOS travado
 
@@ -32,7 +31,7 @@ Após o 4.4c (I_MASK via SH), verificado: TTY do boot da BIOS ainda mostra `VSyn
 
 ## Placar de testes
 
-Workspace: **669** testes.
+Workspace: **678** testes.
 
 ## Bloqueios
 

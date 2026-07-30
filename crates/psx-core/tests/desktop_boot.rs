@@ -1,11 +1,6 @@
 use psx_core::bus::{Bios, Bus, Ram};
 use psx_core::cpu::Cpu;
 
-// A BIOS real e gitignored e nunca entra no repositorio, entao teste que a le nao pode rodar na
-// CI. Tornar o teste condicional ao arquivo tambem esta fora: `ci_workflow.rs` reprova condicional
-// no job `check` porque "um passo pulado nao mede nada". O criterio com a BIOS real e medido pelo
-// orquestrador e registrado no doc da iteracao.
-
 #[test]
 fn bios_vazia_mostra_display_ligado_padrao_gpu() {
     let bios = Bios::from_bytes(vec![0u8; 0x80000]).expect("BIOS vazia");
@@ -13,9 +8,17 @@ fn bios_vazia_mostra_display_ligado_padrao_gpu() {
     let mut bus = Bus::new(ram, bios);
     let mut cpu = Cpu::new();
 
+    assert_eq!(cpu.pc, 0xBFC0_0000, "PC inicial deve ser 0xBFC00000");
+
     for _ in 0..1_000_000 {
         cpu.step(&mut bus);
     }
+
+    assert_eq!(
+        cpu.pc,
+        0xBFC0_0000 + 1_000_000u32.wrapping_mul(4),
+        "CPU deve avancar PC apos 1M NOPs (BIOS vazia = so NOPs)"
+    );
 
     let fb = bus
         .gpu()

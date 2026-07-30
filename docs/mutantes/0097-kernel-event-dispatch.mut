@@ -1,0 +1,110 @@
+# Manifesto de mutação da iteração 0097 — kernel-event-dispatch
+formato: 1
+iteracao: 0097
+item: 4.4f
+alvo: crates/psx-core/src/timers.rs
+teste: timers_bit10_pulse
+
+mutante: m1
+rotulo: bit10_restore_needed nunca e setado no pulse mode (bit10 volta a 1 imediatamente)
+@@DE
+                if irq_enable_target && (!irq_once || !t.irq_fired_oneshot.get()) {
+                    let old_bit10 = (mode_now >> 10) & 1;
+                    if irq_toggle {
+                        mode_now ^= 1 << 10;
+                    } else {
+                        mode_now &= !(1 << 10);
+                        t.bit10_restore_needed.set(true);
+                    }
+@@PARA
+                if irq_enable_target && (!irq_once || !t.irq_fired_oneshot.get()) {
+                    let old_bit10 = (mode_now >> 10) & 1;
+                    if irq_toggle {
+                        mode_now ^= 1 << 10;
+                    } else {
+                        mode_now &= !(1 << 10);
+                    }
+@@FIM
+
+mutante: m2
+rotulo: restauracao do bit10 acontece sempre ignorando a flag de adiamento
+@@DE
+        if !irq_toggle && !t.bit10_restore_needed.get() {
+            let m = t.mode.get();
+            t.mode.set(m | (1 << 10));
+        }
+@@PARA
+        if !irq_toggle {
+            let m = t.mode.get();
+            t.mode.set(m | (1 << 10));
+        }
+@@FIM
+
+mutante: m3
+rotulo: toggle mode seta flag de restauracao incorretamente (mistura semantica com pulse)
+@@DE
+                if irq_enable_target && (!irq_once || !t.irq_fired_oneshot.get()) {
+                    let old_bit10 = (mode_now >> 10) & 1;
+                    if irq_toggle {
+                        mode_now ^= 1 << 10;
+                    } else {
+                        mode_now &= !(1 << 10);
+                        t.bit10_restore_needed.set(true);
+                    }
+                    mode_changed = true;
+@@PARA
+                if irq_enable_target && (!irq_once || !t.irq_fired_oneshot.get()) {
+                    let old_bit10 = (mode_now >> 10) & 1;
+                    if irq_toggle {
+                        mode_now ^= 1 << 10;
+                        t.bit10_restore_needed.set(true);
+                    } else {
+                        mode_now &= !(1 << 10);
+                        t.bit10_restore_needed.set(true);
+                    }
+                    mode_changed = true;
+@@FIM
+
+mutante: m4
+rotulo: flag bit10_restore_needed nunca e limpa apos restauracao no inicio do tick
+@@DE
+        if t.bit10_restore_needed.get() {
+            let m = t.mode.get();
+            t.mode.set(m | (1 << 10));
+            t.bit10_restore_needed.set(false);
+        }
+@@PARA
+        if t.bit10_restore_needed.get() {
+            let m = t.mode.get();
+            t.mode.set(m | (1 << 10));
+        }
+@@FIM
+
+mutante: m5
+rotulo: escrever mode register nao limpa a flag bit10_restore_needed
+@@DE
+                t.irq_fired_oneshot.set(false);
+                t.bit10_restore_needed.set(false);
+            }
+@@PARA
+                t.irq_fired_oneshot.set(false);
+            }
+@@FIM
+
+controle: c1
+rotulo: comentario inofensivo antes da verificacao de bit10_restore_needed
+@@DE
+        if t.bit10_restore_needed.get() {
+@@PARA
+        // restaura bit10 que ficou em 0 apos pulso de IRQ
+        if t.bit10_restore_needed.get() {
+@@FIM
+
+controle: c2
+rotulo: binding descartavel no final do tick nao altera comportamento
+@@DE
+        if irq_raised { Some(irq_bit) } else { None }
+@@PARA
+        let _v = irq_raised;
+        if irq_raised { Some(irq_bit) } else { None }
+@@FIM

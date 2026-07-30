@@ -70,7 +70,7 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [x] 4.2b Parser BIN/CUE (iter 0064)
 - [x] 4.2c ReadN/ReadS + INT1/DRQSTS (máquina de estados) (iter 0065)
 - [x] 4.3a DMA canal 3 (registradores + gate BFRD no DRQSTS + transferencia) (iter 0066)
-- [ ] 4.3b Acoplar DiscLayout + dados do .bin a entrega de setores
+- [x] 4.3b Acoplar DiscLayout + dados do .bin a entrega de setores (iter 0077)
 - [ ] 4.3c Flag --disc/--cue no psx-cli
 - [ ] 4.4 Boot de jogo 2D/menu
 - [ ] 4.4a Boot da BIOS no psx-cli (--bios sozinho)

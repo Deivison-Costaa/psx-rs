@@ -1,5 +1,7 @@
 use std::cell::Cell;
 
+use crate::cdrom_bin_cue::DiscLayout;
+
 #[derive(Debug)]
 pub struct Cdrom {
     bank: Cell<u8>,
@@ -317,7 +319,13 @@ impl Cdrom {
         }
     }
 
-    pub fn write8(&self, offset: u32, val: u8) {
+    pub fn write8(
+        &self,
+        offset: u32,
+        val: u8,
+        disc_layout: Option<&DiscLayout>,
+        disc_bin: Option<&[u8]>,
+    ) {
         match offset & 0x3 {
             0 => self.set_bank(val),
             1 if self.bank.get() == 0 => self.send_command(val),
@@ -335,7 +343,7 @@ impl Cdrom {
                 }
                 let pending = self.pending_second.get();
                 if pending != 0 {
-                    self.deliver_second();
+                    self.deliver_second(disc_layout, disc_bin);
                     if pending == 5 && self.read_mode.get() == 1 {
                         self.pending_second.set(5);
                     }
@@ -348,7 +356,7 @@ impl Cdrom {
         }
     }
 
-    fn deliver_second(&self) {
+    fn deliver_second(&self, disc_layout: Option<&DiscLayout>, disc_bin: Option<&[u8]>) {
         match self.pending_second.get() {
             1 => {
                 self.busy.set(false);
@@ -385,11 +393,26 @@ impl Cdrom {
                 self.result_clear();
                 self.result_push(self.stat_byte());
                 self.intsts.set(1);
-                let mut buf = [0u8; 2048];
-                for (i, b) in buf.iter_mut().enumerate() {
-                    *b = (i as u8).wrapping_add(1);
+                let buf = if let (Some(layout), Some(bin)) = (disc_layout, disc_bin) {
+                    read_sector_from_disc(
+                        layout,
+                        bin,
+                        self.seek_min.get(),
+                        self.seek_sec.get(),
+                        self.seek_sect.get(),
+                    )
+                } else {
+                    None
+                };
+                if let Some(buf) = buf {
+                    self.data_buffer.set(buf);
+                } else {
+                    let mut stub = [0u8; 2048];
+                    for (i, b) in stub.iter_mut().enumerate() {
+                        *b = (i as u8).wrapping_add(1);
+                    }
+                    self.data_buffer.set(stub);
                 }
-                self.data_buffer.set(buf);
                 self.data_pos.set(0);
                 self.hchpctl.set(0);
             }
@@ -409,6 +432,30 @@ impl Cdrom {
     pub fn irq_pending(&self) -> bool {
         (self.intsts.get() & self.intmsk.get() & 0x7) != 0
     }
+}
+
+fn bcd_to_int(b: u8) -> u32 {
+    ((b >> 4) as u32) * 10 + (b as u32 & 0xF)
+}
+
+fn read_sector_from_disc(
+    _layout: &DiscLayout,
+    bin: &[u8],
+    min_bcd: u8,
+    sec_bcd: u8,
+    sect_bcd: u8,
+) -> Option<[u8; 2048]> {
+    let abs_sector =
+        bcd_to_int(min_bcd) * 60 * 75 + bcd_to_int(sec_bcd) * 75 + bcd_to_int(sect_bcd);
+    let offset = abs_sector as usize * 2352;
+    let data_start = offset + 0x10;
+    let data_end = data_start + 2048;
+    if data_end > bin.len() {
+        return None;
+    }
+    let mut buf = [0u8; 2048];
+    buf.copy_from_slice(&bin[data_start..data_end]);
+    Some(buf)
 }
 
 impl Default for Cdrom {

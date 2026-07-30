@@ -1,0 +1,87 @@
+# Manifesto de mutação da iteração 0078 — cli-disc-cue-flag
+formato: 1
+iteracao: 0078
+item: 4.3c
+alvo: crates/psx-cli/src/main.rs
+teste: disc_flag
+
+mutante: m1
+rotulo: --disc nao eh parseado no laco de argumentos (regressao)
+@@DE
+            "--disc" if i + 1 < args.len() => {
+                disc_arg = Some(args[i + 1].clone());
+                i += 2;
+            }
+            "--bios" | "--exe" | "--disc" => {
+@@PARA
+            "--bios" | "--exe" | "--disc" => {
+@@FIM
+
+mutante: m2
+rotulo: load_disc nao resolve BIN relativo ao diretorio do CUE
+@@DE
+    let bin_path = cue_dir.join(&layout.bin_path);
+@@PARA
+    let bin_path = std::path::PathBuf::from(&layout.bin_path);
+@@FIM
+
+mutante: m3
+rotulo: imprime numero de faixas errado (tracks.len() + 1)
+@@DE
+                    layout.tracks.len(),
+@@PARA
+                    layout.tracks.len() + 1,
+@@FIM
+
+mutante: m4
+rotulo: load_disc ignora o CUE e devolve layout vazio (0 faixas)
+@@DE
+    let layout = parse_cue(&cue_text);
+@@PARA
+    let layout = DiscLayout { bin_path: String::new(), tracks: vec![] };
+@@FIM
+
+mutante: m5
+rotulo: --disc nao exige --bios (validacao removida)
+@@DE
+    if disc_arg.is_some() && bios_arg.is_none() {
+@@PARA
+    if false {
+@@FIM
+
+controle: c1
+rotulo: renomeia load_disc para load_disc_from_cue em todo o escopo (cosmetico)
+@@DE
+fn load_disc(disc_path: &str) -> (DiscLayout, Vec<u8>) {
+@@PARA
+fn load_disc_from_cue(disc_path: &str) -> (DiscLayout, Vec<u8>) {
+@@FIM
+@@DE
+            if let Some(disc_path) = disc_path {
+                let (layout, bin_data) = load_disc(&disc_path);
+                bus.inject_disc(layout, bin_data);
+            }
+@@PARA
+            if let Some(disc_path) = disc_path {
+                let (layout, bin_data) = load_disc_from_cue(&disc_path);
+                bus.inject_disc(layout, bin_data);
+            }
+@@FIM
+@@DE
+            if let Some(disc_path) = disc_path {
+                let (layout, bin_data) = load_disc(&disc_path);
+                println!(
+@@PARA
+            if let Some(disc_path) = disc_path {
+                let (layout, bin_data) = load_disc_from_cue(&disc_path);
+                println!(
+@@FIM
+
+controle: c2
+rotulo: acrescenta comentario no topo de load_disc (cosmetico)
+@@DE
+fn load_disc(disc_path: &str) -> (DiscLayout, Vec<u8>) {
+@@PARA
+// carrega o layout do disco a partir de um arquivo CUE e o conteudo do BIN
+fn load_disc(disc_path: &str) -> (DiscLayout, Vec<u8>) {
+@@FIM

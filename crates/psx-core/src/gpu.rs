@@ -115,9 +115,6 @@ enum VramState {
         height: u16,
         remaining: u32,
     },
-    SkipParams {
-        remaining: u8,
-    },
     PolygonRender {
         gouraud: bool,
         textured: bool,
@@ -607,16 +604,6 @@ impl Gpu {
                         _ => VramState::Idle,
                     },
                 });
-            }
-            VramState::SkipParams { remaining } => {
-                if remaining <= 1 {
-                    self.stat.set(self.stat.get() | (1 << 26));
-                    self.vram_state.set(VramState::Idle);
-                } else {
-                    self.vram_state.set(VramState::SkipParams {
-                        remaining: remaining - 1,
-                    });
-                }
             }
             VramState::Header { cmd, words, count } => {
                 let mut w = words;
@@ -1882,9 +1869,6 @@ impl fmt::Debug for VramState {
                     "CpuToVram(pos=({},{}), size={}x{}, rem={})",
                     x, y, width, height, remaining
                 )
-            }
-            VramState::SkipParams { remaining } => {
-                write!(f, "SkipParams(rem={})", remaining)
             }
             VramState::PolygonRender {
                 vertex_count,

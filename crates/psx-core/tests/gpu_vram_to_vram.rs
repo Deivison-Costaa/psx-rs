@@ -79,7 +79,7 @@ fn coordenadas_sao_absolutas_e_ignoram_o_drawing_offset() {
 #[test]
 fn coordenadas_nao_sao_recortadas_pela_drawing_area() {
     let mut gpu = Gpu::new();
-    gpu.write32(0, (0xE3u32 << 24) | (0u32 << 10) | 0);
+    gpu.write32(0, 0xE3u32 << 24);
     gpu.write32(0, (0xE4u32 << 24) | (5u32 << 10) | 5);
     pinta(&mut gpu, 10, 20, 0x0BBB);
 

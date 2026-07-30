@@ -12,9 +12,9 @@ M3 (DMA/IRQ/timers). Regra imposta por `roadmap_arquivo.rs`.
 - [x] 2.2 VRAM 1MB + transfers (fill, CPU↔VRAM) (iter 0038)
 - [x] 2.2b VRAM->VRAM copy GP0(80h) — mascara, wrap e coordenadas absolutas (iter 0105)
 - [x] 2.2c Endereco do texel 4bpp/8bpp somava a linha duas vezes — logo da BIOS legivel (iter 0106)
-- [ ] 2.2d Losango do logo sai grande demais e deslocado — referencia mostra losango inteiro e centrado
-- [ ] 2.2e Cores do logo erradas: SONY sai vermelho, deveria ser azul-escuro; fundo cinza, deveria ser branco
-- [ ] 2.2f `COMPUTER ENTERTAINMENT` nunca e desenhado na tela
+- [ ] 2.2d Losango do logo sai grande demais e deslocado — cena de 480 linhas desenhada 2x com a mesma metade; BLOQUEADO por 4.4h (invariante 22)
+- [ ] 2.2e Cores do logo: fundo cinza = fade congelado pelo 4.4h; SONY vermelho = CLUT pisoteada pelo losango (2.2d) — sem bug de cor no GPU; rejulgar apos 4.4h (iter 0110)
+- [ ] 2.2f `COMPUTER ENTERTAINMENT` nunca e desenhado na tela; BLOQUEADO por 4.4h (invariante 22)
 - [x] 2.3 Triângulos flat + gouraud (iter 0039)
 - [x] 2.4 Quads, retângulos, linhas (iter 0042)
 - [x] 2.5a Texpage GP0(E1h) + amostragem de textura 15bpp (iter 0044)
@@ -37,7 +37,7 @@ M3 (DMA/IRQ/timers). Regra imposta por `roadmap_arquivo.rs`.
 - [x] 4.3b Acoplar DiscLayout + dados do .bin a entrega de setores (iter 0077)
 - [x] 4.3c Flag --disc/--cue no psx-cli (iter 0078)
 - [ ] 4.4 Boot de jogo 2D/menu
-- [ ] 4.4h Segundo crash: `$ra` restaurado da pilha vale 4 no passo 85 544 264
+- [ ] 4.4h Segundo crash: `$ra` restaurado da pilha vale 4 no passo 85 544 264 — BLOQUEIA 2.2d/e/f: o display so ligaria depois dele (iter 0110)
 - [x] 4.4a Boot da BIOS no psx-cli (--bios sozinho) (iter 0079)
 - [x] 4.4b Base de tempo: scheduler + vblank + IRQ0 (iter 0080)
 - [x] 4.4c BIOS nunca escreve I_MASK (iter 0085)
@@ -101,7 +101,7 @@ M3 (DMA/IRQ/timers). Regra imposta por `roadmap_arquivo.rs`.
 - [x] 10.31 Rodada morta seguia escrevendo: sessao vive no daemon, nao no cliente (iter 0101)
 - [x] 10.32 GP1(09h) fecha gate nao limpa latch GPUSTAT.15 (iter 0076)
 - [ ] 10.25 `unwrap_or(\"\")` sobre caminho nos meta-testes — transformou falha de `strip_prefix` em silencio (10.12)
-- [ ] 10.13 GP0(24h) e modulacao, nao raw texture — bit 24 do comando nao e lido (`docs/reference/03-gpu.md` L264 e L1610)
+- [ ] 10.13 GP0(24h) e modulacao, nao raw texture — bit 24 do comando nao e lido (`docs/reference/03-gpu.md` L264 e L1610); refutado como causa do 2.2e: o boot so modula com 0x808080, identidade (iter 0110)
 - [ ] 10.14 U/V e cor gouraud sao reinterpolados sobre span recortado pela drawing area (`docs/reference/03-gpu.md` L452-454)
 - [x] 10.16 `spec_citations.rs` casava titulo de secao por substring (iter 0083)
 - [x] 10.15 Reparar ancoras do manifesto 0059 arquivado na 0060 (iter 0067)

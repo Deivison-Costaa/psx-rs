@@ -172,25 +172,26 @@ fn main() {
                 }
             };
 
+            let ram = Ram::new();
+            let mut bus = Bus::new(ram, bios);
+            let mut cpu = Cpu::new();
+
             if let Some(disc_path) = disc_path {
                 let (layout, bin_data) = load_disc(&disc_path);
-                println!(
-                    "DISCO: {} faixa(s), BIN: {}",
-                    layout.tracks.len(),
-                    layout.bin_path
-                );
-                let ram = Ram::new();
-                let mut bus = Bus::new(ram, bios);
                 bus.inject_disc(layout, bin_data);
                 bus.cdrom_mut().insert_disc();
-                return;
             }
 
-            {
-                use sha2::Digest;
-                let hash = sha2::Sha256::digest(bios.raw());
-                println!("BIOS: {} bytes, SHA-256: {:x}", bios.size(), hash);
+            let steps = run(&mut cpu, &mut bus, RUNNER_MAX_STEPS);
+
+            let tty = bus.take_tty();
+            if !tty.is_empty() {
+                let _ = std::io::stdout().write_all(&tty);
+                std::io::stdout().flush().ok();
             }
+
+            eprintln!("Runner: {} passos, TTY: {} bytes", steps, tty.len());
+
             return;
         }
         (bios_restored, _exe_restored, _disc_restored) => {

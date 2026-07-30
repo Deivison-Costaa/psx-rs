@@ -290,6 +290,34 @@ fn lwc2_carrega_word_da_memoria_para_registrador_gte() {
 }
 
 // ============================================================================
+// t9b — LWC2 com offset negativo (sign-extend do imediato)
+// Spec: 02-cpu.md L207 — imediato de LWCn e sign-extendido de 16 bits
+// ============================================================================
+#[test]
+fn lwc2_com_offset_negativo_sign_extende_imediato() {
+    let mut bus = bus_with_bios_empty();
+    let mut cpu = Cpu::new();
+    enable_cop2(&mut cpu);
+    cpu.pc = 0;
+
+    let base = 0x1008u32;
+    let target = 0x1000u32;
+    bus.write32::<BusRead>(target, 0xCAFE_BABE);
+    cpu.regs[4] = base;
+
+    let imm_neg8 = (-8i16) as u16;
+    bus.write32::<BusRead>(0x0000, lwc2_enc(7, 4, imm_neg8));
+
+    cpu.step(&mut bus);
+
+    assert_eq!(
+        cpu.gte.read_data(7),
+        0xCAFE_BABE,
+        "t9b: LWC2 com offset -8 deve ler de 0x1000"
+    );
+}
+
+// ============================================================================
 // t10 — SWC2 armazena word de registrador GTE na memoria
 // ============================================================================
 #[test]

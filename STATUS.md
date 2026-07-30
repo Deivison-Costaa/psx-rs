@@ -5,7 +5,7 @@
 
 ## Última iteração concluída
 
-**0084** — GTE: registradores cop2r0-63 + MFC2/MTC2/CFC2/CTC2/LWC2/SWC2 (ROADMAP 5.1).
+**0085** — I_MASK: write16/write8 descartados silenciosamente — BIOS nunca setava I_MASK (ROADMAP 4.4c).
 
 ## Próxima tarefa
 
@@ -15,6 +15,10 @@ Seções: RTPS (L481), RTPT (L482), GTE Division Inaccuracy for RTPS/RTPT (L684)
 Arquivos-alvo: `crates/psx-core/src/gte.rs`, `crates/psx-core/src/cpu.rs`.
 Armadilha: a divisão do RTPS satura (L496-499): resultado acima de 1FFFFh é limitado a +1FFFFh e acende bit 17 do FLAG.
 GTE load delay (MFC2/CFC2) já implementado em 5.1; GTE store delay (2-3 ciclos para MTC2/CTC2) ainda não implementado.
+
+## Prioridade — boot da BIOS travado
+
+Após o 4.4c (I_MASK via SH), verificar se o TTY do boot da BIOS (`--bios` sozinho) avançou além de `VSync: timeout`. Se ainda travar, o 4.4c não era a causa raiz e o bloqueio real precisa de nova investigação.
 
 ## Repositório
 
@@ -28,7 +32,7 @@ GTE load delay (MFC2/CFC2) já implementado em 5.1; GTE store delay (2-3 ciclos 
 
 ## Placar de testes
 
-Workspace: **583** testes (10 meta-testes + 8 bus_bios + 6 bios_boot + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 29 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 11 cpu_opcode_reservado + 11 cpu_irq + 14 dma_otc + 14 dma_gpu + 12 cdrom_dma + 7 dma_dpcr_gate + 13 timers + 11 timers_sync + 9 timers_dotclock_hblank + 14 timers_irq + 16 gpu_status_gp0_gp1 + 9 ci_scoreboard + 9 cli_runner + 21 gpu_vram_transfers + 20 gpu_triangulos_flat_gouraud + 20 gpu_linhas_retangulos + 4 gpu_linhas_retangulos_continuacao + 6 gpu_textura_15bpp + 6 gpu_texturas_4bpp_8bpp + 5 gpu_texture_window + 6 gpu_semi_transparencia + 7 gpu_dithering + 8 gpu_mask_bit + 7 gpu_display_regs + 9 gpu_timing_vblank + 10 gpu_vblank_irq + 6 gpu_framebuffer + 3 gpu_desktop_egui + 6 gpu_scoreboard + 11 gpu_texture_disable + 13 cdrom_regs + 11 cdrom_seek_pause + 11 cdrom_bin_cue + 11 cdrom_read + 3 disc_flag + 1 spec_citations + 2 mutation_manifest + 2 mutation_anchors + 5 mutation_battery + 1 mutation_reconciliation).
+Workspace: **637** testes.
 
 ## Bloqueios
 

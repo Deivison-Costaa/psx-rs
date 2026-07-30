@@ -1,0 +1,10 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: 6f17dcca0b081c7fcbd515a2a39779eb9466376f
+# rodado_em: 2026-07-30T04:01:38-03:00
+m1,mutante,morreu,morreu,0.8,sh_i_stat_acknowledge_limpa_bit_com_zero;sh_i_stat_com_um_nao_altera_bit;sh_i_stat_segundo_halfword_preserva_bits_baixos;sh_i_stat_valor_com_byte_alto_nao_trunca_para_u8
+m2,mutante,morreu,morreu,0.8,sh_i_mask_com_valor_previo_substitui_nao_concatenado
+m3,mutante,morreu,morreu,0.8,sb_i_stat_offset_1_preserva_bit_8_com_0xff
+m4,mutante,morreu,morreu,0.8,sb_i_mask_offset_0_preserva_bits_superiores
+m5,mutante,morreu,morreu,0.7,sh_i_stat_valor_com_byte_alto_nao_trunca_para_u8
+c1,controle,sobreviveu,sobreviveu,0.8,
+c2,controle,sobreviveu,sobreviveu,0.7,

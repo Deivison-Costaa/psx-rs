@@ -32,8 +32,14 @@ mutante: m3
 rotulo: mirror desativado por qualquer write na faixa de memory control
 @@DE
         if self.bios_mirror_active && phys == 0x1F80_1000 {
+            self.bios_mirror_active = false;
+        }
+        if self.region_write32(phys, Self::kseg(addr), val) {
 @@PARA
         if self.bios_mirror_active && (0x1F80_1000..=0x1F80_1023).contains(&phys) {
+            self.bios_mirror_active = false;
+        }
+        if self.region_write32(phys, Self::kseg(addr), val) {
 @@FIM
 
 mutante: m4

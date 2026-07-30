@@ -74,6 +74,16 @@ enum VramCmd {
     Fill,
     CpuToVram,
     VramToCpu,
+    VramToVram,
+}
+
+impl VramCmd {
+    fn param_words(self) -> u8 {
+        match self {
+            VramCmd::VramToVram => 3,
+            _ => 2,
+        }
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -88,7 +98,7 @@ enum VramState {
     Idle,
     Header {
         cmd: VramCmd,
-        words: [u32; 3],
+        words: [u32; 4],
         count: u8,
     },
     CpuToVram {
@@ -453,7 +463,7 @@ impl Gpu {
                         self.stat.set(self.stat.get() & !(1 << 26));
                         VramState::Header {
                             cmd: VramCmd::CpuToVram,
-                            words: [val, 0, 0],
+                            words: [val, 0, 0, 0],
                             count: 1,
                         }
                     }
@@ -461,20 +471,24 @@ impl Gpu {
                         self.stat.set(self.stat.get() & !(1 << 26));
                         VramState::Header {
                             cmd: VramCmd::VramToCpu,
-                            words: [val, 0, 0],
+                            words: [val, 0, 0, 0],
                             count: 1,
                         }
                     }
                     4 => {
                         self.stat.set(self.stat.get() & !(1 << 26));
-                        VramState::SkipParams { remaining: 3 }
+                        VramState::Header {
+                            cmd: VramCmd::VramToVram,
+                            words: [val, 0, 0, 0],
+                            count: 1,
+                        }
                     }
                     _ => match cmd {
                         0x02 => {
                             self.stat.set(self.stat.get() & !(1 << 26));
                             VramState::Header {
                                 cmd: VramCmd::Fill,
-                                words: [val, 0, 0],
+                                words: [val, 0, 0, 0],
                                 count: 1,
                             }
                         }
@@ -608,7 +622,7 @@ impl Gpu {
                 let mut w = words;
                 w[count as usize] = val;
                 let c = count + 1;
-                if c >= 3 {
+                if c > cmd.param_words() {
                     self.commit_header(cmd, w);
                 } else {
                     self.vram_state.set(VramState::Header {
@@ -1010,7 +1024,7 @@ impl Gpu {
         }
     }
 
-    fn commit_header(&mut self, cmd: VramCmd, words: [u32; 3]) {
+    fn commit_header(&mut self, cmd: VramCmd, words: [u32; 4]) {
         match cmd {
             VramCmd::Fill => {
                 self.execute_fill(words[0], words[1], words[2]);
@@ -1033,6 +1047,11 @@ impl Gpu {
                     remaining: total,
                 });
             }
+            VramCmd::VramToVram => {
+                self.execute_vram_to_vram(words[1], words[2], words[3]);
+                self.stat.set(self.stat.get() | (1 << 26));
+                self.vram_state.set(VramState::Idle);
+            }
             VramCmd::VramToCpu => {
                 let pos = words[1];
                 let size = words[2];
@@ -1049,6 +1068,46 @@ impl Gpu {
                     height: ysiz,
                     remaining: total,
                 });
+            }
+        }
+    }
+
+    fn execute_vram_to_vram(&mut self, src_word: u32, dst_word: u32, size_word: u32) {
+        let sx = (src_word & 0xFFFF) as u16 & 0x3FF;
+        let sy = ((src_word >> 16) & 0xFFFF) as u16 & 0x1FF;
+        let dx = (dst_word & 0xFFFF) as u16 & 0x3FF;
+        let dy = ((dst_word >> 16) & 0xFFFF) as u16 & 0x1FF;
+        let width = (((size_word & 0xFFFF) as u16).wrapping_sub(1) & 0x3FF) + 1;
+        let height = ((((size_word >> 16) & 0xFFFF) as u16).wrapping_sub(1) & 0x1FF) + 1;
+
+        let mut source = Vec::with_capacity(width as usize * height as usize);
+        for row in 0..height {
+            let py = sy.wrapping_add(row) & 0x1FF;
+            for col in 0..width {
+                let px = sx.wrapping_add(col) & 0x3FF;
+                source.push(self.vram[py as usize * 1024 + px as usize]);
+            }
+        }
+
+        let stat = self.stat.get();
+        let force_bit15 = (stat & (1 << 11)) != 0;
+        let check_mask = (stat & (1 << 12)) != 0;
+
+        let mut i = 0usize;
+        for row in 0..height {
+            let py = dy.wrapping_add(row) & 0x1FF;
+            for col in 0..width {
+                let px = dx.wrapping_add(col) & 0x3FF;
+                let idx = py as usize * 1024 + px as usize;
+                let mut hw = source[i];
+                i += 1;
+                if check_mask && (self.vram[idx] & 0x8000) != 0 {
+                    continue;
+                }
+                if force_bit15 {
+                    hw |= 0x8000;
+                }
+                self.vram[idx] = hw;
             }
         }
     }
@@ -1807,6 +1866,7 @@ impl fmt::Debug for VramState {
                     VramCmd::Fill => "Fill",
                     VramCmd::CpuToVram => "CpuToVram",
                     VramCmd::VramToCpu => "VramToCpu",
+                    VramCmd::VramToVram => "VramToVram",
                 };
                 write!(f, "Header({}, count={})", name, count)
             }
@@ -1898,6 +1958,7 @@ impl fmt::Debug for VramCmd {
             VramCmd::Fill => write!(f, "Fill"),
             VramCmd::CpuToVram => write!(f, "CpuToVram"),
             VramCmd::VramToCpu => write!(f, "VramToCpu"),
+            VramCmd::VramToVram => write!(f, "VramToVram"),
         }
     }
 }

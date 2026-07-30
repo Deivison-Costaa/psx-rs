@@ -168,3 +168,35 @@ fn origem_e_lida_antes_de_qualquer_escrita_em_regiao_sobreposta() {
          isso que acontece, este teste e que muda. Ver invariante 18."
     );
 }
+
+#[test]
+fn mask_check_protege_o_pixel_de_destino_com_bit15() {
+    let mut gpu = Gpu::new();
+    pinta(&mut gpu, 10, 20, 0x0DDD);
+    pinta(&mut gpu, 100, 200, 0x8000);
+    gpu.write32(0, (0xE6u32 << 24) | 0b10);
+
+    blit(&mut gpu, coord(10, 20), coord(100, 200), coord(1, 1));
+
+    assert_eq!(
+        gpu.vram_pixel(100, 200),
+        0x8000,
+        "`docs/reference/03-gpu.md` L615: a transferencia e afetada pelo Mask setting. Com \
+         check-mask ligado, pixel de destino com bit15=1 e protegido"
+    );
+}
+
+#[test]
+fn set_mask_marca_bit15_no_destino() {
+    let mut gpu = Gpu::new();
+    pinta(&mut gpu, 10, 20, 0x0EEE);
+    gpu.write32(0, (0xE6u32 << 24) | 0b01);
+
+    blit(&mut gpu, coord(10, 20), coord(100, 200), coord(1, 1));
+
+    assert_eq!(
+        gpu.vram_pixel(100, 200),
+        0x8EEE,
+        "`docs/reference/03-gpu.md` L615: com set-mask ligado, o bit15 e forcado no que for escrito"
+    );
+}

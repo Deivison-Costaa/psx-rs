@@ -1,9 +1,9 @@
 # gerado por scripts/mutantes.ps1 — NAO editar a mao
-# commit: 89ddc3f818f8bf2964ab1ea4067d9b4f7612944b
-# rodado_em: 2026-07-30T16:35:49-03:00
-m1,mutante,morreu,morreu,0.1,marco_totalmente_fechado_nao_fica_no_roadmap
+# commit: e5b4e56afa95c764e78fa27d51c9a7778bedb3dc
+# rodado_em: 2026-07-30T16:36:31-03:00
+m1,mutante,morreu,morreu,0.5,marco_totalmente_fechado_nao_fica_no_roadmap
 m2,mutante,morreu,morreu,0.1,marco_totalmente_fechado_nao_fica_no_roadmap
-m3,mutante,morreu,sobreviveu,0.1,
+m3,mutante,morreu,morreu,0.1,roadmap_aponta_para_o_arquivo_de_fechados
 m4,mutante,morreu,morreu,0.1,nenhum_item_aparece_nos_dois_arquivos
 m5,mutante,morreu,morreu,0.1,nenhum_item_aparece_nos_dois_arquivos
 c1,controle,sobreviveu,sobreviveu,0.1,

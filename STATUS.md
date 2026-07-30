@@ -5,17 +5,31 @@
 
 ## Última iteração concluída
 
-**0098** — `oc-iter.ps1` detecta rodada travada pelo JSON parado, em vez de pagar a parede de 45 min (ROADMAP 10.38).
+**0100** — marcos 100% fechados saem do ROADMAP para `docs/ROADMAP-fechado.md` (ROADMAP 10.39).
 
 ## Próxima tarefa
 
-**ROADMAP 4.4d (encerrado) — próximo item: dispatch de eventos do kernel.**
-O handler em 0x80000080 despacha para 0x00000C80, reconhece I_STAT, mas o callback de VSync não é invocado — BIOS imprime `VSync: timeout (2:1)`. O dispatch de eventos do kernel (ehk) precisa ser investigado.
-Spec: `docs/reference/11-interrupts.md`. Arquivos-alvo: `crates/psx-core/src/bus.rs`, `crates/psx-core/src/cpu.rs`.
-**Hipótese já medida e descartada:** adiar a restauração do bit10 (IRQ Request) do modo do timer
-não muda nada. Medido pelo orquestrador com 50 000 000 passos dos dois lados: TTY byte a byte
-idêntico, 597 bytes e 8 `VSync: timeout` tanto em `main` quanto na tentativa. Comece
-instrumentando onde a cadeia de eventos para, não por outro palpite de registrador.
+**ROADMAP 4.4f — o boot morre num `jr $ra` com `$ra = 3`.**
+Medido pelo orquestrador em 30/07, BIOS real, 50M passos, commit `b6db863`. A sequência de PCs é
+`8004A54C`, `8004A550`, `8004A554`, e daí direto para `00000003`. A instrução em `[0x8004A554]` é
+`0x03E00008` (`jr $ra`) e **`$31` vale 3**; a anterior, `[0x8004A550] = 0x8FB40028`
+(`lw $s4, 0x28($sp)`), é epílogo restaurando registrador da pilha. Buscar em PC=3 gera
+`CAUSE=0x428` (excode 10, RI) com `EPC=0x00000003`; o kernel não resolve, chama
+`A0(40h)` = `SystemErrorUnresolvedException` e fica nela para sempre (1 071 429 chamadas entre 35M
+e 50M, `SR=0x410` com IEc=0 e IRQ0 pendente que ninguém mais reconhece).
+Critério de aceitação: `psx-cli --bios <BIOS>` passa do passo 26 595 832 sem entrar em `A0(40h)`.
+Arquivos-alvo: `crates/psx-core/src/cpu.rs`, `crates/psx-core/src/bus.rs`.
+
+**Três hipóteses já medidas e descartadas — não repetir:**
+1. *Dispatch de eventos do kernel não entrega o callback.* Falso: a trilha vai de `80000080` a
+   `00000C80`, `00000CC0..00000E0C`, `00001A00..` e ao kernel em RAM (`8003FFB0..8003FFE8`,
+   1 545 instruções). O dispatch funciona.
+2. *Base de tempo insuficiente.* Falso: 89 entradas em vblank em 50M passos, 9 por janela de 5M, e
+   a fila do scheduler nunca esvazia.
+3. *bit10 (IRQ Request) do modo do timer restaurado cedo demais.* Falso: TTY byte a byte idêntico
+   ao da `main`, 597 bytes e 8 `VSync: timeout` dos dois lados.
+
+Os `VSync: timeout` (passos 19,7M a 21,4M) são sintoma anterior, não a causa do silêncio final.
 
 ## Prioridade — boot da BIOS travado
 

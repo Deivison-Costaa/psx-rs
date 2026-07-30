@@ -1,0 +1,72 @@
+# Manifesto de mutação da iteração 0079 — bios-boot-cli
+formato: 1
+iteracao: 0079
+item: 4.4a
+alvo: crates/psx-cli/src/main.rs
+teste: bios_boot
+
+mutante: m1
+rotulo: remove a linha de eprintln Runner do laco de boot (regressao)
+ocorrencias: 2
+@@DE
+            eprintln!("Runner: {} passos, TTY: {} bytes", steps, tty.len());
+@@PARA
+            let _ = (steps, tty.len());
+@@FIM
+
+mutante: m2
+rotulo: substitui run() por panic no laco de boot
+ocorrencias: 2
+@@DE
+            let steps = run(&mut cpu, &mut bus, RUNNER_MAX_STEPS);
+@@PARA
+            panic!("boot desabilitado");
+@@FIM
+
+mutante: m3
+rotulo: load_disc retorna layout vazio em vez de abortar ao nao encontrar CUE
+@@DE
+        Err(e) => {
+            eprintln!("Erro: nao foi possivel ler CUE '{}': {}", disc_path, e);
+            std::process::exit(1);
+        }
+@@PARA
+        Err(_) => {
+            return (DiscLayout { bin_path: String::new(), tracks: vec![] }, vec![]);
+        }
+@@FIM
+
+mutante: m4
+rotulo: --version nao eh reconhecido como comando especial
+@@DE
+    if args.len() == 1 || (args.len() == 2 && args[1] == "--version") {
+@@PARA
+    if args.len() == 1 {
+@@FIM
+
+mutante: m5
+rotulo: nao retorna apos o boot e cai no erro de uso (return removido)
+ocorrencias: 2
+@@DE
+            return;
+@@PARA
+            let _ = steps;
+@@FIM
+
+controle: c1
+rotulo: adiciona comentario antes do bloco de leitura da BIOS (cosmetico)
+@@DE
+            let bios = {
+@@PARA
+            // le o arquivo da BIOS e valida o formato
+            let bios = {
+@@FIM
+
+controle: c2
+rotulo: adiciona variavel descartada no inicio de load_disc (cosmetico)
+@@DE
+fn load_disc(disc_path: &str) -> (DiscLayout, Vec<u8>) {
+@@PARA
+fn load_disc(disc_path: &str) -> (DiscLayout, Vec<u8>) {
+    let _phantom = disc_path.len();
+@@FIM

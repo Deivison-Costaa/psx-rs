@@ -17,7 +17,7 @@ fn write_bios(path: &PathBuf) {
 }
 
 #[test]
-fn bios_flag_prints_size_and_hash() {
+fn bios_flag_boota_bios_sintetica() {
     let bin = env!("CARGO_BIN_EXE_psx-cli");
     let bios_path = bins_dir().join("bios_test.bin");
     let _ = fs::create_dir_all(bins_dir());
@@ -29,12 +29,11 @@ fn bios_flag_prints_size_and_hash() {
         .output()
         .expect("falhou ao executar psx-cli --bios <path>");
     assert!(output.status.success(), "exit code deve ser 0");
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("524288"), "deve conter o tamanho 524288");
-    assert!(stdout.contains("SHA-256"), "deve conter SHA-256");
+    let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
-        stdout.contains("cb07d432a9ff"),
-        "deve conter inicio do hash conhecido; got: {stdout:?}"
+        stderr.contains("Runner:"),
+        "--bios sozinho deve bootar; stderr={:?}",
+        stderr
     );
     let _ = fs::remove_file(&bios_path);
 }

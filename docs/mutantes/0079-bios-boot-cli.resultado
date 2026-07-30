@@ -1,0 +1,10 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: af927de0605ad607d10bb474bf788d9a292d8647
+# rodado_em: 2026-07-30
+m1,mutante,morreu,morreu,0.8,bios_flag_boota_bios_sintetica;disc_flag_cue_minimo_aceito_com_bios
+m2,mutante,morreu,morreu,0.8,bios_flag_boota_bios_sintetica;disc_flag_cue_minimo_aceito_com_bios
+m3,mutante,morreu,morreu,0.8,disc_flag_arquivo_cue_inexistente_erro
+m4,mutante,morreu,morreu,0.8,version_flag_prints_name_and_version
+m5,mutante,morreu,morreu,0.8,bios_flag_boota_bios_sintetica;disc_flag_cue_minimo_aceito_com_bios
+c1,controle,sobreviveu,sobreviveu,0.8,
+c2,controle,sobreviveu,sobreviveu,0.8,

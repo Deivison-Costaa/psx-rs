@@ -26,11 +26,12 @@ rotulo: load_disc nao resolve BIN relativo ao diretorio do CUE
 @@FIM
 
 mutante: m3
-rotulo: imprime numero de faixas errado (tracks.len() + 1)
+rotulo: nao executa o laco de boot (run substituido por return antecipado)
+ocorrencias: 2
 @@DE
-                    layout.tracks.len(),
+            let steps = run(&mut cpu, &mut bus, RUNNER_MAX_STEPS);
 @@PARA
-                    layout.tracks.len() + 1,
+            return;
 @@FIM
 
 mutante: m4
@@ -70,11 +71,15 @@ fn load_disc_from_cue(disc_path: &str) -> (DiscLayout, Vec<u8>) {
 @@DE
             if let Some(disc_path) = disc_path {
                 let (layout, bin_data) = load_disc(&disc_path);
-                println!(
+                bus.inject_disc(layout, bin_data);
+                bus.cdrom_mut().insert_disc();
+            }
 @@PARA
             if let Some(disc_path) = disc_path {
                 let (layout, bin_data) = load_disc_from_cue(&disc_path);
-                println!(
+                bus.inject_disc(layout, bin_data);
+                bus.cdrom_mut().insert_disc();
+            }
 @@FIM
 
 controle: c2

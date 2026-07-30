@@ -62,6 +62,7 @@ pub fn load_psexe(exe_data: &[u8], bus: &mut Bus, cpu: &mut Cpu) -> Result<(), S
     }
     cpu.regs[5] = 0;
     cpu.regs[4] = 1;
+    cpu.set_sr(0x0000_1001);
 
     Ok(())
 }
@@ -73,4 +74,10 @@ pub fn install_return_stubs(bus: &mut Bus) {
         bus.write32::<BusRead>(addr, jr_ra);
         bus.write32::<BusRead>(addr.wrapping_add(4), nop);
     }
+    bus.write32::<BusRead>(0x8000_0080, 0x3C081F80);
+    bus.write32::<BusRead>(0x8000_0084, 0x35091070);
+    bus.write32::<BusRead>(0x8000_0088, 0x8D280000);
+    bus.write32::<BusRead>(0x8000_008C, 0xAD280000);
+    bus.write32::<BusRead>(0x8000_0090, 0x42000010);
+    bus.write32::<BusRead>(0x8000_0094, 0x00000000);
 }

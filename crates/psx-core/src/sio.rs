@@ -197,12 +197,7 @@ impl Sio {
     }
 
     pub fn read_data(&self) -> u32 {
-        let fifo = self.rx_fifo.borrow();
-        let b0 = fifo.first().copied().unwrap_or(0) as u32;
-        let b1 = fifo.get(1).copied().unwrap_or(b0 as u8) as u32;
-        let b2 = fifo.get(2).copied().unwrap_or(b1 as u8) as u32;
-        let b3 = fifo.get(3).copied().unwrap_or(b2 as u8) as u32;
-        b0 | (b1 << 8) | (b2 << 16) | (b3 << 24)
+        self.pop_rx() as u32
     }
 
     pub fn write_data(&self, val: u32) {

@@ -1,0 +1,71 @@
+# Manifesto de mutação da iteração 0093 — pad-veredito
+formato: 1
+iteracao: 0093
+item: 10.36
+alvo: crates/psx-core/src/psexe.rs
+teste: psexe_interrupt_handler
+
+mutante: m1
+rotulo: load_psexe nao configura SR (IEc=0, IM=0)
+@@DE
+    cpu.set_sr(0x0000_1001);
+@@PARA
+    // SR nao configurado — fica com o valor default (0)
+@@FIM
+
+mutante: m2
+rotulo: handler nao le I_STAT (instrucao lw ausente)
+@@DE
+    bus.write32::<BusRead>(0x8000_0088, 0x8D280000);
+@@PARA
+    bus.write32::<BusRead>(0x8000_0088, 0x00000000);
+@@FIM
+
+mutante: m3
+rotulo: handler nao escreve I_STAT (sw ausente — nao faz ack)
+@@DE
+    bus.write32::<BusRead>(0x8000_008C, 0xAD280000);
+@@PARA
+    bus.write32::<BusRead>(0x8000_008C, 0x00000000);
+@@FIM
+
+mutante: m4
+rotulo: handler sem RFE — IEc nunca restaurado
+@@DE
+    bus.write32::<BusRead>(0x8000_0090, 0x42000010);
+@@PARA
+    bus.write32::<BusRead>(0x8000_0090, 0x00000000);
+@@FIM
+
+mutante: m5
+rotulo: SR configurado sem IM[2] (bit 12)
+@@DE
+    cpu.set_sr(0x0000_1001);
+@@PARA
+    cpu.set_sr(0x00000001);
+@@FIM
+
+mutante: m6
+rotulo: SR configurado sem IEc (bit 0)
+@@DE
+    cpu.set_sr(0x0000_1001);
+@@PARA
+    cpu.set_sr(0x00001000);
+@@FIM
+
+controle: c1
+rotulo: reordena stubs de usuario (A0h, B0h, C0h) — funcionalmente equivalente
+@@DE
+    for &addr in &[0x0000_00A0u32, 0x0000_00B0u32, 0x0000_00C0u32] {
+@@PARA
+    for &addr in &[0x0000_00C0u32, 0x0000_00B0u32, 0x0000_00A0u32] {
+@@FIM
+
+controle: c2
+rotulo: renomeia variavel local jr_ra para jump_return_ra
+@@DE
+    let jr_ra: u32 = (31u32 << 21) | 0x08;
+@@PARA
+    let jump_return_ra: u32 = (31u32 << 21) | 0x08;
+    let jr_ra = jump_return_ra;
+@@FIM

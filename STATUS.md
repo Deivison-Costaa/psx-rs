@@ -5,7 +5,7 @@
 
 ## Última iteração concluída
 
-**0092** — Input no psx-desktop (teclado) (ROADMAP 6.2).
+**0093** — Diagnóstico do pad test + handler de exceção no sideload de PS-EXE (ROADMAP 10.36).
 
 ## Próxima tarefa
 
@@ -31,7 +31,7 @@ Após o 4.4c (I_MASK via SH), verificado: TTY do boot da BIOS ainda mostra `VSyn
 
 ## Placar de testes
 
-Workspace: **681** testes.
+Workspace: **685** testes.
 
 ## Bloqueios
 

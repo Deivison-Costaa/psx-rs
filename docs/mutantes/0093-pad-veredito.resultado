@@ -1,0 +1,11 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: 9a745c2aae56dec3060f47af6542d27e64831775
+# rodado_em: 2026-07-30T09:29:18-03:00
+m1,mutante,morreu,morreu,0.8,load_psexe_configura_sr_com_interrupcoes_habilitadas
+m2,mutante,morreu,morreu,0.8,install_return_stubs_instala_handler_que_acknowledge_istat
+m3,mutante,morreu,morreu,0.8,install_return_stubs_instala_handler_que_acknowledge_istat
+m4,mutante,morreu,morreu,0.7,install_return_stubs_instala_handler_que_acknowledge_istat
+m5,mutante,morreu,morreu,0.8,load_psexe_configura_sr_com_interrupcoes_habilitadas
+m6,mutante,morreu,morreu,0.8,load_psexe_configura_sr_com_interrupcoes_habilitadas
+c1,controle,sobreviveu,sobreviveu,0.8,
+c2,controle,sobreviveu,sobreviveu,0.8,

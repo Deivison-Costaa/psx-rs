@@ -16,6 +16,14 @@ pub struct Cpu {
 }
 
 impl Cpu {
+    pub fn sr(&self) -> u32 {
+        self.cop0[12]
+    }
+
+    pub fn set_sr(&mut self, val: u32) {
+        self.cop0[12] = val;
+    }
+
     pub fn new() -> Self {
         let mut cop0 = [0u32; 32];
         cop0[15] = 0x0000_0002;

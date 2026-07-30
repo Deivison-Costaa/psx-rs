@@ -1,9 +1,11 @@
 use crate::bus::{Bus, BusRead};
+use crate::gte::Gte;
 
 #[derive(Debug, Clone)]
 pub struct Cpu {
     pub regs: [u32; 32],
     pub cop0: [u32; 32],
+    pub gte: Gte,
     pub pc: u32,
     pub hi: u32,
     pub lo: u32,
@@ -22,6 +24,7 @@ impl Cpu {
         Cpu {
             regs: [0u32; 32],
             cop0,
+            gte: Gte::new(),
             pc: 0xBFC0_0000,
             hi: 0,
             lo: 0,
@@ -248,10 +251,13 @@ impl Cpu {
                 None
             }
             0x10 => self.cop0_op(instr),
+            0x12 => self.cop2_op(instr),
+            0x32 => self.lwc2(instr, bus),
+            0x3A => self.swc2(instr, bus),
             _ => {
                 match primary {
-                    0x11..=0x13 => self.raise_exception(0x0B, None),
-                    0x30..=0x33 | 0x38..=0x3B => self.raise_exception(0x0B, None),
+                    0x11 | 0x13 => self.raise_exception(0x0B, None),
+                    0x30..=0x31 | 0x33 | 0x38..=0x39 | 0x3B => self.raise_exception(0x0B, None),
                     _ => self.raise_exception(0x0A, None),
                 };
                 None
@@ -857,6 +863,76 @@ impl Cpu {
 
     fn cop0_read(&self, reg: usize) -> u32 {
         self.cop0[reg]
+    }
+
+    fn cop2_enabled(&self) -> bool {
+        (self.cop0[12] >> 30) & 1 == 1
+    }
+
+    fn cop2_op(&mut self, instr: u32) -> Option<(usize, u32)> {
+        if !self.cop2_enabled() {
+            self.raise_exception(0x0B, None);
+            return None;
+        }
+        let co = (instr >> 21) & 0x1F;
+        match co {
+            0x00 => {
+                let rt = ((instr >> 16) & 0x1F) as usize;
+                let rd = ((instr >> 11) & 0x1F) as usize;
+                let val = self.gte.read_data(rd);
+                Some((rt, val))
+            }
+            0x02 => {
+                let rt = ((instr >> 16) & 0x1F) as usize;
+                let rd = ((instr >> 11) & 0x1F) as usize;
+                let val = self.gte.read_ctrl(rd);
+                Some((rt, val))
+            }
+            0x04 => {
+                let rt = ((instr >> 16) & 0x1F) as usize;
+                let rd = ((instr >> 11) & 0x1F) as usize;
+                let val = self.regs[rt];
+                self.gte.write_data(rd, val);
+                None
+            }
+            0x06 => {
+                let rt = ((instr >> 16) & 0x1F) as usize;
+                let rd = ((instr >> 11) & 0x1F) as usize;
+                let val = self.regs[rt];
+                self.gte.write_ctrl(rd, val);
+                None
+            }
+            0x10..=0x1F => None,
+            _ => None,
+        }
+    }
+
+    fn lwc2(&mut self, instr: u32, bus: &mut Bus) -> Option<(usize, u32)> {
+        if !self.cop2_enabled() {
+            self.raise_exception(0x0B, None);
+            return None;
+        }
+        let rs = ((instr >> 21) & 0x1F) as usize;
+        let rt = ((instr >> 16) & 0x1F) as usize;
+        let imm = (instr & 0xFFFF) as u16;
+        let addr = self.regs[rs].wrapping_add((imm as i16 as i32) as u32);
+        let val = bus.read32::<BusRead>(addr);
+        self.gte.write_data(rt, val);
+        None
+    }
+
+    fn swc2(&mut self, instr: u32, bus: &mut Bus) -> Option<(usize, u32)> {
+        if !self.cop2_enabled() {
+            self.raise_exception(0x0B, None);
+            return None;
+        }
+        let rs = ((instr >> 21) & 0x1F) as usize;
+        let rt = ((instr >> 16) & 0x1F) as usize;
+        let imm = (instr & 0xFFFF) as u16;
+        let addr = self.regs[rs].wrapping_add((imm as i16 as i32) as u32);
+        let val = self.gte.read_data(rt);
+        bus.write32::<BusRead>(addr, val);
+        None
     }
 
     fn set_reg(&mut self, idx: usize, val: u32) {

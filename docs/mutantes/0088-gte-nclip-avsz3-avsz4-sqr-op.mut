@@ -31,8 +31,8 @@ rotulo: AVSZ4 usa ZSF3 em vez de ZSF4
 @@FIM
 
 mutante: m4
-rotulo: SQR e OP usam sf=0 sempre (ignora bit sf do comando)
-ocorrencias: 2
+rotulo: SQR/OP/RTPS usam sf=0 sempre (ignora bit sf)
+ocorrencias: 3
 @@DE
         let shift = sf * 12;
 @@PARA

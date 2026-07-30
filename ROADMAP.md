@@ -75,6 +75,7 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [ ] 4.4 Boot de jogo 2D/menu
 - [x] 4.4a Boot da BIOS no psx-cli (--bios sozinho) (iter 0079)
 - [x] 4.4b Base de tempo: scheduler + vblank + IRQ0 (iter 0080)
+- [ ] 4.4c BIOS nunca escreve I_MASK durante boot — bloqueio real de IRQ0
 
 ## M5 — GTE
 - [ ] 5.1 Registradores + MFC2/MTC2/CFC2/CTC2/LWC2/SWC2
@@ -126,6 +127,7 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [ ] 10.30 Habilitar um canal no DPCR não dispara transferência pendente: o modelo só dispara na escrita de CHCR
 - [ ] 10.31 `oc-loop` nao parqueia rodada morta (iter 0073)
 - [x] 10.32 GP1(09h) fecha gate nao limpa latch GPUSTAT.15 (iter 0076)
+- [ ] 10.34 Meta-teste: #[test] sem assercao reprova CI
 - [ ] 10.25 Varrer os outros `unwrap_or("")` sobre caminho nos meta-testes: foi o que transformou a falha de `strip_prefix` em silêncio na 10.12, e o separador foi só o gatilho
 - [ ] 10.13 GP0(24h) é modulação, não raw texture: bit 24 do comando não é lido e o texel vai cru (03-gpu.md L264 e L1610)
 - [ ] 10.14 U/V e cor gouraud são reinterpolados sobre o span já recortado pela drawing area — a textura estica em vez de só perder os pixels de fora (03-gpu.md L452-454)

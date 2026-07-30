@@ -1,0 +1,102 @@
+# Manifesto de mutação da iteração 0082 — gte-regs-instructions
+formato: 1
+iteracao: 0082
+item: 5.1
+alvo: crates/psx-core/src/cpu.rs
+teste: gte_regs_instructions
+
+mutante: m1
+rotulo: MFC2 le de registrador de controle em vez de dados (read_data -> read_ctrl)
+@@DE
+                let val = self.gte.read_data(rd);
+@@PARA
+                let val = self.gte.read_ctrl(rd);
+@@FIM
+
+mutante: m2
+rotulo: CFC2 le de registrador de dados em vez de controle (read_ctrl -> read_data)
+@@DE
+                let val = self.gte.read_ctrl(rd);
+@@PARA
+                let val = self.gte.read_data(rd);
+@@FIM
+
+mutante: m3
+rotulo: MFC2 sem load delay (Some -> None no branch 0x00)
+@@DE
+                let val = self.gte.read_data(rd);
+                Some((rt, val))
+@@PARA
+                let val = self.gte.read_data(rd);
+                None
+@@FIM
+
+mutante: m4
+rotulo: COP2 enable invertido (!enabled -> enabled)
+ocorrencias: 3
+@@DE
+        if !self.cop2_enabled() {
+@@PARA
+        if self.cop2_enabled() {
+@@FIM
+
+mutante: m5
+rotulo: MTC2 dispara FLAG bit 31 (nao deveria — spec L379-381)
+@@DE
+                self.gte.write_data(rd, val);
+                None
+            }
+            0x06 => {
+@@PARA
+                self.gte.write_data(rd, val);
+                self.gte.write_ctrl(31, 1 << 31);
+                None
+            }
+            0x06 => {
+@@FIM
+
+mutante: m6
+rotulo: LWC2 nao sign-extende imediato (zero-extend em vez de sign-extend)
+@@DE
+        let addr = self.regs[rs].wrapping_add((imm as i16 as i32) as u32);
+        let val = bus.read32::<BusRead>(addr);
+        self.gte.write_data(rt, val);
+@@PARA
+        let addr = self.regs[rs].wrapping_add(imm as u32);
+        let val = bus.read32::<BusRead>(addr);
+        self.gte.write_data(rt, val);
+@@FIM
+
+mutante: m7
+rotulo: SWC2 le de ctrl em vez de data (read_data -> read_ctrl)
+@@DE
+        let val = self.gte.read_data(rt);
+        bus.write32::<BusRead>(addr, val);
+@@PARA
+        let val = self.gte.read_ctrl(rt);
+        bus.write32::<BusRead>(addr, val);
+@@FIM
+
+controle: c1
+rotulo: renomear variavel local co para cop_code (cosmetico)
+@@DE
+        let co = (instr >> 21) & 0x1F;
+@@PARA
+        let cop_code = (instr >> 21) & 0x1F;
+@@FIM
+@@DE
+        match co {
+@@PARA
+        match cop_code {
+@@FIM
+
+controle: c2
+rotulo: adiciona binding descartavel antes do match (cosmetico)
+@@DE
+        let co = (instr >> 21) & 0x1F;
+        match co {
+@@PARA
+        let _placebo = 1;
+        let co = (instr >> 21) & 0x1F;
+        match co {
+@@FIM

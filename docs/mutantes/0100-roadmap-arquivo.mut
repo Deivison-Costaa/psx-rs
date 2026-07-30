@@ -16,9 +16,9 @@ rotulo: M6 fica 100% fechado e continua ocupando bytes da escada
 mutante: m2
 rotulo: M2 fica 100% fechado e continua ocupando bytes da escada
 @@DE
-- [ ] 2.2d Metade de cima do losango do logo nunca e desenhada
+- [ ] 2.2d Losango do logo tem 256 linhas e a area de desenho da BIOS tem 240 — precisa de referencia
 @@PARA
-- [x] 2.2d Metade de cima do losango do logo nunca e desenhada
+- [x] 2.2d Losango do logo tem 256 linhas e a area de desenho da BIOS tem 240 — precisa de referencia
 @@FIM
 
 mutante: m3

@@ -3,10 +3,10 @@
 Referência fornecida pelo usuário em 2026-07-30, depois de o orquestrador ter concluído
 (erradamente, na iteração 0107) que talvez não houvesse defeito por falta de referência.
 
-**A imagem em si NÃO está versionada.** Ela foi colada no chat e o arquivo não foi salvo. Se
-precisar dela de novo, peça ao usuário — a fonte era um render da tela oficial, encontrado em
-`preview.redd.it` sob o nome `ps1-sony-computer-entertainment-boot-screen`. O host bloqueia
-busca automática; não tente baixar.
+**A imagem em si NÃO está versionada** (não é nossa), mas desde a iteração 0110 existe em disco,
+fora do repositório: o original do usuário em
+`Programacao com agentes/ps1-sony-computer-entertainment-boot-screen-16k-v0-5e3diayxmyp71.webp`
+e uma cópia em `psx-estado/referencias/tela-de-boot.webp`. Se ambas sumirem, peça ao usuário.
 
 ## O que a tela real mostra
 
@@ -29,11 +29,13 @@ O "S" vazado e o gradiente do losango saem **corretos** — o que erra é escala
 
 ## Como reproduzir o nosso lado
 
-Binário descartável em `crates/psx-cli/src/bin/` que boota com `--bios` + `--disc` e despeja a
-VRAM (1024x512, 16bpp) como RGB; converter para PNG com `zlib` da stdlib do Python. **30 milhões
-de passos bastam** — a tela já está completa aí, conferido despejando também em 50 M, 70 M, 85 M e
-85,54 M passos: idêntica. Não use 400 M: o boot morre num defeito separado no passo 85 544 264
-(item 4.4h) e tudo depois é máquina morta.
+Harness descartável `psx-estado/instrumentacao/vramshot.rs` (copiar para
+`crates/psx-cli/src/bin/`, nunca commitar): boota a BIOS e despeja a VRAM 1024x512 como PNG, mais
+as três CLUTs da linha 480. **Use 85,5 M passos** — a 0110 mediu que o texto só é rasterizado
+entre 50 M e 85,5 M (a alegação anterior de "30 M bastam, idêntico até 85 M" estava errada: aos
+50 M havia zero quads texturizados). O boot morre no passo 85 544 264 (item 4.4h) e tudo depois é
+máquina morta. **O display está desligado (GPUSTAT.23=0) até o crash** — esta tela é estado
+intermediário que o hardware real nunca chega a exibir (invariante 22).
 
 **Cuidado (invariante 21):** no despejo, a região da texpage aparece rosa/azul porque cada halfword
 vira um pixel de 15 bits; ali cada halfword são quatro índices de CLUT. Para julgar **cor**, olhe

@@ -7,31 +7,30 @@
 
 ## Última iteração concluída
 
-**0109** — referencia da tela real obtida; a conclusao da 0107 estava errada e foi corrigida; tres
-hipoteses para o 2.2d medidas e descartadas (ROADMAP 2.2d).
+**0110** — 2.2e resolvido por medição, sem código: "SONY" vermelho e CLUT pisoteada pelo losango
+(2.2d) e fundo cinza e o fade congelado pelo crash; o display nem chega a ligar (ROADMAP 2.2e).
 
 ## Próxima tarefa
 
-**ROADMAP 2.2e — o texto do logo sai vermelho; deveria ser azul-escuro.**
-Escolhido antes do 2.2d porque tem suspeito nomeado e e independente. Medido em 30/07 contra a
-referencia oficial: fundo deveria ser branco e sai cinza (180,180,180); "SONY" deveria ser
-azul-escuro e sai vermelho. A geometria do texto esta certa desde o item 2.2c — e so a cor.
-Suspeito primario: **item 10.13**, `GP0(24h)` e modulacao e o bit 24 do comando (raw texture) nao
-e lido. Os quads do logo sao `2Ch`, com bit 24 = 0, isto e, **modulados**.
-Spec: `docs/reference/03-gpu.md` L1080 (tabela de Shaded Textures) e a secao de Render Polygon.
-Arquivos-alvo: `crates/psx-core/src/gpu.rs`.
-Critério de aceitação: no despejo da VRAM o texto "SONY" sai azul-escuro sobre fundo branco.
-Invariantes relevantes: 21.
+**ROADMAP 4.4h — segundo crash do boot: `$ra` restaurado da pilha vale 4, passo 85 544 264.**
+Promovido porque a 0110 mediu que ele **bloqueia toda a tela do logo**: a BIOS desenha o fade
+inteiro com o display desligado (GPUSTAT.23=0 do inicio ao crash) e so ligaria o display — e
+definiria o modo final de video — depois do ponto onde morre. Fundo branco, texto azul e modo
+480i/240p sao incognosciveis ate ele cair (invariante 22).
+O que ja se sabe: `$ra` volta da pilha valendo 4, logo alguem corrompeu o slot na RAM ou o load
+veio do endereco errado. Caminho: harness `psx-estado/instrumentacao/vramshot.rs` (ou bootbios)
++ log condicional perto do passo 85,5 M; achar o `sw` que gravou 4 naquele endereco de pilha ou o
+`lw` que leu de endereco errado.
+Spec: `docs/reference/13-kernel-bios.md` (convencao de chamada/pilha) so se a medicao pedir.
+Arquivos-alvo: `crates/psx-core/src/cpu.rs`; talvez `bus.rs`/`dma.rs` se a corrupcao vier de fora.
+Critério de aceitação: boot passa do passo 85 544 264 sem `$ra=4`; bonus se o display ligar
+(GPUSTAT.23=1) e o fade completar em `FFFFFF`.
+Invariantes relevantes: 21, 22.
 
-**Ja medido e descartado para o 2.2d — nao repetir:** (1) projecao do GTE — **zero** chamadas de
-`rtps` em 85 M passos, o logo nao passa pelo GTE; (2) resolucao vertical mal reportada —
-`GPUSTAT=0x1406260D`, 640x240 sem entrelacamento, correto; (3) vertice escrito direto pela CPU —
-nenhum `sw` com o valor do vertice, a lista de display vai por **DMA**. O proximo passo do 2.2d e
-interceptar o canal 2 do DMA e ler os pacotes na RAM.
-
-**Cuidado registrado (invariante 21):** no despejo da VRAM, a regiao de texpage aparece rosa/azul
-porque cada halfword vira um pixel de 15 bits; ali sao quatro indices de CLUT. Para julgar COR,
-olhe so o que foi rasterizado.
+**Estado do 2.2d apos a 0110:** a lista da BIOS e uma cena de 480 linhas (losango 112..368,
+centro 240 — proporcoes exatas da referencia) desenhada 2x por frame, offsets (0,1)/(0,241),
+display start alternando 1/241, GP1(08h)=03 sempre; as duas metades da VRAM recebem a MESMA
+metade superior da cena. Nao gastar iteracao tentando "consertar geometria" antes do 4.4h.
 
 ## Repositório
 

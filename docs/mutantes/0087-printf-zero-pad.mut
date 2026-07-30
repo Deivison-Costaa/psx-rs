@@ -67,11 +67,12 @@ rotulo: adiciona declaracao let _ = body_len;
 @@FIM
 
 controle: c2
-rotulo: adiciona comentario na funcao emit_signed
+rotulo: adiciona let _ = 0 no inicio de emit_signed
 @@DE
 fn emit_signed(bus: &mut Bus, val: i32, zero_pad: bool, width: usize) {
     let negative = val < 0;
 @@PARA
 fn emit_signed(bus: &mut Bus, val: i32, zero_pad: bool, width: usize) {
+    let _ = 0;
     let negative = val < 0;
 @@FIM

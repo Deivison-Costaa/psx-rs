@@ -5,40 +5,29 @@
 
 ## Última iteração concluída
 
-**0072** — Correção de registro e revisão do PR #85 (ROADMAP 10.24): o job `scoreboard` da CI
-sai verde medindo zero, porque sem BIOS o script rotula as 51 suítes como `sem-bios` e encerra 0.
-Das 1982 linhas publicadas na branch `scoreboard-data`, 1981 são `sem-bios`. Corrige a nota 2 da
-iteração 0068 e preenche a revisão cruzada da 0071.
-
-Antes dela, **0071** — DPCR como gate de habilitação no DMA (ROADMAP 10.19). Medido no hardware:
-`ps1-tests/dma/otc-test` foi de `6p/34f` para `7p/30f`, e `testOtcStandardWithMasterDisabled`
-passou. Primeira correção do projeto guiada pela suíte de hardware.
+**0073** — OTC grava o endereço de baixo em cada palavra, terminador na última escrita, ponteiro de
+24 bits (ROADMAP 10.20). **`ps1-tests/dma/otc-test` foi de 7p/30f para 15p/0f — a suíte inteira
+passa.** Começada pelo trabalhador, terminada pelo orquestrador depois que a sessão travou.
 
 ## Próxima tarefa
 
-**ROADMAP 10.20 — DMA — o que o OTC grava em cada endereço.**
-`ps1-tests/dma/otc-test` ainda reprova 30 subtestes e todos são o mesmo defeito. Para um buffer
-de 4 palavras, `testOtcStandard:28-31` espera `buf[0]=0xFFFFFF`, `buf[1]=&buf[0]`,
-`buf[2]=&buf[1]`, `buf[3]=&buf[2]`: terminador no índice mais BAIXO, cada palavra apontando para
-a de baixo. Nós gravamos o espelho — terminador em MADR, no índice mais alto, e ponteiros para
-cima.
-**O sentido de varredura já está certo e a spec confirma:** em `docs/reference/04-dma.md`, seção
-"1F801088h+N\*10h - D#\_CHCR - DMA Channel Control (Channel 0..6) (R/W)" (L84), as restrições do
-DMA6 dizem que o bit 1 do D6_CHCR é sempre 1, com `increment=-4` (L117-119). O OTC desce, e
-`try_execute_otc` já desce. O defeito é o VALOR gravado em cada endereço e a ponta onde vai o
-terminador: descendo a partir de MADR, cada palavra deve receber o endereço que será visitado a
-seguir (o de baixo), e o terminador cai na última palavra escrita, que é a mais baixa. A seção
-"DMA Register Summary" (L27) chama o canal 6 de "reverse clear OT" (L35).
-**Armadilha:** `crates/psx-core/tests/dma_otc.rs:79-81` afirma hoje o espelho, com as mensagens
-"ultimo slot = end marker" e "slot N-1 aponta para slot N". Esse teste é o que certificou o
-defeito, e TEM de mudar junto — o teste próprio não é o árbitro, a spec e o `otc-test` são.
-Confirme na mesma passagem a segunda diferença: gravamos o ponteiro dobrado em 21 bits
-(`& 0x1F_FFFC`), e os valores esperados pelo `otc-test` são de 24 bits.
-Arquivos-alvo: `crates/psx-core/src/dma.rs`, `crates/psx-core/tests/dma_otc.rs`.
+**ROADMAP 10.21 — GPU — bit 15 do GPUSTAT (Texture Disable) sem o gate de GP1(09h).**
+As três falhas de `ps1-tests/gpu/gp0-e1` são o mesmo defeito e diferem por exatamente `0x8000`:
+`testWriteOnesToE1` dá `0x87ff` onde o hardware dá `0x7ff`, `testTexturedPolygons` dá `0x81ff`
+onde dá `0x1ff`, e `testTextureDisableBitIsIgnoredWhenNotAllowed` dá `0x8000` onde dá `0x0`. O
+nome do terceiro entrega o critério: o bit de Texture Disable é **ignorado quando não permitido**,
+e nós o gravamos sempre.
+Spec, em `docs/reference/03-gpu.md`: ache a seção do GP1(09h) e a do GPUSTAT pelo índice no topo
+do arquivo somando o offset da marca `CORPO:`, que neste arquivo é **+115**; confira que a linha
+citada é o CABEÇALHO da seção, não uma linha de dentro dela.
+**Armadilha:** o bit 11 do comando GP0(E1h) é que vira o bit 15 do GPUSTAT — são índices
+diferentes, e confundi-los já é o padrão 4 da lista de revisão. E o gate é uma permissão separada
+vinda do GP1(09h), então precisa de estado novo, não de um `if` sobre o próprio E1h.
+Medida de aceitação: `gpu/gp0-e1` tem de sair de 7p/3f para 10p/0f.
+Arquivos-alvo: `crates/psx-core/src/gpu.rs`, `crates/psx-core/tests/gpu_texture_disable.rs` (novo).
 
-**Depois desta, em ordem de evidência de hardware:** 10.21 (bit 15 do GPUSTAT sem o gate de
-GP1(09h), 3 subtestes), 10.22 (mask bit, 2 subtestes), e o 4.3b abaixo, que não tem suíte de
-hardware medindo.
+**Depois desta:** 10.22 (mask bit, 2 subtestes de `gpu/mask-bit`), e depois o 4.3b abaixo, que não
+tem suíte de hardware medindo.
 
 **ROADMAP 4.3b — CDROM — Acoplar DiscLayout + dados do .bin.**
 Substituir o buffer stub (`data_buffer` preenchido com `(i+1) & 0xFF`) por dados reais do arquivo .bin, usando o `DiscLayout` (item 4.2b). ReadN/ReadS devem ler setores do BIN a partir da posição definida por Setloc. Armadilha: o `Cdrom` hoje não tem referência ao `DiscLayout` nem ao buffer `.bin`; `Bus` precisa injetá-los ou o `Cdrom` precisa guardar uma referência.
@@ -58,7 +47,7 @@ Arquivos-alvo: `crates/psx-core/src/cdrom.rs` (injetar DiscLayout + buffer BIN, 
 
 ## Placar de testes
 
-Workspace: **556** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 29 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 11 cpu_opcode_reservado + 11 cpu_irq + 13 dma_otc + 14 dma_gpu + 12 cdrom_dma + 7 dma_dpcr_gate + 13 timers + 11 timers_sync + 9 timers_dotclock_hblank + 14 timers_irq + 16 gpu_status_gp0_gp1 + 9 ci_scoreboard + 9 cli_runner + 21 gpu_vram_transfers + 20 gpu_triangulos_flat_gouraud + 20 gpu_linhas_retangulos + 4 gpu_linhas_retangulos_continuacao + 6 gpu_textura_15bpp + 6 gpu_texturas_4bpp_8bpp + 5 gpu_texture_window + 6 gpu_semi_transparencia + 7 gpu_dithering + 8 gpu_mask_bit + 7 gpu_display_regs + 9 gpu_timing_vblank + 6 gpu_framebuffer + 3 gpu_desktop_egui + 6 gpu_scoreboard + 13 cdrom_regs + 11 cdrom_seek_pause + 11 cdrom_bin_cue + 10 cdrom_read + 1 spec_citations + 2 mutation_manifest + 2 mutation_anchors + 5 mutation_battery + 1 mutation_reconciliation).
+Workspace: **557** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 29 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 11 cpu_opcode_reservado + 11 cpu_irq + 14 dma_otc + 14 dma_gpu + 12 cdrom_dma + 7 dma_dpcr_gate + 13 timers + 11 timers_sync + 9 timers_dotclock_hblank + 14 timers_irq + 16 gpu_status_gp0_gp1 + 9 ci_scoreboard + 9 cli_runner + 21 gpu_vram_transfers + 20 gpu_triangulos_flat_gouraud + 20 gpu_linhas_retangulos + 4 gpu_linhas_retangulos_continuacao + 6 gpu_textura_15bpp + 6 gpu_texturas_4bpp_8bpp + 5 gpu_texture_window + 6 gpu_semi_transparencia + 7 gpu_dithering + 8 gpu_mask_bit + 7 gpu_display_regs + 9 gpu_timing_vblank + 6 gpu_framebuffer + 3 gpu_desktop_egui + 6 gpu_scoreboard + 13 cdrom_regs + 11 cdrom_seek_pause + 11 cdrom_bin_cue + 10 cdrom_read + 1 spec_citations + 2 mutation_manifest + 2 mutation_anchors + 5 mutation_battery + 1 mutation_reconciliation).
 
 ## Bloqueios
 

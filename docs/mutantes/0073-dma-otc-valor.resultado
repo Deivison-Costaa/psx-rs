@@ -1,0 +1,11 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: 3905ec2a5920555f93fac0921d8dd2258195d9fa
+# rodado_em: 2026-07-29T21:04:09-03:00
+m1,mutante,morreu,morreu,0.8,dma6_otc_bcr_zero_equivale_a_10000h;dma6_otc_ponteiro_guarda_24_bits_e_nao_dobra_em_21;dma6_otc_preenche_ram_com_linked_list
+m2,mutante,morreu,morreu,0.8,dma6_otc_bcr_zero_equivale_a_10000h;dma6_otc_ponteiro_guarda_24_bits_e_nao_dobra_em_21;dma6_otc_preenche_ram_com_linked_list
+m3,mutante,morreu,morreu,0.7,dma6_otc_bcr_zero_equivale_a_10000h;dma6_otc_ponteiro_guarda_24_bits_e_nao_dobra_em_21;dma6_otc_preenche_ram_com_linked_list
+m4,mutante,morreu,morreu,0.8,dma6_otc_ponteiro_guarda_24_bits_e_nao_dobra_em_21
+m5,mutante,morreu,morreu,0.8,dma6_otc_bcr_zero_equivale_a_10000h;dma6_otc_ponteiro_guarda_24_bits_e_nao_dobra_em_21;dma6_otc_preenche_ram_com_linked_list
+m6,mutante,morreu,morreu,0.7,dma6_otc_bcr_zero_equivale_a_10000h;dma6_otc_preenche_ram_com_linked_list
+c1,controle,sobreviveu,sobreviveu,0.7,
+c2,controle,sobreviveu,sobreviveu,0.8,

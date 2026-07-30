@@ -74,6 +74,18 @@ foreach ($i in 1..$N) {
             Write-Host "[oc-loop] iteracao $i falhou - seguindo (a proxima recebe o estado como insumo)."
             git reset --hard HEAD 2>&1 | Out-Null
             git checkout main 2>&1 | Out-Null
+            # `git reset --hard` nao remove arquivo NAO rastreado, e oc-iter.ps1 recusa arvore
+            # suja contando os `??` do porcelain. Sem esta parada, uma rodada que morre deixando
+            # um .mut sem commit faz TODAS as seguintes falharem em segundos na mesma checagem:
+            # na noite2 foram 19 rodadas identicas queimadas assim. Nao usar `git clean` aqui —
+            # apagar nao rastreado sem olhar ja destruiu quatro commits na iteracao 0038.
+            $sujo = (git status --porcelain) -join "`n"
+            if ($sujo) {
+                Write-Host "[oc-loop] arvore AINDA suja depois do reset - parando em vez de repetir a mesma falha 19x."
+                Write-Host "[oc-loop] resolva a mao (commite numa branch ou mova para fora) e relance:"
+                Write-Host $sujo
+                break
+            }
             continue
         }
         Write-Host "[oc-loop] iteracao falhou - parando o loop."

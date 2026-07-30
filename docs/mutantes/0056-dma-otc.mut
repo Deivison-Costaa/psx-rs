@@ -8,9 +8,9 @@ teste: dma_otc
 mutante: m1
 rotulo: end marker errado (0xFFFFFF → 0x00000000)
 @@DE
-        let mut next_val: u32 = 0x00FF_FFFF;
+                    0x00FF_FFFF
 @@PARA
-        let mut next_val: u32 = 0x0000_0000;
+                    0x0000_0000
 @@FIM
 
 mutante: m2
@@ -58,10 +58,10 @@ rotulo: OTC executa sem verificar bit 28 (forca start ignorado)
 controle: K1
 rotulo: adicionar comentario nao altera comportamento
 @@DE
-        let mut next_val: u32 = 0x00FF_FFFF;
+                    0x00FF_FFFF
 @@PARA
-        // end-of-table marker para OTC
-        let mut next_val: u32 = 0x00FF_FFFF;
+                    // end-of-table marker para OTC
+                    0x00FF_FFFF
 @@FIM
 
 controle: K2

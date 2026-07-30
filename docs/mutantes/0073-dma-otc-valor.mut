@@ -1,0 +1,82 @@
+# Manifesto de mutação da iteração 0073 — dma-otc-valor
+formato: 1
+iteracao: 0073
+item: 10.20
+alvo: crates/psx-core/src/dma.rs
+teste: dma_otc
+
+mutante: m1
+rotulo: troca os dois bracos: terminador no penultimo e ponteiro no ultimo
+@@DE
+                let val = if i == count - 1 {
+                    0x00FF_FFFF
+                } else {
+                    addr.wrapping_sub(4) & 0x00FF_FFFC
+                };
+@@PARA
+                let val = if i == count - 1 {
+                    addr.wrapping_sub(4) & 0x00FF_FFFC
+                } else {
+                    0x00FF_FFFF
+                };
+@@FIM
+
+mutante: m2
+rotulo: terminador no slot mais alto (i == 0 em vez de i == count-1)
+@@DE
+                let val = if i == count - 1 {
+@@PARA
+                let val = if i == 0 {
+@@FIM
+
+mutante: m3
+rotulo: ponteiro para cima em vez de para baixo (wrapping_add)
+@@DE
+                    addr.wrapping_sub(4) & 0x00FF_FFFC
+@@PARA
+                    addr.wrapping_add(4) & 0x00FF_FFFC
+@@FIM
+
+mutante: m4
+rotulo: mascara de 21 bits em vez de 24 (0x1F_FFFC)
+@@DE
+                    addr.wrapping_sub(4) & 0x00FF_FFFC
+@@PARA
+                    addr.wrapping_sub(4) & 0x1F_FFFC
+@@FIM
+
+mutante: m5
+rotulo: cada palavra aponta para si mesma em vez de para a de baixo
+@@DE
+                    addr.wrapping_sub(4) & 0x00FF_FFFC
+@@PARA
+                    addr & 0x00FF_FFFC
+@@FIM
+
+mutante: m6
+rotulo: nunca escreve terminador (condicao sempre falsa)
+@@DE
+                let val = if i == count - 1 {
+@@PARA
+                let val = if false {
+@@FIM
+
+controle: c1
+rotulo: no-op antes do loop (let _ = count)
+@@DE
+        let mut addr = madr;
+        for i in 0..count {
+@@PARA
+        let mut addr = madr;
+        let _ = count;
+        for i in 0..count {
+@@FIM
+
+controle: c2
+rotulo: extrai mascara de BCR para constante local
+@@DE
+        let bcr = self.bcr[6] & 0xFFFF;
+@@PARA
+        let bcr_mask: u32 = 0xFFFF;
+        let bcr = self.bcr[6] & bcr_mask;
+@@FIM

@@ -70,10 +70,10 @@ rotulo: DMA3 usa bit 14 em vez de 15 — gate nunca abre para o canal 3
 controle: c1
 rotulo: controle — adiciona ligacao morta (let _) antes do for em try_execute_otc
 @@DE
-        for _ in 0..count {
+        for i in 0..count {
 @@PARA
         let _ = 0u32;
-        for _ in 0..count {
+        for i in 0..count {
 @@FIM
 
 controle: c2

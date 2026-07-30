@@ -159,3 +159,61 @@ fn dtr_transicao_reseta_contagem_de_bytes() {
 
     sio.write_ctrl(0x0000);
 }
+
+#[test]
+fn botoes_pressionados_aparecem_na_resposta_42h() {
+    let sio = Sio::new();
+    sio.connect_digital_pad(true);
+    sio.set_buttons(!((1u16 << 3) | (1u16 << 14)));
+
+    sio.write_ctrl(0x0002);
+    sio.write_tx(0x01);
+    let _ = sio.read_rx();
+
+    sio.write_tx(0x42);
+    assert_eq!(sio.read_rx(), 0x41, "ID low = 0x41");
+
+    sio.write_tx(0x00);
+    assert_eq!(sio.read_rx(), 0x5A, "ID high = 0x5A");
+
+    sio.write_tx(0x00);
+    assert_eq!(
+        sio.read_rx(),
+        0xBF,
+        "buttons high: Start(bit3)=0, Cross(bit14)=0 → bit15-8 = 10111111 = 0xBF"
+    );
+
+    sio.write_tx(0x00);
+    assert_eq!(
+        sio.read_rx(),
+        0xF7,
+        "buttons low: Cross(bit14) no low, Start(bit3)=0 → bit7-0 = 11110111 = 0xF7"
+    );
+
+    sio.write_ctrl(0x0000);
+}
+
+#[test]
+fn botoes_soltos_retornam_ff() {
+    let sio = Sio::new();
+    sio.connect_digital_pad(true);
+    sio.set_buttons(0xFFFF);
+
+    sio.write_ctrl(0x0002);
+    sio.write_tx(0x01);
+    let _ = sio.read_rx();
+
+    sio.write_tx(0x42);
+    assert_eq!(sio.read_rx(), 0x41);
+
+    sio.write_tx(0x00);
+    assert_eq!(sio.read_rx(), 0x5A);
+
+    sio.write_tx(0x00);
+    assert_eq!(sio.read_rx(), 0xFF, "todos soltos -> high = 0xFF");
+
+    sio.write_tx(0x00);
+    assert_eq!(sio.read_rx(), 0xFF, "todos soltos -> low = 0xFF");
+
+    sio.write_ctrl(0x0000);
+}

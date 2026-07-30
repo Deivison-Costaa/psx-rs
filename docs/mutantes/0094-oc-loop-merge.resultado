@@ -1,0 +1,10 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: 2f9079befed0230c80f9706b3f8a7be36cdade69
+# rodado_em: 2026-07-30T10:23:38-03:00
+m1,mutante,morreu,sobreviveu,0.5,
+m2,mutante,morreu,sobreviveu,0.1,
+m3,mutante,morreu,morreu,0.1,gh_pr_merge_verifica_estado_merged_apos_o_merge
+m4,mutante,morreu,morreu,0.1,gh_pr_merge_verifica_estado_merged_apos_o_merge
+m5,mutante,morreu,sobreviveu,0.1,
+c1,controle,sobreviveu,sobreviveu,0.1,
+c2,controle,sobreviveu,sobreviveu,0.1,

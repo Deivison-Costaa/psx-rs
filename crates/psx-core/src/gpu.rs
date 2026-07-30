@@ -1769,10 +1769,6 @@ impl Gpu {
             0x09 => {
                 let bit = val & 1;
                 self.allow_upper_y.set(bit != 0);
-                if bit == 0 {
-                    let s = self.stat.get();
-                    self.stat.set(s & !(1 << 15));
-                }
             }
             _ => {}
         }

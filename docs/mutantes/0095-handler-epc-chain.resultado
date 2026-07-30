@@ -1,10 +1,10 @@
 # gerado por scripts/mutantes.ps1 — NAO editar a mao
-# commit: 672d6ce1b517afd7f03a09d45a9e1d4deb921a87
-# rodado_em: 2026-07-30T11:02:31-03:00
-m1,mutante,morreu,morreu,0.8,install_return_stubs_instala_handler_que_acknowledge_istat
-m2,mutante,morreu,morreu,0.8,install_return_stubs_instala_handler_que_acknowledge_istat
-m3,mutante,morreu,morreu,0.8,install_return_stubs_instala_handler_que_acknowledge_istat
-m4,mutante,morreu,morreu,0.8,install_return_stubs_instala_handler_que_acknowledge_istat
+# commit: 546d8ca2c79caac2068c0a425b5142c1d309aa53
+# rodado_em: 2026-07-30T11:09:28-03:00
+m1,mutante,morreu,morreu,0.6,install_return_stubs_instala_handler_que_acknowledge_istat
+m2,mutante,morreu,morreu,0.7,install_return_stubs_instala_handler_que_acknowledge_istat
+m3,mutante,morreu,morreu,0.7,install_return_stubs_instala_handler_que_acknowledge_istat
+m4,mutante,morreu,morreu,0.7,install_return_stubs_instala_handler_que_acknowledge_istat
 m5,mutante,morreu,morreu,0.7,install_return_stubs_instala_handler_que_acknowledge_istat
-c1,controle,sobreviveu,sobreviveu,0.8,
-c2,controle,sobreviveu,sobreviveu,0.8,
+c1,controle,sobreviveu,sobreviveu,0.7,
+c2,controle,sobreviveu,sobreviveu,0.7,

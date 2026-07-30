@@ -1,0 +1,4 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: 2325a2b9c287b12205b42dfee902ccda34e00999
+# rodado_em: 2026-07-30T06:30:49-03:00
+m1,mutante,morreu,morreu,0.8,nclip_poligono_anti_horario_mac0_negativo;nclip_poligono_horario_mac0_positivo

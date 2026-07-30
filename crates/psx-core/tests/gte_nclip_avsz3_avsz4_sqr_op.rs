@@ -68,8 +68,7 @@ fn nclip_poligono_horario_mac0_positivo() {
     le_mfc2(&mut cpu, &mut bus, a, 10, 24);
 
     assert_eq!(
-        cpu.regs[10] as i32,
-        10000,
+        cpu.regs[10] as i32, 10000,
         "NCLIP horario: MAC0 = SX0*SY1 + SX1*SY2 + SX2*SY0 - SX0*SY2 - SX1*SY0 - SX2*SY1 = 10000"
     );
 }
@@ -90,8 +89,7 @@ fn nclip_poligono_anti_horario_mac0_negativo() {
     le_mfc2(&mut cpu, &mut bus, a, 10, 24);
 
     assert_eq!(
-        cpu.regs[10] as i32,
-        -10000,
+        cpu.regs[10] as i32, -10000,
         "NCLIP anti-horario: MAC0 = -10000"
     );
 }
@@ -112,8 +110,7 @@ fn nclip_colinear_mac0_zero() {
     le_mfc2(&mut cpu, &mut bus, a, 10, 24);
 
     assert_eq!(
-        cpu.regs[10] as i32,
-        0,
+        cpu.regs[10] as i32, 0,
         "NCLIP colinear: pontos em linha reta devem gerar MAC0=0"
     );
 }
@@ -144,8 +141,7 @@ fn avsz3_media_ponderada_de_tres_z() {
     le_mfc2(&mut cpu, &mut bus, a, 11, 24);
 
     assert_eq!(
-        cpu.regs[10],
-        15,
+        cpu.regs[10], 15,
         "AVSZ3 OTZ: ZSF3*(SZ1+SZ2+SZ3)/1000h = 0x68*600/4096 = 15 (truncado)"
     );
     assert_eq!(
@@ -179,8 +175,7 @@ fn avsz3_otz_saturado_em_maximo() {
     le_cfc2(&mut cpu, &mut bus, a, 11, 31);
 
     assert_eq!(
-        cpu.regs[10],
-        0xFFFF,
+        cpu.regs[10], 0xFFFF,
         "AVSZ3 OTZ saturado em 0xFFFF quando MAC0/1000h > 0xFFFF"
     );
     assert_ne!(
@@ -217,8 +212,7 @@ fn avsz4_media_ponderada_de_quatro_z() {
     le_mfc2(&mut cpu, &mut bus, a, 11, 24);
 
     assert_eq!(
-        cpu.regs[10],
-        15,
+        cpu.regs[10], 15,
         "AVSZ4 OTZ: ZSF4*(SZ0+SZ1+SZ2+SZ3)/1000h = 0x40*1000/4096 = 15 (truncado)"
     );
     assert_eq!(
@@ -268,8 +262,7 @@ fn sqr_sf1_desloca_12_bits_para_direita() {
     le_mfc2(&mut cpu, &mut bus, a, 4, 9);
 
     assert_eq!(
-        cpu.regs[4],
-        0x10,
+        cpu.regs[4], 0x10,
         "SQR sf=1: IR1 = (0x100*0x100) >> 12 = 0x10000 >> 12 = 0x10"
     );
 }
@@ -289,8 +282,7 @@ fn sqr_saturacao_ir_em_7fff() {
     le_cfc2(&mut cpu, &mut bus, a, 5, 31);
 
     assert_eq!(
-        cpu.regs[4],
-        0x7FFF,
+        cpu.regs[4], 0x7FFF,
         "SQR: 0x4000*0x4000 = 0x1000_0000 > 0x7FFF, saturado"
     );
     assert_ne!(
@@ -332,12 +324,12 @@ fn op_produto_vetorial_sf0_lm0() {
     );
     assert_eq!(
         cpu.regs[5] as i32,
-        1 * 11 - 3 * 5,
+        11 - 3 * 5,
         "OP MAC2/IR2 = IR1*D3 - IR3*D1 = 11 - 15 = -4"
     );
     assert_eq!(
         cpu.regs[6] as i32,
-        2 * 5 - 1 * 7,
+        2 * 5 - 7,
         "OP MAC3/IR3 = IR2*D1 - IR1*D2 = 10 - 7 = 3"
     );
 }
@@ -369,8 +361,7 @@ fn op_sf1_desloca_12_bits() {
     let ir1_expected = mac1 >> 12;
 
     assert_eq!(
-        cpu.regs[4] as i32,
-        ir1_expected,
+        cpu.regs[4] as i32, ir1_expected,
         "OP sf=1: MAC1 = IR3*D2 - IR2*D3 >> 12"
     );
 }

@@ -36,6 +36,7 @@ fn stat_com_e1h(gpu: &mut Gpu, param: u32) -> u32 {
 fn a1_gp0_e1h_todos_os_campos_setados_refletem_no_gpustat() {
     let mut gpu = Gpu::new();
 
+    gpu.write32(4, (0x09 << 24) | 0x01);
     let stat = stat_com_e1h(&mut gpu, 0x3FFF);
 
     assert_eq!(

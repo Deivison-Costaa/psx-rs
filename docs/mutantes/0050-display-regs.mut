@@ -86,6 +86,14 @@ rotulo: declara variavel local nao usada _nop dentro de write_gp1 (cosmetico)
                 self.stat.set((s & !mask) | bits);
                 self.video_mode.set((param & 0x08) != 0);
             }
+            0x09 => {
+                let bit = val & 1;
+                self.allow_upper_y.set(bit != 0);
+                if bit == 0 {
+                    let s = self.stat.get();
+                    self.stat.set(s & !(1 << 15));
+                }
+            }
             _ => {}
 @@PARA
             0x08 => {
@@ -96,6 +104,14 @@ rotulo: declara variavel local nao usada _nop dentro de write_gp1 (cosmetico)
                 let s = self.stat.get();
                 self.stat.set((s & !mask) | bits);
                 self.video_mode.set((param & 0x08) != 0);
+            }
+            0x09 => {
+                let bit = val & 1;
+                self.allow_upper_y.set(bit != 0);
+                if bit == 0 {
+                    let s = self.stat.get();
+                    self.stat.set(s & !(1 << 15));
+                }
             }
             _ => {}
 @@FIM

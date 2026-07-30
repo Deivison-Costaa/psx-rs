@@ -1,0 +1,86 @@
+# Manifesto de mutação da iteração 0074 — gpu-texture-disable
+formato: 1
+iteracao: 0074
+item: 10.21
+alvo: crates/psx-core/src/gpu.rs
+teste: gpu_texture_disable
+
+mutante: m1
+rotulo: GP1(09h) armazena bit 1 em vez de bit 0 (gate invertido)
+@@DE
+            0x09 => {
+                let bit = val & 1;
+@@PARA
+            0x09 => {
+                let bit = (val >> 1) & 1;
+@@FIM
+
+mutante: m2
+rotulo: GP1(09h) nunca fecha o gate (bit == 0 nao limpa stat.15)
+@@DE
+                if bit == 0 {
+                    let s = self.stat.get();
+                    self.stat.set(s & !(1 << 15));
+                }
+@@PARA
+
+@@FIM
+
+mutante: m3
+rotulo: GP1(00h) esquece de resetar allow_upper_y
+@@DE
+                self.allow_upper_y.set(false);
+@@PARA
+
+@@FIM
+
+mutante: m4
+rotulo: E1h sempre seta bit 15 (ignora o gate)
+@@DE
+                            if self.allow_upper_y.get() {
+                                bits |= ((param >> 11) & 1) << 15;
+                            }
+@@PARA
+                            bits |= ((param >> 11) & 1) << 15;
+@@FIM
+
+mutante: m5
+rotulo: apply_texpage_if_second sempre seta bit 15 (ignora o gate)
+@@DE
+            if self.allow_upper_y.get() {
+                new_bits |= ((texpage >> 11) & 1) << 15;
+            }
+@@PARA
+            new_bits |= ((texpage >> 11) & 1) << 15;
+@@FIM
+
+mutante: m6
+rotulo: GP1(09h) zera allow_upper_y em vez de setar com bit 0
+@@DE
+                self.allow_upper_y.set(bit != 0);
+@@PARA
+                self.allow_upper_y.set(false);
+@@FIM
+
+controle: c1
+rotulo: reordena campos da struct Gpu (cosmetico)
+@@DE
+    hblank_active: Cell<bool>,
+    allow_upper_y: Cell<bool>,
+@@PARA
+    allow_upper_y: Cell<bool>,
+    hblank_active: Cell<bool>,
+@@FIM
+
+controle: c2
+rotulo: extrai condicao do gate para variavel local
+@@DE
+                            if self.allow_upper_y.get() {
+                                bits |= ((param >> 11) & 1) << 15;
+                            }
+@@PARA
+                            let gate = self.allow_upper_y.get();
+                            if gate {
+                                bits |= ((param >> 11) & 1) << 15;
+                            }
+@@FIM

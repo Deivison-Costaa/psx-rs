@@ -59,7 +59,14 @@ rotulo: escrever halfword extra em contagem impar removendo o guard do remaining
                     let hw2 = ((val >> 16) & 0xFFFF) as u16;
                     let px2 = x.wrapping_add(col2) & 0x3FF;
                     let py2 = y.wrapping_add(row2) & 0x1FF;
-                    self.vram[py2 as usize * 1024 + px2 as usize] = hw2;
+                    let idx2 = py2 as usize * 1024 + px2 as usize;
+                    if !check_mask || (self.vram[idx2] & 0x8000) == 0 {
+                        let mut hw = hw2;
+                        if force_bit15 {
+                            hw |= 0x8000;
+                        }
+                        self.vram[idx2] = hw;
+                    }
                     remaining = remaining.saturating_sub(1);
                 }
 @@PARA
@@ -69,7 +76,14 @@ rotulo: escrever halfword extra em contagem impar removendo o guard do remaining
                     let hw2 = ((val >> 16) & 0xFFFF) as u16;
                     let px2 = x.wrapping_add(col2) & 0x3FF;
                     let py2 = y.wrapping_add(row2) & 0x1FF;
-                    self.vram[py2 as usize * 1024 + px2 as usize] = hw2;
+                    let idx2 = py2 as usize * 1024 + px2 as usize;
+                    if !check_mask || (self.vram[idx2] & 0x8000) == 0 {
+                        let mut hw = hw2;
+                        if force_bit15 {
+                            hw |= 0x8000;
+                        }
+                        self.vram[idx2] = hw;
+                    }
                     remaining = remaining.saturating_sub(1);
 @@FIM
 

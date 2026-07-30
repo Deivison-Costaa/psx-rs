@@ -1,0 +1,109 @@
+# Manifesto de mutação da iteração 0075 — gpu-mask-bit-transfer
+formato: 1
+iteracao: 0075
+item: 10.22
+alvo: crates/psx-core/src/gpu.rs
+teste: gpu_mask_bit
+
+mutante: m1
+rotulo: write-protect verifica GPUSTAT.11 em vez de GPUSTAT.12 (bit trocado)
+@@DE
+                let check_mask = (stat & (1 << 12)) != 0;
+@@PARA
+                let check_mask = (stat & (1 << 11)) != 0;
+@@FIM
+
+mutante: m2
+rotulo: force-bit15 usa GPUSTAT.12 em vez de GPUSTAT.11 (bit trocado)
+@@DE
+                let force_bit15 = (stat & (1 << 11)) != 0;
+@@PARA
+                let force_bit15 = (stat & (1 << 12)) != 0;
+@@FIM
+
+mutante: m3
+rotulo: CPU->VRAM nunca aplica write-protect (remove guarda do check_mask)
+@@DE
+                if !check_mask || (self.vram[idx1] & 0x8000) == 0 {
+@@PARA
+                {
+@@FIM
+ocorrencias: 2
+
+mutante: m4
+rotulo: CPU->VRAM nunca aplica force-bit15 (remove OR 0x8000)
+@@DE
+                    if force_bit15 {
+                        hw |= 0x8000;
+                    }
+@@PARA
+                    {
+                        let _ = force_bit15;
+                    }
+@@FIM
+ocorrencias: 2
+
+mutante: m5
+rotulo: write-protect aplica a hw1 mas nao a hw2 (remove guarda so do hw2)
+@@DE
+                    let idx2 = py2 as usize * 1024 + px2 as usize;
+                    if !check_mask || (self.vram[idx2] & 0x8000) == 0 {
+                        let mut hw = hw2;
+                        if force_bit15 {
+                            hw |= 0x8000;
+                        }
+                        self.vram[idx2] = hw;
+                    }
+@@PARA
+                    let idx2 = py2 as usize * 1024 + px2 as usize;
+                    self.vram[idx2] = hw2;
+@@FIM
+
+equivalente: m6
+rotulo: mask-bit aplicado ANTES do write-protect (ordem trocada)
+justificativa: check-protect le o pixel antigo da VRAM e force-bit15 modifica o pixel novo local — sao operacoes independentes. Nenhum teste pode distinguir a ordem.
+@@DE
+                let idx1 = py as usize * 1024 + px as usize;
+                if !check_mask || (self.vram[idx1] & 0x8000) == 0 {
+                    let mut hw = hw1;
+                    if force_bit15 {
+                        hw |= 0x8000;
+                    }
+                    self.vram[idx1] = hw;
+                }
+@@PARA
+                let idx1 = py as usize * 1024 + px as usize;
+                let mut hw = hw1;
+                if force_bit15 {
+                    hw |= 0x8000;
+                }
+                if !check_mask || (self.vram[idx1] & 0x8000) == 0 {
+                    self.vram[idx1] = hw;
+                }
+@@FIM
+
+controle: c1
+rotulo: renomeia check_mask para mask_enabled (cosmetico)
+@@DE
+                let check_mask = (stat & (1 << 12)) != 0;
+@@PARA
+                let mask_enabled = (stat & (1 << 12)) != 0;
+@@FIM
+@@DE
+                if !check_mask || (self.vram[idx1] & 0x8000) == 0 {
+@@PARA
+                if !mask_enabled || (self.vram[idx1] & 0x8000) == 0 {
+@@FIM
+@@DE
+                    if !check_mask || (self.vram[idx2] & 0x8000) == 0 {
+@@PARA
+                    if !mask_enabled || (self.vram[idx2] & 0x8000) == 0 {
+@@FIM
+
+controle: c2
+rotulo: inverte condicao do if para if check_mask && (self.vram[idx1] & 0x8000) != 0 (semantica identica, cosmetico)
+@@DE
+                if !check_mask || (self.vram[idx1] & 0x8000) == 0 {
+@@PARA
+                if !(check_mask && (self.vram[idx1] & 0x8000) != 0) {
+@@FIM

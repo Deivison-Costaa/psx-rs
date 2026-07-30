@@ -615,13 +615,23 @@ impl Gpu {
             } => {
                 let total = (width as u32) * (height as u32);
                 let processed = total - remaining;
+                let stat = self.stat.get();
+                let force_bit15 = (stat & (1 << 11)) != 0;
+                let check_mask = (stat & (1 << 12)) != 0;
 
                 let col = (processed % width as u32) as u16;
                 let row = (processed / width as u32) as u16;
                 let hw1 = (val & 0xFFFF) as u16;
                 let px = x.wrapping_add(col) & 0x3FF;
                 let py = y.wrapping_add(row) & 0x1FF;
-                self.vram[py as usize * 1024 + px as usize] = hw1;
+                let idx1 = py as usize * 1024 + px as usize;
+                if !check_mask || (self.vram[idx1] & 0x8000) == 0 {
+                    let mut hw = hw1;
+                    if force_bit15 {
+                        hw |= 0x8000;
+                    }
+                    self.vram[idx1] = hw;
+                }
 
                 remaining = remaining.saturating_sub(1);
 
@@ -632,7 +642,14 @@ impl Gpu {
                     let hw2 = ((val >> 16) & 0xFFFF) as u16;
                     let px2 = x.wrapping_add(col2) & 0x3FF;
                     let py2 = y.wrapping_add(row2) & 0x1FF;
-                    self.vram[py2 as usize * 1024 + px2 as usize] = hw2;
+                    let idx2 = py2 as usize * 1024 + px2 as usize;
+                    if !check_mask || (self.vram[idx2] & 0x8000) == 0 {
+                        let mut hw = hw2;
+                        if force_bit15 {
+                            hw |= 0x8000;
+                        }
+                        self.vram[idx2] = hw;
+                    }
                     remaining = remaining.saturating_sub(1);
                 }
 

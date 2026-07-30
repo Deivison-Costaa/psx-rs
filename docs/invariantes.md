@@ -88,3 +88,11 @@ Regra imposta por `status_handoff.rs`.
     (SW), pego na revisão adversarial; qualquer item novo que leia um imediato reconfere
     esta linha antes de escolher a extensão. (Era a única entrada da seção `## Invariantes`
     do STATUS.md; virou a 15 ao ser movida para cá, sem renumerar as outras.)
+16. **Vetorar exceção OU interrupção descarta o salto pendente e recua o EPC.** Se a
+    instrução preemptada está num delay slot, `EPC` aponta para o **branch** (PC−4),
+    `CAUSE.BD` (bit31) é setado e `CAUSE.BT` (bit30) diz se o branch seria tomado
+    (`docs/reference/02-cpu.md` L682-683). E `branch_target`/`delay_slot_pending` **têm de ser
+    zerados**: salto pendente que sobrevive à vetoração sequestra o PC na primeira instrução do
+    handler. O caminho de exceção (`pending_exception`) sempre fez isso; o de **interrupção** era
+    um `return` antecipado separado que não fazia nenhuma das duas coisas, e matou o boot da BIOS
+    por 8 iterações (item 4.4f, iter 0103). Caminho novo que vetore: passa pelas duas regras.

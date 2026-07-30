@@ -62,7 +62,18 @@ impl Cpu {
             let ie_ku_shifted = ((sr & 0x3) << 2) | ((sr & 0xC) << 2);
             self.cop0[12] = (sr & !0x3F) | ie_ku_shifted;
             self.cop0[13] &= !0xC000_007C;
-            self.cop0[14] = self.pc;
+            if self.delay_slot_pending {
+                self.cop0[13] |= 1 << 31;
+                if self.branch_taken {
+                    self.cop0[13] |= 1 << 30;
+                }
+                self.cop0[14] = self.pc.wrapping_sub(4);
+            } else {
+                self.cop0[14] = self.pc;
+            }
+            self.branch_target = None;
+            self.delay_slot_pending = false;
+            self.branch_taken = false;
             self.pc = 0x8000_0080;
             return;
         }

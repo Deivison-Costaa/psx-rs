@@ -36,9 +36,9 @@ rotulo: CAUSE.IP bit10 sempre zero (desacoplado do IRQ)
 mutante: m4
 rotulo: EPC errado na interrupcao (aponta para pc+4 em vez de pc)
 @@DE
-            self.cop0[14] = self.pc;
+                self.cop0[14] = self.pc;
 @@PARA
-            self.cop0[14] = self.pc.wrapping_add(4);
+                self.cop0[14] = self.pc.wrapping_add(4);
 @@FIM
 
 mutante: m5

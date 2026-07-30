@@ -4,6 +4,7 @@ iteracao: 0102
 item: 10.41
 alvo: STATUS.md
 teste: status_handoff
+arquivada: alvo STATUS.md e reescrito por definicao a cada handoff — a iter 0103 trocou as seis linhas ancoradas. A bateria rodou 6/6 no dia (ver .resultado); manifesto de portao sobre documento vivo nao sobrevive a iteracao seguinte. Item 10.44.
 
 mutante: m1
 rotulo: handoff volta a apontar para item que nao existe no ROADMAP

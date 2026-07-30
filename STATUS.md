@@ -7,35 +7,26 @@
 
 ## Última iteração concluída
 
-**0102** — `STATUS.md` vira handoff puro, invariantes saem para `docs/invariantes.md`, portão
-novo reprova handoff que aponta para item inexistente (ROADMAP 10.41).
+**0103** — interrupção no delay slot descarta o salto pendente e recua o EPC; o boot da BIOS passa
+do passo 26 595 832 (ROADMAP 4.4f).
 
 ## Próxima tarefa
 
-**ROADMAP 4.4f — o boot morre num `jr $ra` com `$ra = 3`.**
-Medido pelo orquestrador em 30/07, BIOS real, 50M passos, commit `b6db863`. A sequência de PCs é
-`8004A54C`, `8004A550`, `8004A554`, e daí direto para `00000003`. A instrução em `[0x8004A554]` é
-`0x03E00008` (`jr $ra`) e **`$31` vale 3**; a anterior, `[0x8004A550] = 0x8FB40028`
-(`lw $s4, 0x28($sp)`), é epílogo restaurando registrador da pilha. Buscar em PC=3 gera
-`CAUSE=0x428` (excode 10, RI) com `EPC=0x00000003`; o kernel não resolve, chama
-`A0(40h)` = `SystemErrorUnresolvedException` e fica nela para sempre (1 071 429 chamadas entre 35M
-e 50M, `SR=0x410` com IEc=0 e IRQ0 pendente que ninguém mais reconhece).
-Critério de aceitação: `psx-cli --bios <BIOS>` passa do passo 26 595 832 sem entrar em `A0(40h)`.
-Arquivos-alvo: `crates/psx-core/src/cpu.rs`, `crates/psx-core/src/bus.rs`.
-Invariantes relevantes: 2, 10, 15.
+**ROADMAP 4.4g — a BIOS ainda imprime `VSync: timeout`, agora com o contador avançando.**
+Depois do 4.4f o boot não morre mais: sobrevive aos 50 M passos, com **0** chamadas a
+`A0(40h)` (eram 1 071 429) e **0** buscas em PC=3. O TTY foi de **557** para **2 029** bytes e
+agora chega a `ResetCallback: _96_remove ..`. O que sobra é a espera de VSync não ser satisfeita:
+as mensagens seguem de `(2:1)` até `(55:54)` em 50 M passos, isto é, o kernel **conta** os vblanks
+mas quem espera nunca é acordado. Comparar com o 4.4e: o handler agora roda inteiro (antes durava
+uma instrução), então a hipótese a testar primeiro é o **acordar do evento**, não o dispatch.
+Arquivos-alvo: `crates/psx-core/src/bus.rs`, `crates/psx-core/src/cpu.rs`.
+Critério de aceitação: o TTY do boot passa de `ResetCallback` sem nova mensagem de `VSync: timeout`.
+Invariantes relevantes: 16.
 
-**Três hipóteses já medidas e descartadas — não repetir:**
-1. *Dispatch de eventos do kernel não entrega o callback.* Falso: a trilha vai de `80000080` a
-   `00000C80`, `00000CC0..00000E0C`, `00001A00..` e ao kernel em RAM (`8003FFB0..8003FFE8`,
-   1 545 instruções). O dispatch funciona.
-2. *Base de tempo insuficiente.* Falso: 89 entradas em vblank em 50M passos, 9 por janela de 5M, e
-   a fila do scheduler nunca esvazia.
-3. *bit10 (IRQ Request) do modo do timer restaurado cedo demais.* Falso: TTY byte a byte idêntico
-   ao da `main`, 597 bytes e 8 `VSync: timeout` dos dois lados.
-
-Os `VSync: timeout` (passos 19,7M a 21,4M) são sintoma anterior, não a causa do silêncio final.
+**Medido e descartado — não repetir:** dispatch de eventos do kernel (a trilha vai de `80000080`
+ao kernel em RAM), base de tempo (89 vblanks em 50 M passos) e bit10 do modo do timer.
 **TTY idêntico ao da `main` significa que não consertou nada** — foi assim que os PRs #114 e #115
-caíram, ambos alegando corrigir este item.
+caíram.
 
 ## Repositório
 
@@ -49,7 +40,7 @@ caíram, ambos alegando corrigir este item.
 
 ## Placar de testes
 
-Workspace: **707** testes.
+Workspace: **713** testes.
 
 ## Bloqueios
 

@@ -43,15 +43,25 @@ if (-not $AutoMerge -and $N -gt 1) {
 # mergeStateStatus e a resposta autoritativa: CLEAN = a protecao de branch libera o merge.
 function Wait-Checks([string]$pr) {
     foreach ($t in 1..40) {
+        $sha = (gh pr view $pr --json headRefOid --jq .headRefOid 2>&1).Trim()
+        if ($LASTEXITCODE -ne 0) { Start-Sleep 15; continue }
+
+        $runs = gh api "repos/{owner}/{repo}/commits/$sha/check-runs" `
+            --jq '[.check_runs[] | .conclusion // "PENDENTE"] | join(",")' 2>&1
+        if ($LASTEXITCODE -eq 0) {
+            if ($runs -match "PENDENTE" -or [string]::IsNullOrWhiteSpace($runs)) {
+                Start-Sleep 15
+                continue
+            }
+            if ($runs -match "failure|timed_out|cancelled") { return "falha" }
+        }
+
         $st = (gh pr view $pr --json mergeStateStatus --jq .mergeStateStatus 2>&1)
         if ($LASTEXITCODE -eq 0) {
             switch -Regex ($st) {
                 'CLEAN|UNSTABLE' { return "verde" }
                 'DIRTY|BEHIND'   { return "falha" }
             }
-            $runs = gh api "repos/{owner}/{repo}/commits/$((gh pr view $pr --json headRefOid --jq .headRefOid).Trim())/check-runs" `
-                --jq '[.check_runs[] | .conclusion // "-"] | join(" ")' 2>&1
-            if ($LASTEXITCODE -eq 0 -and $runs -match "failure|timed_out|cancelled") { return "falha" }
         }
         Start-Sleep 15
     }
@@ -165,8 +175,14 @@ foreach ($i in 1..$N) {
 
     if ($AutoMerge) {
         gh pr merge $pr --merge
-        git pull --ff-only | Out-Null
-        Write-Host "[oc-loop] PR #$pr mergeado SEM revisao previa - revisar a posteriori."
+        $merged = gh pr view $pr --json state --jq .state 2>&1
+        if ($merged -eq "MERGED") {
+            git pull --ff-only | Out-Null
+            Write-Host "[oc-loop] PR #$pr mergeado SEM revisao previa - revisar a posteriori."
+        } else {
+            Write-Host "[oc-loop] PR #$pr falhou ao mergear (estado: $merged) - parando."
+            break
+        }
     } else {
         Write-Host "[oc-loop] PR #$pr verde, aguardando REVISAO ADVERSARIAL (docs/prompts/review.md). NAO mergeado."
     }

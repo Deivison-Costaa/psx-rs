@@ -1,0 +1,10 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: 915fe8ee301825e873d12696db3729a59849b202
+# rodado_em: 2026-07-30T10:25:28-03:00
+m1,mutante,morreu,morreu,0.1,wait_checks_consulta_check_runs_antes_de_mergestatestatus
+m2,mutante,morreu,morreu,0.1,wait_checks_espera_enquanto_algum_check_esta_pendente
+m3,mutante,morreu,morreu,0.1,gh_pr_merge_verifica_estado_merged_apos_o_merge
+m4,mutante,morreu,morreu,0.1,gh_pr_merge_verifica_estado_merged_apos_o_merge
+m5,mutante,morreu,morreu,0.1,gh_pr_merge_verifica_estado_merged_apos_o_merge
+c1,controle,sobreviveu,sobreviveu,0.1,
+c2,controle,sobreviveu,sobreviveu,0.1,

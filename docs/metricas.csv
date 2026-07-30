@@ -136,3 +136,4 @@ ts,iter,resultado,custo_usd,tokens_in,tokens_out,steps,duracao_ms,head_antes,hea
 2026-07-30T08:01:05-03:00,0091,ok,0.1512,101756,32249,130,1651025,cd366ea,11b7f16,deepseek/deepseek-v4-pro,trabalhador
 2026-07-30T08:30:17-03:00,0092,ok,0.1602,102775,26337,151,1852935,cd366ea,8164fd2,deepseek/deepseek-v4-pro,trabalhador
 2026-07-30T09:02:51-03:00,0093,ok,0.1837,105301,30103,158,1754372,946abc8,2adb349,deepseek/deepseek-v4-pro,trabalhador
+2026-07-30T09:35:31-03:00,0093,falha:timeout,0.1008,60583,16370,80,2700025,af3719c,78db6f2,deepseek/deepseek-v4-pro,trabalhador

@@ -8,11 +8,14 @@ teste: gpu_texture_disable
 mutante: m1
 rotulo: re-adiciona if bit==0 que limpa GPUSTAT.15 ativamente (regressao)
 @@DE
+            }
             0x09 => {
                 let bit = val & 1;
                 self.allow_upper_y.set(bit != 0);
             }
+            _ => {}
 @@PARA
+            }
             0x09 => {
                 let bit = val & 1;
                 self.allow_upper_y.set(bit != 0);
@@ -21,6 +24,7 @@ rotulo: re-adiciona if bit==0 que limpa GPUSTAT.15 ativamente (regressao)
                     self.stat.set(s & !(1 << 15));
                 }
             }
+            _ => {}
 @@FIM
 
 mutante: m2
@@ -45,8 +49,12 @@ mutante: m4
 rotulo: GP1(09h) sempre abre o gate (allow_upper_y = true)
 @@DE
                 self.allow_upper_y.set(bit != 0);
+            }
+            _ => {}
 @@PARA
                 self.allow_upper_y.set(true);
+            }
+            _ => {}
 @@FIM
 
 mutante: m5

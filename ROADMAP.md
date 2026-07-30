@@ -128,7 +128,7 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [ ] 10.25 Varrer os outros `unwrap_or("")` sobre caminho nos meta-testes: foi o que transformou a falha de `strip_prefix` em silêncio na 10.12, e o separador foi só o gatilho
 - [ ] 10.13 GP0(24h) é modulação, não raw texture: bit 24 do comando não é lido e o texel vai cru (03-gpu.md L264 e L1610)
 - [ ] 10.14 U/V e cor gouraud são reinterpolados sobre o span já recortado pela drawing area — a textura estica em vez de só perder os pixels de fora (03-gpu.md L452-454)
-- [ ] 10.16 `spec_citations.rs` usa o primeiro título entre aspas para todos os refs da linha em vez de parear pelo mais próximo, e deu diagnóstico errado na 0066 — ou pareia por proximidade, ou falha como ambíguo
+- [x] 10.16 `spec_citations.rs` casava titulo de secao por substring; corrigido para titulo mais longo (iter 0083)
 - [x] 10.15 Reparar ancoras do manifesto 0059 arquivado na 0060 (iter 0067)
 - [ ] 10.17 `mutantes.ps1` recusa árvore suja, então reparo de âncora só pode ser verificado depois de commitado às cegas — permitir sujeira restrita a `docs/mutantes/*.mut`
 - [x] 10.19 DPCR gate nos tres canais do DMA (iter 0071)

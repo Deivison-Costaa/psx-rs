@@ -5,7 +5,7 @@
 
 ## Última iteração concluída
 
-**0081** — Revisão do #95: correção de t10 + verificação de 10.22 (sem item de ROADMAP).
+**0083** — Correção do `spec_citations.rs`: casamento por título mais longo, não substring (ROADMAP 10.16).
 
 ## Próxima tarefa
 

@@ -23,9 +23,17 @@ fn psx_desktop_com_bios_mostra_display_ligado() {
         cpu.step(&mut bus);
     }
 
-    assert!(
-        bus.gpu().framebuffer_for_display().is_some(),
-        "Display deve estar ligado — janela nao mostra 'Display desligado'"
+    let fb = bus
+        .gpu()
+        .framebuffer_for_display()
+        .expect("Display deve estar ligado — janela nao mostra 'Display desligado'");
+
+    assert!(fb.width > 0, "Framebuffer width deve ser > 0, obtido {}", fb.width);
+    assert!(fb.height > 0, "Framebuffer height deve ser > 0, obtido {}", fb.height);
+    assert_eq!(
+        fb.data.len(),
+        fb.width as usize * fb.height as usize * 4,
+        "Framebuffer data deve ter width*height*4 bytes"
     );
 }
 
@@ -40,8 +48,16 @@ fn bios_vazia_mostra_display_ligado_padrao_gpu() {
         cpu.step(&mut bus);
     }
 
-    assert!(
-        bus.gpu().framebuffer_for_display().is_some(),
-        "GPU padrao tem display ligado (bit 23 set)"
+    let fb = bus
+        .gpu()
+        .framebuffer_for_display()
+        .expect("GPU padrao tem display ligado (bit 23 set)");
+
+    assert!(fb.width > 0, "Framebuffer width deve ser > 0, obtido {}", fb.width);
+    assert!(fb.height > 0, "Framebuffer height deve ser > 0, obtido {}", fb.height);
+    assert_eq!(
+        fb.data.len(),
+        fb.width as usize * fb.height as usize * 4,
+        "Framebuffer data deve ter width*height*4 bytes"
     );
 }

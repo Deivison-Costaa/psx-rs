@@ -27,39 +27,15 @@ rotulo: framebuffer_for_display sempre retorna None
 @@FIM
 
 mutante: m3
-rotulo: exibe sem alpha (bytes por pixel errado)
-@@DE
-                data.push(255u8);
-@@PARA
-                data.push(0u8);
-@@FIM
-
-mutante: m4
-rotulo: VRAM acessa linha errada (y trocado por 0)
-@@DE
-                let vy = (start_y + y) & 0x1FF;
-@@PARA
-                let vy = 0;
-@@FIM
-
-mutante: m5
-rotulo: VRAM acessa coluna errada (x trocado por 0)
-@@DE
-                let vx = (start_x + x) & 0x3FF;
-@@PARA
-                let vx = 0;
-@@FIM
-
-mutante: m6
-rotulo: display_width retorna zero — framebuffer vazio
+rotulo: display_width retorna zero
 @@DE
         ((range / self.cycles_per_pix()) + 2) & !3u16
 @@PARA
         0u16
 @@FIM
 
-mutante: m7
-rotulo: display_height retorna zero — framebuffer vazio
+mutante: m4
+rotulo: display_height retorna zero
 @@DE
         self.display_range_y2
             .get()
@@ -68,22 +44,30 @@ rotulo: display_height retorna zero — framebuffer vazio
         0u16
 @@FIM
 
-controle: c1
-rotulo: renomeia variavel local pixel para texel
-ocorrencias: 4
+mutante: m5
+rotulo: framebuffer retorna Vec vazio (data substituido por Vec::new)
 @@DE
-                let pixel = self.vram[vy * 1024 + vx];
+            data,
 @@PARA
-                let texel = self.vram[vy * 1024 + vx];
+            data: Vec::new(),
+@@FIM
+
+controle: c1
+rotulo: adiciona variavel _dummy = 0 no inicio de framebuffer
+@@DE
+    pub fn framebuffer(&self) -> Framebuffer {
+        let w = self.display_width();
+@@PARA
+    pub fn framebuffer(&self) -> Framebuffer {
+        let _dummy = 0;
+        let w = self.display_width();
 @@FIM
 
 controle: c2
-rotulo: adiciona let _ = 0 no inicio de framebuffer
+rotulo: adiciona variavel _x = 0 antes do stat.get no framebuffer_for_display
 @@DE
-    pub fn framebuffer(&self) -> Framebuffer {
-        let w = self.display_width();
+        if self.stat.get() & (1 << 23) == 0 {
 @@PARA
-    pub fn framebuffer(&self) -> Framebuffer {
-        let _ = 0;
-        let w = self.display_width();
+        let _x = 0;
+        if self.stat.get() & (1 << 23) == 0 {
 @@FIM

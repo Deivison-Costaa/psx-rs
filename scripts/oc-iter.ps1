@@ -9,6 +9,9 @@ param(
     [string]$Model = "deepseek/deepseek-v4-pro",
     [string]$TaskOverride = "",
     [int]$TimeoutMin = 45,
+    # Janela sem NENHUM byte novo no JSON da rodada que caracteriza provedor mudo. Ver o doc
+    # da iteracao 0098 para as duas medicoes que fixaram este valor.
+    [int]$TravamentoMin = 5,
     [int]$Port = 4096,
     # Rodada de CONTINUACAO de um item reprovado na revisao: fica na branch que ja existe e
     # troca o texto envoltorio, que senao manda "ao abrir o PR, PARE" — com o PR ja aberto,
@@ -88,14 +91,32 @@ $sw = [System.Diagnostics.Stopwatch]::StartNew()
 $p = Start-Process $oc -ArgumentList "run", "--attach", "http://localhost:$Port",
     "-m", $Model, "--format", "json", $promptArg -NoNewWindow -PassThru `
     -RedirectStandardOutput $outFile -RedirectStandardError $errFile
-$done = $p.WaitForExit($TimeoutMin * 60 * 1000)
-if (-not $done) {
-    Stop-Process -Id $p.Id -Force -Confirm:$false
-    $resultado = "falha:timeout"
-} elseif ($p.ExitCode -ne 0) {
-    $resultado = "falha:exit-$($p.ExitCode)"
-} else {
-    $resultado = "ok"
+# Esperar so pela parede confunde rodada lenta com rodada travada e paga 45 min pelas duas.
+# O JSON cresce a cada evento enquanto o trabalhador vive, entao tamanho parado e provedor mudo.
+$parede = (Get-Date).AddMinutes($TimeoutMin)
+$ultimoTamanho = -1L
+$ultimoAvanco = Get-Date
+$resultado = $null
+while (-not $p.HasExited) {
+    Start-Sleep -Seconds 10
+    $tamanho = if (Test-Path $outFile) { (Get-Item $outFile).Length } else { 0L }
+    if ($tamanho -ne $ultimoTamanho) {
+        $ultimoTamanho = $tamanho
+        $ultimoAvanco = Get-Date
+    }
+    if (((Get-Date) - $ultimoAvanco).TotalMinutes -ge $TravamentoMin) {
+        Stop-Process -Id $p.Id -Force -Confirm:$false
+        $resultado = "falha:travamento"
+        break
+    }
+    if ((Get-Date) -ge $parede) {
+        Stop-Process -Id $p.Id -Force -Confirm:$false
+        $resultado = "falha:timeout"
+        break
+    }
+}
+if ($null -eq $resultado) {
+    $resultado = if ($p.ExitCode -ne 0) { "falha:exit-$($p.ExitCode)" } else { "ok" }
 }
 $sw.Stop()
 # Exit 0 nao basta: no smoke 0008b/2 o CLI imprimiu a versao e saiu com 0 sem rodar nada.

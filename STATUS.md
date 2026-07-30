@@ -5,14 +5,19 @@
 
 ## Última iteração concluída
 
-**0080** — Base de tempo: scheduler ligado + vblank + IRQ0 (ROADMAP 4.4b).
+**0081** — Revisão do #95: correção de t10 + verificação de 10.22 (sem item de ROADMAP).
 
 ## Próxima tarefa
 
-**ROADMAP 10.22 — gpu/mask-bit (2 de 5 reprovando no scoreboard).**
-Fila do usuário: M4 fechado, voltar para pendências da seção 10.
-Arquivos-alvo: `crates/psx-core/src/gpu.rs` (mask bit), `tests/exes/amidog/` (scoreboard).
-Handoff: o item teve 5 testes de scoreboard, 2 deles ainda falham. Ver `docs/iterations/0049-gpu-mask-bit.md`.
+**ROADMAP 5.1 — GTE: Registradores + MFC2/MTC2/CFC2/CTC2/LWC2/SWC2.**
+M4 bloqueado em 4.4 (imagem de disco). M5 é o próximo marco.
+Spec: `docs/reference/07-gte.md` (offset +72, ver índice) + `docs/reference/02-cpu.md` (offset +80).
+Seções relevantes: GTE Load Delay Slots, GTE Command Encoding, Data/Control Register Summary
+(cop2r0-63) no 07-gte; Coprocessor Opcode/Parameter Encoding, CPU Coprocessor Opcodes,
+Coprocessor Instructions COP0..COP3 no 02-cpu.
+Arquivos-alvo: `crates/psx-core/src/gte.rs`, `crates/psx-core/src/cpu.rs`.
+Armadilha: escrever por software em registrador GTE de 16 bits não dispara flag nem satura
+(07-gte.md L379-381). MTC2 não é o mesmo caminho de saturação que resultado de comando.
 
 ## Repositório
 
@@ -30,7 +35,8 @@ Workspace: **583** testes (10 meta-testes + 8 bus_bios + 6 bios_boot + 2 bios_fl
 
 ## Bloqueios
 
-(nenhum)
+- **4.4 Boot de jogo**: depende de imagem BIN/CUE fornecida pelo usuário. Não inventar,
+  não baixar, não marcar. Quando a imagem estiver disponível, desbloquear.
 
 ## Invariantes
 
@@ -113,3 +119,6 @@ Workspace: **583** testes (10 meta-testes + 8 bus_bios + 6 bios_boot + 2 bios_fl
     As duas funções de rasterização têm regras de borda OPOSTAS. `render_single_line` usa
     Bresenham com break em `x==x1 && y==y1` (inclusivo); `render_triangle` usa
     `xr.min(area_x2 + 1)` (exclusivo). Não reusa uma na outra.
+14. **10.22 (mask-bit) verificado completo em 2026-07-30.** Scoreboard no commit bd1a838:
+    `mask-bit = pass, 5p/0f`. A iter 0075 fechou os 2 subtestes que falhavam (3p/2f → 5p/0f).
+    O STATUS.md da 0080 continha informação incorreta — corrigido na 0081.

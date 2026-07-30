@@ -145,9 +145,27 @@ fn t9_odd_line_alterna_apos_vblank_exit() {
 }
 
 #[test]
-fn t10_gpu_vblank_irq_bios_boot_placeholder() {
-    eprintln!(
-        "T10: teste de aceitacao manual — rodar psx-cli --bios <BIOS> e \
-         conferir que o TTY nao contem 'VSync: timeout'"
+fn t10_vblank_entra_e_sai_durante_dois_frames() {
+    let mut bus = make_bus();
+
+    let frame = bus.gpu().frame_cycles() as usize;
+    let mut saiu_do_vblank = false;
+    let mut reentrou_no_vblank = false;
+
+    for _ in 0..frame * 2 {
+        bus.tick_timers(1);
+        if !bus.gpu().vblank_active() {
+            saiu_do_vblank = true;
+        }
+        if saiu_do_vblank && bus.gpu().vblank_active() {
+            reentrou_no_vblank = true;
+            break;
+        }
+    }
+
+    assert!(
+        saiu_do_vblank && reentrou_no_vblank,
+        "T10: vblank deve sair e re-entrar durante dois frames; \
+         saiu={saiu_do_vblank}, reentrou={reentrou_no_vblank}"
     );
 }

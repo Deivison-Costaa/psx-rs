@@ -32,14 +32,11 @@ rotulo: GP1(09h) sempre abre o gate (ignora bit, seta true)
 @@FIM
 
 mutante: m3
-rotulo: GP1(00h) nao seta allow_upper_y para false no reset
+rotulo: GP1(00h) seta allow_upper_y para true em vez de false no reset
 @@DE
-            0x00 => {
                 self.allow_upper_y.set(false);
-                self.stat.set(0x1480_2000);
 @@PARA
-            0x00 => {
-                self.stat.set(0x1480_2000);
+                self.allow_upper_y.set(true);
 @@FIM
 
 mutante: m4

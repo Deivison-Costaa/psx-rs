@@ -1,0 +1,7 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: 41b80adae597ff677912f9234863356ef10e1b69
+# rodado_em: 2026-07-30T11:44:51-03:00
+m1,mutante,morreu,morreu,3,write_mask_incrementa_contador
+m2,mutante,morreu,morreu,3,write_mask_incrementa_contador
+m3,mutante,morreu,morreu,3,write_mask_incrementa_contador
+m4,mutante,morreu,morreu,3,write_mask_incrementa_contador

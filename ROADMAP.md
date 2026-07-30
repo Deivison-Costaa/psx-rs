@@ -104,7 +104,7 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [ ] 8.2 Macroblocos (RLE, IDCT, YUV→RGB) → FMVs
 
 ## M9 — App desktop
-- [ ] 9.0 psx-desktop boota BIOS (--bios CLI, CPU loop, framebuffer) (iter 0090)
+- [x] 9.0 psx-desktop boota BIOS (--bios CLI, CPU loop, framebuffer) (iter 0090)
 - [ ] 9.1 Biblioteca: scan BIN/CUE, título/serial/região, lista
 - [ ] 9.2 Snapshot do core (serde) → save states F5/F8 + slots
 - [ ] 9.3 Memory cards automáticos por serial + tela de saves

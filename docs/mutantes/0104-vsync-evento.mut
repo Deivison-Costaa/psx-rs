@@ -54,11 +54,13 @@ rotulo: classificacao feita sobre o endereco virtual, sem traduzir KSEG
 @@FIM
 
 controle: c1
-rotulo: faixa da ROM escrita com o mesmo fim por outra aritmetica (cosmetico)
+rotulo: parametro renomeado, mesma classificacao (cosmetico)
 @@DE
-            0x1FC0_0000..=0x1FC7_FFFF => 27,
+    pub fn load_cycles(addr: u32) -> u32 {
+        match Self::to_physical(addr) {
 @@PARA
-            0x1FC0_0000..=0x1FC0_0000 + 0x7_FFFF => 27,
+    pub fn load_cycles(endereco: u32) -> u32 {
+        match Self::to_physical(endereco) {
 @@FIM
 
 controle: c2

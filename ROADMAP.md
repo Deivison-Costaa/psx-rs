@@ -35,6 +35,7 @@ M3 (DMA/IRQ/timers). Regra imposta por `roadmap_arquivo.rs`.
 - [x] 4.3b Acoplar DiscLayout + dados do .bin a entrega de setores (iter 0077)
 - [x] 4.3c Flag --disc/--cue no psx-cli (iter 0078)
 - [ ] 4.4 Boot de jogo 2D/menu
+- [ ] 4.4h Segundo crash: `$ra` restaurado da pilha vale 4 no passo 85 544 264
 - [x] 4.4a Boot da BIOS no psx-cli (--bios sozinho) (iter 0079)
 - [x] 4.4b Base de tempo: scheduler + vblank + IRQ0 (iter 0080)
 - [x] 4.4c BIOS nunca escreve I_MASK (iter 0085)

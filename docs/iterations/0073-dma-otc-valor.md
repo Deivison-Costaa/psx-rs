@@ -39,16 +39,20 @@ como "reverse clear OT" na L35, dentro do sumário de registradores.
 
 Placar da bateria: 6/6 mutantes mortos, 2/2 controles verdes, 0 equivalente — docs/mutantes/0073-dma-otc-valor.mut
 
-| Registro | Rótulo | Teste que pegou |
+| Registro | Rótulo | Testes que pegaram, conforme o `.resultado` |
 |---|---|---|
-| m1 | terminador na primeira palavra em vez da última | `dma6_otc_preenche_ram_com_linked_list` |
-| m2 | grava `addr+4` em vez de `addr-4` | `dma6_otc_preenche_ram_com_linked_list` |
-| m3 | não grava terminador nenhum | `dma6_otc_preenche_ram_com_linked_list` |
-| m4 | máscara de 21 bits em vez de 24 | `dma6_otc_ponteiro_guarda_24_bits_e_nao_dobra_em_21` |
-| m5 | condição do último índice trocada por `i == 0` | `dma6_otc_preenche_ram_com_linked_list` |
-| m6 | não decrementa o endereço no laço | `dma6_otc_bcr_zero_equivale_a_10000h` |
-| c1 | local sem uso antes do laço | sobreviveu |
-| c2 | formatação numérica do literal | sobreviveu |
+| m1 | troca os dois braços do `if`: terminador no penúltimo e ponteiro no último | `bcr_zero`, `ponteiro_guarda_24_bits`, `preenche_ram_com_linked_list` |
+| m2 | terminador no slot mais alto (`i == 0` em vez de `i == count-1`) | os mesmos três |
+| m3 | ponteiro para cima em vez de para baixo (`wrapping_add`) | os mesmos três |
+| m4 | máscara de 21 bits em vez de 24 | **só** `ponteiro_guarda_24_bits` |
+| m5 | cada palavra aponta para si mesma em vez de para a de baixo | os mesmos três |
+| m6 | nunca escreve terminador (condição sempre falsa) | `bcr_zero`, `preenche_ram_com_linked_list` |
+| c1 | no-op antes do laço | sobreviveu |
+| c2 | extrai máscara de BCR para constante local | sobreviveu |
+
+Nomes abreviados; o prefixo de todos é `dma6_otc_`. Vale olhar a linha do m4: ele morre **por um
+único teste**, o que foi acrescentado nesta iteração. Sem ele o placar era 5/6, e a máscara de 21
+bits passava — era o defeito que o hardware acusava e que o teste próprio não via.
 
 As atribuições acima foram lidas do `.resultado` gerado pela máquina, não preenchidas por
 inspeção — a iteração 0071 errou 3 de 9 linhas exatamente por preencher à mão (item 10.28).

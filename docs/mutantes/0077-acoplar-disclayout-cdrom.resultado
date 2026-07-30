@@ -1,0 +1,7 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: 87d939edd7b49744fa33267d8af239828f027307
+# rodado_em: 2026-07-29T23:15:43-03:00
+m1,mutante,morreu,morreu,0.8,read_n_retorna_dados_do_bin_no_setor_correto
+m2,mutante,morreu,morreu,0.8,read_n_retorna_dados_do_bin_no_setor_correto
+m3,mutante,morreu,morreu,0.8,read_n_retorna_dados_do_bin_no_setor_correto
+m4,mutante,morreu,morreu,0.8,read_n_retorna_dados_do_bin_no_setor_correto

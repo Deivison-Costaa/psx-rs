@@ -27,7 +27,11 @@ fn copia_retangulo_dentro_da_vram() {
 
     blit(&mut gpu, coord(10, 20), coord(100, 200), coord(2, 2));
 
-    assert_eq!(gpu.vram_pixel(100, 200), 0x1234, "GP0(80h) copia o pixel de origem");
+    assert_eq!(
+        gpu.vram_pixel(100, 200),
+        0x1234,
+        "GP0(80h) copia o pixel de origem"
+    );
     assert_eq!(gpu.vram_pixel(101, 200), 0x5678);
     assert_eq!(gpu.vram_pixel(100, 201), 0x2468);
     assert_eq!(gpu.vram_pixel(101, 201), 0x1357);
@@ -209,7 +213,11 @@ fn ysiz_com_bit9_ligado_conta_so_os_9_bits_baixos() {
 
     blit(&mut gpu, coord(0, 0), coord(500, 300), coord(1, 0x201));
 
-    assert_eq!(gpu.vram_pixel(500, 300), 0x0777, "a primeira linha e copiada");
+    assert_eq!(
+        gpu.vram_pixel(500, 300),
+        0x0777,
+        "a primeira linha e copiada"
+    );
     assert_eq!(
         gpu.vram_pixel(500, 301),
         0,

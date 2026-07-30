@@ -16,9 +16,9 @@ rotulo: M6 fica 100% fechado e continua ocupando bytes da escada
 mutante: m2
 rotulo: M2 fica 100% fechado e continua ocupando bytes da escada
 @@DE
-- [ ] 2.2b VRAM->VRAM copy GP0(80h) — no-op hoje, bloqueio de boot de jogo
+- [ ] 2.2c Quad texturizado GP0(2Ch) sai como barra chapada — 360 no boot da BIOS, e o defeito visivel
 @@PARA
-- [x] 2.2b VRAM->VRAM copy GP0(80h) — no-op hoje, bloqueio de boot de jogo
+- [x] 2.2c Quad texturizado GP0(2Ch) sai como barra chapada — 360 no boot da BIOS, e o defeito visivel
 @@FIM
 
 mutante: m3

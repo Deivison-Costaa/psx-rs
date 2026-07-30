@@ -48,12 +48,24 @@ fn espera_observa_o_crescimento_do_json_da_rodada() {
          `(Get-Item $outFile).Length` a cada volta. Sem ler o tamanho, nao ha como saber que o \
          provedor parou de responder."
     );
-    let pos_len = script.find("(Get-Item $outFile).Length").unwrap_or(0);
-    let resto = &script[pos_len..];
+    let pos_len = script
+        .find("(Get-Item $outFile).Length")
+        .expect("leitura do tamanho ja verificada acima");
+    let pos_cmp = script
+        .find("$ultimoAvanco).TotalMinutes")
+        .expect("a janela de travamento tem de ser medida a partir de `$ultimoAvanco`");
     assert!(
-        resto.contains("$ultimoAvanco"),
-        "o tamanho lido tem de alimentar uma marca de ultimo avanco (`$ultimoAvanco`); \
-         ler o tamanho e descartar nao detecta travamento nenhum"
+        pos_len < pos_cmp,
+        "o tamanho tem de ser lido ANTES de a janela ser avaliada (posicoes {pos_len} e {pos_cmp})"
+    );
+    let janela = &script[pos_len..pos_cmp];
+    assert!(
+        janela.contains("$ultimoAvanco = Get-Date"),
+        "entre ler o tamanho e avaliar a janela, a marca de avanco tem de ser REATRIBUIDA \
+         (`$ultimoAvanco = Get-Date`) quando o tamanho muda. Sem essa reatribuicao a marca \
+         congela na largada e o detector mata TODA rodada ao fim da janela, inclusive as que \
+         estao trabalhando — foi o mutante m6 da bateria 0098, que sobreviveu a primeira versao \
+         deste teste."
     );
 }
 

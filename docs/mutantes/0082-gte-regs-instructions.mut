@@ -78,25 +78,31 @@ rotulo: SWC2 le de ctrl em vez de data (read_data -> read_ctrl)
 @@FIM
 
 controle: c1
-rotulo: renomear variavel local co para cop_code (cosmetico)
+rotulo: adiciona binding descartavel antes do check de enabled (cosmetico)
 @@DE
+        if !self.cop2_enabled() {
+            self.raise_exception(0x0B, None);
+            return None;
+        }
         let co = (instr >> 21) & 0x1F;
 @@PARA
-        let cop_code = (instr >> 21) & 0x1F;
-@@FIM
-@@DE
-        match co {
-@@PARA
-        match cop_code {
+        let _cosmetic = 1;
+        if !self.cop2_enabled() {
+            self.raise_exception(0x0B, None);
+            return None;
+        }
+        let co = (instr >> 21) & 0x1F;
 @@FIM
 
 controle: c2
-rotulo: adiciona binding descartavel antes do match (cosmetico)
+rotulo: adiciona binding descartavel depois do check de enabled (cosmetico)
 @@DE
+            return None;
+        }
         let co = (instr >> 21) & 0x1F;
-        match co {
 @@PARA
-        let _placebo = 1;
+            return None;
+        }
+        let _ = 0;
         let co = (instr >> 21) & 0x1F;
-        match co {
 @@FIM

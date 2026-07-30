@@ -14,6 +14,7 @@ pub struct Cpu {
     pending_exception: Option<u8>,
     exception_badvaddr: Option<u32>,
     load_extra_cycles: u32,
+    written_gpr: Option<usize>,
 }
 
 impl Cpu {
@@ -41,6 +42,7 @@ impl Cpu {
             pending_exception: None,
             exception_badvaddr: None,
             load_extra_cycles: 0,
+            written_gpr: None,
         }
     }
 
@@ -122,6 +124,7 @@ impl Cpu {
             self.pc = self.pc.wrapping_add(4);
         }
 
+        self.written_gpr = None;
         let new_load = self.execute(instr, bus);
 
         if let Some(exc_code) = self.pending_exception.take() {
@@ -164,7 +167,9 @@ impl Cpu {
         }
 
         if let Some((reg, val)) = self.load_delay.take() {
-            self.set_reg(reg, val);
+            if self.written_gpr != Some(reg) {
+                self.set_reg(reg, val);
+            }
         }
         if let Some((reg, val)) = new_load {
             if reg != 0 {
@@ -950,6 +955,7 @@ impl Cpu {
         if idx == 0 {
             return;
         }
+        self.written_gpr = Some(idx);
         self.regs[idx] = val;
     }
 

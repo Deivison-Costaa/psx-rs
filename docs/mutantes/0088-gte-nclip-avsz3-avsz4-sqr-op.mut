@@ -31,11 +31,12 @@ rotulo: AVSZ4 usa ZSF3 em vez de ZSF4
 @@FIM
 
 mutante: m4
-rotulo: SQR satura com lm=0 em vez de lm=1
+rotulo: SQR e OP usam sf=0 sempre (ignora bit sf do comando)
+ocorrencias: 2
 @@DE
-        let ir1_clamped = saturate_ir(mac1, 1, 24, &mut flag, false);
+        let shift = sf * 12;
 @@PARA
-        let ir1_clamped = saturate_ir(mac1, 0, 24, &mut flag, false);
+        let shift = 0;
 @@FIM
 
 mutante: m5
@@ -47,11 +48,11 @@ rotulo: OP troca ordem do produto vetorial (MAC1 usa + em vez de -)
 @@FIM
 
 mutante: m6
-rotulo: NCLIP nao detecta overflow positivo
+rotulo: NCLIP troca sinal de termo (sx1*sy2 negativo)
 @@DE
-        if mac0 > 0x7FFF_FFFF {
+        let mac0 = sx0 * sy1 + sx1 * sy2 + sx2 * sy0 - sx0 * sy2 - sx1 * sy0 - sx2 * sy1;
 @@PARA
-        if false {
+        let mac0 = sx0 * sy1 - sx1 * sy2 + sx2 * sy0 - sx0 * sy2 - sx1 * sy0 - sx2 * sy1;
 @@FIM
 
 mutante: m7

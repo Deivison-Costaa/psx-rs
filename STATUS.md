@@ -5,13 +5,17 @@
 
 ## Última iteração concluída
 
-**0096** — Investigação de I_MASK: BIOS escreve I_MASK com valores não-zero após ~19M passos (ROADMAP 4.4d).
+**0098** — `oc-iter.ps1` detecta rodada travada pelo JSON parado, em vez de pagar a parede de 45 min (ROADMAP 10.38).
 
 ## Próxima tarefa
 
 **ROADMAP 4.4d (encerrado) — próximo item: dispatch de eventos do kernel.**
 O handler em 0x80000080 despacha para 0x00000C80, reconhece I_STAT, mas o callback de VSync não é invocado — BIOS imprime `VSync: timeout (2:1)`. O dispatch de eventos do kernel (ehk) precisa ser investigado.
 Spec: `docs/reference/11-interrupts.md`. Arquivos-alvo: `crates/psx-core/src/bus.rs`, `crates/psx-core/src/cpu.rs`.
+**Hipótese já medida e descartada:** adiar a restauração do bit10 (IRQ Request) do modo do timer
+não muda nada. Medido pelo orquestrador com 50 000 000 passos dos dois lados: TTY byte a byte
+idêntico, 597 bytes e 8 `VSync: timeout` tanto em `main` quanto na tentativa. Comece
+instrumentando onde a cadeia de eventos para, não por outro palpite de registrador.
 
 ## Prioridade — boot da BIOS travado
 

@@ -1,0 +1,70 @@
+# Manifesto de mutação da iteração 0098 — oc-iter-travamento
+formato: 1
+iteracao: 0098
+item: 10.38
+alvo: scripts/oc-iter.ps1
+teste: ci_oc_iter
+
+mutante: m1
+rotulo: volta a esperar a parede inteira num WaitForExit cego
+@@DE
+while (-not $p.HasExited) {
+@@PARA
+$done = $p.WaitForExit($TimeoutMin * 60 * 1000); while ($false) {
+@@FIM
+
+mutante: m2
+rotulo: nunca le o tamanho do JSON, entao nenhum travamento e visto
+@@DE
+    $tamanho = if (Test-Path $outFile) { (Get-Item $outFile).Length } else { 0L }
+@@PARA
+    $tamanho = 0L
+@@FIM
+
+mutante: m3
+rotulo: travamento cai no mesmo rotulo do timeout e some da metrica
+@@DE
+        $resultado = "falha:travamento"
+@@PARA
+        $resultado = "falha:timeout"
+@@FIM
+
+mutante: m4
+rotulo: janela de travamento igual a parede, o detector nunca dispara
+@@DE
+    [int]$TravamentoMin = 5,
+@@PARA
+    [int]$TravamentoMin = 45,
+@@FIM
+
+mutante: m5
+rotulo: janela zero mata toda rodada na primeira volta
+@@DE
+    [int]$TravamentoMin = 5,
+@@PARA
+    [int]$TravamentoMin = 0,
+@@FIM
+
+mutante: m6
+rotulo: marca de avanco nunca e atualizada, toda rodada vira travamento
+@@DE
+        $ultimoAvanco = Get-Date
+@@PARA
+        $ultimoTamanho = $tamanho
+@@FIM
+
+controle: c1
+rotulo: intervalo de sondagem de 10 para 12 segundos (cosmetico)
+@@DE
+    Start-Sleep -Seconds 10
+@@PARA
+    Start-Sleep -Seconds 12
+@@FIM
+
+controle: c2
+rotulo: sentinela inicial de tamanho de -1 para -2 (cosmetico)
+@@DE
+$ultimoTamanho = -1L
+@@PARA
+$ultimoTamanho = -2L
+@@FIM

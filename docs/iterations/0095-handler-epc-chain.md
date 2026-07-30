@@ -23,13 +23,13 @@ Nove padrões conferidos:
 
 | Fonte | Seção | Arquivo local |
 |---|---|---|
-| psx-spx | cop0cmd=10h - RFE opcode - Prepare Return from Exception (L712) | `docs/reference/02-cpu.md` |
+| psx-spx | cop0cmd=10h - RFE opcode - Prepare Return from Exception (L792) | `docs/reference/02-cpu.md` |
 
 ## Erros de primeira tentativa
 
 | # | Categoria | O que eu assumi | O que a spec diz | Como foi pego |
 |---|---|---|---|---|
-| 1 | delay-slot | Assumi que RFE automaticamente saltava para EPC (como x86 iret). Implementei `branch_target = Some(EPC)` dentro do RFE | `docs/reference/02-cpu.md` L712: "RFE does NOT automatically jump to EPC. Instead, the exception handler must copy EPC into a register, and then jump to that address." | Li a spec (R1) e vi que o handler anterior estava errado desde a 0093 |
+| 1 | delay-slot | Assumi que RFE automaticamente saltava para EPC (como x86 iret). Implementei `branch_target = Some(EPC)` dentro do RFE | `docs/reference/02-cpu.md` L792: "RFE does NOT automatically jump to EPC. Instead, the exception handler must copy EPC into a register, and then jump to that address." | Li a spec (R1) e vi que o handler anterior estava errado desde a 0093 |
 | 2 | API-Rust | Instalei handler + I_MASK=1 no `Bus::new()`. Com BIOS vazia, VBlank interrompe os NOPs infinitamente, PC não avança | O handler deve ser instalado apenas quando há BIOS real; I_MASK=1 sem handler correto = loop de interrupções | Teste `desktop_boot::bios_vazia_mostra_display_ligado_padrao_gpu` falhou: PC=116 em vez de PC=4M após 1M passos |
 
 ## Bateria de mutação
@@ -52,7 +52,7 @@ Workspace: **688** → **689** testes (+1: `handler_retorna_ao_epc_apos_interrup
 
 ## Decisões e notas
 
-1. **Handler anterior não retornava ao EPC.** O handler instalado pela 0093 terminava em `rfe; nop` sem `mfc0 k0,epc; jr k0`. A spec `02-cpu.md` L712 é explícita: RFE não salta automaticamente para EPC. O handler agora faz `mfc0 k0, EPC; ...; jr k0; rfe` (rfe no delay slot do jr). O `nop` de guarda foi mantido após `rfe`.
+1. **Handler anterior não retornava ao EPC.** O handler instalado pela 0093 terminava em `rfe; nop` sem `mfc0 k0,epc; jr k0`. A spec `docs/reference/02-cpu.md` L792 é explícita: RFE não salta automaticamente para EPC. O handler agora faz `mfc0 k0, EPC; ...; jr k0; rfe` (rfe no delay slot do jr). O `nop` de guarda foi mantido após `rfe`.
 
 2. **I_MASK=0 bloqueia interrupções na BIOS.** O `irq.pending()` retorna false quando I_MASK=0x0000, então CAUSE.IP nunca acende. A BIOS nunca escreve I_MASK (4.4d). Sem interrupções, o handler de exceção em 0x80000080 nunca executa, e a tabela de eventos do kernel nunca é despachada. Este item conserta o HANDLER para quando interrupções chegarem; o 4.4d (I_MASK) é o próximo passo para fazê-las chegar.
 

@@ -48,7 +48,7 @@ ocorrencias: 2
 
 mutante: m6
 rotulo: MVMVA forca shift=0 (ignora sf)
-ocorrencias: 2
+ocorrencias: 4
 @@DE
         let shift = sf * 12;
 @@PARA

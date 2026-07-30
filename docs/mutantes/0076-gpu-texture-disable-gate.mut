@@ -6,11 +6,21 @@ alvo: crates/psx-core/src/gpu.rs
 teste: gpu_texture_disable
 
 mutante: m1
-rotulo: GP1(09h) inverte o gate (bit == 0 em vez de bit != 0)
+rotulo: restaura o if bit == 0 que limpava GPUSTAT.15 (reintroduz o defeito)
 @@DE
+            0x09 => {
+                let bit = val & 1;
                 self.allow_upper_y.set(bit != 0);
+            }
 @@PARA
-                self.allow_upper_y.set(bit == 0);
+            0x09 => {
+                let bit = val & 1;
+                self.allow_upper_y.set(bit != 0);
+                if bit == 0 {
+                    let s = self.stat.get();
+                    self.stat.set(s & !(1 << 15));
+                }
+            }
 @@FIM
 
 mutante: m2
@@ -22,46 +32,61 @@ rotulo: GP1(09h) sempre abre o gate (ignora bit, seta true)
 @@FIM
 
 mutante: m3
-rotulo: GP1(09h) sempre fecha o gate (ignora bit, seta false)
+rotulo: GP1(00h) nao seta allow_upper_y para false no reset
 @@DE
-                self.allow_upper_y.set(bit != 0);
-@@PARA
+            0x00 => {
                 self.allow_upper_y.set(false);
+                self.stat.set(0x1480_2000);
+@@PARA
+            0x00 => {
+                self.stat.set(0x1480_2000);
 @@FIM
 
 mutante: m4
-rotulo: GP1(09h) le bit 1 em vez de bit 0
+rotulo: E1h inverte o gate (seta bit15 quando allow_upper_y eh false)
 @@DE
-            0x09 => {
-                let bit = val & 1;
+                            if self.allow_upper_y.get() {
+                                bits |= ((param >> 11) & 1) << 15;
+                            }
 @@PARA
-            0x09 => {
-                let bit = (val >> 1) & 1;
+                            if !self.allow_upper_y.get() {
+                                bits |= ((param >> 11) & 1) << 15;
+                            }
 @@FIM
 
 mutante: m5
-rotulo: GP1(00h) esquece de resetar allow_upper_y
+rotulo: apply_texpage_if_second inverte o gate (seta bit15 quando allow_upper_y eh false)
 @@DE
-                self.allow_upper_y.set(false);
+            if self.allow_upper_y.get() {
+                new_bits |= ((texpage >> 11) & 1) << 15;
+            }
 @@PARA
-                // nao reseta allow_upper_y
+            if !self.allow_upper_y.get() {
+                new_bits |= ((texpage >> 11) & 1) << 15;
+            }
 @@FIM
 
 controle: c1
-rotulo: renomeia variavel bit para gate_bit (cosmetico)
+rotulo: renomeia bit para gate_bit no handler GP1(09h) (cosmetico)
 @@DE
+            0x09 => {
                 let bit = val & 1;
                 self.allow_upper_y.set(bit != 0);
 @@PARA
+            0x09 => {
                 let gate_bit = val & 1;
                 self.allow_upper_y.set(gate_bit != 0);
 @@FIM
 
 controle: c2
-rotulo: extrai condicao para variavel local (cosmetico)
+rotulo: acrescenta comentario antes do gate do E1h (cosmetico)
 @@DE
-                self.allow_upper_y.set(bit != 0);
+                            if self.allow_upper_y.get() {
+                                bits |= ((param >> 11) & 1) << 15;
+                            }
 @@PARA
-                let gate_open = bit != 0;
-                self.allow_upper_y.set(gate_open);
+                            // gate de Y superior no decodificador de endereco
+                            if self.allow_upper_y.get() {
+                                bits |= ((param >> 11) & 1) << 15;
+                            }
 @@FIM

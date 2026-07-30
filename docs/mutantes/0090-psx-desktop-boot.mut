@@ -1,0 +1,89 @@
+# Manifesto de mutação da iteração 0090 — psx-desktop-boot
+formato: 1
+iteracao: 0090
+item: 9.0
+alvo: crates/psx-core/src/gpu.rs
+teste: desktop_boot
+
+mutante: m1
+rotulo: Gpu::new com display desligado (bit 23 zerado)
+@@DE
+            stat: Cell::new(0x1480_2000),
+@@PARA
+            stat: Cell::new(0x1400_2000),
+@@FIM
+
+mutante: m2
+rotulo: framebuffer_for_display sempre retorna None
+@@DE
+        if self.stat.get() & (1 << 23) == 0 {
+            return None;
+        }
+@@PARA
+        return None;
+        if self.stat.get() & (1 << 23) == 0 {
+            return None;
+        }
+@@FIM
+
+mutante: m3
+rotulo: exibe sem alpha (bytes por pixel errado)
+@@DE
+                data.push(255u8);
+@@PARA
+                data.push(0u8);
+@@FIM
+
+mutante: m4
+rotulo: VRAM acessa linha errada (y trocado por 0)
+@@DE
+                let vy = (start_y + y) & 0x1FF;
+@@PARA
+                let vy = 0;
+@@FIM
+
+mutante: m5
+rotulo: VRAM acessa coluna errada (x trocado por 0)
+@@DE
+                let vx = (start_x + x) & 0x3FF;
+@@PARA
+                let vx = 0;
+@@FIM
+
+mutante: m6
+rotulo: display_width retorna zero — framebuffer vazio
+@@DE
+        ((range / self.cycles_per_pix()) + 2) & !3u16
+@@PARA
+        0u16
+@@FIM
+
+mutante: m7
+rotulo: display_height retorna zero — framebuffer vazio
+@@DE
+        self.display_range_y2
+            .get()
+            .wrapping_sub(self.display_range_y1.get())
+@@PARA
+        0u16
+@@FIM
+
+controle: c1
+rotulo: renomeia variavel local pixel para texel
+ocorrencias: 4
+@@DE
+                let pixel = self.vram[vy * 1024 + vx];
+@@PARA
+                let texel = self.vram[vy * 1024 + vx];
+@@FIM
+
+controle: c2
+rotulo: adiciona let _ = 0 no inicio de framebuffer
+@@DE
+    pub fn framebuffer(&self) -> Framebuffer {
+        let w = self.display_width();
+@@PARA
+    pub fn framebuffer(&self) -> Framebuffer {
+        let _ = 0;
+        let w = self.display_width();
+@@FIM

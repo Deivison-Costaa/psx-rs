@@ -14,9 +14,11 @@ impl PsxDesktop {
             .map_err(|e| format!("Erro lendo BIOS '{}': {}", bios_path, e))?;
         let bios = Bios::from_bytes(bios_data).map_err(|e| format!("BIOS invalida: {:?}", e))?;
         let ram = Ram::new();
-        let bus = Bus::new(ram, bios);
+        let mut bus = Bus::new(ram, bios);
         let cpu = Cpu::new();
         let steps_per_frame = bus.gpu().frame_cycles() as usize;
+
+        bus.sio_mut().connect_digital_pad(true);
 
         Ok(PsxDesktop {
             cpu,
@@ -24,6 +26,31 @@ impl PsxDesktop {
             texture: None,
             steps_per_frame,
         })
+    }
+
+    fn poll_input(&mut self, ctx: &egui::Context) {
+        let mut buttons: u16 = 0xFFFF;
+        for (key, bit) in [
+            (egui::Key::ArrowUp, 4u32),
+            (egui::Key::ArrowDown, 6),
+            (egui::Key::ArrowLeft, 7),
+            (egui::Key::ArrowRight, 5),
+            (egui::Key::Z, 14),
+            (egui::Key::Space, 13),
+            (egui::Key::A, 15),
+            (egui::Key::S, 12),
+            (egui::Key::Enter, 3),
+            (egui::Key::Tab, 0),
+            (egui::Key::D, 10),
+            (egui::Key::F, 11),
+            (egui::Key::E, 8),
+            (egui::Key::R, 9),
+        ] {
+            if ctx.input(|i| i.key_down(key)) {
+                buttons &= !(1u16 << bit);
+            }
+        }
+        self.bus.sio_mut().set_buttons(buttons);
     }
 
     fn update_texture(&mut self) {
@@ -41,6 +68,7 @@ impl PsxDesktop {
 
 impl eframe::App for PsxDesktop {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        self.poll_input(ctx);
         for _step in 0..self.steps_per_frame {
             self.cpu.step(&mut self.bus);
         }

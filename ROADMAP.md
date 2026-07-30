@@ -91,7 +91,7 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 
 ## M6 — SIO: controle e memory card
 - [x] 6.1 SIO0 + digital pad (iter 0091)
-- [ ] 6.2 Input no psx-desktop (teclado/gamepad)
+- [x] 6.2 Input no psx-desktop (teclado/gamepad) (iter 0092)
 - [ ] 6.3 Memory card (.mcd)
 
 ## M7 — SPU

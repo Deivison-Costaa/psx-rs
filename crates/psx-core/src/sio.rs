@@ -10,6 +10,7 @@ pub struct Sio {
     baud: Cell<u16>,
     byte_count: Cell<u8>,
     pad_connected: Cell<bool>,
+    button_state: Cell<u16>,
     irq7_pending: Cell<bool>,
 }
 
@@ -24,12 +25,21 @@ impl Sio {
             baud: Cell::new(0x0000),
             byte_count: Cell::new(0),
             pad_connected: Cell::new(false),
+            button_state: Cell::new(0xFFFF),
             irq7_pending: Cell::new(false),
         }
     }
 
     pub fn connect_digital_pad(&self, connected: bool) {
         self.pad_connected.set(connected);
+    }
+
+    pub fn set_buttons(&self, buttons: u16) {
+        self.button_state.set(buttons);
+    }
+
+    pub fn buttons_state(&self) -> u16 {
+        self.button_state.get()
     }
 
     fn cs_asserted(&self) -> bool {
@@ -78,8 +88,8 @@ impl Sio {
             match count {
                 1 => 0x41,
                 2 => 0x5A,
-                3 => 0xFF,
-                4 => 0xFF,
+                3 => (self.button_state.get() >> 8) as u8,
+                4 => (self.button_state.get() & 0xFF) as u8,
                 _ => 0xFF,
             }
         } else {

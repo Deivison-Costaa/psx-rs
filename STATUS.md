@@ -5,14 +5,14 @@
 
 ## Última iteração concluída
 
-**0091** — SIO0 + digital pad (ROADMAP 6.1).
+**0092** — Input no psx-desktop (teclado) (ROADMAP 6.2).
 
 ## Próxima tarefa
 
-**ROADMAP 6.2 — Input no psx-desktop (teclado).**
+**ROADMAP 6.3 — Memory card (.mcd).**
 Spec: `docs/reference/10-controllers-memcards.md`.
-Arquivos-alvo: `crates/psx-desktop/src/main.rs` (mapeamento de teclas) + `crates/psx-core/src/sio.rs` (injeção de estado de botões).
-Armadilha: o digital pad responde com `0=Pressed, 1=Released`; o mapeamento de teclado deve injetar no `rx_fifo` do SIO ou em um campo de estado de botões.
+Arquivos-alvo: `crates/psx-core/src/sio.rs` (ampliar para responder ao address byte 81h com protocolo de memory card).
+Armadilha: o memory card usa address byte 81h (não 01h como o pad); a resposta inclui FLAG byte e ACK; comandos ReadS/WriteS/GetID têm timing de setor.
 A fila: depois volta GTE 5.4b.
 
 ## Prioridade — boot da BIOS travado
@@ -31,7 +31,7 @@ Após o 4.4c (I_MASK via SH), verificado: TTY do boot da BIOS ainda mostra `VSyn
 
 ## Placar de testes
 
-Workspace: **678** testes.
+Workspace: **681** testes.
 
 ## Bloqueios
 

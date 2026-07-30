@@ -1,0 +1,67 @@
+# Manifesto de mutação da iteração 0092 — input-desktop
+formato: 1
+iteracao: 0092
+item: 6.2
+alvo: crates/psx-core/src/sio.rs
+teste: sio_digital_pad
+
+mutante: m1
+rotulo: set_buttons ignora parametro (no-op, mantem 0xFFFF)
+@@DE
+        self.button_state.set(buttons);
+@@PARA
+        self.button_state.set(0xFFFF);
+@@FIM
+
+mutante: m2
+rotulo: send_byte ignora button_state e sempre responde 0xFF para bytes 3 e 4
+@@DE
+                3 => (self.button_state.get() >> 8) as u8,
+                4 => (self.button_state.get() & 0xFF) as u8,
+@@PARA
+                3 => 0xFF,
+                4 => 0xFF,
+@@FIM
+
+mutante: m3
+rotulo: send_byte troca high/low dos botoes (shift errado)
+@@DE
+                3 => (self.button_state.get() >> 8) as u8,
+@@PARA
+                3 => (self.button_state.get() & 0xFF) as u8,
+@@FIM
+
+mutante: m4
+rotulo: button_state inicializado com zero em vez de 0xFFFF
+@@DE
+            button_state: Cell::new(0xFFFF),
+@@PARA
+            button_state: Cell::new(0x0000),
+@@FIM
+
+mutante: m5
+rotulo: send_byte retorna 0x00 para bytes de botao em vez do estado real
+@@DE
+                3 => (self.button_state.get() >> 8) as u8,
+                4 => (self.button_state.get() & 0xFF) as u8,
+@@PARA
+                3 => 0x00,
+                4 => 0x00,
+@@FIM
+
+controle: c1
+rotulo: renomeia variavel local button_state para _bs em set_buttons
+@@DE
+        self.button_state.set(buttons);
+@@PARA
+        self.button_state.set({ let _bs = buttons; _bs });
+@@FIM
+
+controle: c2
+rotulo: extrai button_state em variavel antes do match
+@@DE
+        let response = if count == 0 {
+@@PARA
+        let bs = self.button_state.get();
+        let response = if count == 0 {
+@@FIM

@@ -58,11 +58,12 @@ rotulo: parse_printf_spec nao parseia digitos como largura
 @@FIM
 
 controle: c1
-rotulo: renomeia variavel local body_len para comprimento
+rotulo: adiciona declaracao let _ = body_len;
 @@DE
-    let body_len = body.len();
+    let sign_len = if negative { 1 } else { 0 };
 @@PARA
-    let comprimento = body.len();
+    let _ = body_len;
+    let sign_len = if negative { 1 } else { 0 };
 @@FIM
 
 controle: c2

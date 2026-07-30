@@ -5,19 +5,10 @@
 
 ## Última iteração concluída
 
-**0074** — GPUSTAT bit 15 gateado por GP1(09h).0. E1h e `apply_texpage_if_second` só escrevem
-bit 15 quando `allow_upper_y` está setado. Placar de hardware pendente de medição pelo
-orquestrador (ROADMAP 10.21).
+**0075** — Mask-bit (force-bit15 e write-protect) aplicado a transferências CPU→VRAM.
+`gpu/mask-bit` foi de **3p/2f para 5p/0f** (ROADMAP 10.22).
 
 ## Próxima tarefa
-
-**ROADMAP 10.22 — GPU — mask-bit: 2 subtestes de `gpu/mask-bit` reprovam.**
-A suíte `gpu/mask-bit` reprova 2 de 5 desde que passou a dar veredito; provável sobreposição com
-o item 10.7 (já implementado). Investigar quais subtestes falham e por quê.
-Spec, em `docs/reference/03-gpu.md`: seções GP0(E6h) (L578) e GPUSTAT bits 11-12 (L1010-1011).
-Arquivos-alvo: `crates/psx-core/src/gpu.rs`, `crates/psx-core/tests/gpu_mask_bit.rs`.
-
-**Depois desta:** 4.3b (CDROM — DiscLayout + dados do .bin).
 
 **ROADMAP 4.3b — CDROM — Acoplar DiscLayout + dados do .bin.**
 Substituir o buffer stub (`data_buffer` preenchido com `(i+1) & 0xFF`) por dados reais do
@@ -42,7 +33,7 @@ no deliver_second), `crates/psx-core/src/bus.rs` (passar dados do BIN para o Cdr
 
 ## Placar de testes
 
-Workspace: **559** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 29 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 11 cpu_opcode_reservado + 11 cpu_irq + 14 dma_otc + 14 dma_gpu + 12 cdrom_dma + 7 dma_dpcr_gate + 13 timers + 11 timers_sync + 9 timers_dotclock_hblank + 14 timers_irq + 16 gpu_status_gp0_gp1 + 9 ci_scoreboard + 9 cli_runner + 21 gpu_vram_transfers + 20 gpu_triangulos_flat_gouraud + 20 gpu_linhas_retangulos + 4 gpu_linhas_retangulos_continuacao + 6 gpu_textura_15bpp + 6 gpu_texturas_4bpp_8bpp + 5 gpu_texture_window + 6 gpu_semi_transparencia + 7 gpu_dithering + 8 gpu_mask_bit + 7 gpu_display_regs + 9 gpu_timing_vblank + 6 gpu_framebuffer + 3 gpu_desktop_egui + 6 gpu_scoreboard + 9 gpu_texture_disable + 13 cdrom_regs + 11 cdrom_seek_pause + 11 cdrom_bin_cue + 10 cdrom_read + 1 spec_citations + 2 mutation_manifest + 2 mutation_anchors + 5 mutation_battery + 1 mutation_reconciliation).
+Workspace: **561** testes (10 meta-testes + 8 bus_bios + 2 bios_flag + 1 version + 12 bus_scheduler + 9 bus_scratchpad_isc + 8 cpu_fetch_decode + 26 cpu_alu + 14 cpu_shifts + 19 cpu_load_delay + 24 cpu_branches + 7 cpu_jumps + 20 cpu_mult_div + 29 cpu_unaligned_load_store + 10 cpu_cop0_regs + 14 cpu_exception_mechanism + 1 cpu_exception_estado_previo + 9 cpu_tty_hook + 11 cpu_printf_hook + 11 cpu_opcode_reservado + 11 cpu_irq + 14 dma_otc + 14 dma_gpu + 12 cdrom_dma + 7 dma_dpcr_gate + 13 timers + 11 timers_sync + 9 timers_dotclock_hblank + 14 timers_irq + 16 gpu_status_gp0_gp1 + 9 ci_scoreboard + 9 cli_runner + 21 gpu_vram_transfers + 20 gpu_triangulos_flat_gouraud + 20 gpu_linhas_retangulos + 4 gpu_linhas_retangulos_continuacao + 6 gpu_textura_15bpp + 6 gpu_texturas_4bpp_8bpp + 5 gpu_texture_window + 6 gpu_semi_transparencia + 7 gpu_dithering + 8 gpu_mask_bit + 7 gpu_display_regs + 9 gpu_timing_vblank + 6 gpu_framebuffer + 3 gpu_desktop_egui + 6 gpu_scoreboard + 9 gpu_texture_disable + 13 cdrom_regs + 11 cdrom_seek_pause + 11 cdrom_bin_cue + 10 cdrom_read + 1 spec_citations + 2 mutation_manifest + 2 mutation_anchors + 5 mutation_battery + 1 mutation_reconciliation).
 
 ## Bloqueios
 

@@ -130,6 +130,7 @@ pub struct Bus {
     tty_buffer: Vec<u8>,
     scheduler: Scheduler,
     total_cycles: u64,
+    bios_mirror_active: bool,
 }
 
 impl Bus {
@@ -184,6 +185,7 @@ impl Bus {
             tty_buffer: Vec::new(),
             scheduler,
             total_cycles: 0,
+            bios_mirror_active: true,
         }
     }
 
@@ -490,6 +492,9 @@ impl Bus {
 
     pub fn read32<Op: MemoryOp>(&self, addr: u32) -> u32 {
         let phys = Self::to_physical(addr);
+        if self.bios_mirror_active && Self::kseg(addr) != 0b101 && phys < 0x8_0000 {
+            return self.bios.read32(phys as usize);
+        }
         if (0x1FC0_0000..0x1FC0_0000 + 0x80000).contains(&phys) {
             return self.bios.read32((phys - 0x1FC0_0000) as usize);
         }
@@ -507,6 +512,9 @@ impl Bus {
 
     pub fn write32<Op: MemoryOp>(&mut self, addr: u32, val: u32) {
         let phys = Self::to_physical(addr);
+        if self.bios_mirror_active && phys == 0x1F80_1000 {
+            self.bios_mirror_active = false;
+        }
         if self.region_write32(phys, Self::kseg(addr), val) {
             return;
         }
@@ -520,6 +528,9 @@ impl Bus {
 
     pub fn read8<Op: MemoryOp>(&self, addr: u32) -> u8 {
         let phys = Self::to_physical(addr);
+        if self.bios_mirror_active && Self::kseg(addr) != 0b101 && phys < 0x8_0000 {
+            return self.bios.raw()[phys as usize];
+        }
         if (0x1FC0_0000..0x1FC0_0000 + 0x80000).contains(&phys) {
             return self.bios.raw()[(phys - 0x1FC0_0000) as usize];
         }
@@ -536,6 +547,12 @@ impl Bus {
 
     pub fn read16<Op: MemoryOp>(&self, addr: u32) -> u16 {
         let phys = Self::to_physical(addr);
+        if self.bios_mirror_active && Self::kseg(addr) != 0b101 && phys < 0x8_0000 {
+            return u16::from_le_bytes([
+                self.bios.raw()[phys as usize],
+                self.bios.raw()[phys as usize + 1],
+            ]);
+        }
         if (0x1FC0_0000..0x1FC0_0000 + 0x80000).contains(&phys) {
             let offset = (phys - 0x1FC0_0000) as usize;
             return u16::from_le_bytes([self.bios.raw()[offset], self.bios.raw()[offset + 1]]);

@@ -67,11 +67,11 @@ rotulo: adiciona declaracao let _ = body_len;
 @@FIM
 
 controle: c2
-rotulo: adiciona espaco em branco no fim de linha (sem efeito)
+rotulo: adiciona comentario na funcao emit_signed
 @@DE
-        let first = bus.read8::<BusRead>(fmt.wrapping_add(*i));
-        *i = i.wrapping_add(1);
+fn emit_signed(bus: &mut Bus, val: i32, zero_pad: bool, width: usize) {
+    let negative = val < 0;
 @@PARA
-        let first = bus.read8::<BusRead>(fmt.wrapping_add(*i));
-        *i = i.wrapping_add(1);  
+fn emit_signed(bus: &mut Bus, val: i32, zero_pad: bool, width: usize) {
+    let negative = val < 0;
 @@FIM

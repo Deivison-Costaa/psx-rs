@@ -104,6 +104,9 @@ pub fn find_in_index<'a>(index: &'a [IndexEntry], search: &str) -> Option<&'a In
     if matches.len() == 1 {
         return Some(matches[0]);
     }
+    if let Some(exact) = matches.iter().find(|e| normalize_title(&e.title) == s) {
+        return Some(exact);
+    }
     let max_len = matches
         .iter()
         .map(|e| normalize_title(&e.title).len())
@@ -126,6 +129,9 @@ pub fn index_match_ambiguity(index: &[IndexEntry], search: &str) -> Option<Strin
         .filter(|e| title_contains(&s, &e.title))
         .collect();
     if matches.len() <= 1 {
+        return None;
+    }
+    if matches.iter().any(|e| normalize_title(&e.title) == s) {
         return None;
     }
     let max_len = matches

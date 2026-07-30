@@ -175,22 +175,64 @@ fn t7_fill_nao_respeita_mask_bit() {
 
 #[rustfmt::skip]
 #[test]
-fn t8_cpu_para_vram_nao_respeita_mask_bit() {
+fn t8_cpu_para_vram_respeita_write_protect() {
     let mut gpu = Gpu::new();
 
     preenche_vram(&mut gpu, 0, 0, 1, 1, 0x8000);
 
     gp0_e6h(&mut gpu, 3);
 
-    let cmd_top3_5: u32 = (0xA0u32) << 24;
-    gpu.write32(0, cmd_top3_5);
+    let cmd: u32 = 0xA0 << 24;
+    gpu.write32(0, cmd);
+    gpu.write32(0, 0x0000_0000);
+    gpu.write32(0, 0x0001_0001);
+    gpu.write32(0, 0x0000_BEEF);
+
+    assert_eq!(
+        gpu.vram_pixel(0, 0), 0x8000,
+        "T8: CPU->VRAM respeita write-protect, pixel(0,0) protegido, obtido 0x{:04X}",
+        gpu.vram_pixel(0, 0),
+    );
+}
+
+#[rustfmt::skip]
+#[test]
+fn t9_cpu_para_vram_force_bit15_seta_bit15() {
+    let mut gpu = Gpu::new();
+
+    gp0_e6h(&mut gpu, 1);
+
+    let cmd: u32 = 0xA0 << 24;
+    gpu.write32(0, cmd);
+    gpu.write32(0, 0x0000_0000);
+    gpu.write32(0, 0x0001_0001);
+    gpu.write32(0, 0x0000_0000);
+
+    assert_eq!(
+        gpu.vram_pixel(0, 0), 0x8000,
+        "T9: CPU->VRAM com force-bit15, pixel(0,0) deve ter bit15=1, obtido 0x{:04X}",
+        gpu.vram_pixel(0, 0),
+    );
+}
+
+#[rustfmt::skip]
+#[test]
+fn t10_cpu_para_vram_sem_mask_bit_sobrescreve_normalmente() {
+    let mut gpu = Gpu::new();
+
+    preenche_vram(&mut gpu, 0, 0, 1, 1, 0x8000);
+
+    gp0_e6h(&mut gpu, 0);
+
+    let cmd: u32 = 0xA0 << 24;
+    gpu.write32(0, cmd);
     gpu.write32(0, 0x0000_0000);
     gpu.write32(0, 0x0001_0001);
     gpu.write32(0, 0x0000_BEEF);
 
     assert_eq!(
         gpu.vram_pixel(0, 0), 0xBEEF,
-        "T8: CPU->VRAM ignora mask bit, pixel(0,0) foi sobrescrito, obtido 0x{:04X}",
+        "T10: CPU->VRAM sem mask bit, pixel(0,0) sobrescrito, obtido 0x{:04X}",
         gpu.vram_pixel(0, 0),
     );
 }

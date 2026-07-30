@@ -75,7 +75,8 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [ ] 4.4 Boot de jogo 2D/menu
 - [x] 4.4a Boot da BIOS no psx-cli (--bios sozinho) (iter 0079)
 - [x] 4.4b Base de tempo: scheduler + vblank + IRQ0 (iter 0080)
-- [x] 4.4c BIOS nunca escreve I_MASK — IRQ0 acende mas CPU nao vetora (iter 0085)
+- [x] 4.4c BIOS nunca escreve I_MASK (iter 0085)
+- [ ] 4.4d I_MASK=0x0000 por todo o boot — bloqueio real, IRQs nunca vetoram
 
 ## M5 — GTE
 - [x] 5.1 Registradores + MFC2/MTC2/CFC2/CTC2/LWC2/SWC2 (iter 0084)
@@ -89,7 +90,7 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [ ] 5.6 Amidog psxtest_gte no scoreboard → jogo 3D jogável
 
 ## M6 — SIO: controle e memory card
-- [ ] 6.1 SIO0 + digital pad
+- [x] 6.1 SIO0 + digital pad (iter 0091)
 - [ ] 6.2 Input no psx-desktop (teclado/gamepad)
 - [ ] 6.3 Memory card (.mcd)
 
@@ -117,38 +118,38 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [ ] 10.2 Passe de compatibilidade (bugs viram itens 10.x)
 - [x] 10.2a Placar do ps1-tests convertido em itens (iter 0068)
 - [ ] 10.3 Bus error ao executar codigo do scratchpad (exposto por ps1-tests/cpu/code-in-io)
-- [ ] 10.4 CAUSE.CE nao preenchido nas excecoes de Coprocessor Unusable (02-cpu.md L681)
-- [ ] 10.5 Amidog psxtest_cpu para apos "args: 0" — causa nao investigada (medido na iter 0032)
+- [ ] 10.4 CAUSE.CE nao preenchido nas excecoes de Coprocessor Unusable (`docs/reference/02-cpu.md` L681)
+- [ ] 10.5 Amidog psxtest_cpu para apos "args: 0" — causa nao investigada (iter 0032)
 - [ ] 10.6 GP0(80h) VRAM->VRAM blit (hoje consumido e ignorado)
-- [ ] 10.7 Mask setting GP0(E6h) aplicado a CPU->VRAM e VRAM->VRAM (03-gpu.md L590-592)
+- [ ] 10.7 Mask setting GP0(E6h) aplicado a CPU->VRAM e VRAM->VRAM (`docs/reference/03-gpu.md` L590-592)
 - [ ] 10.8 SWL/SWR fazem read-modify-write e leem portas de I/O de leitura destrutiva
 - [x] 10.9 UV/CLUT dos polígonos texturizados (iter 0045)
 - [ ] 10.10 Drawing Area GP0(E3h/E4h) e Drawing Offset GP0(E5h) sem suite de hardware que os meça
 - [ ] 10.11 Textura e Texpage de retângulos (hoje UV consumido e ignorado)
 - [x] 10.12 Meta-teste do placar pulava em silencio desde a 0041 (iter 0069)
-- [ ] 10.28 A tabela por registro nos docs não é conferida contra o `.resultado`, só a linha `Placar da bateria:`. A 0071 errou 3 de 9 linhas; a 0038 inflou dois créditos
-- [ ] 10.29 `dma_dpcr_gate.rs:141` usa `assert_ne!` como única asserção numa correção de defeito, em vez de afirmar o valor produzido
-- [ ] 10.30 Habilitar um canal no DPCR não dispara transferência pendente: o modelo só dispara na escrita de CHCR
+- [ ] 10.28 Tabela por registro nos docs vs `.resultado` — 0071 errou 3/9, 0038 inflou 2 creditos
+- [ ] 10.29 `dma_dpcr_gate.rs:141` usa `assert_ne!` como unica assercao numa correcao de defeito
+- [ ] 10.30 Habilitar canal no DPCR nao dispara transferencia pendente (so na escrita de CHCR)
 - [ ] 10.31 `oc-loop` nao parqueia rodada morta (iter 0073)
 - [x] 10.32 GP1(09h) fecha gate nao limpa latch GPUSTAT.15 (iter 0076)
-- [ ] 10.25 Varrer os outros `unwrap_or("")` sobre caminho nos meta-testes: foi o que transformou a falha de `strip_prefix` em silêncio na 10.12, e o separador foi só o gatilho
-- [ ] 10.13 GP0(24h) é modulação, não raw texture: bit 24 do comando não é lido e o texel vai cru (03-gpu.md L264 e L1610)
-- [ ] 10.14 U/V e cor gouraud são reinterpolados sobre o span já recortado pela drawing area — a textura estica em vez de só perder os pixels de fora (03-gpu.md L452-454)
-- [x] 10.16 `spec_citations.rs` casava titulo de secao por substring; corrigido para titulo mais longo (iter 0083)
+- [ ] 10.25 `unwrap_or(\"\")` sobre caminho nos meta-testes — transformou falha de `strip_prefix` em silencio (10.12)
+- [ ] 10.13 GP0(24h) e modulacao, nao raw texture — bit 24 do comando nao e lido (`docs/reference/03-gpu.md` L264 e L1610)
+- [ ] 10.14 U/V e cor gouraud sao reinterpolados sobre span recortado pela drawing area (`docs/reference/03-gpu.md` L452-454)
+- [x] 10.16 `spec_citations.rs` casava titulo de secao por substring (iter 0083)
 - [x] 10.15 Reparar ancoras do manifesto 0059 arquivado na 0060 (iter 0067)
-- [ ] 10.17 `mutantes.ps1` recusa árvore suja, então reparo de âncora só pode ser verificado depois de commitado às cegas — permitir sujeira restrita a `docs/mutantes/*.mut`
+- [ ] 10.17 `mutantes.ps1` recusa arvore suja — permitir sujeira restrita a `docs/mutantes/*.mut`
 - [x] 10.19 DPCR gate nos tres canais do DMA (iter 0071)
 - [x] 10.20 OTC grava o espelho do hardware (iter 0073)
 - [x] 10.21 GPUSTAT.15 gateado por GP1(09h) (iter 0074)
 - [x] 10.22 Mask-bit em CPU→VRAM (iter 0075)
-- [ ] 10.24 O job `scoreboard` da CI sai VERDE medindo zero: sem BIOS rotula as 51 suítes `sem-bios` e encerra 0, e 1981 das 1982 linhas de `scoreboard-data` são isso (medido na iter 0072)
-- [ ] 10.26 Nenhum dos 9 testes de `ci_scoreboard.rs` afirma que o job mede algo, e um aceita `sem-bios` como rótulo normal: rodada sem suíte executada não pode passar por placar
-- [ ] 10.27 O placar local (gitignored) é o único com veredito real e não é versionado. Some se o 10.24 for resolvido pela BIOS em secret
-- [ ] 10.23 45 das 51 suites do scoreboard não dão veredito porque renderizam na VRAM: 88% do placar não mede nada. A `diffvram` do ps1-tests já está baixada
-- [ ] 10.18 Nada torna `arquivada:` caro: em 0052 e 0059, arquivar descartou 17 registros dos quais 12 ainda casavam. Exigir no header quantos casam e falhar se algum casar
-- [ ] 10.33 `mutantes.ps1` só roda `cargo test -p psx-core` (linha 290); testes de outros crates precisam de bateria manual
-- [ ] 10.34 Nenhum meta-teste reprova `#[test]` sem asserção — T10 da 0080 era eprintln! e passou
-- [ ] 10.35 `mutantes.ps1` escreve nome qualificado no .resultado e `mutation_battery.rs` procura fn literal — nunca casam em módulo
+- [ ] 10.24 Job `scoreboard` da CI sai VERDE medindo zero — sem BIOS rotula 51 suites `sem-bios` (iter 0072)
+- [ ] 10.26 Nenhum dos 9 testes de `ci_scoreboard.rs` afirma que o job mede algo
+- [ ] 10.27 Placar local (gitignored) e o unico com veredito real e nao e versionado
+- [ ] 10.23 45 das 51 suites do scoreboard nao dao veredito (renderizam na VRAM)
+- [ ] 10.18 Nada torna `arquivada:` caro — 0052 e 0059 descartaram 17 registros (12 ainda casavam)
+- [ ] 10.33 `mutantes.ps1` so roda `cargo test -p psx-core` (linha 290) — outros crates precisam de bateria manual
+- [ ] 10.34 Nenhum meta-teste reprova `#[test]` sem assercao — T10 da 0080 era eprintln! e passou
+- [ ] 10.35 `mutantes.ps1` escreve nome qualificado no .resultado e `mutation_battery.rs` procura fn literal — nunca casam em modulo
 
 ## M11 — Apresentação (incremental desde o M1)
 - [ ] 11.1 Relatório consolidado (docs/relatorio.md — atualizado a cada marco)

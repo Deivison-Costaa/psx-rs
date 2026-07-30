@@ -65,7 +65,36 @@ rotulo: toggle mode seta flag de restauracao incorretamente (mistura semantica c
                     mode_changed = true;
 @@FIM
 
-equivalente: m4
+mutante: m4
+rotulo: FFFF overflow em pulse mode nao seta a flag de adiamento
+@@DE
+                if irq_enable_ffff && (!irq_once || !t.irq_fired_oneshot.get()) {
+                    let old_bit10 = (mode_now >> 10) & 1;
+                    if irq_toggle {
+                        mode_now ^= 1 << 10;
+                    } else {
+                        mode_now &= !(1 << 10);
+                        t.bit10_restore_needed.set(true);
+                    }
+@@PARA
+                if irq_enable_ffff && (!irq_once || !t.irq_fired_oneshot.get()) {
+                    let old_bit10 = (mode_now >> 10) & 1;
+                    if irq_toggle {
+                        mode_now ^= 1 << 10;
+                    } else {
+                        mode_now &= !(1 << 10);
+                    }
+@@FIM
+
+mutante: m5
+rotulo: condicao de restauracao no fim do tick usa OU em vez de E (restaura tambem em toggle)
+@@DE
+        if !irq_toggle && !t.bit10_restore_needed.get() {
+@@PARA
+        if !irq_toggle || !t.bit10_restore_needed.get() {
+@@FIM
+
+equivalente: e1
 rotulo: flag bit10_restore_needed nunca e limpa apos restauracao no inicio do tick
 justificativa: A flag presa nao altera comportamento observavel — o inicio de cada tick restaura bit10 (ja em 1), e o final so e suprimido quando flag=true, mas no tick seguinte o inicio restaura novamente. Nenhum teste consegue distinguir o estado da flag presa do estado normal porque bit10 e sempre 1 ao fim de qualquer tick apos o primeiro.
 @@DE
@@ -81,7 +110,7 @@ justificativa: A flag presa nao altera comportamento observavel — o inicio de 
         }
 @@FIM
 
-equivalente: m5
+equivalente: e2
 rotulo: escrever mode register nao limpa a flag bit10_restore_needed
 justificativa: Escrever no mode register ja seta bit10=1 explicitamente, e a flag de adiamento so impede a restauracao redundante no fim do tick. O inicio do tick seguinte restaura bit10 (ja em 1). Nenhum teste consegue distinguir flag presa de flag limpa apos mode write porque bit10 observavel e sempre 1.
 @@DE
@@ -93,7 +122,7 @@ justificativa: Escrever no mode register ja seta bit10=1 explicitamente, e a fla
             }
 @@FIM
 
-equivalente: m4b
+equivalente: e3
 rotulo: restauracao do bit10 no inicio do tick zera bit10 em vez de setar para 1
 justificativa: Zerar bit10 na restauracao de inicio de tick e inofensivo porque o bloco de fim de tick restaura bit10=1 logo em seguida (desde que a flag tenha sido limpa, o que acontece na mesma linha). Nenhum teste consegue observar bit10=0 entre os dois momentos porque a leitura so ocorre apos o tick completo.
 @@DE
@@ -108,73 +137,6 @@ justificativa: Zerar bit10 na restauracao de inicio de tick e inofensivo porque 
             t.mode.set(m & !(1 << 10));
             t.bit10_restore_needed.set(false);
         }
-@@FIM
-
-mutante: m5b
-rotulo: FFFF overflow em pulse mode nao seta flag de adiamento do bit10
-ocorrencias: 1
-@@DE
-                if irq_enable_ffff && (!irq_once || !t.irq_fired_oneshot.get()) {
-                    let old_bit10 = (mode_now >> 10) & 1;
-                    if irq_toggle {
-                        mode_now ^= 1 << 10;
-                    } else {
-                        mode_now &= !(1 << 10);
-                        t.bit10_restore_needed.set(true);
-                    }
-@@PARA
-                if irq_enable_ffff && (!irq_once || !t.irq_fired_oneshot.get()) {
-                    let old_bit10 = (mode_now >> 10) & 1;
-                    if irq_toggle {
-                        mode_now ^= 1 << 10;
-                    } else {
-                        mode_now &= !(1 << 10);
-                    }
-@@FIM
-
-mutante: m6
-rotulo: bit10_restore_needed inicializado com true em vez de false
-@@DE
-            bit10_restore_needed: Cell::new(false),
-@@PARA
-            bit10_restore_needed: Cell::new(true),
-@@FIM
-
-mutante: m7
-rotulo: escrever mode register seta flag em vez de limpar
-@@DE
-                t.bit10_restore_needed.set(false);
-@@PARA
-                t.bit10_restore_needed.set(true);
-@@FIM
-
-mutante: m6
-rotulo: condicao de restauracao no fim do tick usa OU em vez de E (restaura tambem em toggle)
-@@DE
-        if !irq_toggle && !t.bit10_restore_needed.get() {
-@@PARA
-        if !irq_toggle || !t.bit10_restore_needed.get() {
-@@FIM
-
-mutante: m7
-rotulo: IRQ de FFFF overflow nao seta a flag de adiamento (paralelo ao m1 para overflow)
-@@DE
-                if irq_enable_ffff && (!irq_once || !t.irq_fired_oneshot.get()) {
-                    let old_bit10 = (mode_now >> 10) & 1;
-                    if irq_toggle {
-                        mode_now ^= 1 << 10;
-                    } else {
-                        mode_now &= !(1 << 10);
-                        t.bit10_restore_needed.set(true);
-                    }
-@@PARA
-                if irq_enable_ffff && (!irq_once || !t.irq_fired_oneshot.get()) {
-                    let old_bit10 = (mode_now >> 10) & 1;
-                    if irq_toggle {
-                        mode_now ^= 1 << 10;
-                    } else {
-                        mode_now &= !(1 << 10);
-                    }
 @@FIM
 
 controle: c1

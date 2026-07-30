@@ -58,10 +58,12 @@ rotulo: GP1(09h) sempre fecha o gate usando mascara zero (allow_upper_y = bit & 
 @@FIM
 
 controle: c1
-rotulo: renomeia bit para gate_bit (cosmetico)
+rotulo: renomeia bit para gate_bit no braco 0x09 (cosmetico)
 @@DE
+            0x09 => {
                 let bit = val & 1;
 @@PARA
+            0x09 => {
                 let gate_bit = val & 1;
 @@FIM
 @@DE

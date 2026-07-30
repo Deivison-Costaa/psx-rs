@@ -211,13 +211,13 @@ fn io_catch_all_nao_corrompe_ram() {
     );
     assert_eq!(
         bus.read8::<BusRead>(0x1F80_1074),
-        0,
-        "F2: I_STAT stub devolve 0 no read8"
+        0xFF,
+        "F2: read8 I_MASK devolve byte 0 da mascara"
     );
     assert_eq!(
         bus.read16::<BusRead>(0x1F80_1074),
-        0,
-        "F2: I_STAT stub devolve 0 no read16"
+        0x07FF,
+        "F2: read16 I_MASK devolve halfword da mascara"
     );
     bus.write32::<BusRead>(0x1F80_1080, 0xFFFF_FFFF);
     assert_eq!(

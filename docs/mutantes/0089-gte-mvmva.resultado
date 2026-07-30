@@ -1,0 +1,8 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: 849bacde3b8e54a8ede2e6aeee598c97ec119f67
+# rodado_em: 2026-07-30T07:10:46-03:00
+m1,mutante,morreu,morreu,0.8,mvmva_lcm_v2_tr_sf1_lm0;mvmva_llm_v1_bk_sf1_lm0
+m2,mutante,morreu,morreu,0.8,mvmva_lcm_v2_tr_sf1_lm0;mvmva_llm_v1_bk_sf1_lm0;mvmva_rt_ir_none_sf1_lm0;mvmva_rt_v1_tr_sf1_lm0
+m3,mutante,morreu,morreu,0.8,mvmva_rt_v0_tr_sf1_lm0
+m4,mutante,morreu,morreu,0.8,mvmva_lcm_v2_tr_sf1_lm0;mvmva_llm_v1_bk_sf1_lm0;mvmva_rt_ir_none_sf1_lm0;mvmva_rt_v0_tr_sf0_lm0;mvmva_rt_v0_tr_sf1_lm0;mvmva_rt_v1_tr_sf1_lm0;mvmva_saturacao_ir_lm1_negativo_saturado_em_zero
+m5,mutante,morreu,morreu,0.8,mvmva_saturacao_ir_lm1_negativo_saturado_em_zero

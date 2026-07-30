@@ -77,6 +77,7 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [x] 4.4b Base de tempo: scheduler + vblank + IRQ0 (iter 0080)
 - [x] 4.4c BIOS nunca escreve I_MASK (iter 0085)
 - [ ] 4.4d I_MASK=0x0000 por todo o boot — bloqueio real, IRQs nunca vetoram
+- [x] 4.4e Handler de excecao em 0x80000080 despacha para tabela de eventos do kernel (ehk) — VSync callbacks nao rodam (iter 0095)
 
 ## M5 — GTE
 - [x] 5.1 Registradores + MFC2/MTC2/CFC2/CTC2/LWC2/SWC2 (iter 0084)

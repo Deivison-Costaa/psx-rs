@@ -74,10 +74,12 @@ pub fn install_return_stubs(bus: &mut Bus) {
         bus.write32::<BusRead>(addr, jr_ra);
         bus.write32::<BusRead>(addr.wrapping_add(4), nop);
     }
-    bus.write32::<BusRead>(0x8000_0080, 0x3C081F80);
-    bus.write32::<BusRead>(0x8000_0084, 0x35091070);
-    bus.write32::<BusRead>(0x8000_0088, 0x8D280000);
-    bus.write32::<BusRead>(0x8000_008C, 0xAD280000);
-    bus.write32::<BusRead>(0x8000_0090, 0x42000010);
-    bus.write32::<BusRead>(0x8000_0094, 0x00000000);
+    bus.write32::<BusRead>(0x8000_0080, 0x4034E000);
+    bus.write32::<BusRead>(0x8000_0084, 0x3C081F80);
+    bus.write32::<BusRead>(0x8000_0088, 0x35091070);
+    bus.write32::<BusRead>(0x8000_008C, 0x8D280000);
+    bus.write32::<BusRead>(0x8000_0090, 0xAD280000);
+    bus.write32::<BusRead>(0x8000_0094, 0x03400008);
+    bus.write32::<BusRead>(0x8000_0098, 0x42000010);
+    bus.write32::<BusRead>(0x8000_009C, 0x00000000);
 }

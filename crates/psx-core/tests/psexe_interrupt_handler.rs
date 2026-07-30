@@ -46,12 +46,16 @@ fn install_return_stubs_instala_handler_que_acknowledge_istat() {
     let instr2 = bus.read32::<BusRead>(0x8000_0088);
     let instr3 = bus.read32::<BusRead>(0x8000_008C);
     let instr4 = bus.read32::<BusRead>(0x8000_0090);
+    let instr5 = bus.read32::<BusRead>(0x8000_0094);
+    let instr6 = bus.read32::<BusRead>(0x8000_0098);
 
-    assert_eq!(instr0, 0x3C081F80, "lui t0, 0x1F80");
-    assert_eq!(instr1, 0x35091070, "ori t1, t0, 0x1070");
-    assert_eq!(instr2, 0x8D280000, "lw t0, 0(t1)");
-    assert_eq!(instr3, 0xAD280000, "sw t0, 0(t1)");
-    assert_eq!(instr4, 0x42000010, "rfe");
+    assert_eq!(instr0, 0x4034E000, "mfc0 k0, EPC");
+    assert_eq!(instr1, 0x3C081F80, "lui t0, 0x1F80");
+    assert_eq!(instr2, 0x35091070, "ori t1, t0, 0x1070");
+    assert_eq!(instr3, 0x8D280000, "lw t0, 0(t1)");
+    assert_eq!(instr4, 0xAD280000, "sw t0, 0(t1)");
+    assert_eq!(instr5, 0x03400008, "jr k0");
+    assert_eq!(instr6, 0x42000010, "rfe");
 }
 
 #[test]
@@ -84,5 +88,44 @@ fn handler_no_vector_0x80_acknowledge_istat_e_rfe_restaura_iec() {
         sr_depois & 0x1,
         0x1,
         "IEc deve estar setado apos handler RFE"
+    );
+}
+
+#[test]
+fn handler_retorna_ao_epc_apos_interrupcao() {
+    let bios = Bios::from_bytes(vec![0u8; 0x80000]).expect("BIOS vazia");
+    let ram = Ram::new();
+    let mut bus = Bus::new(ram, bios);
+    let mut cpu = Cpu::new();
+
+    cpu.pc = 0x8000_1000;
+    cpu.regs[4] = 0x0000_0042;
+    cpu.set_sr(0x0000_1001);
+
+    bus.write32::<BusRead>(0x8000_1000, 0x24080009);
+    bus.write32::<BusRead>(0x8000_1004, 0x00000000);
+
+    psx_core::psexe::install_return_stubs(&mut bus);
+
+    bus.irq_mut().write_mask(1);
+    bus.irq_mut().raise(0);
+
+    let mut steps = 0;
+    let max_steps = 100;
+    while steps < max_steps {
+        cpu.step(&mut bus);
+        steps += 1;
+        if cpu.regs[8] == 9 {
+            break;
+        }
+    }
+
+    assert!(
+        steps < max_steps,
+        "handler deve retornar ao EPC (0x80001000), t0 deve receber 9"
+    );
+    assert_eq!(
+        cpu.regs[8], 9,
+        "apos handler retornar, t0 deve ser 9 (addiu t0, r0, 9)"
     );
 }

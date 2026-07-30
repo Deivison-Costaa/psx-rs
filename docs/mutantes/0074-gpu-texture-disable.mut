@@ -23,7 +23,9 @@ rotulo: GP1(09h) nunca fecha o gate (bit == 0 nao limpa stat.15)
                     self.stat.set(s & !(1 << 15));
                 }
 @@PARA
-
+                {
+                    let _ = bit;
+                }
 @@FIM
 
 mutante: m3
@@ -31,7 +33,7 @@ rotulo: GP1(00h) esquece de resetar allow_upper_y
 @@DE
                 self.allow_upper_y.set(false);
 @@PARA
-
+                // nao reseta allow_upper_y
 @@FIM
 
 mutante: m4

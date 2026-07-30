@@ -174,6 +174,7 @@ pub struct Gpu {
     in_vblank: Cell<bool>,
     odd_line: Cell<bool>,
     hblank_active: Cell<bool>,
+    allow_upper_y: Cell<bool>,
 }
 
 #[derive(Clone)]
@@ -217,6 +218,7 @@ impl Gpu {
             in_vblank: Cell::new(false),
             odd_line: Cell::new(false),
             hblank_active: Cell::new(false),
+            allow_upper_y: Cell::new(false),
         }
     }
 
@@ -567,8 +569,11 @@ impl Gpu {
                         }
                         0xE1 => {
                             let param = val & 0xFF_FFFF;
-                            let mask = (0x7FF) | (1 << 15);
-                            let bits = (param & 0x7FF) | (((param >> 11) & 1) << 15);
+                            let mask = 0x7FF | (1 << 15);
+                            let mut bits = param & 0x7FF;
+                            if self.allow_upper_y.get() {
+                                bits |= ((param >> 11) & 1) << 15;
+                            }
                             let s = self.stat.get();
                             self.stat.set((s & !mask) | bits);
                             VramState::Idle
@@ -1058,8 +1063,11 @@ impl Gpu {
     fn apply_texpage_if_second(&mut self, vertex_idx: usize, uv_word: u32) {
         if vertex_idx == 1 {
             let texpage = (uv_word >> 16) & 0xFFFF;
-            let new_bits = (texpage & 0x1FF) | (((texpage >> 11) & 1) << 15);
             let mask = 0x1FF | (1 << 15);
+            let mut new_bits = texpage & 0x1FF;
+            if self.allow_upper_y.get() {
+                new_bits |= ((texpage >> 11) & 1) << 15;
+            }
             let s = self.stat.get();
             self.stat.set((s & !mask) | new_bits);
         }
@@ -1694,6 +1702,7 @@ impl Gpu {
                 self.in_vblank.set(false);
                 self.odd_line.set(false);
                 self.hblank_active.set(false);
+                self.allow_upper_y.set(false);
             }
             0x01 => {
                 self.vram_state.set(VramState::Idle);
@@ -1739,6 +1748,14 @@ impl Gpu {
                 let s = self.stat.get();
                 self.stat.set((s & !mask) | bits);
                 self.video_mode.set((param & 0x08) != 0);
+            }
+            0x09 => {
+                let bit = val & 1;
+                self.allow_upper_y.set(bit != 0);
+                if bit == 0 {
+                    let s = self.stat.get();
+                    self.stat.set(s & !(1 << 15));
+                }
             }
             _ => {}
         }

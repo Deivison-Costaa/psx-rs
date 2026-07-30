@@ -220,3 +220,114 @@ fn rtps_com_sf_zero_irao_diferentes_de_sf_um() {
         "FLAG limpo apos RTPS sf=0 sem saturacao"
     );
 }
+
+#[test]
+fn rtps_satura_ir1_com_valor_acima_do_limite() {
+    let mut bus = bus_with_bios_empty();
+    let mut cpu = Cpu::new();
+    let a = 0x0000u32;
+
+    ctc2_r8(&mut cpu, &mut bus, a, 0, 0x0000_7FFF);
+    ctc2_r8(&mut cpu, &mut bus, a, 1, 0);
+    ctc2_r8(&mut cpu, &mut bus, a, 2, 0x0000_1000);
+    ctc2_r8(&mut cpu, &mut bus, a, 3, 0);
+    ctc2_r8(&mut cpu, &mut bus, a, 4, 0x1000);
+    ctc2_r8(&mut cpu, &mut bus, a, 5, 0);
+    ctc2_r8(&mut cpu, &mut bus, a, 6, 0);
+    ctc2_r8(&mut cpu, &mut bus, a, 7, 0);
+    ctc2_r8(&mut cpu, &mut bus, a, 26, 0);
+    ctc2_r8(&mut cpu, &mut bus, a, 24, 0);
+    ctc2_r8(&mut cpu, &mut bus, a, 25, 0);
+
+    mtc2_r8(&mut cpu, &mut bus, a, 0, 0x0000_7FFF);
+    mtc2_r8(&mut cpu, &mut bus, a, 1, 0);
+
+    escreve_e_executa(&mut cpu, &mut bus, a, cop2_cmd(0x01, true, false));
+    escreve_e_executa(&mut cpu, &mut bus, a, nop());
+    escreve_e_executa(&mut cpu, &mut bus, a, mfc2(10, 9));
+    escreve_e_executa(&mut cpu, &mut bus, a, nop());
+    escreve_e_executa(&mut cpu, &mut bus, a, cfc2(11, 31));
+    escreve_e_executa(&mut cpu, &mut bus, a, nop());
+
+    assert_eq!(
+        cpu.regs[10], 0x7FFF,
+        "IR1 saturado para maximo positivo (RT11=0x7FFF, VX0=0x7FFF, sf=1)"
+    );
+    assert_ne!(
+        cpu.regs[11] & (1 << 24),
+        0,
+        "FLAG.24 (IR1) setado por saturacao"
+    );
+}
+
+#[test]
+fn rtps_divide_overflow_com_h_maior_que_sz3_dobro() {
+    let mut bus = bus_with_bios_empty();
+    let mut cpu = Cpu::new();
+    let a = 0x0000u32;
+
+    ctc2_r8(&mut cpu, &mut bus, a, 0, 0x0000_1000);
+    ctc2_r8(&mut cpu, &mut bus, a, 1, 0);
+    ctc2_r8(&mut cpu, &mut bus, a, 2, 0x0000_1000);
+    ctc2_r8(&mut cpu, &mut bus, a, 3, 0);
+    ctc2_r8(&mut cpu, &mut bus, a, 4, 0x1000);
+    ctc2_r8(&mut cpu, &mut bus, a, 5, 0);
+    ctc2_r8(&mut cpu, &mut bus, a, 6, 0);
+    ctc2_r8(&mut cpu, &mut bus, a, 7, 50);
+    ctc2_r8(&mut cpu, &mut bus, a, 26, 0x100);
+    ctc2_r8(&mut cpu, &mut bus, a, 24, 0);
+    ctc2_r8(&mut cpu, &mut bus, a, 25, 0);
+
+    mtc2_r8(&mut cpu, &mut bus, a, 0, 0);
+    mtc2_r8(&mut cpu, &mut bus, a, 1, 0);
+
+    escreve_e_executa(&mut cpu, &mut bus, a, cop2_cmd(0x01, true, false));
+    escreve_e_executa(&mut cpu, &mut bus, a, nop());
+    escreve_e_executa(&mut cpu, &mut bus, a, cfc2(10, 31));
+    escreve_e_executa(&mut cpu, &mut bus, a, nop());
+
+    assert_ne!(
+        cpu.regs[10] & (1 << 17),
+        0,
+        "FLAG.17 (divide overflow): H=0x100, SZ3=50, H >= SZ3*2"
+    );
+}
+
+#[test]
+fn rtps_sz3_saturado_em_zero_para_z_negativo() {
+    let mut bus = bus_with_bios_empty();
+    let mut cpu = Cpu::new();
+    let a = 0x0000u32;
+
+    ctc2_r8(&mut cpu, &mut bus, a, 0, 0x0000_1000);
+    ctc2_r8(&mut cpu, &mut bus, a, 1, 0);
+    ctc2_r8(&mut cpu, &mut bus, a, 2, 0x0000_1000);
+    ctc2_r8(&mut cpu, &mut bus, a, 3, 0);
+    ctc2_r8(&mut cpu, &mut bus, a, 4, 0x1000);
+    ctc2_r8(&mut cpu, &mut bus, a, 5, 0);
+    ctc2_r8(&mut cpu, &mut bus, a, 6, 0);
+    ctc2_r8(&mut cpu, &mut bus, a, 7, 0);
+    ctc2_r8(&mut cpu, &mut bus, a, 26, 0);
+    ctc2_r8(&mut cpu, &mut bus, a, 24, 0);
+    ctc2_r8(&mut cpu, &mut bus, a, 25, 0);
+
+    mtc2_r8(&mut cpu, &mut bus, a, 0, 0);
+    mtc2_r8(&mut cpu, &mut bus, a, 1, 0x8000);
+
+    escreve_e_executa(&mut cpu, &mut bus, a, cop2_cmd(0x01, true, false));
+    escreve_e_executa(&mut cpu, &mut bus, a, nop());
+    escreve_e_executa(&mut cpu, &mut bus, a, mfc2(10, 19));
+    escreve_e_executa(&mut cpu, &mut bus, a, nop());
+    escreve_e_executa(&mut cpu, &mut bus, a, cfc2(11, 31));
+    escreve_e_executa(&mut cpu, &mut bus, a, nop());
+
+    assert_eq!(
+        cpu.regs[10], 0,
+        "SZ3 saturado para 0 quando mac3 negativo (VZ0=-32768, sf=1)"
+    );
+    assert_ne!(
+        cpu.regs[11] & (1 << 18),
+        0,
+        "FLAG.18 (SZ3) setado por saturacao"
+    );
+}

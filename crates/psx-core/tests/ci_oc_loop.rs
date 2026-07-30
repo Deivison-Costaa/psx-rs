@@ -56,9 +56,14 @@ fn wait_checks_espera_enquanto_algum_check_esta_pendente() {
     let script = oc_loop_content();
     let body = wait_checks_body(&script);
 
-    let pendente_pos = body
-        .find("PENDENTE")
-        .expect("Wait-Checks deve marcar check sem conclusao como PENDENTE");
+    assert!(
+        body.contains("\"PENDENTE\""),
+        "Wait-Checks deve marcar check sem conclusao como PENDENTE"
+    );
+    let pendente_pos = body.find("-match \"PENDENTE\"").expect(
+        "Wait-Checks deve COMPARAR contra PENDENTE (`-match \"PENDENTE\"`): so produzir a \
+         string no jq nao adianta, e a comparacao que faz o loop esperar",
+    );
     let merge_state_pos = body
         .find("mergeStateStatus")
         .expect("Wait-Checks deve consultar mergeStateStatus");

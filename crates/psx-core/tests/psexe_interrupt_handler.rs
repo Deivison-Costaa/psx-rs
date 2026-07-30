@@ -69,12 +69,20 @@ fn handler_no_vector_0x80_acknowledge_istat_e_rfe_restaura_iec() {
     bus.irq_mut().raise(0);
 
     let sr_antes = cpu.sr();
-    assert_eq!(sr_antes & 0x1, 0x1, "IEc deve estar setado antes da interrupcao");
+    assert_eq!(
+        sr_antes & 0x1,
+        0x1,
+        "IEc deve estar setado antes da interrupcao"
+    );
 
     for _ in 0..10 {
         cpu.step(&mut bus);
     }
 
     let sr_depois = cpu.sr();
-    assert_eq!(sr_depois & 0x1, 0x1, "IEc deve estar setado apos handler RFE");
+    assert_eq!(
+        sr_depois & 0x1,
+        0x1,
+        "IEc deve estar setado apos handler RFE"
+    );
 }

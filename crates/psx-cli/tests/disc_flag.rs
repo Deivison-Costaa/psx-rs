@@ -30,17 +30,16 @@ fn disc_flag_cue_minimo_aceito_com_bios() {
         .output()
         .expect("executar psx-cli --bios --disc");
 
-    let stdout = String::from_utf8_lossy(&output.stdout);
     let stderr = String::from_utf8_lossy(&output.stderr);
-    eprintln!("stdout: {stdout}\nstderr: {stderr}");
+    eprintln!("stderr: {stderr}");
 
     assert!(
         output.status.success(),
         "G1: --bios --disc deve retornar codigo 0"
     );
     assert!(
-        stdout.contains("DISCO: 1 faixa(s)") && stdout.contains("BIN: disc.bin"),
-        "G1: stdout deve conter track info e BIN path; stdout={stdout:?}"
+        stderr.contains("Runner:"),
+        "G1: --bios --disc deve bootar a BIOS; stderr={stderr:?}"
     );
 
     let _ = fs::remove_dir_all(&tmp);

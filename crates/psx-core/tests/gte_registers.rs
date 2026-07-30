@@ -118,8 +118,8 @@ fn cfc2_tem_load_delay_de_uma_instrucao() {
         "CFC2: load delay — valor ainda nao disponivel"
     );
     cpu.step(&mut bus);
-    assert_ne!(
-        cpu.regs[9], 0,
+    assert_eq!(
+        cpu.regs[9], 0x0000_0123,
         "CFC2: apos o delay slot, gpr deve conter o valor lido"
     );
 }

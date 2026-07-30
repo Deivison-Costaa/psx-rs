@@ -40,11 +40,13 @@ rotulo: button_state inicializado com zero em vez de 0xFFFF
 @@FIM
 
 mutante: m5
-rotulo: botoes_soltos usa set_buttons(0) em vez de 0xFFFF
+rotulo: send_byte retorna 0x00 para bytes de botao em vez do estado real
 @@DE
-    sio.set_buttons(0xFFFF);
+                3 => (self.button_state.get() >> 8) as u8,
+                4 => (self.button_state.get() & 0xFF) as u8,
 @@PARA
-    sio.set_buttons(0x0000);
+                3 => 0x00,
+                4 => 0x00,
 @@FIM
 
 controle: c1

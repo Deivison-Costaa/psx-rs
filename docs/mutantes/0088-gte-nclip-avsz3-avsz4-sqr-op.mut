@@ -16,17 +16,17 @@ rotulo: NCLIP inverte sinal de MAC0
 mutante: m2
 rotulo: AVSZ3 usa SZ0 em vez de SZ1
 @@DE
-    fn avsz3(&mut self) {
-        let mut flag: u32 = 0;
-
-        let zsf3 = self.regs[61] as i16 as i64;
         let sz1 = self.regs[17] as i64;
-@@PARA
-    fn avsz3(&mut self) {
-        let mut flag: u32 = 0;
+        let sz2 = self.regs[18] as i64;
+        let sz3 = self.regs[19] as i64;
 
-        let zsf3 = self.regs[61] as i16 as i64;
+        let mac0 = zsf3 * (sz1 + sz2 + sz3);
+@@PARA
         let sz1 = self.regs[16] as i64;
+        let sz2 = self.regs[18] as i64;
+        let sz3 = self.regs[19] as i64;
+
+        let mac0 = zsf3 * (sz1 + sz2 + sz3);
 @@FIM
 
 mutante: m3

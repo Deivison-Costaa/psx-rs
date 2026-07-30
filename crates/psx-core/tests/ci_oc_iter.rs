@@ -23,9 +23,11 @@ fn parametro_inteiro(script: &str, nome: &str) -> i64 {
 
 fn corpo_da_funcao(script: &str, inicio: usize) -> &str {
     let resto = &script[inicio..];
-    match resto.find("
+    match resto.find(
+        "
 }
-") {
+",
+    ) {
         Some(fim) => &resto[..fim],
         None => resto,
     }

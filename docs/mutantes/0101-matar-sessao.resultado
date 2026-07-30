@@ -1,0 +1,10 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: 49deb8e8f8e6190b65e99d5ac689e0fbc7eab9bb
+# rodado_em: 2026-07-30T16:46:27-03:00
+m1,mutante,morreu,morreu,0.1,apos_matar_o_daemon_espera_a_porta_liberar;rodada_morta_encerra_a_sessao_no_daemon_e_nao_so_o_cliente
+m2,mutante,morreu,morreu,0.1,rodada_morta_encerra_a_sessao_no_daemon_e_nao_so_o_cliente
+m3,mutante,morreu,morreu,0.1,encerramento_da_sessao_esta_no_caminho_de_falha
+m4,mutante,morreu,morreu,0.1,apos_matar_o_daemon_espera_a_porta_liberar
+m5,mutante,morreu,morreu,0.1,deteccao_da_porta_usa_o_endereco_em_que_o_daemon_escuta
+c1,controle,sobreviveu,sobreviveu,0.1,
+c2,controle,sobreviveu,sobreviveu,0.1,

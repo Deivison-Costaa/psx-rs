@@ -5,7 +5,7 @@
 
 ## Última iteração concluída
 
-**0100** — marcos 100% fechados saem do ROADMAP para `docs/ROADMAP-fechado.md` (ROADMAP 10.39).
+**0101** — rodada morta encerra a sessao no daemon `opencode serve`, e nao so o cliente (ROADMAP 10.31).
 
 ## Próxima tarefa
 

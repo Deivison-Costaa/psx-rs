@@ -133,3 +133,14 @@ Regra imposta por `status_handoff.rs`.
     texpage aparece rosa/azul porque cada halfword vira um pixel de 15 bits; ali cada halfword sao
     **quatro indices de CLUT**, nao uma cor. Ja me levou a suspeitar de cor errada na textura onde
     nao havia. Para julgar cor, olhe o que foi RASTERIZADO, nunca a texpage crua.
+22. **A tela do logo aos 85 M passos e estado INTERMEDIARIO — nao julgar cor contra a referencia
+    antes do 4.4h.** Medido na 0110: o display fica desligado (GPUSTAT.23=0) do inicio ao crash;
+    o fundo e um fade `000000 -> B4B4B4` congelado pelo crash (o cinza (180,180,180) da 0109 e o
+    ultimo quad do fade, nao bug de cor); e o "SONY" vermelho e CLUT pisoteada: as tres CLUTs do
+    texto moram na linha 480 da VRAM (x=192/256/320), DENTRO da area de desenho (0,241)-(639,480)
+    da segunda passada, e o losango com Y dobrado (2.2d) rasteriza por cima delas com seu
+    gradiente. Modulacao (10.13) esta refutada como causa: os 357 quads texturizados do boot usam
+    cor 0x808080, identidade (§ Modulation, 03-gpu.md). A lista da BIOS e uma cena de 480 linhas
+    desenhada 2x por frame com offsets (0,1)/(0,241) e display start alternando 1/241 — do nosso
+    jeito, as duas metades recebem a MESMA metade superior da cena; o modo final de video e
+    incognoscivel ate o boot sobreviver ao 4.4h.

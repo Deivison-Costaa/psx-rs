@@ -5,17 +5,16 @@
 
 ## Última iteração concluída
 
-**0096** — Investigação de I_MASK: BIOS escreve I_MASK com valores não-zero após ~19M passos (ROADMAP 4.4d).
+**0097** — Timer bit10 (IRQ Request) restaurado cedo demais no mesmo tick; BIOS nunca lia 0 para detectar IRQ do timer e callback de VSync nao disparava (ROADMAP 4.4f).
 
 ## Próxima tarefa
 
-**ROADMAP 4.4d (encerrado) — próximo item: dispatch de eventos do kernel.**
-O handler em 0x80000080 despacha para 0x00000C80, reconhece I_STAT, mas o callback de VSync não é invocado — BIOS imprime `VSync: timeout (2:1)`. O dispatch de eventos do kernel (ehk) precisa ser investigado.
-Spec: `docs/reference/11-interrupts.md`. Arquivos-alvo: `crates/psx-core/src/bus.rs`, `crates/psx-core/src/cpu.rs`.
+**Prioridade do usuário (3) — Testes de registrador do GTE.** `ps1-tests/gte/test-all` mostra 0 passed / 50 failed / 1150 total. A suite para nos testes de registrador e pede: "Make sure you're passing all register tests first." Dois padroes medidos: indices 13-14 tem off-by-one (recebido[n]=esperado[n-1]), e indices 9-11 tem valor na metade errada da palavra.
+Spec: `docs/reference/07-gte.md`. Arquivos-alvo: `crates/psx-core/src/gte.rs`.
 
 ## Prioridade — boot da BIOS travado
 
-Após o 4.4d, confirmado: I_MASK vira 0x0009 (~19M passos), I_STAT é acknowledged (vai a 0x0000), handler executa e retorna ao EPC. O bloqueio agora é o dispatch de eventos: o handler chama o código em 0x00000C80 mas o evento de VSync não é entregue ao callback do kernel, resultando em `VSync: timeout (2:1)`.
+Após o 4.4f, o bit10 do timer fica em 0 por um tick após o IRQ, permitindo que a event chain do BIOS em 0x00000C80 detecte o IRQ. O critério de aceitação observável é `psx-cli --bios <BIOS>` parar de imprimir `VSync: timeout`. Verificação pendente com BIOS real.
 
 ## Repositório
 
@@ -29,7 +28,7 @@ Após o 4.4d, confirmado: I_MASK vira 0x0009 (~19M passos), I_STAT é acknowledg
 
 ## Placar de testes
 
-Workspace: **690** testes.
+Workspace: **692** testes.
 
 ## Bloqueios
 

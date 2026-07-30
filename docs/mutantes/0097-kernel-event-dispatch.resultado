@@ -1,0 +1,10 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: ea559df221464928ff04760890349adea384448e
+# rodado_em: 2026-07-30T13:07:57-03:00
+m1,mutante,morreu,morreu,0.8,bit10_fica_em_zero_apos_irq_pulse_pelo_menos_um_tick;bit10_restaurado_ao_escrever_no_mode
+m2,mutante,morreu,morreu,0.8,bit10_fica_em_zero_apos_irq_pulse_pelo_menos_um_tick;bit10_restaurado_ao_escrever_no_mode
+m3,mutante,morreu,morreu,0.8,toggle_mode_bit10_nao_e_restaurado_automaticamente
+m4,mutante,morreu,sobreviveu,0.8,
+m5,mutante,morreu,sobreviveu,0.8,
+c1,controle,sobreviveu,sobreviveu,0.8,
+c2,controle,sobreviveu,sobreviveu,0.8,

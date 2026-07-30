@@ -27,7 +27,9 @@ Nota: `grep -n "if bit == 0" crates/psx-core/src/gpu.rs` casa na linha 1745 (GP1
 | psx-spx | GPU Timings (L1401), Vertical Video Timings (L1414) | docs/reference/03-gpu.md |
 | psx-spx | I_STAT (L21), Interrupt Request / Execution (L45), COP0 Interrupt Handling (L68) | docs/reference/11-interrupts.md |
 
-Offset do 11-interrupts.md é +19 (linhas reais: I_STAT=L40, Interrupt Request=L64, COP0 Int=L87).
+Offset do 11-interrupts.md é +19, e os números da tabela acima **já são as linhas reais**: os do
+índice são 2, 26 e 49, e o 19 já foi somado. Esta linha antes redizia os mesmos três somando 19
+uma segunda vez, o que apontou além do fim do arquivo e reprovou o portão de citações.
 
 Armadilha lida em `03-gpu.md` L1422-L1424: "Horizontal blanking and vertical blanking signals occur on the video output side as expected for NTSC/PAL signals. These are not necessarily the same as the timer/interrupt HBLANK and VBLANK."
 

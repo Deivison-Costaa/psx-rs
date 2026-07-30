@@ -102,3 +102,65 @@ fn janela_de_travamento_e_menor_que_a_parede_da_rodada() {
          inteiro vira decoracao."
     );
 }
+
+#[test]
+fn rodada_morta_encerra_a_sessao_no_daemon_e_nao_so_o_cliente() {
+    let script = oc_iter_content();
+
+    let pos_funcao = script.find("function Stop-SessaoDoTrabalhador").expect(
+        "oc-iter.ps1 deve ter uma funcao que encerra a SESSAO, nao so o processo cliente. \
+         `Stop-Process` no `opencode run --attach` mata o cliente; a sessao vive dentro do \
+         daemon `opencode serve` e continua escrevendo na arvore. Medido em 30/07: depois de a \
+         rodada ser declarada morta, ela commitou 3x direto na main local, resetou HEAD e \
+         renomeou branch, por ~3 min.",
+    );
+    let corpo = &script[pos_funcao..];
+    assert!(
+        corpo.contains("Get-Process") && corpo.contains("opencode"),
+        "a funcao tem de alcancar o processo do DAEMON pelo nome (`Get-Process ... opencode`); \
+         matar so `$p.Id` e o que ja se fazia e nao resolve"
+    );
+}
+
+#[test]
+fn encerramento_da_sessao_esta_no_caminho_de_falha() {
+    let script = oc_iter_content();
+
+    let pos_guarda = script
+        .find("$resultado -like \"falha:")
+        .expect("o encerramento da sessao tem de ser disparado por uma guarda de FALHA generica");
+    let depois = &script[pos_guarda..];
+    let pos_chamada = depois.find("Stop-SessaoDoTrabalhador").unwrap_or_else(|| {
+        panic!(
+            "dentro da guarda de falha tem de haver a chamada a Stop-SessaoDoTrabalhador. \
+             Amarrar o encerramento a UM rotulo so deixa o outro modo de morte com sessao viva."
+        )
+    });
+    let entre = &depois[..pos_chamada];
+    assert!(
+        entre.len() < 400,
+        "a chamada deve estar DENTRO do bloco da guarda de falha, nao centenas de caracteres \
+         adiante (distancia atual: {} chars)",
+        entre.len()
+    );
+}
+
+#[test]
+fn apos_matar_o_daemon_espera_a_porta_liberar() {
+    let script = oc_iter_content();
+    let pos_funcao = script
+        .find("function Stop-SessaoDoTrabalhador")
+        .expect("funcao de encerramento deve existir");
+    let corpo = &script[pos_funcao..];
+    let pos_kill = corpo
+        .find("Stop-Process")
+        .expect("a funcao deve matar o processo do daemon");
+    let depois_do_kill = &corpo[pos_kill..];
+
+    assert!(
+        depois_do_kill.contains("Test-Connection"),
+        "depois de matar o daemon a funcao tem de ESPERAR a porta liberar (`Test-Connection`): \
+         a proxima rodada faz `--attach` na porta e, se o daemon ainda estiver morrendo, ela \
+         anexa num processo que vai sumir — troca uma corrida por outra"
+    );
+}

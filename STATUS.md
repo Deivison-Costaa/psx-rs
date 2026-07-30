@@ -7,26 +7,30 @@
 
 ## Última iteração concluída
 
-**0104** — custo em ciclos do load por regiao de memoria; a BIOS boota sem nenhum `VSync: timeout`
-e desenha o logo da PlayStation (ROADMAP 4.4g).
+**0105** — GP0(80h), copia VRAM->VRAM, com mascara, wrap e coordenadas absolutas (ROADMAP 2.2b).
 
 ## Próxima tarefa
 
-**ROADMAP 2.2b — GP0(80h), o blit VRAM->VRAM, hoje consumido e ignorado.**
-Com o 4.4g fechado a BIOS chega a desenhar: 179 774 pixels nao-zero na VRAM, 540 cores, display
-configurado (x=0, y=241, range 608..3168). Mas a tela sai errada em tres pontos que apontam para o
-mesmo comando: o losango do logo aparece so pela metade de baixo; onde deveria estar a palavra
-"PlayStation" saem barras vermelhas horizontais; e o sprite `SONY COMPUTER ENTERTAINMENT` esta
-carregado na VRAM (canto superior direito) mas nunca e composto na tela. Os tres sao copia de
-retangulo dentro da VRAM.
-Spec: `docs/reference/03-gpu.md`, secao GP0(80h) VRAM-to-VRAM (offset +115 sobre o indice).
+**ROADMAP 2.2c — o quad texturizado GP0(2Ch) sai como barra chapada.**
+Medido pelo orquestrador em 30/07 com histograma exato no ponto de decodificacao do GP0, BIOS real
++ disco, 400M passos. O boot emite **360 comandos 2Ch** (quad texturizado, opaco, modulado) e
+**nenhum 80h**. Sao os 2Ch que desenham a palavra "PlayStation" no logo, e hoje ela sai como duas
+barras vermelhas horizontais chapadas. O sprite `SONY COMPUTER ENTERTAINMENT` esta carregado na
+VRAM (canto superior direito) pelos 63 comandos A0h, e tambem nao aparece composto.
+Spec: `docs/reference/03-gpu.md`, secoes de Polygon e de Texpage/CLUT (offset +115 sobre o indice).
 Arquivos-alvo: `crates/psx-core/src/gpu.rs`.
-Critério de aceitação: o losango do logo fica inteiro e o texto "PlayStation" deixa de ser barra.
-Invariantes relevantes: 13, 17.
+Critério de aceitação: as barras viram texto legivel no despejo da VRAM.
+Invariantes relevantes: 13, 18, 19.
 
-**Como medir sem chute:** rode `psx-cli --bios <BIOS>` por ~400M passos e despeje a VRAM
-(1024x512, 16bpp) — a comparacao e visual e direta. O item 10.7 (mask setting aplicado ao
-VRAM->VRAM) e vizinho e NAO entra aqui (R4).
+**Primeiro passo, barato:** conte as cores distintas na regiao das barras. Cor unica = a textura
+nao esta sendo amostrada; varias = amostra mas a modulacao ou a UV estao erradas. Os itens 10.13
+(modulacao vs raw texture) e 10.11 (textura de retangulo) sao vizinhos e ainda NAO foram medidos
+contra este caso.
+
+**Erro que ja custou uma iteracao — nao repetir:** o handoff da 0104 afirmava que os tres defeitos
+visiveis do logo eram culpa do blit VRAM->VRAM faltando. Era falso. Implementei o blit inteiro e a
+VRAM saiu **byte a byte identica**. Antes de atribuir defeito visual a um comando, MEÇA se o
+comando e sequer emitido.
 
 ## Repositório
 
@@ -40,7 +44,7 @@ VRAM->VRAM) e vizinho e NAO entra aqui (R4).
 
 ## Placar de testes
 
-Workspace: **720** testes.
+Workspace: **731** testes.
 
 ## Bloqueios
 

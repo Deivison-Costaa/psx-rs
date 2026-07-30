@@ -102,3 +102,14 @@ Regra imposta por `status_handoff.rs`.
     o vblank gastando um orcamento FIXO de 32 768 iteracoes de um laco de 12 instrucoes com 3
     loads da RAM. Com 1 ciclo por instrucao isso cobre 69% de um frame e a espera nunca e
     satisfeita (item 4.4g, iter 0104). Qualquer mudanca no modelo de ciclos reconfere este numero.
+18. **GP0(80h) le toda a origem antes de escrever — COMPORTAMENTO ASSUMIDO.** A spec
+    (`docs/reference/03-gpu.md` L609-615) nao diz a ordem de varredura do blit, entao regiao de
+    origem e destino sobrepostas fica indefinida por ela. Escolhemos ler tudo para um buffer antes
+    de escrever, que e o unico resultado independente da ordem; copia in-place da esquerda para a
+    direita arrastaria o primeiro pixel. Teste que fixa:
+    `origem_e_lida_antes_de_qualquer_escrita_em_regiao_sobreposta`. Ponto de resolucao: suite de
+    hardware do ps1-tests para GP0(80h).
+19. **Mascarar Xpos na entrada do blit e redundante; mascarar Ypos NAO.** O laco ja faz
+    `(x + col) & 0x3FF`, e como `0x400` divide `2^16` a mascara de fora nao muda nada — foi o
+    equivalente m3 da bateria 0105. Para Y a conta nao vale: `0x200` nao divide `2^16`, entao
+    `& 0x1FF` na entrada e observavel. Quem for otimizar isto nao pode tratar os dois eixos igual.

@@ -10,7 +10,8 @@ M3 (DMA/IRQ/timers). Regra imposta por `roadmap_arquivo.rs`.
 ## M2 — GPU (rasterizador por software)
 - [x] 2.1 GPUSTAT + decodificação GP0/GP1 (iter 0035)
 - [x] 2.2 VRAM 1MB + transfers (fill, CPU↔VRAM) (iter 0038)
-- [ ] 2.2b VRAM->VRAM copy GP0(80h) — no-op hoje, bloqueio de boot de jogo
+- [x] 2.2b VRAM->VRAM copy GP0(80h) — mascara, wrap e coordenadas absolutas (iter 0105)
+- [ ] 2.2c Quad texturizado GP0(2Ch) sai como barra chapada — 360 no boot da BIOS, e o defeito visivel
 - [x] 2.3 Triângulos flat + gouraud (iter 0039)
 - [x] 2.4 Quads, retângulos, linhas (iter 0042)
 - [x] 2.5a Texpage GP0(E1h) + amostragem de textura 15bpp (iter 0044)
@@ -123,6 +124,7 @@ M3 (DMA/IRQ/timers). Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 10.43 Todo texto do TTY sai duplicado (2 linhas 'System ROM' na main e depois do 0103)
 - [ ] 10.44 Manifesto com alvo em documento vivo (STATUS.md) envelhece na iteracao seguinte, sempre
 - [ ] 10.45 Load shadow: acesso lento se sobrepoe as instrucoes seguintes (`docs/reference/02-cpu.md` L281-296)
+- [ ] 10.46 `justificativa:` do equivalente nao aceita continuacao de linha em NENHUM dos dois parsers
 
 ## M11 — Apresentação (incremental desde o M1)
 - [x] 11.1 Relatório consolidado (docs/relatorio.md — atualizado a cada marco) (iter 0096)

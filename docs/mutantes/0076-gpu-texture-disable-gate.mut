@@ -1,0 +1,65 @@
+# Manifesto de mutação da iteração 0076 — gpu-texture-disable-gate
+formato: 1
+iteracao: 0076
+item: 10.32
+alvo: crates/psx-core/src/gpu.rs
+teste: gpu_texture_disable
+
+mutante: m1
+rotulo: GP1(09h) inverte o gate (bit == 0 em vez de bit != 0)
+@@DE
+                self.allow_upper_y.set(bit != 0);
+@@PARA
+                self.allow_upper_y.set(bit == 0);
+@@FIM
+
+mutante: m2
+rotulo: GP1(09h) sempre abre o gate (ignora bit, seta true)
+@@DE
+                self.allow_upper_y.set(bit != 0);
+@@PARA
+                self.allow_upper_y.set(true);
+@@FIM
+
+mutante: m3
+rotulo: GP1(09h) sempre fecha o gate (ignora bit, seta false)
+@@DE
+                self.allow_upper_y.set(bit != 0);
+@@PARA
+                self.allow_upper_y.set(false);
+@@FIM
+
+mutante: m4
+rotulo: GP1(09h) le bit 1 em vez de bit 0
+@@DE
+                let bit = val & 1;
+@@PARA
+                let bit = (val >> 1) & 1;
+@@FIM
+
+mutante: m5
+rotulo: GP1(00h) esquece de resetar allow_upper_y
+@@DE
+                self.allow_upper_y.set(false);
+@@PARA
+                // nao reseta allow_upper_y
+@@FIM
+
+controle: c1
+rotulo: renomeia variavel bit para gate_bit (cosmetico)
+@@DE
+                let bit = val & 1;
+                self.allow_upper_y.set(bit != 0);
+@@PARA
+                let gate_bit = val & 1;
+                self.allow_upper_y.set(gate_bit != 0);
+@@FIM
+
+controle: c2
+rotulo: extrai condicao para variavel local (cosmetico)
+@@DE
+                self.allow_upper_y.set(bit != 0);
+@@PARA
+                let gate_open = bit != 0;
+                self.allow_upper_y.set(gate_open);
+@@FIM

@@ -1,0 +1,11 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: b9c259c79a35f934015e862d7acba10241e0a743
+# rodado_em: 2026-07-29T21:47:26-03:00
+m1,mutante,morreu,morreu,0.7,t11_force_bit15_sobrescreve_pixel_protegido_sem_write_protect;t12_write_protect_protege_segundo_halfword_individualmente
+m2,mutante,morreu,morreu,0.8,t11_force_bit15_sobrescreve_pixel_protegido_sem_write_protect;t12_write_protect_protege_segundo_halfword_individualmente;t9_cpu_para_vram_force_bit15_seta_bit15
+m3,mutante,morreu,morreu,0.7,t8_cpu_para_vram_respeita_write_protect
+m4,mutante,morreu,morreu,0.7,t11_force_bit15_sobrescreve_pixel_protegido_sem_write_protect;t9_cpu_para_vram_force_bit15_seta_bit15
+m5,mutante,morreu,morreu,0.8,t12_write_protect_protege_segundo_halfword_individualmente
+m6,equivalente,sobreviveu,sobreviveu,0.8,
+c1,controle,sobreviveu,sobreviveu,0.8,
+c2,controle,sobreviveu,sobreviveu,0.7,

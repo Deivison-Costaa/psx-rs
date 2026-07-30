@@ -16,9 +16,9 @@ rotulo: M6 fica 100% fechado e continua ocupando bytes da escada
 mutante: m2
 rotulo: M2 fica 100% fechado e continua ocupando bytes da escada
 @@DE
-- [ ] 2.2c Quad texturizado GP0(2Ch) sai como barra chapada — 360 no boot da BIOS, e o defeito visivel
+- [ ] 2.2d Metade de cima do losango do logo nunca e desenhada
 @@PARA
-- [x] 2.2c Quad texturizado GP0(2Ch) sai como barra chapada — 360 no boot da BIOS, e o defeito visivel
+- [x] 2.2d Metade de cima do losango do logo nunca e desenhada
 @@FIM
 
 mutante: m3

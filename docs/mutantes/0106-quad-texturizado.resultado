@@ -1,0 +1,11 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: a4a534ef42d004fb1a8fc4b573bade5f4d0ca8a6
+# rodado_em: 2026-07-30T18:32:31-03:00
+m1,mutante,morreu,morreu,0.8,textura_4bpp_le_a_linha_certa_para_v_maior_que_zero;textura_4bpp_respeita_a_base_horizontal_da_texpage_em_v_maior_que_zero
+m2,mutante,morreu,morreu,0.8,textura_8bpp_le_a_linha_certa_para_v_maior_que_zero
+m3,mutante,morreu,morreu,0.8,textura_4bpp_le_a_linha_certa_para_v_maior_que_zero
+m4,mutante,morreu,morreu,0.8,textura_8bpp_le_a_linha_certa_para_v_maior_que_zero
+m5,mutante,morreu,morreu,0.8,textura_4bpp_respeita_a_base_horizontal_da_texpage_em_v_maior_que_zero
+m6,mutante,morreu,morreu,0.8,textura_15bpp_ja_lia_a_linha_certa;textura_4bpp_le_a_linha_certa_para_v_maior_que_zero;textura_4bpp_respeita_a_base_horizontal_da_texpage_em_v_maior_que_zero;textura_8bpp_le_a_linha_certa_para_v_maior_que_zero
+c1,controle,sobreviveu,sobreviveu,0.8,
+c2,controle,sobreviveu,sobreviveu,0.9,

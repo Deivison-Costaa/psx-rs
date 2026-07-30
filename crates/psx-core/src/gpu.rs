@@ -1211,16 +1211,14 @@ impl Gpu {
 
         match tex_colors {
             0 => {
-                let pixel_index = v_clamped as usize * 256 + u_clamped as usize;
-                let hw_x = page_x.wrapping_add((pixel_index / 4) as u16) as usize & 0x3FF;
+                let hw_x = page_x.wrapping_add(u_clamped / 4) as usize & 0x3FF;
                 let hw_y = page_y.wrapping_add(v_clamped) as usize & 0x1FF;
                 let hw = self.vram[hw_y * 1024 + hw_x];
                 let nibble = (hw >> ((u_clamped % 4) * 4)) & 0xF;
                 self.lookup_clut(nibble)
             }
             1 => {
-                let pixel_index = v_clamped as usize * 256 + u_clamped as usize;
-                let hw_x = page_x.wrapping_add((pixel_index / 2) as u16) as usize & 0x3FF;
+                let hw_x = page_x.wrapping_add(u_clamped / 2) as usize & 0x3FF;
                 let hw_y = page_y.wrapping_add(v_clamped) as usize & 0x1FF;
                 let hw = self.vram[hw_y * 1024 + hw_x];
                 let byte = if u_clamped % 2 == 0 {

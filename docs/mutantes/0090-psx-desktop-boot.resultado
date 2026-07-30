@@ -1,0 +1,10 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: a8a62fdfae16d9698ee4c83fdfdb1e6f333c8055
+# rodado_em: 2026-07-30T07:40:25-03:00
+m1,mutante,morreu,morreu,1.4,bios_vazia_mostra_display_ligado_padrao_gpu;psx_desktop_com_bios_mostra_display_ligado
+m2,mutante,morreu,morreu,1.4,bios_vazia_mostra_display_ligado_padrao_gpu;psx_desktop_com_bios_mostra_display_ligado
+m3,mutante,morreu,sobreviveu,1.4,
+m4,mutante,morreu,sobreviveu,1.4,
+m5,mutante,morreu,sobreviveu,1.4,
+m6,mutante,morreu,sobreviveu,1.4,
+m7,mutante,morreu,sobreviveu,1.4,

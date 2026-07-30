@@ -50,7 +50,11 @@ impl Gte {
         let sf = (func >> 19) & 1;
         let lm = (func >> 10) & 1;
 
-        self.regs[63] &= 0x7FFF_F000;
+        self.regs[63] = 0;
+
+        let mx = (func >> 17) & 3;
+        let v = (func >> 15) & 3;
+        let cv = (func >> 13) & 3;
 
         match cmd {
             0x01 => self.rtps(sf, lm),
@@ -60,6 +64,7 @@ impl Gte {
             0x2E => self.avsz4(),
             0x28 => self.sqr(sf),
             0x0C => self.op(sf, lm),
+            0x12 => self.mvmva(sf, mx, v, cv, lm),
             _ => {}
         }
     }
@@ -202,6 +207,127 @@ impl Gte {
         self.regs[9] = ir1_clamped as u32;
         self.regs[10] = ir2_clamped as u32;
         self.regs[11] = ir3_clamped as u32;
+        self.regs[63] |= flag;
+    }
+
+    fn mvmva(&mut self, sf: u32, mx: u32, v: u32, cv: u32, lm: u32) {
+        let mut flag: u32 = 0;
+
+        let (base_mat, base_tr) = match (mx, cv) {
+            (0, _) => (32, 37),
+            (1, _) => (40, 45),
+            (2, _) => (48, 53),
+            _ => (0, 0),
+        };
+
+        let m11: i32;
+        let m12: i32;
+        let m13: i32;
+        let m21: i32;
+        let m22: i32;
+        let m23: i32;
+        let m31: i32;
+        let m32: i32;
+        let m33: i32;
+
+        if mx == 3 {
+            let r = (self.regs[6] & 0xFF) as i32;
+            m11 = -(r * 0x10);
+            m12 = r * 0x10;
+            m13 = self.regs[8] as i16 as i32;
+            m21 = self.regs[33] as i16 as i32;
+            m22 = self.regs[33] as i16 as i32;
+            m23 = self.regs[33] as i16 as i32;
+            m31 = self.regs[34] as i16 as i32;
+            m32 = self.regs[34] as i16 as i32;
+            m33 = self.regs[34] as i16 as i32;
+        } else {
+            let b = base_mat;
+            m11 = self.regs[b] as i16 as i32;
+            m12 = (self.regs[b] >> 16) as i16 as i32;
+            m13 = self.regs[b + 1] as i16 as i32;
+            m21 = (self.regs[b + 1] >> 16) as i16 as i32;
+            m22 = self.regs[b + 2] as i16 as i32;
+            m23 = (self.regs[b + 2] >> 16) as i16 as i32;
+            m31 = self.regs[b + 3] as i16 as i32;
+            m32 = (self.regs[b + 3] >> 16) as i16 as i32;
+            m33 = self.regs[b + 4] as i16 as i32;
+        }
+
+        let (vx, vy, vz): (i32, i32, i32) = match v {
+            0 => (
+                self.regs[0] as i16 as i32,
+                (self.regs[0] >> 16) as i16 as i32,
+                self.regs[1] as i16 as i32,
+            ),
+            1 => (
+                self.regs[2] as i16 as i32,
+                (self.regs[2] >> 16) as i16 as i32,
+                self.regs[3] as i16 as i32,
+            ),
+            2 => (
+                self.regs[4] as i16 as i32,
+                (self.regs[4] >> 16) as i16 as i32,
+                self.regs[5] as i16 as i32,
+            ),
+            _ => (
+                self.regs[9] as i16 as i32,
+                self.regs[10] as i16 as i32,
+                self.regs[11] as i16 as i32,
+            ),
+        };
+
+        let (tx, ty, tz): (i64, i64, i64) = if cv == 2 || cv == 3 {
+            (0, 0, 0)
+        } else {
+            let t = base_tr;
+            (
+                self.regs[t] as i32 as i64,
+                self.regs[t + 1] as i32 as i64,
+                self.regs[t + 2] as i32 as i64,
+            )
+        };
+
+        let raw1: i64;
+        let raw2: i64;
+        let raw3: i64;
+
+        if cv == 2 {
+            raw1 = (m12 as i64) * (vx as i64) + (m13 as i64) * (vy as i64);
+            raw2 = (m22 as i64) * (vx as i64) + (m23 as i64) * (vy as i64);
+            raw3 = (m32 as i64) * (vx as i64) + (m33 as i64) * (vy as i64);
+        } else {
+            raw1 = tx * 0x1000
+                + (m11 as i64) * (vx as i64)
+                + (m12 as i64) * (vy as i64)
+                + (m13 as i64) * (vz as i64);
+            raw2 = ty * 0x1000
+                + (m21 as i64) * (vx as i64)
+                + (m22 as i64) * (vy as i64)
+                + (m23 as i64) * (vz as i64);
+            raw3 = tz * 0x1000
+                + (m31 as i64) * (vx as i64)
+                + (m32 as i64) * (vy as i64)
+                + (m33 as i64) * (vz as i64);
+        }
+
+        let shift = sf * 12;
+        let mac1 = (raw1 >> shift) as i32;
+        let mac2 = (raw2 >> shift) as i32;
+        let mac3 = (raw3 >> shift) as i32;
+
+        self.regs[25] = mac1 as u32;
+        self.regs[26] = mac2 as u32;
+        self.regs[27] = mac3 as u32;
+
+        let ir1 = saturate_ir(mac1 as i64, lm, 24, &mut flag, false);
+        let ir2 = saturate_ir(mac2 as i64, lm, 23, &mut flag, false);
+        let ir3 = saturate_ir(mac3 as i64, lm, 22, &mut flag, false);
+
+        self.regs[9] = ir1 as u32;
+        self.regs[10] = ir2 as u32;
+        self.regs[11] = ir3 as u32;
+
         self.regs[63] |= flag;
     }
 

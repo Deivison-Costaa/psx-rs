@@ -5,15 +5,16 @@
 
 ## Última iteração concluída
 
-**0088** — GTE: NCLIP/AVSZ3/AVSZ4/SQR/OP (ROADMAP 5.3).
+**0089** — GTE: MVMVA (ROADMAP 5.4a).
 
 ## Próxima tarefa
 
-**ROADMAP 5.4 — MVMVA + comandos de iluminação (NCS/NCT/NCDS/NCCS...).**
+**ROADMAP 5.4b — NCS/NCT/NCCS/NCCT (comandos de cor normal).**
 Spec: `docs/reference/07-gte.md` (offset +72).
-Seções: MVMVA (L541), NCS/NCT/NCDS/NCCS/NCDT/NCCT (L592), CC/CDP (L610-619).
+Seções: NCS/NCT/NCCS/NCCT (L592), com fórmula LLM*V + BK*1000h + LCM*IR + [R*IR1,G*IR2,B*IR3] SHL 4 + SAR(sf*12).
 Arquivos-alvo: `crates/psx-core/src/gte.rs`.
-Armadilha: MVMVA usa bits mx (17-18), v (15-16), cv (13-14) do comando COP2 além de sf e lm.
+Armadilha: os comandos single/triple repetem a fórmula com V0/V1/V2; NCCS/NCCT aplicam `[R*IR1,G*IR2,B*IR3] SHL 4`.
+A fila: 5.4c (NCDS/NCDT/CC/CDP), 5.4d (DCPL/DPCS/DPCT/INTPL), 5.5 (flags), 5.6.
 
 ## Prioridade — boot da BIOS travado
 
@@ -31,7 +32,7 @@ Após o 4.4c (I_MASK via SH), verificado: TTY do boot da BIOS ainda mostra `VSyn
 
 ## Placar de testes
 
-Workspace: **662** testes.
+Workspace: **669** testes.
 
 ## Bloqueios
 

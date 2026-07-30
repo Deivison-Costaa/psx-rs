@@ -1,6 +1,6 @@
 # gerado por scripts/mutantes.ps1 — NAO editar a mao
-# commit: 52d4ff739eb05df93f28428cbec7fa6c404785ce
-# rodado_em: 2026-07-30T06:38:55-03:00
+# commit: 07f6e076044965f73f48dd7a09f88424dedaafd6
+# rodado_em: 2026-07-30T07:06:37-03:00
 m1,mutante,morreu,morreu,0.8,nclip_poligono_anti_horario_mac0_negativo;nclip_poligono_horario_mac0_positivo
 m2,mutante,morreu,morreu,0.8,avsz3_media_ponderada_de_tres_z;avsz4_media_ponderada_de_quatro_z
 m3,mutante,morreu,morreu,0.8,avsz4_media_ponderada_de_quatro_z

@@ -1,0 +1,83 @@
+# Manifesto de mutação da iteração 0089 — gte-mvmva
+formato: 1
+iteracao: 0089
+item: 5.4a
+alvo: crates/psx-core/src/gte.rs
+teste: gte_mvmva
+
+mutante: m1
+rotulo: MVMVA ignora mx (sempre usa matriz RT)
+@@DE
+        let (base_mat, base_tr) = match (mx, cv) {
+@@PARA
+        let (base_mat, base_tr) = match (0u32, cv) {
+@@FIM
+
+mutante: m2
+rotulo: MVMVA ignora v (sempre usa V0)
+@@DE
+        let (vx, vy, vz): (i32, i32, i32) = match v {
+@@PARA
+        let (vx, vy, vz): (i32, i32, i32) = match 0u32 {
+@@FIM
+
+mutante: m3
+rotulo: MVMVA omite multiplicacao de TR por 0x1000h
+@@DE
+            raw1 = tx * 0x1000
+@@PARA
+            raw1 = tx
+@@FIM
+
+mutante: m4
+rotulo: MVMVA MAC1 inverte sinal do termo m11*vx
+@@DE
+                + (m11 as i64) * (vx as i64)
+@@PARA
+                - (m11 as i64) * (vx as i64)
+@@FIM
+
+mutante: m5
+rotulo: MVMVA ignora lm (forca lm=0 na saturacao IR1)
+ocorrencias: 2
+@@DE
+        let ir1 = saturate_ir(mac1 as i64, lm, 24, &mut flag, false);
+@@PARA
+        let ir1 = saturate_ir(mac1 as i64, 0, 24, &mut flag, false);
+@@FIM
+
+mutante: m6
+rotulo: MVMVA raw2 usa tx em vez de ty
+@@DE
+            raw2 = ty * 0x1000
+@@PARA
+            raw2 = tx * 0x1000
+@@FIM
+
+mutante: m7
+rotulo: MVMVA m33 le como i32 direto (sem sign-extend i16)
+@@DE
+            m33 = self.regs[b + 4] as i16 as i32;
+@@PARA
+            m33 = self.regs[b + 4] as i32;
+@@FIM
+
+controle: c1
+rotulo: renomeia variavel local tx para translacao_x no mvmva
+@@DE
+            raw1 = tx * 0x1000
+@@PARA
+            let translacao_x = tx;
+            raw1 = translacao_x * 0x1000
+@@FIM
+
+controle: c2
+rotulo: adiciona let _ = 0 no inicio de mvmva
+@@DE
+    fn mvmva(&mut self, sf: u32, mx: u32, v: u32, cv: u32, lm: u32) {
+        let mut flag: u32 = 0;
+@@PARA
+    fn mvmva(&mut self, sf: u32, mx: u32, v: u32, cv: u32, lm: u32) {
+        let _ = 0;
+        let mut flag: u32 = 0;
+@@FIM

@@ -1,0 +1,115 @@
+# Manifesto de mutação da iteração 0083 — fix-spec-citations-substring
+formato: 1
+iteracao: 0083
+item: 10.16
+alvo: crates/psx-core/tests/support/spec_citation_data.rs
+teste: spec_citation_index
+
+mutante: m1
+rotulo: retorna primeiro match em vez do mais longo (regressao)
+@@DE
+    let max_len = matches
+        .iter()
+        .map(|e| normalize_title(&e.title).len())
+        .max()
+        .unwrap_or(0);
+    let longest: Vec<&&IndexEntry> = matches
+        .iter()
+        .filter(|e| normalize_title(&e.title).len() == max_len)
+        .collect();
+    if longest.len() == 1 {
+        return Some(longest[0]);
+    }
+    None
+@@PARA
+    return Some(matches[0]);
+@@FIM
+
+mutante: m2
+rotulo: retorna None quando ha multiplos matches (ignora comprimento)
+@@DE
+        .filter(|e| title_contains(&s, &e.title))
+        .collect();
+    if matches.is_empty() {
+        return None;
+    }
+    if matches.len() == 1 {
+        return Some(matches[0]);
+    }
+@@PARA
+        .filter(|e| title_contains(&s, &e.title))
+        .collect();
+    if matches.is_empty() || matches.len() > 1 {
+        return None;
+    }
+@@FIM
+
+mutante: m3
+rotulo: prefere titulo mais CURTO em vez do mais longo
+ocorrencias: 2
+@@DE
+        .filter(|e| normalize_title(&e.title).len() == max_len)
+@@PARA
+        .filter(|e| normalize_title(&e.title).len() != max_len)
+@@FIM
+
+mutante: m4
+rotulo: longest.len() >= 1 aceita empate silencioso
+@@DE
+    if longest.len() == 1 {
+        return Some(longest[0]);
+    }
+    None
+@@PARA
+    if longest.len() >= 1 {
+        return Some(longest[0]);
+    }
+    None
+@@FIM
+
+mutante: m5
+rotulo: index_match_ambiguity inverte condicao de retorno
+@@DE
+    if longest.len() <= 1 {
+        return None;
+    }
+    let titles: Vec<String> = longest.iter().map(|e| e.title.clone()).collect();
+    Some(format!(
+        "ambíguo: {} candidatas empatadas para '{}': {}",
+        longest.len(),
+        search,
+        titles.join("', '")
+    ))
+@@PARA
+    if longest.len() <= 1 {
+        let titles: Vec<String> = longest.iter().map(|e| e.title.clone()).collect();
+        return Some(format!(
+            "ambíguo: {} candidatas empatadas para '{}': {}",
+            longest.len(),
+            search,
+            titles.join("', '")
+        ));
+    }
+    None
+@@FIM
+
+controle: c1
+rotulo: adiciona comentario antes do filter (cosmetico)
+ocorrencias: 2
+@@DE
+        .filter(|e| title_contains(&s, &e.title))
+@@PARA
+        // filtra titulos que contem o termo de busca
+        .filter(|e| title_contains(&s, &e.title))
+@@FIM
+
+controle: c2
+rotulo: inverte ordem dos ifs em index_match_ambiguity (cosmetico)
+@@DE
+    if matches.len() <= 1 {
+        return None;
+    }
+    let max_len = matches
+@@PARA
+    let max_len = matches
+@@FIM

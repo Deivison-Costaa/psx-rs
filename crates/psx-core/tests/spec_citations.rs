@@ -5,7 +5,7 @@ use std::fs;
 
 use support::spec_citation_data::{
     Citation, check_c_body_check, collect_md_files, find_in_index, find_next_index_k,
-    load_ref_docs, relative_path,
+    index_match_ambiguity, load_ref_docs, relative_path,
 };
 
 struct RawRef {
@@ -411,6 +411,13 @@ fn citacoes_de_spec_sao_validas() {
             let offset = ref_doc.corpo_line as u32 + 1;
 
             if let Some(ref title) = cit.section_title {
+                if let Some(amb_msg) = index_match_ambiguity(&ref_doc.index_entries, title) {
+                    all_errors.push(format!(
+                        "{}:{} — citação com título ambíguo: {amb_msg}",
+                        cit.source_path, cit.source_line,
+                    ));
+                    continue;
+                }
                 if let Some(idx_entry) = find_in_index(&ref_doc.index_entries, title) {
                     let k = idx_entry.offset_k;
                     let real = k + offset;

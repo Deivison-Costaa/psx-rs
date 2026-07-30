@@ -12,14 +12,14 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [x] 0.5 Docs de gestão (iter 0003)
 - [x] 0.6 psx-spx fatiado em docs/reference com índice de seções (iter 0006)
 - [x] 0.7 fetch de EXEs de teste + scoreboard esqueleto (iter 0007)
-- [x] 0.8 Orquestração opencode/DeepSeek + smoke test de ponta a ponta (iter 0008/0008b)
+- [x] 0.8 Orquestração opencode/DeepSeek + smoke test (iter 0008/0008b)
 - [x] 0.9 Carregamento de BIOS com validação de hash (1ª iteração do trabalhador) (iter 0009)
 - [x] 0.10 Formato de manifesto de mutação + meta-teste (iter 0040)
 - [x] 0.11 scripts/mutantes.ps1 + job de CI + reconciliação do placar (iter 0041)
 - [x] 0.12 Verificador de citações de spec (iter 0043)
 
 ## M1 — CPU R3000A até o BIOS falar
-- [x] 1.1 Scheduler de eventos + bus (KUSEG/KSEG0/KSEG1), RAM 2MB, BIOS ROM (iter 0010)
+- [x] 1.1 Scheduler + bus (KUSEG/KSEG0/KSEG1), RAM 2MB, BIOS ROM (iter 0010)
 - [x] 1.2 Fetch/decode + LUI/ORI/SW (iter 0011)
 - [x] 1.3 ALU: ADDU/SUBU/AND/OR/XOR/NOR/SLT/SLTU + imediatos (iter 0012)
 - [x] 1.3b Shifts SLL/SRL/SRA/SLLV/SRLV/SRAV (fatiado de 1.3 na revisão da 0012) (iter 0013)
@@ -27,14 +27,14 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [x] 1.5 Branches/jumps + branch delay slot (iter 0015)
 - [x] 1.6 MULT/MULTU/DIV/DIVU + HI/LO com stalls (iter 0016)
 - [x] 1.7 LWL/LWR/SWL/SWR (iter 0018)
-- [x] 1.8a COP0: registradores SR/CAUSE/EPC/BadVaddr/PRID + MTC0/MFC0 + RFE (sem exceções) (iter 0020)
+- [x] 1.8a COP0: SR/CAUSE/EPC/BadVaddr/PRID + MTC0/MFC0 + RFE (iter 0020)
 - [x] 1.8b Mecanismo de exceção: overflow, syscall, break, AdEL/AdES, bit BD (iter 0021)
 - [x] 1.9 Cache isolation + scratchpad + memory control stubs (iter 0022)
 - [x] 1.10 Hook de TTY (A0h/B0h) → BIOS imprimindo no console (iter 0025)
 - [x] 1.11 Sideload de PS-EXE no psx-cli + Amidog psxtest_cpu no scoreboard (iter 0027)
 - [x] 1.11b Hook de printf A(3Fh) com expansão de % → Amidog imprimindo no TTY (iter 0029)
 - [x] 1.12 CI: job scoreboard ligado (iter 0031)
-- [x] 1.13 Veredito real no scoreboard: ler a saida de cada suite e extrair pass/fail (depende do 2.1 — GPUSTAT + decodificacao GP0/GP1) (iter 0036)
+- [x] 1.13 Veredito no scoreboard: parse de saida das suites (iter 0036)
 - [x] 1.14 Opcode nao implementado gera excecao (RI 0Ah / CpU 0Bh) em vez de panic (iter 0033)
 
 ## M2 — GPU (rasterizador por software)
@@ -51,8 +51,7 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [x] 2.6c Mask bit (proteção de pixel bit15=1) (iter 0049)
 - [x] 2.7a Display registers GP1(05h-07h) (iter 0050)
 - [x] 2.7b Timing NTSC/PAL, vblank IRQ (dividido da 2.7 por R4 — display regs ja implementado) (iter 0051)
-- [x] 2.8 psx-desktop mínimo (eframe/egui) → logo do BIOS na tela (iter 0052)
-- [x] 2.8b psx-desktop janela eframe/egui (deferido da 2.8 por incompatibilidade Rust 1.85 vs eframe 0.35) (iter 0053)
+- [x] 2.8 psx-desktop eframe/egui (iter 0052/0053)
 - [x] 2.9 Suíte GPU do ps1-tests no scoreboard (iter 0054)
 
 ## M3 — DMA, IRQ, timers
@@ -129,7 +128,7 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [ ] 10.25 Varrer os outros `unwrap_or("")` sobre caminho nos meta-testes: foi o que transformou a falha de `strip_prefix` em silêncio na 10.12, e o separador foi só o gatilho
 - [ ] 10.13 GP0(24h) é modulação, não raw texture: bit 24 do comando não é lido e o texel vai cru (03-gpu.md L264 e L1610)
 - [ ] 10.14 U/V e cor gouraud são reinterpolados sobre o span já recortado pela drawing area — a textura estica em vez de só perder os pixels de fora (03-gpu.md L452-454)
-- [ ] 10.16 `spec_citations.rs` usa o primeiro título entre aspas para todos os refs da linha em vez de parear pelo mais próximo, e deu diagnóstico errado na 0066 — ou pareia por proximidade, ou falha como ambíguo
+- [x] 10.16 `spec_citations.rs` casava titulo de secao por substring; corrigido para titulo mais longo (iter 0083)
 - [x] 10.15 Reparar ancoras do manifesto 0059 arquivado na 0060 (iter 0067)
 - [ ] 10.17 `mutantes.ps1` recusa árvore suja, então reparo de âncora só pode ser verificado depois de commitado às cegas — permitir sujeira restrita a `docs/mutantes/*.mut`
 - [x] 10.19 DPCR gate nos tres canais do DMA (iter 0071)
@@ -142,6 +141,8 @@ Teto de tamanho imposto por `roadmap_size.rs`.
 - [ ] 10.23 45 das 51 suites do scoreboard não dão veredito porque renderizam na VRAM: 88% do placar não mede nada. A `diffvram` do ps1-tests já está baixada
 - [ ] 10.18 Nada torna `arquivada:` caro: em 0052 e 0059, arquivar descartou 17 registros dos quais 12 ainda casavam. Exigir no header quantos casam e falhar se algum casar
 - [ ] 10.33 `mutantes.ps1` só roda `cargo test -p psx-core` (linha 290); testes de outros crates precisam de bateria manual
+- [ ] 10.34 Nenhum meta-teste reprova `#[test]` sem asserção — T10 da 0080 era eprintln! e passou
+- [ ] 10.35 `mutantes.ps1` escreve nome qualificado no .resultado e `mutation_battery.rs` procura fn literal — nunca casam em módulo
 
 ## M11 — Apresentação (incremental desde o M1)
 - [ ] 11.1 Relatório consolidado (docs/relatorio.md — atualizado a cada marco)

@@ -127,6 +127,11 @@ rotulo: extrair condicao de clock_src em variavel local (semantica identica)
     ) -> Option<u32> {
         let idx = Self::timer_index(base_addr);
         let t = &self.timers[idx];
+        if t.bit10_restore_needed.get() {
+            let m = t.mode.get();
+            t.mode.set(m | (1 << 10));
+            t.bit10_restore_needed.set(false);
+        }
         let mode = t.mode.get();
         let sync_enable = mode & 1 != 0;
         let sync_mode = (mode >> 1) & 0x3;
@@ -142,6 +147,11 @@ rotulo: extrair condicao de clock_src em variavel local (semantica identica)
     ) -> Option<u32> {
         let idx = Self::timer_index(base_addr);
         let t = &self.timers[idx];
+        if t.bit10_restore_needed.get() {
+            let m = t.mode.get();
+            t.mode.set(m | (1 << 10));
+            t.bit10_restore_needed.set(false);
+        }
         let mode = t.mode.get();
         let sync_enable = mode & 1 != 0;
         let sync_mode = (mode >> 1) & 0x3;

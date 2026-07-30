@@ -36,7 +36,7 @@ rotulo: one-shot nao suprime segunda IRQ de target (removeu a guarda)
 mutante: m4
 rotulo: pulse mode nao restaura bit10 a 1 apos pulso
 @@DE
-        if !irq_toggle {
+        if !irq_toggle && !t.bit10_restore_needed.get() {
             let m = t.mode.get();
             t.mode.set(m | (1 << 10));
         }
@@ -47,7 +47,7 @@ rotulo: pulse mode nao restaura bit10 a 1 apos pulso
 mutante: m5
 rotulo: toggle mode tambem restaura bit10 (como se fosse pulse)
 @@DE
-        if !irq_toggle {
+        if !irq_toggle && !t.bit10_restore_needed.get() {
 @@PARA
         if true {
 @@FIM
@@ -61,6 +61,7 @@ rotulo: flag target (bit11) ainda depende de reset_on_target (regressao)
                         mode_now ^= 1 << 10;
                     } else {
                         mode_now &= !(1 << 10);
+                        t.bit10_restore_needed.set(true);
                     }
                     mode_changed = true;
                     let new_bit10 = (mode_now >> 10) & 1;

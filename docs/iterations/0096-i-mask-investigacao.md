@@ -55,7 +55,7 @@ Workspace: **689** → **690** testes (+1: `write_mask_incrementa_contador`). O 
 
 1. **I_MASK É escrito pela BIOS com valores não-zero.** A instrumentação revelou 4 escritas em I_MASK durante o boot: duas com valor 0 (inicialização e seção crítica), uma com valor 0x0001 (habilita VBlank) por volta de 19M passos, e uma com valor 0x0009 (VBlank + DMA). O STATUS.md anterior afirmava "I_MASK permanece 0x0000" porque o harness do orquestrador rodava menos passos (provavelmente 10M-15M). Com 30M passos, o critério de aceitação é atingido: I_MASK deixa de ser 0x0000.
 
-2. **O handler de exceção da 0095 foi o que destravou o boot até este ponto.** Sem o mfc0+jr+rfe corrigido, a CPU não retornava ao EPC após interrupções, e a BIOS ficava presa antes de alcançar o código que escreve I_MASK. A 0095 corrigiu o handler e indiretamente permitiu que a BIOS chegasse ao ponto de habilitar interrupções.
+2. **O handler de exceção da 0095 está correto perante a spec, mas NÃO foi ele que destravou a escrita de I_MASK.** Medido no commit `96a8a82` (anterior ao 4.4e): com 30M passos, I_MASK já era 0x0009 aos 20M, I_STAT já era reconhecido, e os acessos ao vetor já eram 113 — idêntico ao observado após o conserto do handler. A correção do `mfc0+jr+rfe` é necessária para o retorno de interrupção, mas a BIOS já alcançava o código que escreve I_MASK antes dela.
 
 3. **"VSync: timeout" persiste.** Mesmo com I_MASK != 0 e I_STAT sendo acknowledged (I_STAT=0x0000 após o handler), a BIOS imprime `VSync: timeout (2:1)`. Isso indica que o handler de interrupção em 0x80000080 despacha para 0x00000C80 e reconhece I_STAT, mas o dispatch de eventos do kernel (que entrega o callback de VSync) não está funcionando corretamente. Este é um item separado, posterior ao 4.4d.
 

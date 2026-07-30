@@ -1,0 +1,88 @@
+# Manifesto de mutação da iteração 0105 — vram-to-vram
+formato: 1
+iteracao: 0105
+item: 2.2b
+alvo: crates/psx-core/src/gpu.rs
+teste: gpu_vram_to_vram
+
+mutante: m1
+rotulo: Ysiz mascarado em 10 bits em vez de 9, altura errada
+@@DE
+        let height = ((((size_word >> 16) & 0xFFFF) as u16).wrapping_sub(1) & 0x1FF) + 1;
+@@PARA
+        let height = ((((size_word >> 16) & 0xFFFF) as u16).wrapping_sub(1) & 0x3FF) + 1;
+@@FIM
+
+mutante: m2
+rotulo: tamanho zero deixa de valer o maximo, vira zero
+@@DE
+        let width = (((size_word & 0xFFFF) as u16).wrapping_sub(1) & 0x3FF) + 1;
+@@PARA
+        let width = (size_word & 0xFFFF) as u16 & 0x3FF;
+@@FIM
+
+mutante: m3
+rotulo: origem lida sem mascarar Xpos, coordenada alta sai do lugar
+@@DE
+        let sx = (src_word & 0xFFFF) as u16 & 0x3FF;
+@@PARA
+        let sx = (src_word & 0xFFFF) as u16;
+@@FIM
+
+mutante: m4
+rotulo: escrita no destino sem envolver na borda, com carry de X para Y
+@@DE
+                let px = dx.wrapping_add(col) & 0x3FF;
+                let idx = py as usize * 1024 + px as usize;
+@@PARA
+                let px = dx.wrapping_add(col);
+                let idx = py as usize * 1024 + px as usize;
+@@FIM
+
+mutante: m5
+rotulo: copia in-place, sem ler a origem antes; regiao sobreposta arrasta o primeiro pixel
+@@DE
+                let mut hw = source[i];
+                i += 1;
+@@PARA
+                let mut hw = self.vram[(sy.wrapping_add(row) & 0x1FF) as usize * 1024
+                    + (sx.wrapping_add(col) & 0x3FF) as usize];
+                i += 1;
+@@FIM
+
+mutante: m6
+rotulo: check-mask ignorado, escreve por cima de pixel protegido
+@@DE
+                if check_mask && (self.vram[idx] & 0x8000) != 0 {
+@@PARA
+                if false && (self.vram[idx] & 0x8000) != 0 {
+@@FIM
+
+mutante: m7
+rotulo: set-mask nao forca o bit15 no destino
+@@DE
+                if force_bit15 {
+                    hw |= 0x8000;
+                }
+                self.vram[idx] = hw;
+@@PARA
+                self.vram[idx] = hw;
+@@FIM
+
+controle: c1
+rotulo: capacidade inicial do vetor de origem removida (cosmetico)
+@@DE
+        let mut source = Vec::with_capacity(width as usize * height as usize);
+@@PARA
+        let mut source = Vec::new();
+@@FIM
+
+controle: c2
+rotulo: leitura dos bits de mascara reordenada (cosmetico)
+@@DE
+        let force_bit15 = (stat & (1 << 11)) != 0;
+        let check_mask = (stat & (1 << 12)) != 0;
+@@PARA
+        let check_mask = (stat & (1 << 12)) != 0;
+        let force_bit15 = (stat & (1 << 11)) != 0;
+@@FIM

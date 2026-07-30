@@ -29,6 +29,7 @@ fn boot_da_bios_nao_imprime_vsync_timeout() {
     let bios = carregar_bios().expect("BIOS invalida");
     let ram = Ram::new();
     let mut bus = Bus::new(ram, bios);
+    bus.enable_bios_mirror();
     let mut cpu = Cpu::new();
 
     let max_steps = 50_000_000usize;

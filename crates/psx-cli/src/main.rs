@@ -120,6 +120,7 @@ fn main() {
 
             let ram = Ram::new();
             let mut bus = Bus::new(ram, bios);
+            bus.enable_bios_mirror();
             let mut cpu = Cpu::new();
 
             if let Some(disc_path) = disc_path {
@@ -174,6 +175,7 @@ fn main() {
 
             let ram = Ram::new();
             let mut bus = Bus::new(ram, bios);
+            bus.enable_bios_mirror();
             let mut cpu = Cpu::new();
 
             if let Some(disc_path) = disc_path {

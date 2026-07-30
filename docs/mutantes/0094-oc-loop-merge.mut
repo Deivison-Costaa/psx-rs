@@ -1,0 +1,78 @@
+# Manifesto de mutação da iteração 0094 — oc-loop-merge
+formato: 1
+iteracao: 0094
+item: 10.37
+alvo: scripts/oc-loop.ps1
+teste: ci_oc_loop
+
+mutante: m1
+rotulo: check-runs renomeado para check-runs-old (quebra find)
+@@DE
+        $runs = gh api "repos/{owner}/{repo}/commits/$sha/check-runs" `
+@@PARA
+        $runs = gh api "repos/{owner}/{repo}/commits/$sha/check-runs-old" `
+@@FIM
+
+mutante: m2
+rotulo: guarda do PENDENTE nunca casa, entao o loop segue com checks ainda rodando
+@@DE
+            if ($runs -match "PENDENTE" -or [string]::IsNullOrWhiteSpace($runs)) {
+@@PARA
+            if ($runs -match "NUNCA_CASA" -or [string]::IsNullOrWhiteSpace($runs)) {
+@@FIM
+
+mutante: m3
+rotulo: gh pr merge sem verificacao de MERGED (imprime mergeado incondicional)
+@@DE
+        gh pr merge $pr --merge
+        $merged = gh pr view $pr --json state --jq .state 2>&1
+        if ($merged -eq "MERGED") {
+            git pull --ff-only | Out-Null
+            Write-Host "[oc-loop] PR #$pr mergeado SEM revisao previa - revisar a posteriori."
+        } else {
+            Write-Host "[oc-loop] PR #$pr falhou ao mergear (estado: $merged) - parando."
+            break
+        }
+@@PARA
+        gh pr merge $pr --merge
+        git pull --ff-only | Out-Null
+        Write-Host "[oc-loop] PR #$pr mergeado SEM revisao previa - revisar a posteriori."
+@@FIM
+
+mutante: m4
+rotulo: MERGED substituido por OK (texto MERGED nao aparece mais)
+@@DE
+        if ($merged -eq "MERGED") {
+@@PARA
+        if ($merged -eq "OK") {
+@@FIM
+
+mutante: m5
+rotulo: bloco de verificacao removido (gh pr view ausente)
+@@DE
+        gh pr merge $pr --merge
+        $merged = gh pr view $pr --json state --jq .state 2>&1
+@@PARA
+        gh pr merge $pr --merge
+        Write-Host "[oc-loop] PR #$pr mergeado SEM revisao previa - revisar a posteriori."
+        break # sem verificacao de MERGED
+        # $merged removido
+@@FIM
+
+controle: c1
+rotulo: renomeia variavel $sha para $commit_sha (cosmetico)
+@@DE
+        $sha = (gh pr view $pr --json headRefOid --jq .headRefOid 2>&1).Trim()
+@@PARA
+        $commit_sha = (gh pr view $pr --json headRefOid --jq .headRefOid 2>&1).Trim()
+@@FIM
+
+controle: c2
+rotulo: muda sleep de 15 para 20 segundos (cosmetico)
+@@DE
+                Start-Sleep 15
+                continue
+@@PARA
+                Start-Sleep 20
+                continue
+@@FIM

@@ -95,6 +95,19 @@ fn escrita_em_outro_registrador_nao_cancela_o_load() {
 }
 
 #[test]
+fn lw_para_ra_sem_conflito_completa_normalmente() {
+    let mut bus = bus_with_bios_empty();
+    let mut cpu = cpu_com_lw_em_zero(&mut bus, 31);
+    bus.write32::<BusRead>(4, nop());
+    cpu.step(&mut bus);
+    cpu.step(&mut bus);
+    assert_eq!(
+        cpu.regs[31], 0xDEAD_BEEF,
+        "lw $ra com nop no delay slot: o load completa (nada a cancelar)"
+    );
+}
+
+#[test]
 fn load_para_o_mesmo_registrador_no_delay_slot_nao_e_cancelado() {
     let mut bus = bus_with_bios_empty();
     bus.write32::<BusRead>(0x1004, 0x1234_5678);

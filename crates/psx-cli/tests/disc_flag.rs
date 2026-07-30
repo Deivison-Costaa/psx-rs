@@ -39,8 +39,8 @@ fn disc_flag_cue_minimo_aceito_com_bios() {
         "G1: --bios --disc deve retornar codigo 0"
     );
     assert!(
-        stdout.contains("DISCO"),
-        "G1: stdout deve conter 'DISCO'; stdout={stdout:?}"
+        stdout.contains("DISCO: 1 faixa(s)"),
+        "G1: stdout deve conter 'DISCO: 1 faixa(s)'; stdout={stdout:?}"
     );
 
     let _ = fs::remove_dir_all(&tmp);

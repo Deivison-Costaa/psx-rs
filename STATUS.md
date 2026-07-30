@@ -5,15 +5,15 @@
 
 ## Última iteração concluída
 
-**0087** — printf: flags de largura e zero-pad (ROADMAP 1.11c).
+**0088** — GTE: NCLIP/AVSZ3/AVSZ4/SQR/OP (ROADMAP 5.3).
 
 ## Próxima tarefa
 
-**ROADMAP 5.3 — NCLIP/AVSZ3/AVSZ4/SQR/OP.**
+**ROADMAP 5.4 — MVMVA + comandos de iluminação (NCS/NCT/NCDS/NCCS...).**
 Spec: `docs/reference/07-gte.md` (offset +72).
-Seções: NCLIP (L513), AVSZ3 (L523), AVSZ4 (L524), SQR (L566), OP (L574).
-Arquivos-alvo: `crates/psx-core/src/gte.rs`, `crates/psx-core/src/cpu.rs`.
-Armadilha: NCLIP usa SXY0-2 como entrada (valores do FIFO preenchidos por RTPS/RTPT).
+Seções: MVMVA (L541), NCS/NCT/NCDS/NCCS/NCDT/NCCT (L592), CC/CDP (L610-619).
+Arquivos-alvo: `crates/psx-core/src/gte.rs`.
+Armadilha: MVMVA usa bits mx (17-18), v (15-16), cv (13-14) do comando COP2 além de sf e lm.
 
 ## Prioridade — boot da BIOS travado
 
@@ -31,7 +31,7 @@ Após o 4.4c (I_MASK via SH), verificado: TTY do boot da BIOS ainda mostra `VSyn
 
 ## Placar de testes
 
-Workspace: **643** testes.
+Workspace: **662** testes.
 
 ## Bloqueios
 

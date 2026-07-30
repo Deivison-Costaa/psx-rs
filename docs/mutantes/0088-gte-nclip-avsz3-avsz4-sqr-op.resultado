@@ -1,0 +1,12 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: 52d4ff739eb05df93f28428cbec7fa6c404785ce
+# rodado_em: 2026-07-30T06:38:55-03:00
+m1,mutante,morreu,morreu,0.8,nclip_poligono_anti_horario_mac0_negativo;nclip_poligono_horario_mac0_positivo
+m2,mutante,morreu,morreu,0.8,avsz3_media_ponderada_de_tres_z;avsz4_media_ponderada_de_quatro_z
+m3,mutante,morreu,morreu,0.8,avsz4_media_ponderada_de_quatro_z
+m4,mutante,morreu,morreu,0.8,sqr_sf1_desloca_12_bits_para_direita
+m5,mutante,morreu,morreu,0.8,op_produto_vetorial_sf0_lm0
+m6,mutante,morreu,morreu,0.8,nclip_colinear_mac0_zero;nclip_poligono_horario_mac0_positivo
+m7,mutante,morreu,morreu,0.8,avsz3_otz_saturado_em_maximo
+c1,controle,sobreviveu,sobreviveu,0.8,
+c2,controle,sobreviveu,sobreviveu,0.8,

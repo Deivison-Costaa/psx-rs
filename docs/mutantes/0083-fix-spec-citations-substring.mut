@@ -96,7 +96,7 @@ rotulo: index_match_ambiguity inverte condicao de retorno
 @@FIM
 
 controle: c1
-rotulo: renomeia variavel local s para search (cosmetico)
+rotulo: renomeia variavel local s para busca (cosmetico)
 @@DE
     let s = normalize_title(search);
 @@PARA

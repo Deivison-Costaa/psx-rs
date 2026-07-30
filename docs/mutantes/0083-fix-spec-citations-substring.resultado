@@ -1,5 +1,5 @@
 # gerado por scripts/mutantes.ps1 — NAO editar a mao
-# commit: 8c4d2dae7428e60456b28cc0d81a063a827c75df
-# rodado_em: 2026-07-30T02:57:16-03:00
+# commit: 37b6f1847aae30ca2bb64d0198a1e38da3e16a12
+# rodado_em: 2026-07-30T02:58:03-03:00
 m1,mutante,morreu,morreu,0.5,find_in_index_prefere_titulo_mais_longo_nao_substring;find_in_index_titulos_empatados_retorna_none
 m2,mutante,morreu,morreu,0.5,find_in_index_prefere_titulo_mais_longo_nao_substring

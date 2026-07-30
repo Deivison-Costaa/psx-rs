@@ -27,6 +27,7 @@ rotulo: retorna primeiro match em vez do mais longo (regressao)
 
 mutante: m2
 rotulo: retorna None quando ha multiplos matches (ignora comprimento)
+ocorrencias: 2
 @@DE
         .filter(|e| title_contains(&s, &e.title))
         .collect();
@@ -43,19 +44,19 @@ rotulo: retorna None quando ha multiplos matches (ignora comprimento)
         return None;
     }
 @@FIM
-ocorrencias: 2
 
 mutante: m3
 rotulo: prefere titulo mais CURTO em vez do mais longo
+ocorrencias: 2
 @@DE
         .filter(|e| normalize_title(&e.title).len() == max_len)
 @@PARA
         .filter(|e| normalize_title(&e.title).len() != max_len)
 @@FIM
-ocorrencias: 2
 
 mutante: m4
 rotulo: longest.len() >= 1 aceita empate silencioso
+ocorrencias: 2
 @@DE
     if longest.len() == 1 {
         return Some(longest[0]);
@@ -67,7 +68,6 @@ rotulo: longest.len() >= 1 aceita empate silencioso
     }
     None
 @@FIM
-ocorrencias: 2
 
 mutante: m5
 rotulo: index_match_ambiguity inverte condicao de retorno
@@ -97,12 +97,12 @@ rotulo: index_match_ambiguity inverte condicao de retorno
 
 controle: c1
 rotulo: renomeia variavel local s para busca (cosmetico)
+ocorrencias: 2
 @@DE
     let s = normalize_title(search);
 @@PARA
     let busca = normalize_title(search);
 @@FIM
-ocorrencias: 2
 
 controle: c2
 rotulo: inverte ordem dos ifs em index_match_ambiguity (cosmetico)

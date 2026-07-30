@@ -7,21 +7,26 @@ fn oc_loop_content() -> String {
     fs::read_to_string(&path).expect("scripts/oc-loop.ps1 deve existir")
 }
 
+fn wait_checks_body(script: &str) -> &str {
+    let start = script
+        .find("function Wait-Checks")
+        .expect("Wait-Checks deve existir");
+    let rest = &script[start..];
+    let end = rest
+        .find("\nforeach")
+        .expect("foreach deve aparecer apos Wait-Checks");
+    &rest[..end]
+}
+
 #[test]
 fn wait_checks_consulta_check_runs_antes_de_mergestatestatus() {
     let script = oc_loop_content();
+    let body = wait_checks_body(&script);
 
-    let func_start = script
-        .find("function Wait-Checks")
-        .expect("Wait-Checks deve existir");
-    let body = &script[func_start..];
-    let func_end = body.find("}\n").expect("Wait-Checks deve ter fechamento de corpo");
-    let func_body = &body[..func_end];
-
-    let check_runs_pos = func_body
+    let check_runs_pos = body
         .find("check-runs")
         .expect("Wait-Checks deve consultar check-runs");
-    let merge_state_pos = func_body
+    let merge_state_pos = body
         .find("mergeStateStatus")
         .expect("Wait-Checks deve consultar mergeStateStatus");
 

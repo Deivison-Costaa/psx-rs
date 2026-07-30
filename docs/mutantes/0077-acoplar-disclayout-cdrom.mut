@@ -60,12 +60,10 @@ rotulo: renomeia abs_sector para sector em todo o escopo (cosmetico)
 @@FIM
 
 controle: c2
-rotulo: extrai bcd_to_int_resultados em variaveis locais (cosmetico)
+rotulo: acrescenta comentario antes do calculo do setor (cosmetico)
 @@DE
-        bcd_to_int(min_bcd) * 60 * 75 + bcd_to_int(sec_bcd) * 75 + bcd_to_int(sect_bcd);
+fn read_sector_from_disc(
 @@PARA
-        let m = bcd_to_int(min_bcd);
-        let s = bcd_to_int(sec_bcd);
-        let f = bcd_to_int(sect_bcd);
-        m * 60 * 75 + s * 75 + f;
+// le o setor a partir do layout de disco e do buffer BIN
+fn read_sector_from_disc(
 @@FIM

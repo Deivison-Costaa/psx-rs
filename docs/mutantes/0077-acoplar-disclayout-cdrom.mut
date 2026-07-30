@@ -48,11 +48,15 @@ rotulo: sempre usa stub — read_sector_from_disc sempre retorna None
 @@FIM
 
 controle: c1
-rotulo: renomeia abs_sector para sector (cosmetico)
+rotulo: renomeia abs_sector para sector em todo o escopo (cosmetico)
 @@DE
     let abs_sector =
+        bcd_to_int(min_bcd) * 60 * 75 + bcd_to_int(sec_bcd) * 75 + bcd_to_int(sect_bcd);
+    let offset = abs_sector as usize * 2352;
 @@PARA
     let sector =
+        bcd_to_int(min_bcd) * 60 * 75 + bcd_to_int(sec_bcd) * 75 + bcd_to_int(sect_bcd);
+    let offset = sector as usize * 2352;
 @@FIM
 
 controle: c2

@@ -40,11 +40,11 @@ rotulo: multiplicador de bytes por setor 2353 em vez de 2352
 @@FIM
 
 mutante: m5
-rotulo: sempre usa stub — nunca le dados reais do BIN
+rotulo: sempre usa stub — read_sector_from_disc sempre retorna None
 @@DE
-                let buf = if let (Some(layout), Some(bin)) = (disc_layout, disc_bin) {
+    if data_end > bin.len() {
 @@PARA
-                let buf = if false {
+    if true {
 @@FIM
 
 controle: c1

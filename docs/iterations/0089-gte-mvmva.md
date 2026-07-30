@@ -49,7 +49,7 @@ Placar da bateria: 7/7 mutantes mortos, 2/2 controles verdes, 0 equivalente — 
 | m3 | mutante | MVMVA omite multiplicação de TR por 0x1000h | MORREU |
 | m4 | mutante | MVMVA MAC1 inverte sinal do termo m11*vx | MORREU |
 | m5 | mutante | MVMVA ignora lm (força lm=0) | MORREU |
-| m6 | mutante | MVMVA força shift=0 (ignora sf) | MORREU |
+| m6 | mutante | MVMVA raw2 usa tx em vez de ty | MORREU |
 | m7 | mutante | MVMVA m33 sem sign-extend | MORREU |
 | c1 | controle | renomeia tx → translacao_x | verde |
 | c2 | controle | adiciona `let _ = 0` no inicio de mvmva | verde |

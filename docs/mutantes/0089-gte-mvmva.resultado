@@ -1,12 +1,12 @@
 # gerado por scripts/mutantes.ps1 — NAO editar a mao
-# commit: c0d64533ad048ecd4712587f0493e32cfe7125a0
-# rodado_em: 2026-07-30T07:12:10-03:00
-m1,mutante,morreu,morreu,0.8,mvmva_lcm_m33_negativo_sign_extend;mvmva_lcm_v2_tr_sf1_lm0;mvmva_llm_v1_bk_sf1_lm0
-m2,mutante,morreu,morreu,0.7,mvmva_lcm_m33_negativo_sign_extend;mvmva_lcm_v2_tr_sf1_lm0;mvmva_llm_v1_bk_sf1_lm0;mvmva_rt_ir_none_sf1_lm0;mvmva_rt_v1_tr_sf1_lm0
+# commit: b971cdde3866873644485f32bb7416c0cf68fc37
+# rodado_em: 2026-07-30T07:18:06-03:00
+m1,mutante,morreu,morreu,0.7,mvmva_lcm_m33_negativo_sign_extend;mvmva_lcm_v2_tr_sf1_lm0;mvmva_llm_v1_bk_sf1_lm0
+m2,mutante,morreu,morreu,0.8,mvmva_lcm_m33_negativo_sign_extend;mvmva_lcm_v2_tr_sf1_lm0;mvmva_llm_v1_bk_sf1_lm0;mvmva_rt_ir_none_sf1_lm0;mvmva_rt_v1_tr_sf1_lm0
 m3,mutante,morreu,morreu,0.8,mvmva_rt_v0_tr_sf1_lm0
 m4,mutante,morreu,morreu,0.8,mvmva_lcm_v2_tr_sf1_lm0;mvmva_llm_v1_bk_sf1_lm0;mvmva_rt_ir_none_sf1_lm0;mvmva_rt_v0_tr_sf0_lm0;mvmva_rt_v0_tr_sf1_lm0;mvmva_rt_v1_tr_sf1_lm0;mvmva_saturacao_ir_lm1_negativo_saturado_em_zero
 m5,mutante,morreu,morreu,0.8,mvmva_saturacao_ir_lm1_negativo_saturado_em_zero
-m6,mutante,morreu,morreu,0.8,mvmva_lcm_m33_negativo_sign_extend;mvmva_lcm_v2_tr_sf1_lm0;mvmva_llm_v1_bk_sf1_lm0;mvmva_rt_ir_none_sf1_lm0;mvmva_rt_v0_tr_sf1_lm0;mvmva_rt_v1_tr_sf1_lm0
+m6,mutante,morreu,morreu,0.8,mvmva_rt_v0_tr_sf1_lm0
 m7,mutante,morreu,morreu,0.8,mvmva_lcm_m33_negativo_sign_extend
 c1,controle,sobreviveu,sobreviveu,0.8,
 c2,controle,sobreviveu,sobreviveu,0.8,

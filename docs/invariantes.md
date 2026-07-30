@@ -96,3 +96,9 @@ Regra imposta por `status_handoff.rs`.
     handler. O caminho de exceção (`pending_exception`) sempre fez isso; o de **interrupção** era
     um `return` antecipado separado que não fazia nenhuma das duas coisas, e matou o boot da BIOS
     por 8 iterações (item 4.4f, iter 0103). Caminho novo que vetore: passa pelas duas regras.
+17. **Load custa mais que 1 ciclo, e o custo depende da regiao.** `docs/reference/02-cpu.md`
+    L262-269, medido em hardware: scratchpad 1, I/O on-die 5, RAM principal 7, ROM da BIOS 27..33
+    (fixamos 27). Store custa 1 (write-queue, L305-306). Nao e detalhe de precisao: a BIOS espera
+    o vblank gastando um orcamento FIXO de 32 768 iteracoes de um laco de 12 instrucoes com 3
+    loads da RAM. Com 1 ciclo por instrucao isso cobre 69% de um frame e a espera nunca e
+    satisfeita (item 4.4g, iter 0104). Qualquer mudanca no modelo de ciclos reconfere este numero.

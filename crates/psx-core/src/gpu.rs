@@ -410,9 +410,16 @@ impl Gpu {
     }
 
     fn display_height(&self) -> u16 {
-        self.display_range_y2
+        let lines = self
+            .display_range_y2
             .get()
-            .wrapping_sub(self.display_range_y1.get())
+            .wrapping_sub(self.display_range_y1.get());
+        let stat = self.stat.get();
+        if stat & (1 << 19) != 0 && stat & (1 << 22) != 0 {
+            lines.wrapping_mul(2)
+        } else {
+            lines
+        }
     }
 
     pub fn framebuffer(&self) -> Framebuffer {

@@ -7,28 +7,28 @@
 
 ## Última iteração concluída
 
-**0112** — polaridade do GPUSTAT.23 corrigida em `framebuffer_for_display`; testes fossilizados
-de 0053/0090 virados; baterias reancoradas e re-rodadas (ROADMAP 2.10).
+**0113** — altura do display em 480i: `display_height` dobra o range com GPUSTAT.19/22; a janela
+do app mostra a cena inteira e o **M2 fechou 100%** e foi para o arquivo (ROADMAP 2.11).
 
 ## Próxima tarefa
 
-**ROADMAP 2.11 — altura do display em 480i: `display_height` devolve y2-y1 cru.**
-Spec: `docs/reference/03-gpu.md` § GP1(08h) - Display mode (L885) — vres 480 exige bit5
-(interlace); "Interlace must be enabled to see all lines in 480-lines mode". Com GPUSTAT.19 e
-GPUSTAT.22 ligados, as linhas exibidas sao **(y2-y1)*2**, lidas de linhas consecutivas da VRAM.
-A BIOS pos-0111 liga exatamente esse modo (`GPUSTAT=0x144E220D`) — sem o item, o psx-desktop
-mostra so a metade de cima da cena de 480 linhas.
-Arquivos-alvo: `crates/psx-core/src/gpu.rs` (fns `display_height`/`framebuffer`).
-Critério de aceitação: com a BIOS real a ~120 M passos, `framebuffer_for_display()` devolve
-`Some` com altura 480 e o conteudo bate com o despejo da cena inteira; em 240p as alturas
-existentes nao mudam (nao-regressao dos testes de framebuffer).
+**ROADMAP 4.4 — Boot de jogo 2D/menu; primeiro degrau: a shell da BIOS.**
+Referencia medida no DuckStation com a MESMA BIOS: apos o logo (~15 s) aparece a shell
+(MAIN MENU / MEMORY CARD / CD PLAYER, bolas roxas). Nosso boot fica no laco de espera de VSync
+(`PC=0x80059DCC`) com a tela do logo pronta e nunca navega para a shell — descobrir o que a BIOS
+espera ali (candidatos, por ordem: resposta/IRQ do CD-ROM a GetStat/GetID sem disco; timer;
+campo par/impar do GPUSTAT.31/13 que nunca alterna). Medir com os harnesses de
+`psx-estado/instrumentacao/` (contador de comandos de CD + histograma de PC como na 0108).
+Spec: `docs/reference/04-cdrom.md` (respostas sem disco) so se a medicao apontar para la.
+Arquivos-alvo: a decidir pela medicao (`cdrom.rs`, `gpu.rs` ou `timers.rs`).
+Critério de aceitação: despejo da VRAM em corrida longa mostra a shell (MAIN MENU), como no
+DuckStation.
 Invariantes relevantes: 22, 23.
 
-**Medicao de referencia externa (30/07):** DuckStation rodando a MESMA BIOS confirma nosso fundo
-(180,180,180) e as cores do losango (mesmos valores de 15 bits); sem "®" na tela real; captura
-canonica em `psx-estado/referencias/tela-de-boot-duckstation.png`. Diferencas restantes: costuras
-de gouraud no losango (candidato 10.14) e, apos o logo, a shell da BIOS (MAIN MENU) que ainda nao
-alcancamos.
+**Referencia externa (30/07):** captura canonica do DuckStation em
+`psx-estado/referencias/tela-de-boot-duckstation.png`; fundo (180,180,180) e cores do losango
+CONFIRMADOS iguais aos nossos; sem "®" na tela real. Diferenca visual restante no logo: costuras
+de gouraud no losango (candidato 10.14).
 
 ## Repositório
 
@@ -42,7 +42,7 @@ alcancamos.
 
 ## Placar de testes
 
-Workspace: **745** testes.
+Workspace: **750** testes.
 
 ## Bloqueios
 

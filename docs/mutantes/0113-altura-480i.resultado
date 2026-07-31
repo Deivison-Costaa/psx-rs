@@ -1,0 +1,10 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: a8fa891c31769c0dc4d62e57f2c2819bd74ee60c
+# rodado_em: 2026-07-30T21:18:48-03:00
+m1,mutante,morreu,morreu,0.7,vres_480_sem_interlace_nao_dobra
+m2,mutante,morreu,morreu,0.8,interlace_sem_vres_480_nao_dobra
+m3,mutante,morreu,morreu,0.8,altura_480i_dobra_o_range_vertical;framebuffer_480i_le_linhas_consecutivas_da_vram
+m4,mutante,morreu,morreu,0.8,altura_480i_dobra_o_range_vertical
+m5,mutante,morreu,morreu,0.8,framebuffer_480i_le_linhas_consecutivas_da_vram
+c1,controle,sobreviveu,sobreviveu,0.8,
+c2,controle,sobreviveu,sobreviveu,0.7,

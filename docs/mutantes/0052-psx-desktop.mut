@@ -104,13 +104,15 @@ rotulo: framebuffer troca ordem dos canais (escreve B, G, R em vez de R, G, B)
 mutante: m6
 rotulo: display_height usa wrapping_add em vez de wrapping_sub
 @@DE
-        self.display_range_y2
+        let lines = self
+            .display_range_y2
             .get()
-            .wrapping_sub(self.display_range_y1.get())
+            .wrapping_sub(self.display_range_y1.get());
 @@PARA
-        self.display_range_y2
+        let lines = self
+            .display_range_y2
             .get()
-            .wrapping_add(self.display_range_y1.get())
+            .wrapping_add(self.display_range_y1.get());
 @@FIM
 
 controle: K1

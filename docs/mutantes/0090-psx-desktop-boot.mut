@@ -37,11 +37,12 @@ rotulo: display_width retorna zero
 mutante: m4
 rotulo: display_height retorna zero
 @@DE
-        self.display_range_y2
+        let lines = self
+            .display_range_y2
             .get()
-            .wrapping_sub(self.display_range_y1.get())
+            .wrapping_sub(self.display_range_y1.get());
 @@PARA
-        0u16
+        let lines = 0u16;
 @@FIM
 
 mutante: m5

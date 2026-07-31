@@ -188,6 +188,21 @@ fn o_modo_e_lido_de_cada_setor_e_nao_do_disco() {
 }
 
 #[test]
+fn setor_com_cabecalho_truncado_no_fim_do_bin_nao_estoura() {
+    let mut bin = bin_com(&[(150, 0x02, [0xDE, 0xAD, 0xBE, 0xEF])]);
+    bin.truncate(150 * 2352 + 5);
+
+    let lidos = le_quatro_bytes_do_frame(bin, 0x02, 0x00);
+
+    assert_eq!(
+        lidos,
+        [1, 2, 3, 4],
+        "o inicio do setor cabe no .bin mas o byte de modo (00Fh) nao; ler o modo antes de \
+         checar o tamanho indexa fora do vetor. Sem setor valido, vale o stub (i+1)"
+    );
+}
+
+#[test]
 fn setor_alem_do_fim_do_bin_nao_estoura() {
     let bin = bin_com(&[(150, 0x02, [0xDE, 0xAD, 0xBE, 0xEF])]);
     let mut bus = bus();

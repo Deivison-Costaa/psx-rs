@@ -39,7 +39,9 @@ impl Scheduler {
         self.events.sort_by_key(|a| a.0.tick);
     }
 
-    pub fn cancel(&mut self, _id: EventId) {}
+    pub fn cancel(&mut self, id: EventId) {
+        self.events.retain(|(_, e)| *e != id);
+    }
 
     pub fn advance_to(&mut self, ticks: u64) -> Option<EventId> {
         self.current_tick = ticks;

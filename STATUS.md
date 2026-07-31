@@ -7,31 +7,28 @@
 
 ## Última iteração concluída
 
-**0119** — diagnostico, sem codigo de producao. A troca do `GetStat` esta correta porto a porto
-(comando, poll do HSTS, leitura do HINTSTS, leitura da resposta, ack `HCLRCTL=07h`) e
-`[0x80083C58]` NAO esta travada: ela cicla posta/expira/retenta com cadencia de quadro, chegando a
-zero uma vez. Quatro hipoteses refutadas, incluindo duas do handoff anterior (ROADMAP 4.4n).
+**0120** — diagnostico com oraculo externo. DuckStation com a MESMA BIOS e o MESMO disco
+(`PatchFastBoot=false`) responde `Getstat Stat=0x02` — identico ao nosso — e emite `GetID` logo em
+seguida, seguindo para `Setloc`/`SeekL`/`Setmode`/`ReadN` e carregando `SCUS_949.00`. Falta
+exatamente um comando. Achado a caminho: a nossa primeira resposta sai em ZERO ciclo (ROADMAP 4.4o).
 
 ## Próxima tarefa
 
-**ROADMAP 4.4o — comparar a sequencia de comandos do CD contra emulador de referencia.**
-Depois do `GetStat` do passo 87 464 254 o shell nao toca mais no drive em 312 M passos; ele fica
-num laco por quadro lendo o controle (endereco `0x01`, ~1 por quadro) e ciclando o contador
-interno. Nenhum `Setloc`/`ReadN`/`GetID`, `HINTSTS==INT1` zero, e 417 entradas no handler depois
-do `GetStat` (IRQs correm).
-**Nao escreva outro harness cego** (invariante 27): rode a MESMA BIOS (`bios/SCPH1001.BIN`) com o
-MESMO disco (`../roms/extraido/Crash Bandicoot (USA).cue`) no DuckStation de
-`psx-estado/referencias/`, ligue o log de CD-ROM dele e compare a sequencia de comandos com a
-nossa (`Test(20h)`, `GetStat`, e nada). Duas saidas possiveis, as duas uteis: (a) no real sai um
-`GetID` depois do `GetStat` — entao o alvo e o que provoca esse `GetID`; (b) no real tambem nao
-sai — entao o shell espera outra coisa e o alvo muda de subsistema.
-Harness ja pronto: `psx-estado/instrumentacao/cdstate.rs` (watch de variavel, janela de portos do
-CD, contagem do handler, bytes de endereco do SIO0).
-Spec: `docs/reference/06-cdrom.md` (§ GetID, § GetStat) e `docs/reference/13-kernel-bios.md`.
-Armadilha conhecida: `[0x80083C58]` NAO e comprovadamente o estado do driver de CD — foi um chute
-meu na 0118. Nao construa o proximo item sobre esse nome.
-Critério de aceitação: a diferenca entre as duas sequencias esta medida e escrita, e o proximo
-alvo sai dela.
+**ROADMAP 4.4p — primeira resposta do CD-ROM pelo `scheduler`, com o atraso da spec.**
+Medido na 0120: o `sw` do comando no passo 87 464 254 e a entrada no handler `0x80000080` com
+`I_STAT=0x00000004` no passo 87 464 **256** — dois passos. A spec (§ First Response, 06-cdrom.md)
+da `Nop (normal) 000c4e1h  0004a73h..003115bh`: media **0xC4E1 = 50 401 ciclos**, minimo 0x4A73.
+Hoje o `send_command` seta `intsts` dentro da escrita no porto, e o `service_cdrom_irq` levanta a
+IRQ na mesma instrucao — a interrupcao pre-empta o proprio codigo que acabou de escrever o comando.
+Isso tambem viola o R2: resposta de dispositivo e evento de `scheduler`, nao efeito colateral de
+escrita.
+Alvo: `crates/psx-core/src/cdrom.rs` (fila de resposta pendente com prazo) e
+`crates/psx-core/src/bus.rs` (tick que entrega no prazo, ao lado do VBLANK).
+Armadilha conhecida: ha 13 testes de CD-ROM que hoje leem a resposta na instrucao seguinte ao
+comando; eles vao precisar avancar o relogio. NAO relaxe o teste — avance o tempo nele.
+Critério de aceitação: **o `GetID` aparece depois do `Getstat`** no `cdstate.rs`. Se nao aparecer, o
+atraso continua certo pela spec, mas a causa e outra: o proximo passo vira diferenciar o TTY do
+kernel contra a referencia.
 Invariantes relevantes: 26, 27.
 
 **Referencia externa (30/07):** captura canonica do DuckStation em
@@ -56,5 +53,5 @@ Workspace: **790** testes.
 ## Bloqueios
 
 - **4.4 Boot de jogo**: sem bloqueio conhecido; desde a 0115 o boot passa do handshake do
-  controle e para no driver de GPU do kernel; desde a 0118 o shell roda e nao pede nada ao disco; proximo passo e comparar com referencia (4.4o). Imagens de disco ficam fora do repositório, em
+  controle e para no driver de GPU do kernel; a referencia mostra que falta o `GetID`; suspeito medido e a resposta em zero ciclo (4.4p). Imagens de disco ficam fora do repositório, em
   `.../Programacao com agentes/roms/extraido/`. **Nunca commitar imagem de disco.**

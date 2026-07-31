@@ -28,9 +28,10 @@ M2 (GPU) e M3 (DMA/IRQ/timers). Regra imposta por `roadmap_arquivo.rs`.
 - [x] 4.4j `sh`/`lhu` nos portos do SIO0 perdiam o byte alto: `JOY_CTRL=1003h` virava `0010h` e soltava o /CS (iter 0115)
 - [x] 4.4k `DICR` guardava o valor cru: sem flags de conclusao, sem bit 31 calculado e sem IRQ3 — o handler de DMA do kernel nunca rodava (iter 0116)
 - [x] 4.4l Canal 2 do DMA nao tinha sentido device->RAM: o `StoreImage` rodava ao contrario e o `C0h` nunca era drenado — `GPU timeout` some (iter 0117)
-- [x] 4.4m Shell nao pede nada ao disco (2 comandos em 400 M passos): laco esperava o contador do timer 2, e `lhu`/`sh` nas portas dos timers caiam no braco-sumidouro do `bus.rs` (iter 0118)
-- [x] 4.4n Diagnostico: a troca do `GetStat` esta correta porto a porto e `[0x80083C58]` cicla (posta/expira/retenta, cadencia de quadro); shell decide nao pedir mais nada ao disco (iter 0119)
-- [ ] 4.4o Comparar a sequencia de comandos do CD-ROM contra emulador de referencia (mesma BIOS, mesmo disco): existe `GetID` depois do `GetStat` no real?
+- [x] 4.4m Shell nao pede nada ao disco: laco esperava o timer 2, e `lhu`/`sh` nas portas dos timers caiam no sumidouro do `bus.rs` (iter 0118)
+- [x] 4.4n Diagnostico: troca do `GetStat` correta porto a porto; shell decide nao pedir mais nada ao disco (iter 0119)
+- [x] 4.4o Referencia (DuckStation, mesma BIOS/disco): stat identico (`0x02`); falta um comando — o real emite `GetID` apos o `Getstat` (iter 0120)
+- [ ] 4.4p Primeira resposta do CD-ROM e entregue em ZERO ciclo (spec: media 0xC4E1); entregar pelo `scheduler` e medir se o `GetID` aparece
 
 ## M5 — GTE
 - [x] 5.1 Registradores + MFC2/MTC2/CFC2/CTC2/LWC2/SWC2 (iter 0084)
@@ -110,7 +111,7 @@ M2 (GPU) e M3 (DMA/IRQ/timers). Regra imposta por `roadmap_arquivo.rs`.
 - [x] 10.39 Marco 100% fechado sai da escada para `docs/ROADMAP-fechado.md` (iter 0100)
 - [ ] 10.40 `mutantes.ps1` so casa ancora em arquivo LF; em CRLF diz 'encontrada 0 vez(es)'
 - [x] 10.41 STATUS.md e handoff puro; invariantes em `docs/invariantes.md` citadas por numero (iter 0102)
-- [ ] 10.42 Linhas tremulas na janela do app (visto pelo usuario em 30/07 na tela do logo): a captura do framebuffer roda a cada update sem sincronizar com vblank — pega VRAM no meio do redesenho; segundo suspeito, o page flip do display start (GP1(05h) alterna 1/241 por frame). Amostrar so em vblank e comparar
+- [ ] 10.42 Linhas tremulas na janela: captura do framebuffer nao sincroniza com vblank; 2o suspeito, page flip do GP1(05h) (visto em 30/07)
 - [ ] 10.42 Manifesto trata `#` como comentario dentro de `@@DE`/`@@PARA` — alvo `.md` nao ancora em cabecalho
 - [ ] 10.43 Todo texto do TTY sai duplicado (2 linhas 'System ROM' na main e depois do 0103)
 - [ ] 10.44 Manifesto com alvo em documento vivo (STATUS.md) envelhece na iteracao seguinte, sempre
@@ -121,7 +122,7 @@ M2 (GPU) e M3 (DMA/IRQ/timers). Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 10.50 `GP0(C0h)` sem transferencia pendente devolve zero, e dreno maior que a janela le zeros em vez do comportamento real do `GPUREAD` (visto na 0117)
 - [ ] 10.49 Bit 15 do `DICR` (bus error) e gravavel e lido certo, mas nada o levanta: transferencia para fora da RAM e ignorada em silencio (visto na 0116)
 - [ ] 10.48 Escrita de 32 bits em `1F801044h..1F80104Fh` cai no braco-sumidouro de `region_write32` — `sw` em JOY_MODE/JOY_CTRL e engolido (visto na 0115)
-- [ ] 10.47 Lacos de espera da BIOS (`0x80059DA4` frame, `0x80059D54` GPUSTAT.31) tem orcamento de 0x8000 giros e um frame nosso gasta ~230 k passos: saem por timeout, nao por sucesso (medido na 0114)
+- [ ] 10.47 Lacos de espera da BIOS (`0x80059DA4`, `0x80059D54`) tem orcamento de 0x8000 giros e um frame gasta ~230 k passos: saem por timeout (0114)
 
 ## M11 — Apresentação (incremental desde o M1)
 - [x] 11.1 Relatório consolidado (docs/relatorio.md — atualizado a cada marco) (iter 0096)

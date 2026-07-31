@@ -7,30 +7,29 @@
 
 ## Última iteração concluída
 
-**0116** — `DICR` do DMA: guardava o valor cru, entao nao havia flag de conclusao, nem bit 31
-calculado, nem IRQ3. Agora os flags 24-30 sobem sob (mascara do canal AND master), o b31 e
-recalculado a cada escrita e a borda 0->1 levanta `I_STAT.3`. O handler de DMA do kernel passou a
-rodar (508 escritas no `DICR` contra 3). **O `GPU timeout` NAO parou** — o defeito era real, a
-causa e outra (ROADMAP 4.4k; ver invariante 26).
+**0117** — o canal 2 do DMA nao olhava o bit 0 do `CHCR` (sentido): o `StoreImage` do kernel
+(`CHCR=0x01000200`, device->RAM) rodava ao contrario, empurrando RAM no `GP0` e deixando a janela
+do `GP0(C0h)` sem drenar. Com a GPU parada em `VramToCpu`, o `GPUSTAT.26` ficava zero e o driver
+imprimia `GPU timeout`. **O `GPU timeout` sumiu e o boot passou do logo** (ROADMAP 4.4l).
 
 ## Próxima tarefa
 
-**ROADMAP 4.4l — `GPUSTAT.26` preso em zero enquanto o kernel espera para enviar comando.**
-Medido na 0116, ao fim de 400 M passos com disco: `GPUSTAT = 0x184E260A`, ou seja bit 28 (pronto
-para bloco de DMA) = 1, bit 27 = 1 e **bit 26 (Ready to receive Cmd Word) = 0**. O `gpu.rs` abaixa
-o bit 26 enquanto um comando GP0 espera parametros e o levanta ao completar (`grep -n "1 << 26"
-crates/psx-core/src/gpu.rs`), entao um comando faminto por parametro que nunca chegou explica o
-bit preso — e o driver da GPU do kernel espera esse bit antes de enviar, e desiste com
-`GPU timeout:QUE=(n,n),CODE=(0,0,00FFFFFF)`.
-**Hipotese NAO confirmada. Meça primeiro**: instrumente `gpu.write32(0, ...)` vindo do
-linked-list (`dma.rs::execute_linked_list`) e registre o ULTIMO comando que abaixou o bit 26 e
-quantos parametros ele ainda esperava. Nao conserte o parser por intuicao (R1).
-Spec: `docs/reference/03-gpu.md` (§ GPU Status Register, § GP0 Render Commands) e
-`docs/reference/04-dma.md` (§ Linked List DMA). Arquivos-alvo: `crates/psx-core/src/gpu.rs` e
-`crates/psx-core/src/dma.rs`.
-Armadilha conhecida: o no do linked-list carrega `word_count` no byte alto do header; um no com
-contagem errada entrega comando pela metade sem erro visivel.
-Critério de aceitação: o TTY para de repetir `GPU timeout` e o PC sai do laco em `0x80051200..`.
+**ROADMAP 4.4m — o shell nao arranca o jogo.**
+Medido na 0117 (400 M passos, BIOS + disco do Crash): TTY limpo, sem `GPU timeout`, terminando em
+`PS-X Control PAD Driver Ver 3.0`; `GPUSTAT=0x544E220A` (bit 26 alto); PC circulando em
+`0x80059ED8..0x80059F0C` e `0x8003D404`; VRAM com 322 325 px nao-zero, fundo azul-escuro e a
+esfera da abertura desenhada. Ou seja: o shell roda, desenha, e nao chega ao jogo.
+**Meça primeiro** (invariante 26): instrumente os comandos do CD-ROM enviados depois do passo
+~160 M — o shell tem de fazer `Setloc`+`ReadN` da trilha 1 para ler `SYSTEM.CNF` e depois o
+executavel. O harness `psx-estado/instrumentacao/shellwait.rs` ja decodifica os portos
+`0x1F801800..3`; reaproveite em vez de escrever outro. Confira TAMBEM se o `INT1` de dados
+prontos chega, agora que `I_STAT.2` funciona (0114).
+Spec: `docs/reference/06-cdrom.md` (§ Getloc/Setloc/ReadN) e `docs/reference/15-cdrom-format.md`
+(§ ISO 9660, § SYSTEM.CNF). Arquivos-alvo: `crates/psx-core/src/cdrom.rs`.
+Armadilha conhecida: o shell so olha o disco depois de montar a tela; nao confunda "nao le o
+disco" com "le e nao entende o sistema de arquivos" — o harness tem de mostrar QUAL comando saiu.
+Critério de aceitação: o TTY mostra o shell lendo o disco, ou a medicao prova que ele nem tenta
+(e ai o item vira outro).
 Invariantes relevantes: 24, 26.
 
 **Referencia externa (30/07):** captura canonica do DuckStation em
@@ -50,10 +49,10 @@ de gouraud no losango (candidato 10.14).
 
 ## Placar de testes
 
-Workspace: **775** testes.
+Workspace: **782** testes.
 
 ## Bloqueios
 
 - **4.4 Boot de jogo**: sem bloqueio conhecido; desde a 0115 o boot passa do handshake do
-  controle e para no driver de GPU do kernel; a 0116 fechou o IRQ3 sem mover o sintoma (4.4l). Imagens de disco ficam fora do repositório, em
+  controle e para no driver de GPU do kernel; a 0117 destravou o `GPU timeout` e o boot passa do logo (4.4m). Imagens de disco ficam fora do repositório, em
   `.../Programacao com agentes/roms/extraido/`. **Nunca commitar imagem de disco.**

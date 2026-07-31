@@ -27,7 +27,8 @@ M2 (GPU) e M3 (DMA/IRQ/timers). Regra imposta por `roadmap_arquivo.rs`.
 - [x] 4.4i IRQ2 do CD-ROM nunca chegava ao I_STAT: drive pedia, ninguem lia; agora sobe por borda (iter 0114)
 - [x] 4.4j `sh`/`lhu` nos portos do SIO0 perdiam o byte alto: `JOY_CTRL=1003h` virava `0010h` e soltava o /CS (iter 0115)
 - [x] 4.4k `DICR` guardava o valor cru: sem flags de conclusao, sem bit 31 calculado e sem IRQ3 — o handler de DMA do kernel nunca rodava (iter 0116)
-- [ ] 4.4l `GPU timeout` continua depois do IRQ3 (refutado como causa na 0116): `GPUSTAT.26` (Ready to receive Cmd Word) fica preso em 0 — medir qual comando ficou faminto por parametro
+- [x] 4.4l Canal 2 do DMA nao tinha sentido device->RAM: o `StoreImage` rodava ao contrario e o `C0h` nunca era drenado — `GPU timeout` some (iter 0117)
+- [ ] 4.4m Boot passa do logo e fica no laco do shell (`0x80059ED8..`) com a esfera da abertura na VRAM — medir se o shell chega a ler o `SYSTEM.CNF` do disco
 
 ## M5 — GTE
 - [x] 5.1 Registradores + MFC2/MTC2/CFC2/CTC2/LWC2/SWC2 (iter 0084)
@@ -113,6 +114,7 @@ M2 (GPU) e M3 (DMA/IRQ/timers). Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 10.44 Manifesto com alvo em documento vivo (STATUS.md) envelhece na iteracao seguinte, sempre
 - [ ] 10.45 Load shadow: acesso lento se sobrepoe as instrucoes seguintes (`docs/reference/02-cpu.md` L281-296)
 - [ ] 10.46 `justificativa:` do equivalente nao aceita continuacao de linha em NENHUM dos dois parsers
+- [ ] 10.50 `GP0(C0h)` sem transferencia pendente devolve zero, e dreno maior que a janela le zeros em vez do comportamento real do `GPUREAD` (visto na 0117)
 - [ ] 10.49 Bit 15 do `DICR` (bus error) e gravavel e lido certo, mas nada o levanta: transferencia para fora da RAM e ignorada em silencio (visto na 0116)
 - [ ] 10.48 Escrita de 32 bits em `1F801044h..1F80104Fh` cai no braco-sumidouro de `region_write32` — `sw` em JOY_MODE/JOY_CTRL e engolido (visto na 0115)
 - [ ] 10.47 Lacos de espera da BIOS (`0x80059DA4` frame, `0x80059D54` GPUSTAT.31) tem orcamento de 0x8000 giros e um frame nosso gasta ~230 k passos: saem por timeout, nao por sucesso (medido na 0114)

@@ -42,7 +42,7 @@ alcancamos.
 
 ## Placar de testes
 
-Workspace: **745** testes.
+Workspace: **750** testes.
 
 ## Bloqueios
 

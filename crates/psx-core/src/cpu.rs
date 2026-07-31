@@ -15,6 +15,7 @@ pub struct Cpu {
     exception_badvaddr: Option<u32>,
     load_extra_cycles: u32,
     written_gpr: Option<usize>,
+    pub irq_handler_entries: u64,
 }
 
 impl Cpu {
@@ -43,6 +44,7 @@ impl Cpu {
             exception_badvaddr: None,
             load_extra_cycles: 0,
             written_gpr: None,
+            irq_handler_entries: 0,
         }
     }
 
@@ -79,6 +81,7 @@ impl Cpu {
             self.delay_slot_pending = false;
             self.branch_taken = false;
             self.pc = 0x8000_0080;
+            self.irq_handler_entries = self.irq_handler_entries.wrapping_add(1);
             return;
         }
 

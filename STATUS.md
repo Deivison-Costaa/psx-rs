@@ -7,25 +7,27 @@
 
 ## Última iteração concluída
 
-**0125** — O laco `0x8004205C..0x800422DC` e um **dispatch de eventos** do kernel: varre uma
-tabela de entradas, despacha as de tipo `0x20` e `0x30` (registradores `$t4`/`$t5`), e retorna.
-Nao e um laco de espera — e um laco de varredura que o shell chama a cada quadro. O evento que
-faria o shell montar o sistema de arquivos e ler `SYSTEM.CNF` **nao esta sendo postado na tabela**.
-`psx-cli` agora tem `--max-steps`, `--trace-pcs` e `--dump-mem` para diagnostico.
+**0126** — Diagnostico da corrente CD-ROM → kernel, **corrigido na revisao**: a conclusao
+original ("IRQ2 nunca sobe") era artefato da janela de 80 M. Medido em build limpo: IRQ2 da
+107 raises entre 80 M e 100 M e depois silencia; 6 EvCBs `class=F0000003h` registrados; e
+`DeliverEvent` deixa **DOIS eventos ready** (`status=4000h`, specs `10h` e `200h`) que ninguem
+consome. Elos IRQ2→handler→DeliverEvent→EvCB **intactos**; o defeito e o CONSUMO.
 
 ## Próxima tarefa
 
-**ROADMAP 4.4u — o evento que falta esta a montante do dispatch.** O laco de dispatch (4.4t) esta
-entendido: ele varre a tabela de eventos, despacha tipos `0x20` e `0x30`, e retorna. Quem deveria
-postar um evento que dispara a montagem do sistema de arquivos nao o faz. A referencia do
-DuckStation carrega `SCUS_949.00` depois de `SetGraphDebug`; nos nao lemos `SYSTEM.CNF`.
-**Iteracao de diagnostico.** Rastrear o fluxo de eventos entre o CD-ROM e o kernel: quem produz
-o evento que faz o shell sair do `SetGraphDebug`? Candidatos: o handler de interrupcao do CD-ROM
-nao traduz INT para evento de kernel, ou o scheduler de threads do kernel nunca acorda a thread
-do sistema de arquivos. O discriminador barato e o TTY contra a referencia (invariante 27).
-Armadilha conhecida: nao instrumente o loop de dispatch de novo — ele ja e entendido. O alvo e
-QUEM alimenta a tabela, nao QUEM a consome.
-Invariantes relevantes: 26, 27.
+**ROADMAP 4.4v — dois eventos de CD-ROM ficam READY e o shell nao age.** Medidos a 150 M e
+estaveis ate 700 M: `EvCB[0] class=F0000003h spec=10h` e `EvCB[5] spec=200h`, ambos
+`status=4000h`, `mode=2000h` (sem callback — cabe a alguem testar/esperar). O TTY para em
+`SetGraphDebug` e `SYSTEM.CNF` nunca e lido (invariante 27; DuckStation carrega `SCUS_949.00`
+aqui). **Iteracao de diagnostico.** Rastrear o CONSUMO: quem deveria consumir esses eventos
+(`docs/reference/13-kernel-bios.md`: § B(0Ah) - WaitEvent (L1625), § B(0Bh) - TestEvent
+(L1637), § BIOS Event Summary (L1735)) e por que nao
+chega la. Relacionar com o laco de dispatch da 0125 (`0x8004205C`, compara tipos `20h`/`30h`
+numa tabela que NAO e o EvCB — achar o elo entre EvCB ready e essa tabela). Teste ancora:
+`cdrom_evento_kernel.rs` (150 M; asserta IRQ2>0 e EvCBs registrados).
+Armadilhas: (a) NAO reinvestigar `_96_init` nem o CD-ROM — 107 IRQ2 e 6 EvCBs provam que
+rodam; (b) medida negativa com janela <150 M nao vale (invariante 30).
+Invariantes relevantes: 26, 27, 30.
 
 **Meta em vigor (ordem do usuario, 31/07):** emendar as iteracoes ate o M4 fechar, sem parar entre
 PRs. Pronto = **menu navegavel no `psx-desktop`**. Parada: 5 iteracoes fechadas sem o jogo bootar,
@@ -51,7 +53,7 @@ de gouraud no losango (candidato 10.14).
 
 ## Placar de testes
 
-Workspace: **823** testes.
+Workspace: **828** testes.
 
 ## Bloqueios
 

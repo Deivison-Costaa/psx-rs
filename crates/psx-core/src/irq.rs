@@ -3,6 +3,7 @@ pub struct Irq {
     stat: u32,
     mask: u32,
     pub mask_write_count: u64,
+    pub raise_counts: [u64; 11],
 }
 
 impl Irq {
@@ -11,6 +12,7 @@ impl Irq {
             stat: 0,
             mask: 0,
             mask_write_count: 0,
+            raise_counts: [0; 11],
         }
     }
 
@@ -37,6 +39,9 @@ impl Irq {
 
     pub fn raise(&mut self, bit: u32) {
         self.stat |= 1 << bit;
+        if (bit as usize) < 11 {
+            self.raise_counts[bit as usize] = self.raise_counts[bit as usize].wrapping_add(1);
+        }
     }
 
     pub fn write_stat_byte(&mut self, offset: u32, byte: u8) {
@@ -51,6 +56,14 @@ impl Irq {
         let val32 = (val as u32) << shift;
         let preserved = !(0xFFFFu32 << shift);
         self.stat &= val32 | preserved;
+    }
+
+    pub fn raise_count(&self, bit: u32) -> u64 {
+        if (bit as usize) < 11 {
+            self.raise_counts[bit as usize]
+        } else {
+            0
+        }
     }
 
     pub fn write_mask_byte(&mut self, offset: u32, byte: u8) {

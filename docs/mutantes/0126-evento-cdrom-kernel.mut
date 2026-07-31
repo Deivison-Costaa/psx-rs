@@ -1,0 +1,98 @@
+# Manifesto de mutação da iteração 0126 — evento-cdrom-kernel
+formato: 1
+iteracao: 0126
+item: 4.4u
+alvo: crates/psx-core/src/irq.rs
+teste: cdrom_evento_kernel
+
+mutante: m1
+rotulo: raise nao incrementa contador por bit
+@@DE
+    pub fn raise(&mut self, bit: u32) {
+        self.stat |= 1 << bit;
+        if (bit as usize) < 11 {
+            self.raise_counts[bit as usize] = self.raise_counts[bit as usize].wrapping_add(1);
+        }
+    }
+@@PARA
+    pub fn raise(&mut self, bit: u32) {
+        self.stat |= 1 << bit;
+    }
+@@FIM
+
+mutante: m2
+rotulo: raise_count ignora array e devolve zero
+@@DE
+    pub fn raise_count(&self, bit: u32) -> u64 {
+        if (bit as usize) < 11 {
+            self.raise_counts[bit as usize]
+        } else {
+            0
+        }
+    }
+@@PARA
+    pub fn raise_count(&self, _bit: u32) -> u64 {
+        0
+    }
+@@FIM
+
+mutante: m3
+rotulo: raise_counts inicia com 1 em vez de 0
+@@DE
+            raise_counts: [0; 11],
+@@PARA
+            raise_counts: [1; 11],
+@@FIM
+
+mutante: m4
+rotulo: raise nao incrementa apenas bit 2 (cdrom)
+@@DE
+        if (bit as usize) < 11 {
+            self.raise_counts[bit as usize] = self.raise_counts[bit as usize].wrapping_add(1);
+        }
+@@PARA
+        if (bit as usize) < 11 && bit != 2 {
+            self.raise_counts[bit as usize] = self.raise_counts[bit as usize].wrapping_add(1);
+        }
+@@FIM
+
+mutante: m5
+rotulo: raise_count desvia todos os bits para o indice 0
+@@DE
+            self.raise_counts[bit as usize]
+@@PARA
+            self.raise_counts[0]
+@@FIM
+
+controle: c1
+rotulo: comentario cosmético antes de raise
+@@DE
+    pub fn raise(&mut self, bit: u32) {
+@@PARA
+    // levanta o bit de interrupcao e conta o evento
+    pub fn raise(&mut self, bit: u32) {
+@@FIM
+
+controle: c2
+rotulo: renomeacao consistente raise_counts para irq_raise_counts
+@@DE
+    pub raise_counts: [u64; 11],
+@@PARA
+    pub irq_raise_counts: [u64; 11],
+@@FIM
+ocorrencias: 1
+@@DE
+            raise_counts: [0; 11],
+@@PARA
+            irq_raise_counts: [0; 11],
+@@FIM
+@@DE
+            self.raise_counts[bit as usize] = self.raise_counts[bit as usize].wrapping_add(1);
+@@PARA
+            self.irq_raise_counts[bit as usize] = self.irq_raise_counts[bit as usize].wrapping_add(1);
+@@FIM
+@@DE
+            self.raise_counts[bit as usize]
+@@PARA
+            self.irq_raise_counts[bit as usize]
+@@FIM

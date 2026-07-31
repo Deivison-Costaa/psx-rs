@@ -63,12 +63,14 @@ rotulo: contador comeca em 1 em vez de 0
             stat: 0,
             mask: 0,
             mask_write_count: 0,
+            raise_counts: [0; 11],
         }
 @@PARA
         Irq {
             stat: 0,
             mask: 0,
             mask_write_count: 1,
+            raise_counts: [0; 11],
         }
 @@FIM
 

@@ -222,6 +222,12 @@ impl Bus {
         }
     }
 
+    fn service_cdrom_irq(&mut self) {
+        if self.cdrom.take_irq2_edge() {
+            self.irq.raise(2);
+        }
+    }
+
     pub fn total_cycles(&self) -> u64 {
         self.total_cycles
     }
@@ -403,6 +409,7 @@ impl Bus {
                     .write8(2, (val >> 16) as u8, disc_layout, disc_bin);
                 self.cdrom
                     .write8(3, (val >> 24) as u8, disc_layout, disc_bin);
+                self.service_cdrom_irq();
                 true
             }
             0x1F80_1024..=0x1F80_103F
@@ -478,6 +485,7 @@ impl Bus {
                     self.disc_layout.as_ref(),
                     self.disc_bin.as_deref(),
                 );
+                self.service_cdrom_irq();
                 true
             }
             0x1F80_1024..=0x1F80_103F | 0x1F80_1041..=0x1F80_1043 | 0x1F80_1061..=0x1F80_1FFF => {

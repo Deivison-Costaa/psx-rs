@@ -44,10 +44,11 @@ fn lhu_do_alvo_e_do_modo_tambem_saem_do_registrador() {
         0x16B0,
         "o alvo (1F801108h+N*10h) tem 16 bits uteis e e lido por meia palavra"
     );
-    assert_ne!(
-        bus.read16::<BusRead>(T2_MODE) & (1 << 10),
-        0,
-        "o modo tambem: o bit 10 fica ligado depois de qualquer escrita no modo"
+    bus.write32::<BusWrite>(T2_MODE, 0x0148);
+    assert_eq!(
+        bus.read16::<BusRead>(T2_MODE) & 0x3FF,
+        0x148,
+        "o modo tambem: os bits 0-9 escritos voltam num `lhu`"
     );
 }
 

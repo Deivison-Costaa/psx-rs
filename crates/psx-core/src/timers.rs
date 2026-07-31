@@ -64,6 +64,19 @@ impl Timers {
         }
     }
 
+    pub fn peek32(&self, offset: u32) -> u32 {
+        let base = offset & !0xF;
+        let reg = offset & 0xF;
+        let idx = Self::timer_index(base);
+        let t = &self.timers[idx];
+        match reg {
+            0x0 => t.counter.get() as u32,
+            0x4 => t.mode.get(),
+            0x8 => t.target as u32,
+            _ => 0,
+        }
+    }
+
     pub fn write32(&mut self, offset: u32, val: u32) {
         let base = offset & !0xF;
         let reg = offset & 0xF;

@@ -465,6 +465,12 @@ impl Bus {
                 let reg = (phys - 0x1F80_1800 + offset) & 0x3;
                 Some(self.cdrom.read8(reg))
             }
+            0x1F80_1100..=0x1F80_112F => {
+                let base = phys & !3;
+                let val = self.timers.peek32(base);
+                let byte_index = ((phys & 3) + offset) & 3;
+                Some(((val >> (byte_index * 8)) & 0xFF) as u8)
+            }
             0x1F80_1024..=0x1F80_103F | 0x1F80_1041..=0x1F80_1043 | 0x1F80_1064..=0x1F80_1FFF => {
                 Some(0)
             }
@@ -494,6 +500,15 @@ impl Bus {
                     self.disc_bin.as_deref(),
                 );
                 self.service_cdrom_irq();
+                true
+            }
+            0x1F80_1100..=0x1F80_112F => {
+                let base = phys & !3;
+                let byte_index = ((phys & 3) + offset) & 3;
+                let shift = byte_index * 8;
+                let atual = self.timers.peek32(base);
+                let novo = (atual & !(0xFFu32 << shift)) | ((val as u32) << shift);
+                self.timers.write32(base, novo);
                 true
             }
             0x1F80_1024..=0x1F80_103F | 0x1F80_1041..=0x1F80_1043 | 0x1F80_1061..=0x1F80_1FFF => {

@@ -84,7 +84,20 @@ Efeito medido no boot da BIOS real (SCPH1001), fora da suíte, com o harness `sh
 
 ## Revisão cruzada (orquestrador)
 
-<!-- Preenchido pelo Claude na revisão do PR: achados no formato de docs/prompts/review.md, ou "sem achados". -->
+Sem achados que barrem o merge. O que foi conferido no diff, e não só na suíte:
+
+- **Cobertura das bordas.** `HINTSTS` só é escrito em `send_command` e `deliver_second`, e os
+  dois só são alcançados por escrita em porto do CD-ROM; `read8` não muda `intsts` (o
+  `result_pop` mexe só na FIFO de resultado) e o canal 3 do DMA não toca em `intsts` (`grep` em
+  `dma.rs`). Logo não existe borda fora dos dois pontos onde `service_cdrom_irq` é chamado.
+- **Ordem dentro do ack.** No ramo do `HCLRCTL`, a linha é baixada ANTES do `deliver_second`,
+  senão a transição INT3→0→INT2 acontece inteira dentro de uma chamada e a borda fica invisível
+  na fronteira — foi exatamente o erro nº 2 da tabela acima.
+- **Buraco conhecido, deixado em aberto de propósito (R4).** `CHPRST` (bit 7 do `HCLRCTL`,
+  reset do decodificador) não é modelado; a `irq_line` não é reposta por ele. Não é regressão —
+  o bit já era ignorado antes desta iteração — e a BIOS não o usa no caminho medido.
+- **Gates do projeto:** `purity`, `file_size`, `comment_density`, `roadmap_size`, `status_size`
+  e `spec_citations` verdes; CI com `check`, `commit-lint`, `mutantes` e `scoreboard` passando.
 
 ## Decisões e notas
 

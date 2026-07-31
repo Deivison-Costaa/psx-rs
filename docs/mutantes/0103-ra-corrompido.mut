@@ -77,8 +77,10 @@ controle: c2
 rotulo: mascara do vetor escrita em decimal, mesmo valor (cosmetico)
 @@DE
             self.pc = 0x8000_0080;
+            self.irq_handler_entries = self.irq_handler_entries.wrapping_add(1);
             return;
 @@PARA
             self.pc = 2_147_483_776;
+            self.irq_handler_entries = self.irq_handler_entries.wrapping_add(1);
             return;
 @@FIM

@@ -160,3 +160,9 @@ em `psx-core/tests/`, exigido pelo portao `bateria_nomes_de_teste_existem`), 0 f
    completo (compare 0077/0080). Os placares 5/5 daquelas iteracoes nao tem prova de
    execucao. Registrado como invariante 29 e item 10.58 do ROADMAP (revalidar as duas
    baterias quando o script souber rodar teste fora do psx-core).
+5. **O job `mutantes` da CI reprovava este PR pelo mesmo mecanismo:** rodou a bateria dos
+   tres manifestos de CLI alterados (0078, 0079, 0125) e obteve 0/5 estrutural em todos —
+   na CI nem BIOS ha, entao o teste real nunca poderia matar nada. `mutantes.ps1` agora
+   PULA manifesto com alvo fora de `crates/psx-core/`, com rotulo `FORA-DO-PSX-CORE`
+   explicito, em vez de produzir um 0/5 que mede o script e nao o teste. A prova de
+   execucao dessas baterias e o `.resultado` manual reaplicado pelo revisor.

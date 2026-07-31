@@ -1,0 +1,74 @@
+# Manifesto de mutação da iteração 0117 — dma-gpu-vram-para-ram
+formato: 1
+iteracao: 0117
+item: 4.4l
+alvo: crates/psx-core/src/dma.rs
+teste: dma_gpu_vram_para_ram
+
+mutante: m1
+rotulo: sentido do CHCR ignorado — tudo vira RAM para dispositivo (o defeito 4.4l original)
+@@DE
+        let para_dispositivo = self.chcr[2] & 1 != 0;
+@@PARA
+        let para_dispositivo = true;
+@@FIM
+
+mutante: m2
+rotulo: sentido do CHCR invertido
+@@DE
+        let para_dispositivo = self.chcr[2] & 1 != 0;
+@@PARA
+        let para_dispositivo = self.chcr[2] & 1 == 0;
+@@FIM
+
+mutante: m3
+rotulo: sentido device para RAM grava zero em vez do que a GPU entrega
+@@DE
+                        let word = gpu.read32(0);
+@@PARA
+                        let word = 0u32;
+@@FIM
+
+mutante: m4
+rotulo: palavra drenada e gravada na RAM em big-endian
+@@DE
+                        ram[offset..offset + 4].copy_from_slice(&word.to_le_bytes());
+@@PARA
+                        ram[offset..offset + 4].copy_from_slice(&word.to_be_bytes());
+@@FIM
+
+mutante: m5
+rotulo: dreno le o GPUSTAT (offset 4) em vez do GPUREAD (offset 0)
+@@DE
+                        let word = gpu.read32(0);
+@@PARA
+                        let word = gpu.read32(4);
+@@FIM
+
+mutante: m6
+rotulo: gate do DPCR do canal 2 deixa de valer
+@@DE
+        if self.dpcr & (1 << 11) == 0 {
+            return;
+        }
+@@PARA
+        if false {
+            return;
+        }
+@@FIM
+
+controle: c1
+rotulo: teste do bit de sentido escrito por igualdade (cosmetico)
+@@DE
+        let para_dispositivo = self.chcr[2] & 1 != 0;
+@@PARA
+        let para_dispositivo = (self.chcr[2] & 1) == 1;
+@@FIM
+
+controle: c2
+rotulo: tipo da palavra drenada anotado explicitamente (cosmetico)
+@@DE
+                        let word = gpu.read32(0);
+@@PARA
+                        let word: u32 = gpu.read32(0);
+@@FIM

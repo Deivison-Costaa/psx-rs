@@ -1,0 +1,81 @@
+# Manifesto de mutação da iteração 0114 — cdrom-irq2
+formato: 1
+iteracao: 0114
+item: 4.4i
+alvo: crates/psx-core/src/cdrom.rs
+teste: cdrom_irq2
+
+mutante: m1
+rotulo: linha de IRQ nunca sobe (o defeito 4.4i original)
+@@DE
+    pub fn take_irq2_edge(&self) -> bool {
+        let nivel = self.irq_pending();
+        let borda = nivel && !self.irq_line.get();
+        self.irq_line.set(nivel);
+        borda
+    }
+@@PARA
+    pub fn take_irq2_edge(&self) -> bool {
+        false
+    }
+@@FIM
+
+mutante: m2
+rotulo: IRQ por nivel em vez de borda — repete o pedido sem ack do HCLRCTL
+@@DE
+        let borda = nivel && !self.irq_line.get();
+@@PARA
+        let borda = nivel;
+@@FIM
+
+mutante: m3
+rotulo: escrita no HINTMSK nao habilita nada — (HINTMSK & HINTSTS) fica sempre zero
+@@DE
+                self.intmsk.set(val & 0x1F);
+@@PARA
+                self.intmsk.set(0);
+@@FIM
+
+mutante: m4
+rotulo: ack do HCLRCTL nao baixa a linha — segunda resposta do Init nao gera borda
+@@DE
+                    self.intsts.set(new_intsts);
+                    self.irq_line.set(self.irq_pending());
+@@PARA
+                    self.intsts.set(new_intsts);
+@@FIM
+
+mutante: m5
+rotulo: linha memorizada nunca e atualizada — so a primeira borda da vida vale
+@@DE
+        self.irq_line.set(nivel);
+@@PARA
+        self.irq_line.set(true);
+@@FIM
+
+mutante: m6
+rotulo: ack do HCLRCTL baixa a linha sem olhar os bits que sobraram
+@@DE
+                    self.irq_line.set(self.irq_pending());
+@@PARA
+                    self.irq_line.set(false);
+@@FIM
+
+controle: c1
+rotulo: nivel calculado em duas etapas com o mesmo resultado (cosmetico)
+@@DE
+        let nivel = self.irq_pending();
+        let borda = nivel && !self.irq_line.get();
+@@PARA
+        let nivel = self.irq_pending();
+        let antes = self.irq_line.get();
+        let borda = nivel && !antes;
+@@FIM
+
+controle: c2
+rotulo: mascara de 3 bits escrita em binario (cosmetico)
+@@DE
+        (self.intsts.get() & self.intmsk.get() & 0x7) != 0
+@@PARA
+        (self.intsts.get() & self.intmsk.get() & 0b111) != 0
+@@FIM

@@ -7,28 +7,28 @@
 
 ## Última iteração concluída
 
-**0111** — 4.4h corrigido: escrita no delay slot de load agora cancela o load pendente (a BIOS
-exige). Boot completa o logo, liga 480i, e 2.2d/e/f cairam junto (ROADMAP 4.4h).
+**0112** — polaridade do GPUSTAT.23 corrigida em `framebuffer_for_display`; testes fossilizados
+de 0053/0090 virados; baterias reancoradas e re-rodadas (ROADMAP 2.10).
 
 ## Próxima tarefa
 
-**ROADMAP 2.10 — `framebuffer_for_display` le GPUSTAT.23 invertido.**
-Spec: `docs/reference/03-gpu.md` § GPU Status Register (L1001) — bit23 e **0=Enabled, 1=Disabled**
-(e § GP1(03h) - Display Enable (L779): param 0=On). `gpu.rs:446` devolve `None` quando bit23==0,
-ou seja, esconde a imagem com o display LIGADO. Com o boot agora vivo (0111), a BIOS liga o
-display e o psx-desktop mostraria "Display desligado" na tela do logo.
-**Armadilha:** os testes d1/d2 da iteracao 0053 (`gpu_desktop_egui.rs`) codificam a polaridade
-errada — precisam VIRAR junto, como o teste "assumido" de load delay virou na 0111. Conferir
-tambem quem mais le o bit 23 (`GP1(03h)` em gpu.rs escreve certo: 1=set=disabled).
-Arquivos-alvo: `crates/psx-core/src/gpu.rs` (fn `framebuffer_for_display`).
-Critério de aceitação: com a BIOS real a 120 M passos, `framebuffer_for_display()` devolve
-`Some(640x480)` e o despejo bate com a tela do logo; apos `GP1(03h)=1`, devolve `None`.
-Invariantes relevantes: 23.
+**ROADMAP 2.11 — altura do display em 480i: `display_height` devolve y2-y1 cru.**
+Spec: `docs/reference/03-gpu.md` § GP1(08h) - Display mode (L885) — vres 480 exige bit5
+(interlace); "Interlace must be enabled to see all lines in 480-lines mode". Com GPUSTAT.19 e
+GPUSTAT.22 ligados, as linhas exibidas sao **(y2-y1)*2**, lidas de linhas consecutivas da VRAM.
+A BIOS pos-0111 liga exatamente esse modo (`GPUSTAT=0x144E220D`) — sem o item, o psx-desktop
+mostra so a metade de cima da cena de 480 linhas.
+Arquivos-alvo: `crates/psx-core/src/gpu.rs` (fns `display_height`/`framebuffer`).
+Critério de aceitação: com a BIOS real a ~120 M passos, `framebuffer_for_display()` devolve
+`Some` com altura 480 e o conteudo bate com o despejo da cena inteira; em 240p as alturas
+existentes nao mudam (nao-regressao dos testes de framebuffer).
+Invariantes relevantes: 22, 23.
 
-**Estado do boot apos a 0111:** para no laco de espera de VSync (`PC=0x80059DCC`) com a tela do
-logo completa na VRAM e `GPUSTAT=0x144E220D` (640x480 entrelacado). O proximo passo funcional e
-o M4/item 4.4 (boot de jogo via CD-ROM). Fundo do logo termina em `B4B4B4`; o render de
-referencia mostra branco — diferenca anotada no 2.2e fechado, rejulgar se aparecer fonte melhor.
+**Medicao de referencia externa (30/07):** DuckStation rodando a MESMA BIOS confirma nosso fundo
+(180,180,180) e as cores do losango (mesmos valores de 15 bits); sem "®" na tela real; captura
+canonica em `psx-estado/referencias/tela-de-boot-duckstation.png`. Diferencas restantes: costuras
+de gouraud no losango (candidato 10.14) e, apos o logo, a shell da BIOS (MAIN MENU) que ainda nao
+alcancamos.
 
 ## Repositório
 
@@ -42,7 +42,7 @@ referencia mostra branco — diferenca anotada no 2.2e fechado, rejulgar se apar
 
 ## Placar de testes
 
-Workspace: **741** testes.
+Workspace: **745** testes.
 
 ## Bloqueios
 

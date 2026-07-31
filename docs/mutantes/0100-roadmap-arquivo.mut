@@ -16,9 +16,9 @@ rotulo: M6 fica 100% fechado e continua ocupando bytes da escada
 mutante: m2
 rotulo: M2 fica 100% fechado e continua ocupando bytes da escada
 @@DE
-- [ ] 2.10 `framebuffer_for_display` le GPUSTAT.23 invertido — `docs/reference/03-gpu.md` § GPU Status Register (L1001): bit23 0=Enabled; hoje devolve None com display LIGADO (testes d1/d2 da 0053 codificam a polaridade errada)
+- [ ] 2.11 Altura do display em 480i: `display_height` devolve y2-y1 cru — com GPUSTAT.19/22 ligados sao (y2-y1)*2 linhas (`docs/reference/03-gpu.md` § GP1(08h) - Display mode (L885)); o app mostraria so a metade de cima da cena de 480
 @@PARA
-- [x] 2.10 `framebuffer_for_display` le GPUSTAT.23 invertido — `docs/reference/03-gpu.md` § GPU Status Register (L1001): bit23 0=Enabled; hoje devolve None com display LIGADO (testes d1/d2 da 0053 codificam a polaridade errada)
+- [x] 2.11 Altura do display em 480i: `display_height` devolve y2-y1 cru — com GPUSTAT.19/22 ligados sao (y2-y1)*2 linhas (`docs/reference/03-gpu.md` § GP1(08h) - Display mode (L885)); o app mostraria so a metade de cima da cena de 480
 @@FIM
 
 mutante: m3

@@ -40,7 +40,7 @@ O laco principal:
 
 ```
 8004205C: 8C820000   lw $v0, 0($a0)               ; carrega a primeira palavra da entrada
-80042060: 10000099   beq $v0, $zero, 0x800422C8   ; se zero, pula o corpo e vai para o check
+80042060: 10000099   beq $zero, $zero, 0x800422C8 ; INCONDICIONAL (rs=rt=0): sempre vai ao check de tipo
 80042064: 00021602   srl $v0, $v0, 24             ; delay slot: extrai o byte alto (tipo)
 ```
 
@@ -64,7 +64,8 @@ A saida do laco:
 
 O laco e um **dispatch de eventos do kernel**. Ele varre uma tabela de entradas, e para cada uma:
 
-1. Se a entrada e nula (primeira palavra == 0), **pula**.
+1. Toda entrada vai ao check de tipo — o desvio em `0x80042060` e incondicional
+   (`beq $zero,$zero`); a entrada nula tem byte de tipo `0x00` e cai fora dos dois `beq`.
 2. Se o tipo (byte alto da primeira palavra) e **0x20** ou **0x30**, **processa** o evento
    (dois caminhos de dispatch diferentes).
 3. Qualquer outro tipo de evento: **nao processa e passa para a proxima entrada**.
@@ -116,7 +117,8 @@ Placar da bateria: 5/5 mutantes mortos, 2/2 controles verdes, 0 equivalente — 
 
 ## Placar antes → depois
 
-Workspace: 821 → **822** testes (1 em `max_steps`), 0 falhas.
+Workspace: 821 → **823** testes (o real em `crates/psx-cli/tests/max_steps.rs` + o stub homonimo
+em `psx-core/tests/`, exigido pelo portao `bateria_nomes_de_teste_existem`), 0 falhas.
 
 ## Decisoes e notas
 
@@ -136,3 +138,25 @@ Workspace: 821 → **822** testes (1 em `max_steps`), 0 falhas.
   de eventos entre subsistemas. A invariante 26 diz "defeito confirmado nao e causa
   confirmada" — aqui o defeito esta confirmado (evento ausente) mas a causa (quem deveria
   posta-lo) ainda nao.
+
+## Revisao adversarial (orquestrador)
+
+1. **Decode errado no doc:** `0x10000099` foi anotado como `beq $v0, $zero` ("se a entrada e
+   nula, pula"). Os campos rs e rt da palavra sao ambos `$zero` — o desvio e INCONDICIONAL.
+   A entrada nula e descartada pelo check de tipo (byte `0x00` nao casa com `0x20`/`0x30`),
+   nao por um teste de nulidade. Conclusao funcional intacta; mecanismo corrigido acima.
+2. **Placar de testes:** o doc dizia 822; `cargo test --all --release` conta **823**
+   (o trabalhador esqueceu o proprio stub de `psx-core/tests/max_steps.rs`).
+3. **Bateria re-executada de verdade:** os 5 mutantes aplicados um a um sobre
+   `crates/psx-cli/src/main.rs` e rodados contra o teste real (`cargo test -p psx-cli
+   --test max_steps --release`): m1 FAILED 1.4s, m2 FAILED 1.4s, m3 FAILED 0.03s,
+   m4 FAILED 1.4s, m5 FAILED 0.03s; c1/c2 verdes. O cabecalho original do `.resultado`
+   dizia "script nao existe ainda, item 0.11" — **falso**: `mutantes.ps1` existe desde a
+   0041; o motivo real de a bateria ser manual e ele so rodar `cargo test -p psx-core`.
+4. **Achado colateral (nao deste PR):** os `.resultado` das iters **0078 e 0079** trazem
+   cabecalho "gerado por scripts/mutantes.ps1", mas o script re-rodado hoje na 0078 da
+   **0/5** (o mutante em psx-cli nunca e recompilado; o stub em psx-core e sempre-verde) e
+   a digital denuncia escrita a mao: `rodado_em` so com a data, quando o script grava ISO
+   completo (compare 0077/0080). Os placares 5/5 daquelas iteracoes nao tem prova de
+   execucao. Registrado como invariante 29 e item 10.58 do ROADMAP (revalidar as duas
+   baterias quando o script souber rodar teste fora do psx-core).

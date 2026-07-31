@@ -203,3 +203,11 @@ Regra imposta por `status_handoff.rs`.
     VERDES pelo motivo errado, porque drive morto tambem nao mexe na RAM. Regra: ao mover um
     dispositivo para o `scheduler`, avance o relogio no helper do teste (nunca relaxe a afirmacao)
     e ponha pre-condicao explicita em todo teste negativo que dependa do dispositivo estar vivo.
+29. **Placar de bateria cujo alvo esta fora do psx-core nao pode vir do `mutantes.ps1`.** O
+    script roda `cargo test -p psx-core --test <t>`; mutante em `crates/psx-cli/` nunca e
+    recompilado e o stub homonimo em `psx-core/tests/` e sempre-verde — todo mutante
+    SOBREVIVE (medido na revisao da 0125: a bateria da 0078 re-rodada pelo script deu 0/5,
+    contra 5/5 no `.resultado` commitado). A digital de placar escrito a mao e o
+    `rodado_em:` so com a data — o script grava timestamp ISO completo. Bateria de CLI e
+    manual: aplicar o mutante, rodar `cargo test -p psx-cli --test <t> --release`, colar a
+    saida; o revisor reaplica ao menos os dois mais suspeitos antes do merge.

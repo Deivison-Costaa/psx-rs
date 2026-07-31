@@ -1,10 +1,10 @@
-# gerado por scripts/mutantes.ps1 — NAO editar a mao
-# commit: (manual — script nao existe ainda, item 0.11)
-# rodado_em: 2026-07-31
-m1,mutante,morreu,morreu,0.0,max_steps_limita_o_runner
-m2,mutante,morreu,morreu,0.0,max_steps_limita_o_runner
+# gerado por bateria MANUAL re-executada pelo orquestrador na revisao — mutantes.ps1 NAO se aplica: so roda `cargo test -p psx-core` e o teste real vive em crates/psx-cli (invariante 29)
+# commit: edb9e82a487eb376225de090d7185f6923ebfa36
+# rodado_em: 2026-07-31T19:05:00-03:00
+m1,mutante,morreu,morreu,1.4,max_steps_limita_o_runner
+m2,mutante,morreu,morreu,1.4,max_steps_limita_o_runner
 m3,mutante,morreu,morreu,0.0,max_steps_limita_o_runner
-m4,mutante,morreu,morreu,0.0,max_steps_limita_o_runner
+m4,mutante,morreu,morreu,1.4,max_steps_limita_o_runner
 m5,mutante,morreu,morreu,0.0,max_steps_limita_o_runner
 c1,controle,sobreviveu,sobreviveu,0.0,
 c2,controle,sobreviveu,sobreviveu,0.0,

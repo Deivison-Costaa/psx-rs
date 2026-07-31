@@ -133,6 +133,7 @@ M2 (GPU) e M3 (DMA/IRQ/timers). Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 10.54 Segunda resposta ainda e dirigida pelo ack do guest, nao por tempo (06-cdrom.md L2066) (0121)
 - [ ] 10.53 Comando executa mesmo com INT pendente; spec exige esperar o ack (06-cdrom.md L1984) (0121)
 - [ ] 10.47 Lacos de espera da BIOS (`0x80059DA4`, `0x80059D54`) tem orcamento de 0x8000 giros e um frame gasta ~230 k passos: saem por timeout (0114)
+- [ ] 10.58 `mutantes.ps1` so roda psx-core; ensinar alvo por crate e revalidar 0078/0079 (placares sem prova, invariante 29) (0125)
 
 ## M11 — Apresentação (incremental desde o M1)
 - [x] 11.1 Relatório consolidado (docs/relatorio.md — atualizado a cada marco) (iter 0096)

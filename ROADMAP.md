@@ -33,7 +33,8 @@ M2 (GPU) e M3 (DMA/IRQ/timers). Regra imposta por `roadmap_arquivo.rs`.
 - [x] 4.4o Referencia DuckStation: stat identico, falta o `GetID` (iter 0120)
 - [x] 4.4p Primeira resposta do CD-ROM saia em ZERO ciclo; vai pelo `scheduler` com o atraso da spec e o `GetID` aparece (iter 0121)
 - [x] 4.4q `GetID` respondia sempre a linha No Disk mesmo com disco; agora Licensed:Mode2 + SCEA e o laco acaba (iter 0122)
-- [ ] 4.4r `GetTOC` (1Eh) cai no braco default e nunca arma segunda resposta; 06-cdrom.md L2002 exige INT3(stat) + INT2(stat)
+- [x] 4.4r `GetTOC` (1Eh) nunca armava segunda resposta; agora INT3(stat)+INT2(stat) e o boot le setores (iter 0123)
+- [ ] 4.4s Setor Mode2/Form1 lido a partir de 010h (offset do Mode1); dados saem 8 bytes deslocados (15-cdrom-format.md L621)
 
 ## M5 — GTE
 - [x] 5.1 Registradores + MFC2/MTC2/CFC2/CTC2/LWC2/SWC2 (iter 0084)

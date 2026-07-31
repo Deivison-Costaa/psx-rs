@@ -7,25 +7,29 @@
 
 ## Última iteração concluída
 
-**0122** — o `GetID` respondia a linha **No Disk** da spec (`INT5 08h,40h`) mesmo com disco dentro.
-Agora responde Licensed:Mode2 (`INT2 02h,00h,20h,00h,'S','C','E','A'`) quando ha disco. **O laco de
-retentativa acabou:** de 45 comandos repetindo para 4 lineares, e o shell pediu o proximo comando.
+**0123** — `GetTOC` (1Eh) caia no braco default e nunca armava a segunda resposta. Agora faz
+INT3(stat) + INT2(stat), reusando o caso 1 do `deliver_second`. **O boot passou a ler o disco:**
+4 comandos viraram 17, com a cadeia `Setloc/SeekL/Setmode/ReadN/Pause` da referencia e INT1 em
+27 924 passos.
 
 ## Próxima tarefa
 
-**ROADMAP 4.4r — `GetTOC` (1Eh) nunca arma a segunda resposta.**
-Medido na 0122: depois do `GetID` o shell emite `GetTOC` no passo 88 380 174 e nao pede mais nada.
-`send_command` nao tem braco para `0x1E`; ele cai no `_ =>`, que empilha o stat, seta `intsts = 3`
-e faz `busy = false` **sem tocar em `pending_second`**. A spec (§ Second Responses,
-`docs/reference/06-cdrom.md` L2002) exige `1Eh ReadTOC — INT3(late-stat), INT2(stat)`, e a
-§ ReadTOC (L961) avisa: *"rather slow, the second response appears after about 1 second delay"*.
-Alvo: `crates/psx-core/src/cdrom.rs`, braco novo `0x1E` no `send_command`. O caso 1 do
-`deliver_second` (Init) ja faz exatamente `INT2(stat)` — reusar `pending_second = 1`.
-Armadilha conhecida: o `first_response_cycles` ja trata `0x1E` como o atraso longo (0x13CCE), entao
-NAO mexa nele. E a segunda resposta continua saindo no ack do guest, nao por tempo (buraco 10.54):
-o "1 second delay" da spec nao e modelado, e isso e assumido, nao esquecido.
-Critério de aceitação: o `cdstate.rs` mostra um comando novo depois do `GetTOC` — a referencia do
-DuckStation em `psx-estado/referencias/` continua sendo o gabarito da cadeia.
+**ROADMAP 4.4s — setor Mode2/Form1 lido a partir do offset do Mode1.**
+Medido na 0123, despejando o `.bin`: o byte `00Fh` do setor 4 e `02h` — **Mode2/Form1**. A spec
+(§ Mode2/Form1 (CD-XA), `docs/reference/15-cdrom-format.md` L621) da para esse formato
+`010h 4 Sub-Header`, `014h 4 Copy of Sub-Header` e os dados so em **`018h`**; o Mode1 (L613) e que
+comeca em `010h`. O `read_sector_from_disc` usa `abs_sector*2352 + 0x10` fixo, entao **todo setor
+sai 8 bytes deslocado**, com o sub-header na frente. Prova no setor 16 (PVD do ISO9660): de `010h`
+sai `00 00 09 00 00 00 09 00 01 'CD001'` em vez de `01 'CD001'`.
+Sintoma: a BIOS le os setores de licenca (LBA 4 e 5, `Setloc 00:02:04`/`00:02:05`), reemite `GetID`
+e para. E a verificacao de licenca falhando com dados deslocados.
+Alvo: `crates/psx-core/src/cdrom.rs`, `read_sector_from_disc` — escolher o offset pelo byte de modo
+do proprio setor (`00Fh`), nao por constante.
+Armadilha conhecida: o disco de stub dos testes (`insert_disc` sem `.bin`) preenche `i+1` e nao tem
+header nenhum; os 11 testes de `cdrom_read.rs`/`cdrom_dma.rs` que dependem dele NAO podem quebrar.
+E ha `read_n_retorna_dados_do_bin_no_setor_correto` em `cdrom_read.rs`, que monta um `.bin`
+sintetico — confira em que modo ele monta antes de mudar o offset.
+Critério de aceitação: o `cdstate.rs` mostra comando novo depois do terceiro `GetID`.
 Invariantes relevantes: 26, 28.
 
 **Meta em vigor (ordem do usuario, 31/07):** emendar as iteracoes ate o M4 fechar, sem parar entre
@@ -52,7 +56,7 @@ de gouraud no losango (candidato 10.14).
 
 ## Placar de testes
 
-Workspace: **808** testes.
+Workspace: **814** testes.
 
 ## Bloqueios
 

@@ -1,10 +1,10 @@
 # gerado por scripts/mutantes.ps1 — NAO editar a mao
-# commit: c1cd15079fe67576edf254f7dcb65307e93a1a60
-# rodado_em: 2026-07-31T02:50:46-03:00
+# commit: f6652f83774bf4fef49aeef5bcc1f599bb744bcd
+# rodado_em: 2026-07-31T02:51:24-03:00
 m1,mutante,morreu,morreu,0.8,gettoc_arma_a_segunda_resposta_int2;gettoc_deixa_o_drive_pronto_para_o_proximo_comando;segunda_resposta_do_gettoc_devolve_o_stat
-m2,mutante,morreu,sobreviveu,0.8,
-m3,mutante,morreu,morreu,0.8,gettoc_responde_int3_com_o_stat;gettoc_usa_o_atraso_longo_da_primeira_resposta
-m4,mutante,morreu,morreu,0.7,gettoc_responde_int3_com_o_stat
+m2,mutante,morreu,morreu,0.7,segunda_resposta_do_gettoc_devolve_o_stat
+m3,mutante,morreu,morreu,0.7,gettoc_responde_int3_com_o_stat;gettoc_usa_o_atraso_longo_da_primeira_resposta
+m4,mutante,morreu,morreu,0.8,gettoc_responde_int3_com_o_stat
 m5,mutante,morreu,morreu,0.8,gettoc_usa_o_atraso_longo_da_primeira_resposta
 m6,mutante,morreu,morreu,0.8,gettoc_deixa_o_drive_pronto_para_o_proximo_comando
 c1,controle,sobreviveu,sobreviveu,0.8,

@@ -222,6 +222,27 @@ fn parametros_empilhados_sobrevivem_a_janela_de_espera() {
 }
 
 #[test]
+fn limpar_a_fifo_de_parametros_na_janela_nao_altera_o_comando_em_voo() {
+    let mut bus = bus();
+
+    empilha_param(&mut bus, 0x20);
+    manda_comando(&mut bus, 0x19);
+
+    set_bank(&mut bus, 1);
+    cd_write(&mut bus, 3, 0x40);
+    set_bank(&mut bus, 0);
+
+    avanca(&mut bus, PRIMEIRA_RESPOSTA);
+
+    assert_eq!(
+        result_read(&mut bus),
+        0x97,
+        "no hardware o sub-CPU le a FIFO de parametros quando pega o comando; um HCLRCTL \
+         bit 6 depois disso nao pode transformar Test 20h em Test 00h"
+    );
+}
+
+#[test]
 fn comando_novo_na_janela_nao_faz_o_evento_velho_entregar_cedo() {
     let mut bus = bus();
     let atraso_do_segundo: u64 = 1_000;

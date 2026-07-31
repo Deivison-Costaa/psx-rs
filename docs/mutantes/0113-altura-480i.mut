@@ -1,0 +1,62 @@
+# Manifesto de mutação da iteração 0113 — altura-480i
+formato: 1
+iteracao: 0113
+item: 2.11
+alvo: crates/psx-core/src/gpu.rs
+teste: gpu_display_altura_480i
+
+mutante: m1
+rotulo: ignora o bit de interlace — vres=1 sozinho ja dobra
+@@DE
+        if stat & (1 << 19) != 0 && stat & (1 << 22) != 0 {
+@@PARA
+        if stat & (1 << 19) != 0 {
+@@FIM
+
+mutante: m2
+rotulo: ignora o bit de vres — interlace sozinho ja dobra
+@@DE
+        if stat & (1 << 19) != 0 && stat & (1 << 22) != 0 {
+@@PARA
+        if stat & (1 << 22) != 0 {
+@@FIM
+
+mutante: m3
+rotulo: nunca dobra (o defeito 2.11 original)
+@@DE
+        if stat & (1 << 19) != 0 && stat & (1 << 22) != 0 {
+@@PARA
+        if false {
+@@FIM
+
+mutante: m4
+rotulo: dobra virou quadruplica
+@@DE
+            lines.wrapping_mul(2)
+@@PARA
+            lines.wrapping_mul(4)
+@@FIM
+
+mutante: m5
+rotulo: framebuffer pula linha da VRAM (entrelaca na leitura em vez de ler consecutivo)
+@@DE
+                let vy = (start_y + y) & 0x1FF;
+@@PARA
+                let vy = (start_y + y * 2) & 0x1FF;
+@@FIM
+
+controle: c1
+rotulo: literal do dobro com tipo explicito (cosmetico)
+@@DE
+            lines.wrapping_mul(2)
+@@PARA
+            lines.wrapping_mul(2u16)
+@@FIM
+
+controle: c2
+rotulo: condicao com parenteses redundantes (cosmetico)
+@@DE
+        if stat & (1 << 19) != 0 && stat & (1 << 22) != 0 {
+@@PARA
+        if (stat & (1 << 19) != 0) && (stat & (1 << 22) != 0) {
+@@FIM

@@ -120,14 +120,15 @@ fn resposta_chega_no_prazo_medio_da_spec() {
     avanca(&mut bus, PRIMEIRA_RESPOSTA);
 
     assert_eq!(
+        i_stat_irq2(&bus),
+        IRQ2,
+        "com HINTMSK=1Fh a propria entrega levanta IRQ2 — sem depender de nenhuma escrita \
+         posterior nos portos do CD para que a borda seja notada"
+    );
+    assert_eq!(
         hintsts(&mut bus),
         3,
         "spec § First Response: em 000c4e1h ciclos o GetStat responde INT3"
-    );
-    assert_eq!(
-        i_stat_irq2(&bus),
-        IRQ2,
-        "com HINTMSK=1Fh a entrega levanta IRQ2 pela borda"
     );
     assert_eq!(
         result_read(&mut bus),

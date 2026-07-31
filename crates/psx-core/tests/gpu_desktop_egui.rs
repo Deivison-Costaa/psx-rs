@@ -9,12 +9,13 @@ fn write_gp1(gpu: &mut Gpu, cmd: u8, param: u32) {
 fn d1_framebuffer_for_display_retorna_none_quando_display_desabilitado() {
     let mut gpu = Gpu::new();
 
-    write_gp1(&mut gpu, 0x03, 0);
+    write_gp1(&mut gpu, 0x03, 1);
 
     let result = gpu.framebuffer_for_display();
     assert!(
         result.is_none(),
-        "D1: apos GP1(03h)=0 (display desabilitado), framebuffer_for_display deve retornar None"
+        "D1: apos GP1(03h)=1 (display DESABILITADO — polaridade corrigida na iter 0112, \
+         03-gpu.md L781: param 0=On, 1=Off), framebuffer_for_display deve retornar None"
     );
 }
 
@@ -23,12 +24,13 @@ fn d1_framebuffer_for_display_retorna_none_quando_display_desabilitado() {
 fn d2_framebuffer_for_display_retorna_some_quando_display_habilitado() {
     let mut gpu = Gpu::new();
 
-    write_gp1(&mut gpu, 0x03, 1);
+    write_gp1(&mut gpu, 0x03, 0);
 
     let result = gpu.framebuffer_for_display();
     assert!(
         result.is_some(),
-        "D2: apos GP1(03h)=1 (display habilitado), framebuffer_for_display deve retornar Some"
+        "D2: apos GP1(03h)=0 (display HABILITADO — polaridade corrigida na iter 0112), \
+         framebuffer_for_display deve retornar Some"
     );
 }
 
@@ -37,7 +39,7 @@ fn d2_framebuffer_for_display_retorna_some_quando_display_habilitado() {
 fn d3_framebuffer_para_egui_formato_rgba8() {
     let mut gpu = Gpu::new();
 
-    write_gp1(&mut gpu, 0x03, 1);
+    write_gp1(&mut gpu, 0x03, 0);
     write_gp1(&mut gpu, 0x05, 4 | (2 << 10));
     write_gp1(&mut gpu, 0x07, 1 << 10);
 

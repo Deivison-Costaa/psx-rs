@@ -16,12 +16,12 @@ rotulo: Gpu::new com display desligado (bit 23 zerado)
 mutante: m2
 rotulo: framebuffer_for_display sempre retorna None
 @@DE
-        if self.stat.get() & (1 << 23) == 0 {
+        if self.stat.get() & (1 << 23) != 0 {
             return None;
         }
 @@PARA
         return None;
-        if self.stat.get() & (1 << 23) == 0 {
+        if self.stat.get() & (1 << 23) != 0 {
             return None;
         }
 @@FIM
@@ -66,8 +66,8 @@ rotulo: adiciona variavel _dummy = 0 no inicio de framebuffer
 controle: c2
 rotulo: adiciona variavel _x = 0 antes do stat.get no framebuffer_for_display
 @@DE
-        if self.stat.get() & (1 << 23) == 0 {
+        if self.stat.get() & (1 << 23) != 0 {
 @@PARA
         let _x = 0;
-        if self.stat.get() & (1 << 23) == 0 {
+        if self.stat.get() & (1 << 23) != 0 {
 @@FIM

@@ -1,15 +1,17 @@
 # Manifesto de mutação da iteração 0053 — psx-desktop-egui
+# Reancorado na iteração 0112: a polaridade do GPUSTAT.23 foi corrigida (0=Enabled)
+# e todas as âncoras/sentidos acompanharam.
 formato: 1
 iteracao: 0053
 item: 2.8b
-alvo: crates/psx-core/src/gpu.rs
 teste: gpu_desktop_egui
+alvo: crates/psx-core/src/gpu.rs
 
 mutante: m1
 rotulo: framebuffer_for_display sempre retorna None (ignora bit 23)
 @@DE
     pub fn framebuffer_for_display(&self) -> Option<Framebuffer> {
-        if self.stat.get() & (1 << 23) == 0 {
+        if self.stat.get() & (1 << 23) != 0 {
             return None;
         }
         Some(self.framebuffer())
@@ -24,7 +26,7 @@ mutante: m2
 rotulo: framebuffer_for_display sempre retorna Some (ignora bit 23)
 @@DE
     pub fn framebuffer_for_display(&self) -> Option<Framebuffer> {
-        if self.stat.get() & (1 << 23) == 0 {
+        if self.stat.get() & (1 << 23) != 0 {
             return None;
         }
         Some(self.framebuffer())
@@ -38,17 +40,17 @@ rotulo: framebuffer_for_display sempre retorna Some (ignora bit 23)
 mutante: m3
 rotulo: framebuffer_for_display checa bit errado (24 em vez de 23)
 @@DE
-        if self.stat.get() & (1 << 23) == 0 {
+        if self.stat.get() & (1 << 23) != 0 {
 @@PARA
-        if self.stat.get() & (1 << 24) == 0 {
+        if self.stat.get() & (1 << 24) != 0 {
 @@FIM
 
 mutante: m4
-rotulo: framebuffer_for_display inverte condicao (retorna None quando display ON)
+rotulo: framebuffer_for_display inverte condicao (o defeito 2.10 pre-0112)
 @@DE
-        if self.stat.get() & (1 << 23) == 0 {
-@@PARA
         if self.stat.get() & (1 << 23) != 0 {
+@@PARA
+        if self.stat.get() & (1 << 23) == 0 {
 @@FIM
 
 mutante: m5
@@ -63,25 +65,25 @@ controle: K1
 rotulo: variavel local cosmetico em framebuffer_for_display (cosmetico)
 @@DE
     pub fn framebuffer_for_display(&self) -> Option<Framebuffer> {
-        if self.stat.get() & (1 << 23) == 0 {
+        if self.stat.get() & (1 << 23) != 0 {
 @@PARA
     pub fn framebuffer_for_display(&self) -> Option<Framebuffer> {
         let _cosmetico = 1;
-        if self.stat.get() & (1 << 23) == 0 {
+        if self.stat.get() & (1 << 23) != 0 {
 @@FIM
 
 controle: K2
 rotulo: reordena blocos do metodo (return antes, if depois — cosmetico)
 @@DE
     pub fn framebuffer_for_display(&self) -> Option<Framebuffer> {
-        if self.stat.get() & (1 << 23) == 0 {
+        if self.stat.get() & (1 << 23) != 0 {
             return None;
         }
         Some(self.framebuffer())
     }
 @@PARA
     pub fn framebuffer_for_display(&self) -> Option<Framebuffer> {
-        if self.stat.get() & (1 << 23) != 0 {
+        if self.stat.get() & (1 << 23) == 0 {
             return Some(self.framebuffer());
         }
         None

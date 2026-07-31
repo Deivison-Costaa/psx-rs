@@ -1,0 +1,92 @@
+# Manifesto de mutação da iteração 0124 — setor-mode2-form1
+formato: 1
+iteracao: 0124
+item: 4.4s
+alvo: crates/psx-core/src/cdrom.rs
+teste: cdrom_setor_mode2
+
+mutante: m1
+rotulo: volta ao offset fixo do Mode1 (o defeito original)
+@@DE
+    let cabecalho = if bin[offset + 0x0F] == 0x02 {
+        0x18
+    } else {
+        0x10
+    };
+@@PARA
+    let cabecalho = 0x10;
+@@FIM
+
+# O mutante "offset do Mode2 aplicado a todo setor" (cabecalho = 0x18 fixo) NAO entra aqui:
+# ele ja e o m2 de 0077-acoplar-disclayout-cdrom.mut, reancorado nesta iteracao. Repetir a
+# mesma edicao em dois manifestos so inflaria o placar.
+
+mutante: m3
+rotulo: byte de modo lido do lugar errado do cabecalho
+@@DE
+    let cabecalho = if bin[offset + 0x0F] == 0x02 {
+@@PARA
+    let cabecalho = if bin[offset + 0x0E] == 0x02 {
+@@FIM
+
+mutante: m4
+rotulo: Mode2 pula so o sub-header, esquecendo a copia dele
+@@DE
+    let cabecalho = if bin[offset + 0x0F] == 0x02 {
+        0x18
+@@PARA
+    let cabecalho = if bin[offset + 0x0F] == 0x02 {
+        0x14
+@@FIM
+
+mutante: m5
+rotulo: modo comparado com Mode1 em vez de Mode2, invertendo os dois offsets
+@@DE
+    let cabecalho = if bin[offset + 0x0F] == 0x02 {
+        0x18
+    } else {
+        0x10
+    };
+@@PARA
+    let cabecalho = if bin[offset + 0x0F] == 0x01 {
+        0x18
+    } else {
+        0x10
+    };
+@@FIM
+
+mutante: m6
+rotulo: guarda de tamanho antes de ler o byte de modo removida
+@@DE
+    if offset + 0x10 > bin.len() {
+        return None;
+    }
+@@PARA
+    if offset > bin.len() {
+        return None;
+    }
+@@FIM
+
+controle: c1
+rotulo: escolha do offset escrita com match em vez de if (equivalente)
+@@DE
+    let cabecalho = if bin[offset + 0x0F] == 0x02 {
+        0x18
+    } else {
+        0x10
+    };
+@@PARA
+    let cabecalho = match bin[offset + 0x0F] {
+        0x02 => 0x18,
+        _ => 0x10,
+    };
+@@FIM
+
+controle: c2
+rotulo: modo extraido para variavel local antes da comparacao (cosmetico)
+@@DE
+    let cabecalho = if bin[offset + 0x0F] == 0x02 {
+@@PARA
+    let modo = bin[offset + 0x0F];
+    let cabecalho = if modo == 0x02 {
+@@FIM

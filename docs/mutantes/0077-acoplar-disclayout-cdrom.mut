@@ -18,9 +18,13 @@ rotulo: troca minuto com segundo no calculo do setor absoluto
 mutante: m2
 rotulo: data_start com offset 0x18 em vez de 0x10 no setor raw
 @@DE
-    let data_start = offset + 0x10;
+    let cabecalho = if bin[offset + 0x0F] == 0x02 {
+        0x18
+    } else {
+        0x10
+    };
 @@PARA
-    let data_start = offset + 0x18;
+    let cabecalho = 0x18;
 @@FIM
 
 mutante: m3

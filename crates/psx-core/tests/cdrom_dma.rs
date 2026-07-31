@@ -4,6 +4,7 @@ use psx_core::bus::{Bus, BusRead};
 use support::asm;
 
 const CD_BASE: u32 = 0x1F80_1800;
+const ESPERA_PRIMEIRA_RESPOSTA: u32 = 0x1_4000;
 const D3_MADR: u32 = 0x1F80_10B0;
 const D3_BCR: u32 = 0x1F80_10B4;
 const D3_CHCR: u32 = 0x1F80_10B8;
@@ -44,6 +45,7 @@ fn hclrctl_write(bus: &mut Bus, val: u8) {
 fn send_command(bus: &mut Bus, cmd: u8) {
     set_bank(bus, 0);
     cd_write(bus, 1, cmd);
+    bus.tick_timers(ESPERA_PRIMEIRA_RESPOSTA);
 }
 
 fn param_write(bus: &mut Bus, val: u8) {
@@ -72,6 +74,14 @@ fn read_n_and_int1(bus: &mut Bus) {
     send_command(bus, 0x06);
     let _ = result_read(bus);
     hclrctl_write(bus, 0x07);
+    set_bank(bus, 1);
+    let hintsts = cd_read(bus, 3) & 0x7;
+    set_bank(bus, 0);
+    assert_eq!(
+        hintsts, 1,
+        "pre-condicao: o setor tem de ter chegado (INT1). Sem isto os testes negativos \
+         abaixo ficam verdes com o drive morto, e nao por causa do que eles afirmam medir"
+    );
     let _ = result_read(bus);
 }
 

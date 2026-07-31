@@ -124,6 +124,30 @@ fn scheduler_ne_avanca_sem_evento() {
 }
 
 #[test]
+fn scheduler_cancela_todas_as_pendencias_de_um_id() {
+    let mut sched = Scheduler::new();
+    sched.schedule(ScheduleKey::new(10), CB_A);
+    sched.schedule(ScheduleKey::new(20), CB_A);
+    sched.schedule(ScheduleKey::new(30), CB_B);
+
+    sched.cancel(CB_A);
+
+    assert_eq!(
+        sched.pending_events().len(),
+        1,
+        "cancelar um id tira todas as pendencias dele e nenhuma dos outros"
+    );
+    assert!(
+        sched.advance_to(25).is_none(),
+        "nenhum evento de A pode vencer depois de cancelado"
+    );
+    assert!(
+        sched.advance_to(30) == Some(CB_B),
+        "o evento de B sobrevive ao cancelamento de A"
+    );
+}
+
+#[test]
 fn scheduler_evento_imediatamente() {
     let mut sched = Scheduler::new();
     sched.schedule(ScheduleKey::new(0), CB_A);

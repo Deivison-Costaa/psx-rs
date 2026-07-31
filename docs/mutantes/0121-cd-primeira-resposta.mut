@@ -1,0 +1,85 @@
+# Manifesto de mutação da iteração 0121 — cd-primeira-resposta
+formato: 1
+iteracao: 0121
+item: 4.4p
+alvo: crates/psx-core/src/cdrom.rs
+teste: cdrom_primeira_resposta
+
+mutante: m1
+rotulo: comando executado dentro da escrita no porto (o defeito 4.4p original)
+@@DE
+            1 if self.bank.get() == 0 => self.latch_command(val),
+@@PARA
+            1 if self.bank.get() == 0 => self.send_command(val),
+@@FIM
+
+mutante: m2
+rotulo: atraso generico da primeira resposta vai a zero
+@@DE
+            _ => 0xC4E1,
+@@PARA
+            _ => 0,
+@@FIM
+
+mutante: m3
+rotulo: Init e ReadTOC usam o atraso generico em vez do proprio da spec
+@@DE
+            0x0A | 0x1E => 0x1_3CCE,
+@@PARA
+            0x0A | 0x1E => 0xC4E1,
+@@FIM
+
+mutante: m4
+rotulo: entrega nao restaura os parametros capturados na emissao do comando
+@@DE
+        self.param_buf.set(self.pending_params.get());
+        self.param_count.set(self.pending_param_count.get());
+@@PARA
+        let _ = self.pending_params.get();
+@@FIM
+
+mutante: m5
+rotulo: emissao do comando captura uma FIFO de parametros vazia
+@@DE
+        self.pending_params.set(self.param_buf.get());
+@@PARA
+        self.pending_params.set([0u8; 16]);
+@@FIM
+
+mutante: m6
+rotulo: agendar resposta nova sem cancelar a pendencia anterior
+arquivo: crates/psx-core/src/bus.rs
+@@DE
+            self.scheduler.cancel(EventId(CDROM_RESPONSE));
+@@PARA
+            self.scheduler.cancel(EventId(u32::MAX));
+@@FIM
+
+mutante: m7
+rotulo: entrega no prazo nao levanta a IRQ2
+arquivo: crates/psx-core/src/bus.rs
+@@DE
+                    self.cdrom.deliver_first();
+                    if self.cdrom.take_irq2_edge() {
+                        self.irq.raise(2);
+                    }
+@@PARA
+                    self.cdrom.deliver_first();
+@@FIM
+
+controle: c1
+rotulo: ordem dos comandos no braco do atraso maior trocada (cosmetico)
+@@DE
+            0x0A | 0x1E => 0x1_3CCE,
+@@PARA
+            0x1E | 0x0A => 0x1_3CCE,
+@@FIM
+
+controle: c2
+rotulo: tipo do prazo anotado explicitamente no bus (cosmetico)
+arquivo: crates/psx-core/src/bus.rs
+@@DE
+            let prazo = self.total_cycles + Cdrom::first_response_cycles(cmd);
+@@PARA
+            let prazo: u64 = self.total_cycles + Cdrom::first_response_cycles(cmd);
+@@FIM

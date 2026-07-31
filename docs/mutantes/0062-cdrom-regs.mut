@@ -88,7 +88,7 @@ rotulo: adicionar let binding descartavel antes do match em send_command (equiva
 controle: K2
 rotulo: extrair bank.get() em variavel local no write8 (equivalente semantico)
 @@DE
-            1 if self.bank.get() == 0 => self.send_command(val),
+            1 if self.bank.get() == 0 => self.latch_command(val),
             2 if self.bank.get() == 0 => self.param_push(val),
             2 if self.bank.get() == 1 => {
                 self.intmsk.set(val & 0x1F);
@@ -98,7 +98,7 @@ rotulo: extrair bank.get() em variavel local no write8 (equivalente semantico)
             }
             3 if self.bank.get() == 1 => {
 @@PARA
-            1 if self.bank.get() == 0 => self.send_command(val),
+            1 if self.bank.get() == 0 => self.latch_command(val),
             2 if self.bank.get() == 0 => self.param_push(val),
             2 if { let b = self.bank.get(); b == 1 } => {
                 self.intmsk.set(val & 0x1F);

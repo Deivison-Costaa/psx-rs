@@ -195,3 +195,11 @@ Regra imposta por `status_handoff.rs`.
     guardada em `psx-estado/referencias/`. Corolario: batize variavel de BIOS so com o que a
     medicao mostra (`[0x80083C58]` foi chamada de "estado do driver de CD" na 0118 sem prova; o que
     estava provado era o formato do ciclo).
+28. **Dispositivo que avanca por evento agendado esta DESLIGADO em qualquer harness que nao chame
+    `tick_timers`.** Desde a 0121 a primeira resposta do CD-ROM so sai quando o relogio anda, e o
+    unico ponto de producao que anda com o relogio e o fim do `Cpu::step`. Teste que escreve no
+    porto pelo `Bus`, sem CPU, congela o dispositivo: os 55 testes de CD-ROM existentes ficaram
+    vermelhos de uma vez, e quatro testes NEGATIVOS (`dma3_nao_dispara_sem_bfrd` e irmaos) ficariam
+    VERDES pelo motivo errado, porque drive morto tambem nao mexe na RAM. Regra: ao mover um
+    dispositivo para o `scheduler`, avance o relogio no helper do teste (nunca relaxe a afirmacao)
+    e ponha pre-condicao explicita em todo teste negativo que dependa do dispositivo estar vivo.

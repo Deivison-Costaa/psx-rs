@@ -1,0 +1,12 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: ee655da38626fafa21af082014a116aaaa6cece4
+# rodado_em: 2026-07-31T02:25:49-03:00
+m1,mutante,morreu,morreu,0.8,a_entrega_e_evento_do_scheduler_e_nao_efeito_da_escrita;comando_novo_na_janela_nao_faz_o_evento_velho_entregar_cedo;init_espera_o_atraso_maior_da_spec;nenhuma_resposta_na_mesma_instrucao_da_escrita_do_comando;nenhuma_resposta_um_ciclo_antes_do_prazo_da_spec;parametros_empilhados_sobrevivem_a_janela_de_espera
+m2,mutante,morreu,morreu,0.8,comando_novo_na_janela_nao_faz_o_evento_velho_entregar_cedo;nenhuma_resposta_um_ciclo_antes_do_prazo_da_spec
+m3,mutante,morreu,morreu,0.8,init_espera_o_atraso_maior_da_spec
+m4,mutante,morreu,morreu,0.8,limpar_a_fifo_de_parametros_na_janela_nao_altera_o_comando_em_voo
+m5,mutante,morreu,morreu,0.8,limpar_a_fifo_de_parametros_na_janela_nao_altera_o_comando_em_voo;parametros_empilhados_sobrevivem_a_janela_de_espera
+m6,mutante,morreu,morreu,5.6,comando_novo_na_janela_nao_faz_o_evento_velho_entregar_cedo
+m7,mutante,morreu,morreu,0.8,resposta_chega_no_prazo_medio_da_spec
+c1,controle,sobreviveu,sobreviveu,0.8,
+c2,controle,sobreviveu,sobreviveu,0.8,

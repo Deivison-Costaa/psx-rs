@@ -4,6 +4,7 @@ use psx_core::bus::{Bus, BusRead};
 use support::asm;
 
 const CD_BASE: u32 = 0x1F80_1800;
+const ESPERA_PRIMEIRA_RESPOSTA: u32 = 0x1_4000;
 
 fn bus() -> Bus {
     asm::bus_with_bios_empty()
@@ -85,6 +86,7 @@ fn init_command_dispara_int3_e_depois_int2() {
     insert_stub_disc(&mut bus);
     set_bank(&mut bus, 0);
     cd_write(&mut bus, 1, 0x0A);
+    bus.tick_timers(ESPERA_PRIMEIRA_RESPOSTA);
     let hintsts = hintsts_read_bank1(&mut bus);
     assert_eq!(hintsts & 0x7, 3, "INT3 apos comando Init (0Ah)");
     set_bank(&mut bus, 0);
@@ -107,6 +109,7 @@ fn getstat_20h_retorna_data_e_versao() {
     set_bank(&mut bus, 0);
     cd_write(&mut bus, 2, 0x20);
     cd_write(&mut bus, 1, 0x19);
+    bus.tick_timers(ESPERA_PRIMEIRA_RESPOSTA);
     let hintsts = hintsts_read_bank1(&mut bus);
     assert_eq!(hintsts & 0x7, 3, "INT3 apos comando Test (19h,20h)");
     set_bank(&mut bus, 0);
@@ -126,6 +129,7 @@ fn getstat_21h_retorna_flags_dos_switches() {
     set_bank(&mut bus, 0);
     cd_write(&mut bus, 2, 0x21);
     cd_write(&mut bus, 1, 0x19);
+    bus.tick_timers(ESPERA_PRIMEIRA_RESPOSTA);
     let hintsts = hintsts_read_bank1(&mut bus);
     assert_eq!(hintsts & 0x7, 3, "INT3 apos comando Test (19h,21h)");
     set_bank(&mut bus, 0);
@@ -139,6 +143,7 @@ fn getid_sem_disco_retorna_int5() {
     let mut bus = bus();
     set_bank(&mut bus, 0);
     cd_write(&mut bus, 1, 0x1A);
+    bus.tick_timers(ESPERA_PRIMEIRA_RESPOSTA);
     let hintsts = hintsts_read_bank1(&mut bus);
     assert_eq!(hintsts & 0x7, 3, "INT3 na primeira resposta do GetID");
     cd_read(&bus, 1);
@@ -156,6 +161,7 @@ fn result_fifo_leitura_retorna_padding_zero_apos_esvaziar() {
     set_bank(&mut bus, 0);
     cd_write(&mut bus, 2, 0x20);
     cd_write(&mut bus, 1, 0x19);
+    bus.tick_timers(ESPERA_PRIMEIRA_RESPOSTA);
     for _ in 0..4 {
         cd_read(&bus, 1);
     }
@@ -169,6 +175,7 @@ fn irq_pendente_quando_intsts_e_intmsk_se_sobrepoem() {
     set_bank(&mut bus, 0);
     intmsk_write(&mut bus, 0x1F);
     cd_write(&mut bus, 1, 0x0A);
+    bus.tick_timers(ESPERA_PRIMEIRA_RESPOSTA);
     assert!(
         bus.cdrom().irq_pending(),
         "IRQ pendente quando INTMSK cobre INTSTS"
@@ -181,6 +188,7 @@ fn irq_nao_pendente_quando_intmsk_nao_cobre_intsts() {
     set_bank(&mut bus, 0);
     intmsk_write(&mut bus, 0x00);
     cd_write(&mut bus, 1, 0x0A);
+    bus.tick_timers(ESPERA_PRIMEIRA_RESPOSTA);
     assert!(
         !bus.cdrom().irq_pending(),
         "IRQ nao pendente quando INTMSK=0 mesmo com INTSTS=3"
@@ -226,6 +234,7 @@ fn result_fifo_esvaziado_apos_acknowledge_e_leitura_da_segunda_resposta() {
     insert_stub_disc(&mut bus);
     set_bank(&mut bus, 0);
     cd_write(&mut bus, 1, 0x0A);
+    bus.tick_timers(ESPERA_PRIMEIRA_RESPOSTA);
     let stat = cd_read(&bus, 1);
     assert_eq!(
         stat & (1 << 1),

@@ -5,6 +5,7 @@ use psx_core::cdrom_bin_cue::{DiscLayout, TrackInfo, TrackType};
 use support::asm;
 
 const CD_BASE: u32 = 0x1F80_1800;
+const ESPERA_PRIMEIRA_RESPOSTA: u32 = 0x1_4000;
 
 fn bus() -> Bus {
     asm::bus_with_bios_empty()
@@ -44,6 +45,7 @@ fn hclrctl_write(bus: &mut Bus, val: u8) {
 fn send_command(bus: &mut Bus, cmd: u8) {
     set_bank(bus, 0);
     cd_write(bus, 1, cmd);
+    bus.tick_timers(ESPERA_PRIMEIRA_RESPOSTA);
 }
 
 fn param_write(bus: &mut Bus, val: u8) {

@@ -110,6 +110,7 @@ impl MemoryOp for BusWrite {
 
 const VBLANK_ENTER: u32 = 0;
 const VBLANK_EXIT: u32 = 1;
+const CDROM_RESPONSE: u32 = 2;
 
 #[derive(Debug)]
 pub struct Bus {
@@ -234,6 +235,15 @@ impl Bus {
         }
     }
 
+    fn schedule_cdrom_response(&mut self) {
+        if let Some(cmd) = self.cdrom.take_issued_command() {
+            self.scheduler.cancel(EventId(CDROM_RESPONSE));
+            let prazo = self.total_cycles + Cdrom::first_response_cycles(cmd);
+            self.scheduler
+                .schedule(ScheduleKey::new(prazo), EventId(CDROM_RESPONSE));
+        }
+    }
+
     pub fn total_cycles(&self) -> u64 {
         self.total_cycles
     }
@@ -259,6 +269,12 @@ impl Bus {
                         ScheduleKey::new(self.total_cycles + frame),
                         EventId(VBLANK_EXIT),
                     );
+                }
+                CDROM_RESPONSE => {
+                    self.cdrom.deliver_first();
+                    if self.cdrom.take_irq2_edge() {
+                        self.irq.raise(2);
+                    }
                 }
                 _ => {}
             }
@@ -417,6 +433,7 @@ impl Bus {
                     .write8(2, (val >> 16) as u8, disc_layout, disc_bin);
                 self.cdrom
                     .write8(3, (val >> 24) as u8, disc_layout, disc_bin);
+                self.schedule_cdrom_response();
                 self.service_cdrom_irq();
                 true
             }
@@ -499,6 +516,7 @@ impl Bus {
                     self.disc_layout.as_ref(),
                     self.disc_bin.as_deref(),
                 );
+                self.schedule_cdrom_response();
                 self.service_cdrom_irq();
                 true
             }

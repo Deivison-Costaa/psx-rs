@@ -16,22 +16,23 @@ M2 (GPU) e M3 (DMA/IRQ/timers). Regra imposta por `roadmap_arquivo.rs`.
 - [x] 4.3b Acoplar DiscLayout + dados do .bin a entrega de setores (iter 0077)
 - [x] 4.3c Flag --disc/--cue no psx-cli (iter 0078)
 - [ ] 4.4 Boot de jogo 2D/menu
-- [x] 4.4h Segundo crash: `$ra=4` era load pendente esmagando a escrita do delay slot; escrita agora vence (iter 0111)
+- [x] 4.4h Segundo crash: `$ra=4` era load pendente sobre o delay slot (iter 0111)
 - [x] 4.4a Boot da BIOS no psx-cli (--bios sozinho) (iter 0079)
 - [x] 4.4b Base de tempo: scheduler + vblank + IRQ0 (iter 0080)
 - [x] 4.4c BIOS nunca escreve I_MASK (iter 0085)
-- [x] 4.4d I_MASK=0x0000 por todo o boot — bloqueio real, IRQs nunca vetoram (iter 0096)
-- [x] 4.4e Handler de excecao em 0x80000080 despacha para tabela de eventos do kernel (ehk) — VSync callbacks nao rodam (iter 0095)
-- [x] 4.4f Interrupcao no delay slot sequestrava o handler e sumia com o `addiu $sp` (iter 0103)
-- [x] 4.4g Custo em ciclos do load: laco de espera de VSync da BIOS cobria 69% de um frame (iter 0104)
-- [x] 4.4i IRQ2 do CD-ROM nunca chegava ao I_STAT: drive pedia, ninguem lia; agora sobe por borda (iter 0114)
-- [x] 4.4j `sh`/`lhu` nos portos do SIO0 perdiam o byte alto: `JOY_CTRL=1003h` virava `0010h` e soltava o /CS (iter 0115)
-- [x] 4.4k `DICR` guardava o valor cru: sem flags de conclusao, sem bit 31 calculado e sem IRQ3 — o handler de DMA do kernel nunca rodava (iter 0116)
-- [x] 4.4l Canal 2 do DMA nao tinha sentido device->RAM: o `StoreImage` rodava ao contrario e o `C0h` nunca era drenado — `GPU timeout` some (iter 0117)
-- [x] 4.4m Shell nao pede nada ao disco: laco esperava o timer 2, e `lhu`/`sh` nas portas dos timers caiam no sumidouro do `bus.rs` (iter 0118)
-- [x] 4.4n Diagnostico: troca do `GetStat` correta porto a porto; shell decide nao pedir mais nada ao disco (iter 0119)
-- [x] 4.4o Referencia (DuckStation, mesma BIOS/disco): stat identico (`0x02`); falta um comando — o real emite `GetID` apos o `Getstat` (iter 0120)
-- [ ] 4.4p Primeira resposta do CD-ROM e entregue em ZERO ciclo (spec: media 0xC4E1); entregar pelo `scheduler` e medir se o `GetID` aparece
+- [x] 4.4d I_MASK=0x0000 por todo o boot: IRQs nunca vetoram (iter 0096)
+- [x] 4.4e Handler 0x80000080 despacha para a tabela de eventos do kernel (iter 0095)
+- [x] 4.4f Interrupcao no delay slot sequestrava o handler (iter 0103)
+- [x] 4.4g Custo em ciclos do load: espera de VSync cobria 69% de um frame (iter 0104)
+- [x] 4.4i IRQ2 do CD-ROM nunca chegava ao I_STAT; agora sobe por borda (iter 0114)
+- [x] 4.4j `sh`/`lhu` no SIO0 perdiam o byte alto e soltavam o /CS (iter 0115)
+- [x] 4.4k `DICR` cru: sem flags, sem bit 31 e sem IRQ3 (iter 0116)
+- [x] 4.4l Canal 2 do DMA sem sentido device->RAM: `GPU timeout` some (iter 0117)
+- [x] 4.4m `lhu`/`sh` nas portas dos timers caiam no sumidouro do `bus.rs` (iter 0118)
+- [x] 4.4n Diagnostico: troca do `GetStat` correta porto a porto (iter 0119)
+- [x] 4.4o Referencia DuckStation: stat identico, falta o `GetID` (iter 0120)
+- [x] 4.4p Primeira resposta do CD-ROM saia em ZERO ciclo; vai pelo `scheduler` com o atraso da spec e o `GetID` aparece (iter 0121)
+- [ ] 4.4q `GetID` responde sempre a linha No Disk da spec (`INT5 08h,40h`), mesmo com disco: o shell repete GetStat/GetID para sempre
 
 ## M5 — GTE
 - [x] 5.1 Registradores + MFC2/MTC2/CFC2/CTC2/LWC2/SWC2 (iter 0084)
@@ -88,7 +89,7 @@ M2 (GPU) e M3 (DMA/IRQ/timers). Regra imposta por `roadmap_arquivo.rs`.
 - [x] 10.31 Rodada morta seguia escrevendo: sessao vive no daemon, nao no cliente (iter 0101)
 - [x] 10.32 GP1(09h) fecha gate nao limpa latch GPUSTAT.15 (iter 0076)
 - [ ] 10.25 `unwrap_or(\"\")` sobre caminho nos meta-testes — transformou falha de `strip_prefix` em silencio (10.12)
-- [ ] 10.13 GP0(24h) e modulacao, nao raw texture — bit 24 do comando nao e lido (`docs/reference/03-gpu.md` L264 e L1610); refutado como causa do 2.2e: o boot so modula com 0x808080, identidade (iter 0110)
+- [ ] 10.13 GP0(24h) e modulacao, nao raw texture — bit 24 nao e lido (`docs/reference/03-gpu.md` L264/L1610); nao e causa do 2.2e (iter 0110)
 - [ ] 10.14 U/V e cor gouraud sao reinterpolados sobre span recortado pela drawing area (`docs/reference/03-gpu.md` L452-454)
 - [x] 10.16 `spec_citations.rs` casava titulo de secao por substring (iter 0083)
 - [x] 10.15 Reparar ancoras do manifesto 0059 arquivado na 0060 (iter 0067)
@@ -106,7 +107,7 @@ M2 (GPU) e M3 (DMA/IRQ/timers). Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 10.34 Nenhum meta-teste reprova `#[test]` sem assercao — T10 da 0080 era eprintln! e passou
 - [ ] 10.35 `mutantes.ps1` escreve nome qualificado no .resultado e `mutation_battery.rs` procura fn literal — nunca casam em modulo
 - [x] 10.36 Interrupcoes nao funcionam em sideload de PS-EXE — vetor 0x80000080 nao configurado (iter 0093)
-- [x] 10.37 `oc-loop.ps1` anunciava merge que nao aconteceu: `Wait-Checks` lia estado do commit anterior e falha de `gh pr merge` passava por sucesso (iter 0094)
+- [x] 10.37 `oc-loop.ps1` anunciava merge que nao houve: `Wait-Checks` lia o commit anterior e falha de `gh pr merge` passava (iter 0094)
 - [x] 10.38 `oc-iter.ps1` pagava a parede de 45 min por rodada travada de 90 s de vida (iter 0098)
 - [x] 10.39 Marco 100% fechado sai da escada para `docs/ROADMAP-fechado.md` (iter 0100)
 - [ ] 10.40 `mutantes.ps1` so casa ancora em arquivo LF; em CRLF diz 'encontrada 0 vez(es)'
@@ -117,11 +118,15 @@ M2 (GPU) e M3 (DMA/IRQ/timers). Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 10.44 Manifesto com alvo em documento vivo (STATUS.md) envelhece na iteracao seguinte, sempre
 - [ ] 10.45 Load shadow: acesso lento se sobrepoe as instrucoes seguintes (`docs/reference/02-cpu.md` L281-296)
 - [ ] 10.46 `justificativa:` do equivalente nao aceita continuacao de linha em NENHUM dos dois parsers
-- [ ] 10.52 `lhu`/`lbu` no registrador de modo do timer nao limpa os bits 11/12 (o caminho de byte usa `peek32`); o acesso de 32 bits limpa (visto na 0118)
-- [ ] 10.51 Braco da GPU em `region_read_byte` calcula `(phys & 3) + offset` sem mascara: acesso desalinhado estoura o deslocamento em debug (visto na 0118)
-- [ ] 10.50 `GP0(C0h)` sem transferencia pendente devolve zero, e dreno maior que a janela le zeros em vez do comportamento real do `GPUREAD` (visto na 0117)
-- [ ] 10.49 Bit 15 do `DICR` (bus error) e gravavel e lido certo, mas nada o levanta: transferencia para fora da RAM e ignorada em silencio (visto na 0116)
-- [ ] 10.48 Escrita de 32 bits em `1F801044h..1F80104Fh` cai no braco-sumidouro de `region_write32` — `sw` em JOY_MODE/JOY_CTRL e engolido (visto na 0115)
+- [ ] 10.52 `lhu`/`lbu` no modo do timer nao limpa os bits 11/12 (caminho de byte usa `peek32`); 32 bits limpa (visto na 0118)
+- [ ] 10.51 Braco da GPU em `region_read_byte` faz `(phys & 3) + offset` sem mascara: desalinhado estoura em debug (visto na 0118)
+- [ ] 10.50 `GP0(C0h)` sem transferencia pendente devolve zero, e dreno alem da janela le zeros (visto na 0117)
+- [ ] 10.49 Bit 15 do `DICR` (bus error) e gravavel mas nada o levanta: transferencia fora da RAM e ignorada (visto na 0116)
+- [ ] 10.48 `sw` em `1F801044h..1F80104Fh` cai no sumidouro de `region_write32`: JOY_MODE/JOY_CTRL engolidos (visto na 0115)
+- [ ] 10.56 Result FIFO do comando anterior continua legivel na janela da primeira resposta (0121)
+- [ ] 10.55 Atraso da primeira resposta ignora o motor: spec da `Nop (when stopped) 0x5CF4` (0121)
+- [ ] 10.54 Segunda resposta ainda e dirigida pelo ack do guest, nao por tempo (06-cdrom.md L2066) (0121)
+- [ ] 10.53 Comando executa mesmo com INT pendente; spec exige esperar o ack (06-cdrom.md L1984) (0121)
 - [ ] 10.47 Lacos de espera da BIOS (`0x80059DA4`, `0x80059D54`) tem orcamento de 0x8000 giros e um frame gasta ~230 k passos: saem por timeout (0114)
 
 ## M11 — Apresentação (incremental desde o M1)

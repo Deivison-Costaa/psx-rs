@@ -7,29 +7,25 @@
 
 ## Última iteração concluída
 
-**0124** — `read_sector_from_disc` lia todo setor de `010h` (offset do Mode1); num disco
-Mode2/Form1 isso devolve o sub-header como dado e desloca o setor 8 bytes. Agora o offset sai do
-byte `00Fh` de cada setor. **Defeito real, mas NAO era a causa:** os 17 comandos e o ponto de
-parada ficaram identicos (invariante 26, agora pelo lado negativo).
+**0125** — O laco `0x8004205C..0x800422DC` e um **dispatch de eventos** do kernel: varre uma
+tabela de entradas, despacha as de tipo `0x20` e `0x30` (registradores `$t4`/`$t5`), e retorna.
+Nao e um laco de espera — e um laco de varredura que o shell chama a cada quadro. O evento que
+faria o shell montar o sistema de arquivos e ler `SYSTEM.CNF` **nao esta sendo postado na tabela**.
+`psx-cli` agora tem `--max-steps`, `--trace-pcs` e `--dump-mem` para diagnostico.
 
 ## Próxima tarefa
 
-**ROADMAP 4.4t — o shell para depois da tela de licenca, e o bloqueio nao e mais do CD-ROM.**
-Tres medicoes da 0124 dizem isso: (a) a troca do terceiro `GetID` e completa — a BIOS le o INT3,
-acka, le os OITO bytes do INT2 licenciado, acka, e nao pede mais nada em 310 M passos; (b) a tela
-**SONY COMPUTER ENTERTAINMENT** renderiza inteira e correta (VRAM em
-`psx-estado/referencias/0124-vram-apos-licenca.png`, display 640x478, 318 278 pixels nao-zero);
-(c) o TTY do kernel para em `SetGraphDebug:level:1,type:0`, sem nenhuma linha sobre `SYSTEM.CNF` —
-a referencia do DuckStation ja carregou `SCUS_949.00` neste ponto.
-O PC final fica num laco de contagem do shell:
-`0x800422D8: addiu $t1,$t1,1` / `0x800422DC: bne $t1,$s1,0x8004205C`.
-**Iteracao de diagnostico.** Instrumentar esse laco: quem sao `$t1` e `$s1`, que tabela ele varre,
-e o que ele espera mudar. Ver tambem `0x800422C8`/`0x800422D0` (`beq $v0,$t4` / `beq $v0,$t5`).
-Armadilha conhecida: NAO instrumente o CD-ROM de novo — as tres medicoes acima ja o eliminaram, e
-foi exatamente esse erro que custou a 0119 (quatro hipoteses refutadas por olhar o subsistema
-errado). O discriminador barato aqui e o TTY contra a referencia, invariante 27.
-Critério de aceitação: nomear o que o laco espera, com medicao — ou mostrar `SYSTEM.CNF` sendo lido.
-Invariantes relevantes: 26, 27, 28.
+**ROADMAP 4.4u — o evento que falta esta a montante do dispatch.** O laco de dispatch (4.4t) esta
+entendido: ele varre a tabela de eventos, despacha tipos `0x20` e `0x30`, e retorna. Quem deveria
+postar um evento que dispara a montagem do sistema de arquivos nao o faz. A referencia do
+DuckStation carrega `SCUS_949.00` depois de `SetGraphDebug`; nos nao lemos `SYSTEM.CNF`.
+**Iteracao de diagnostico.** Rastrear o fluxo de eventos entre o CD-ROM e o kernel: quem produz
+o evento que faz o shell sair do `SetGraphDebug`? Candidatos: o handler de interrupcao do CD-ROM
+nao traduz INT para evento de kernel, ou o scheduler de threads do kernel nunca acorda a thread
+do sistema de arquivos. O discriminador barato e o TTY contra a referencia (invariante 27).
+Armadilha conhecida: nao instrumente o loop de dispatch de novo — ele ja e entendido. O alvo e
+QUEM alimenta a tabela, nao QUEM a consome.
+Invariantes relevantes: 26, 27.
 
 **Meta em vigor (ordem do usuario, 31/07):** emendar as iteracoes ate o M4 fechar, sem parar entre
 PRs. Pronto = **menu navegavel no `psx-desktop`**. Parada: 5 iteracoes fechadas sem o jogo bootar,
@@ -55,7 +51,7 @@ de gouraud no losango (candidato 10.14).
 
 ## Placar de testes
 
-Workspace: **821** testes.
+Workspace: **823** testes.
 
 ## Bloqueios
 

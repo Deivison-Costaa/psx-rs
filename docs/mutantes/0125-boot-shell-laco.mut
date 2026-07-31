@@ -1,0 +1,71 @@
+# Manifesto de mutação da iteração 0125 — boot-shell-laco
+formato: 1
+iteracao: 0125
+item: 4.4t
+alvo: crates/psx-cli/src/main.rs
+teste: max_steps
+
+mutante: m1
+rotulo: --max-steps ignorado no laco de run (sempre usa o default)
+@@DE
+    while steps < max_steps {
+@@PARA
+    while steps < RUNNER_MAX_STEPS {
+@@FIM
+
+mutante: m2
+rotulo: --max-steps lido mas descartado (usando unwrap da constante)
+@@DE
+    let max_steps = max_steps.unwrap_or(RUNNER_MAX_STEPS);
+@@PARA
+    let max_steps = RUNNER_MAX_STEPS;
+@@FIM
+
+mutante: m3
+rotulo: --max-steps zera o limite em vez de usar o valor do usuario
+@@DE
+    let max_steps = max_steps.unwrap_or(RUNNER_MAX_STEPS);
+@@PARA
+    let max_steps = 0;
+@@FIM
+
+mutante: m4
+rotulo: --max-steps analisa o valor mas nao atribui a max_steps
+@@DE
+                    max_steps = Some(n);
+@@PARA
+                    let _ = n;
+@@FIM
+
+mutante: m5
+rotulo: --max-steps nao avanca i em 2 (o valor vira argumento seguinte)
+@@DE
+                    max_steps = Some(n);
+                    i += 2;
+@@PARA
+                    max_steps = Some(n);
+                    i += 1;
+@@FIM
+
+controle: c1
+rotulo: acrescenta comentario no inicio do loop de parse de argumentos (cosmetico)
+@@DE
+    while i < args.len() {
+@@PARA
+    // itera sobre os argumentos da linha de comando
+    while i < args.len() {
+@@FIM
+
+controle: c2
+rotulo: renomeia a variavel max_steps para max_steps_parsed (renomeacao consistente)
+@@DE
+    let max_steps = max_steps.unwrap_or(RUNNER_MAX_STEPS);
+@@PARA
+    let max_steps_parsed = max_steps.unwrap_or(RUNNER_MAX_STEPS);
+@@FIM
+ocorrencias: 2
+@@DE
+            let steps = run(&mut cpu, &mut bus, max_steps, &trace_pcs);
+@@PARA
+            let steps = run(&mut cpu, &mut bus, max_steps_parsed, &trace_pcs);
+@@FIM

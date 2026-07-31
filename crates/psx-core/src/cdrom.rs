@@ -26,6 +26,7 @@ pub struct Cdrom {
     data_pos: Cell<usize>,
     read_mode: Cell<u8>,
     hchpctl: Cell<u8>,
+    irq_line: Cell<bool>,
 }
 
 impl Cdrom {
@@ -53,6 +54,7 @@ impl Cdrom {
             data_pos: Cell::new(0),
             read_mode: Cell::new(0),
             hchpctl: Cell::new(0),
+            irq_line: Cell::new(false),
         }
     }
 
@@ -340,6 +342,7 @@ impl Cdrom {
                 if val & 0x7 != 0 {
                     let new_intsts = self.intsts.get() & !(val & 0x07);
                     self.intsts.set(new_intsts);
+                    self.irq_line.set(self.irq_pending());
                 }
                 let pending = self.pending_second.get();
                 if pending != 0 {
@@ -431,6 +434,13 @@ impl Cdrom {
 
     pub fn irq_pending(&self) -> bool {
         (self.intsts.get() & self.intmsk.get() & 0x7) != 0
+    }
+
+    pub fn take_irq2_edge(&self) -> bool {
+        let nivel = self.irq_pending();
+        let borda = nivel && !self.irq_line.get();
+        self.irq_line.set(nivel);
+        borda
     }
 }
 

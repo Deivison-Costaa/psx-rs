@@ -1,16 +1,41 @@
-use psx_core::bus::{Bios, Bus, Ram};
+use psx_core::bus::{Bios, Bus, BusRead, Ram};
 use psx_core::cdrom_bin_cue::{DiscLayout, parse_cue};
 use psx_core::cpu::Cpu;
+use std::collections::HashSet;
 use std::io::Read;
 use std::io::Write;
 
 const RUNNER_MAX_STEPS: usize = 50_000_000;
 
-fn run(cpu: &mut Cpu, bus: &mut Bus, max_steps: usize) -> usize {
+fn run(cpu: &mut Cpu, bus: &mut Bus, max_steps: usize, trace_pcs: &HashSet<u32>) -> usize {
     let mut steps = 0;
     while steps < max_steps {
         cpu.step(bus);
         steps += 1;
+
+        if !trace_pcs.is_empty() && trace_pcs.contains(&cpu.pc) {
+            let instr = bus.read32::<BusRead>(cpu.pc);
+            let _rs = ((instr >> 21) & 0x1F) as usize;
+            let _rt = ((instr >> 16) & 0x1F) as usize;
+            eprintln!(
+                "trace pc=0x{:08X} step={} instr=0x{:08X} \
+                 regs: t1($9)=0x{:08X} s1($17)=0x{:08X} v0($2)=0x{:08X} t4($12)=0x{:08X} t5($13)=0x{:08X}",
+                cpu.pc,
+                steps,
+                instr,
+                cpu.regs[9],
+                cpu.regs[17],
+                cpu.regs[2],
+                cpu.regs[12],
+                cpu.regs[13],
+            );
+            eprintln!(
+                "     mem[t1*4]=0x{:08X} mem[s1*4]=0x{:08X}",
+                bus.read32::<BusRead>(cpu.regs[9].wrapping_mul(4)),
+                bus.read32::<BusRead>(cpu.regs[17].wrapping_mul(4)),
+            );
+            let _ = std::io::stderr().flush();
+        }
     }
     steps
 }
@@ -55,6 +80,8 @@ fn main() {
     let mut bios_arg: Option<String> = None;
     let mut exe_arg: Option<String> = None;
     let mut disc_arg: Option<String> = None;
+    let mut max_steps: Option<usize> = None;
+    let mut trace_pcs: HashSet<u32> = HashSet::new();
     let mut i = 1;
     while i < args.len() {
         match args[i].as_str() {
@@ -70,8 +97,44 @@ fn main() {
                 disc_arg = Some(args[i + 1].clone());
                 i += 2;
             }
+            "--max-steps" if i + 1 < args.len() => match args[i + 1].parse::<usize>() {
+                Ok(n) => {
+                    max_steps = Some(n);
+                    i += 2;
+                }
+                Err(e) => {
+                    eprintln!(
+                        "Erro: '--max-steps' espera um numero, '{}': {}",
+                        args[i + 1],
+                        e
+                    );
+                    std::process::exit(1);
+                }
+            },
+            "--trace-pcs" if i + 1 < args.len() => {
+                for piece in args[i + 1].split(',') {
+                    let piece = piece.trim();
+                    match u32::from_str_radix(piece.trim_start_matches("0x"), 16) {
+                        Ok(addr) => {
+                            trace_pcs.insert(addr);
+                        }
+                        Err(e) => {
+                            eprintln!(
+                                "Erro: '--trace-pcs' espera enderecos hex, '{}': {}",
+                                piece, e
+                            );
+                            std::process::exit(1);
+                        }
+                    }
+                }
+                i += 2;
+            }
             "--bios" | "--exe" | "--disc" => {
                 eprintln!("Erro: '{}' requer um caminho", args[i]);
+                std::process::exit(1);
+            }
+            "--max-steps" | "--trace-pcs" => {
+                eprintln!("Erro: '{}' requer um valor", args[i]);
                 std::process::exit(1);
             }
             arg => {
@@ -80,6 +143,7 @@ fn main() {
             }
         }
     }
+    let max_steps = max_steps.unwrap_or(RUNNER_MAX_STEPS);
 
     if disc_arg.is_some() && bios_arg.is_none() {
         eprintln!("Erro: --disc requer --bios <caminho_da_BIOS>");
@@ -134,7 +198,7 @@ fn main() {
 
             psx_core::psexe::install_return_stubs(&mut bus);
 
-            let steps = run(&mut cpu, &mut bus, RUNNER_MAX_STEPS);
+            let steps = run(&mut cpu, &mut bus, max_steps, &trace_pcs);
 
             let tty = bus.take_tty();
             if !tty.is_empty() {
@@ -182,7 +246,7 @@ fn main() {
                 bus.cdrom_mut().insert_disc();
             }
 
-            let steps = run(&mut cpu, &mut bus, RUNNER_MAX_STEPS);
+            let steps = run(&mut cpu, &mut bus, max_steps, &trace_pcs);
 
             let tty = bus.take_tty();
             if !tty.is_empty() {

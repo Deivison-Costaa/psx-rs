@@ -1,0 +1,12 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: 560840d57549e0695beb08ed3a009d691827fac8
+# rodado_em: 2026-07-30T22:55:00-03:00
+m1,mutante,morreu,morreu,0.9,bit31_nao_olha_as_mascaras_por_canal;borda_de_0_para_1_do_bit31_levanta_i_stat_bit3;escrever_1_no_flag_limpa_o_flag_e_derruba_o_bit31;flag_do_canal_sobe_com_mascara_e_master_ligados;nova_conclusao_depois_do_ack_levanta_irq3_de_novo
+m2,mutante,morreu,morreu,0.9,flag_nao_sobe_sem_a_mascara_do_canal
+m3,mutante,morreu,morreu,0.9,flag_nao_sobe_sem_o_master_do_bit23
+m4,mutante,morreu,morreu,0.8,bit15_de_bus_error_forca_o_bit31
+m5,mutante,morreu,morreu,0.9,escrever_1_no_flag_limpa_o_flag_e_derruba_o_bit31;nova_conclusao_depois_do_ack_levanta_irq3_de_novo
+m6,mutante,morreu,morreu,0.9,i_stat_bit3_e_de_borda_e_nao_volta_sozinho
+m7,mutante,morreu,morreu,0.9,borda_de_0_para_1_do_bit31_levanta_i_stat_bit3;nova_conclusao_depois_do_ack_levanta_irq3_de_novo
+c1,controle,sobreviveu,sobreviveu,0.9,
+c2,controle,sobreviveu,sobreviveu,1,

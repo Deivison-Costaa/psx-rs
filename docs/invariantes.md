@@ -178,3 +178,11 @@ Regra imposta por `status_handoff.rs`.
     instrumentar acesso a porto, registre o TAMANHO do acesso (decodificado do opcode) junto com
     o endereco; foi o campo que separou "falta modelar o pad" de "o barramento perde o byte
     alto". Bateria 0115; teste `sio_portas_16bits.rs`.
+26. **Hipotese confirmada como DEFEITO nao e hipotese confirmada como CAUSA.** O handoff da 0115
+    apontou "nao existe um so `raise(3)`" como candidato do `GPU timeout`. Era defeito real e foi
+    corrigido na 0116 (o handler de DMA do kernel passou de 0 para 508 execucoes), e o sintoma
+    **continuou igual**. O padrao da invariante 24 acha buraco de fiacao com facilidade, e por isso
+    mesmo se oferece como explicacao do sintoma que estava sob investigacao. Regra: so escreva
+    "causa" no doc depois de medir o SINTOMA sumindo; ate la, escreva "defeito encontrado a
+    caminho". Custo de nao fazer isso: um item do ROADMAP que se declara fechado com o boot no
+    mesmo lugar. Bateria 0116; teste `dma_dicr_irq3.rs`.

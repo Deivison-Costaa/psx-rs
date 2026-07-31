@@ -8,6 +8,7 @@ pub struct Dma {
     chcr: [u32; 7],
     dpcr: u32,
     dicr: u32,
+    irq_line: bool,
 }
 
 impl Dma {
@@ -20,6 +21,7 @@ impl Dma {
             chcr,
             dpcr: 0x0765_4321,
             dicr: 0,
+            irq_line: false,
         }
     }
 
@@ -64,7 +66,40 @@ impl Dma {
     }
 
     pub fn write_dicr(&mut self, val: u32) {
-        self.dicr = val;
+        let flags = self.dicr & !(val & 0x7F00_0000);
+        self.dicr = (val & 0x00FF_807F) | (flags & 0x7F00_0000);
+        self.recalc_master_flag();
+    }
+
+    fn recalc_master_flag(&mut self) {
+        let bus_error = self.dicr & (1 << 15) != 0;
+        let master_enable = self.dicr & (1 << 23) != 0;
+        let algum_flag = self.dicr & 0x7F00_0000 != 0;
+        if bus_error || (master_enable && algum_flag) {
+            self.dicr |= 1 << 31;
+        } else {
+            self.dicr &= !(1 << 31);
+        }
+    }
+
+    fn signal_completion(&mut self, ch: usize) {
+        let mascara = self.dicr & (1 << (16 + ch)) != 0;
+        let master_enable = self.dicr & (1 << 23) != 0;
+        if mascara && master_enable {
+            self.dicr |= 1 << (24 + ch);
+            self.recalc_master_flag();
+        }
+    }
+
+    pub fn irq3_pending(&self) -> bool {
+        self.dicr & (1 << 31) != 0
+    }
+
+    pub fn take_irq3_edge(&mut self) -> bool {
+        let nivel = self.irq3_pending();
+        let borda = nivel && !self.irq_line;
+        self.irq_line = nivel;
+        borda
     }
 
     pub fn try_execute_otc(&mut self, ram: &mut [u8]) {
@@ -91,6 +126,7 @@ impl Dma {
             addr = addr.wrapping_sub(4);
         }
         self.chcr[6] &= !((1 << 24) | (1 << 28));
+        self.signal_completion(6);
     }
 
     pub fn try_execute_dma3(&mut self, ram: &mut [u8], cdrom: &Cdrom) {
@@ -125,6 +161,7 @@ impl Dma {
         }
         self.madr[3] = (self.madr[3] & !0x00FF_FFFF) | (addr & 0x00FF_FFFF);
         self.chcr[3] &= !((1 << 24) | (1 << 28));
+        self.signal_completion(3);
     }
 
     pub fn try_execute_dma2(&mut self, ram: &mut [u8], gpu: &mut Gpu) {
@@ -178,6 +215,7 @@ impl Dma {
         }
         self.madr[2] = (self.madr[2] & !0x00FF_FFFF) | (addr & 0x00FF_FFFF);
         self.chcr[2] &= !(1 << 24);
+        self.signal_completion(2);
     }
 
     fn execute_linked_list(&mut self, ram: &mut [u8], gpu: &mut Gpu) {
@@ -225,6 +263,7 @@ impl Dma {
             addr = next_addr & 0x00FF_FFFC;
         }
         self.chcr[2] &= !(1 << 24);
+        self.signal_completion(2);
     }
 }
 

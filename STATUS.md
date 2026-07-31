@@ -7,30 +7,31 @@
 
 ## Última iteração concluída
 
-**0115** — portas do SIO0 em 16 bits: `write16`/`read16` quebravam a meia-palavra em dois bytes
-e o braco do SIO0 ignorava o `offset`, batendo duas vezes no byte baixo. `JOY_CTRL=1003h` do
-driver virava `0010h` e soltava o /CS. Corrigido no `bus.rs`; o boot sai do laco do controle e o
-TTY passa do driver de pad (ROADMAP 4.4j).
+**0116** — `DICR` do DMA: guardava o valor cru, entao nao havia flag de conclusao, nem bit 31
+calculado, nem IRQ3. Agora os flags 24-30 sobem sob (mascara do canal AND master), o b31 e
+recalculado a cada escrita e a borda 0->1 levanta `I_STAT.3`. O handler de DMA do kernel passou a
+rodar (508 escritas no `DICR` contra 3). **O `GPU timeout` NAO parou** — o defeito era real, a
+causa e outra (ROADMAP 4.4k; ver invariante 26).
 
 ## Próxima tarefa
 
-**ROADMAP 4.4k — `GPU timeout` do kernel depois do driver de pad.**
-Medido na 0115 com `psx-estado/instrumentacao/rodajogo.rs` (BIOS + disco, 400 M passos): depois
-de `PS-X Control PAD Driver Ver 3.0` o TTY passa a repetir
-`GPU timeout:QUE=( 5, 5),CODE=(0,0,00FFFFFF)` e depois `QUE=( 2, 2)`, e o PC circula pelo driver
-de GPU do kernel (`0x800511DC`, `0x80051308`, `0x8005131C`) e por `0x00001C28`.
-Candidato medido, NAO confirmado: nao existe um so `raise(3)` no repositorio — o IRQ do DMA
-nunca chega ao `I_STAT` (mesma forma da invariante 24; `grep -rn "raise(" crates/psx-core/src`
-devolve so os bits 0, 2, 7 e timers). **Meça antes de implementar**: instrumente os portos do
-DMA2 (`0x1F8010A0..AF`), o `DICR` (`0x1F8010F4`) e o PC do laco, como o `padwait` fez com o SIO0
-— registrando o TAMANHO do acesso junto com o endereco (invariante 25).
-Spec: `docs/reference/04-dma.md` (§ DMA Interrupt Register, § DMA Channel Control) e
-`docs/reference/11-interrupts.md` (§ Interrupt Request / Execution). Arquivos-alvo:
-`crates/psx-core/src/dma.rs` e `crates/psx-core/src/bus.rs`.
-Armadilha conhecida: `I_STAT` e de borda (invariante 24) e o `DICR` tem bit-31 calculado
-(flag mestre) — nao e um bit gravavel comum.
-Critério de aceitação: o TTY para de repetir `GPU timeout` e o PC sai do laco do driver de GPU.
-Invariantes relevantes: 24, 25.
+**ROADMAP 4.4l — `GPUSTAT.26` preso em zero enquanto o kernel espera para enviar comando.**
+Medido na 0116, ao fim de 400 M passos com disco: `GPUSTAT = 0x184E260A`, ou seja bit 28 (pronto
+para bloco de DMA) = 1, bit 27 = 1 e **bit 26 (Ready to receive Cmd Word) = 0**. O `gpu.rs` abaixa
+o bit 26 enquanto um comando GP0 espera parametros e o levanta ao completar (`grep -n "1 << 26"
+crates/psx-core/src/gpu.rs`), entao um comando faminto por parametro que nunca chegou explica o
+bit preso — e o driver da GPU do kernel espera esse bit antes de enviar, e desiste com
+`GPU timeout:QUE=(n,n),CODE=(0,0,00FFFFFF)`.
+**Hipotese NAO confirmada. Meça primeiro**: instrumente `gpu.write32(0, ...)` vindo do
+linked-list (`dma.rs::execute_linked_list`) e registre o ULTIMO comando que abaixou o bit 26 e
+quantos parametros ele ainda esperava. Nao conserte o parser por intuicao (R1).
+Spec: `docs/reference/03-gpu.md` (§ GPU Status Register, § GP0 Render Commands) e
+`docs/reference/04-dma.md` (§ Linked List DMA). Arquivos-alvo: `crates/psx-core/src/gpu.rs` e
+`crates/psx-core/src/dma.rs`.
+Armadilha conhecida: o no do linked-list carrega `word_count` no byte alto do header; um no com
+contagem errada entrega comando pela metade sem erro visivel.
+Critério de aceitação: o TTY para de repetir `GPU timeout` e o PC sai do laco em `0x80051200..`.
+Invariantes relevantes: 24, 26.
 
 **Referencia externa (30/07):** captura canonica do DuckStation em
 `psx-estado/referencias/tela-de-boot-duckstation.png`; fundo (180,180,180) e cores do losango
@@ -49,10 +50,10 @@ de gouraud no losango (candidato 10.14).
 
 ## Placar de testes
 
-Workspace: **766** testes.
+Workspace: **775** testes.
 
 ## Bloqueios
 
 - **4.4 Boot de jogo**: sem bloqueio conhecido; desde a 0115 o boot passa do handshake do
-  controle e para no driver de GPU do kernel (4.4k). Imagens de disco ficam fora do repositório, em
+  controle e para no driver de GPU do kernel; a 0116 fechou o IRQ3 sem mover o sintoma (4.4l). Imagens de disco ficam fora do repositório, em
   `.../Programacao com agentes/roms/extraido/`. **Nunca commitar imagem de disco.**

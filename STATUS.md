@@ -7,25 +7,25 @@
 
 ## Última iteração concluída
 
-**0121** — a primeira resposta do CD-ROM saia em ZERO ciclo; agora e evento do `scheduler` com o
-atraso da spec (0xC4E1; 0x13CCE para Init/ReadTOC). **O `GetID` apareceu:** de 2 comandos em 400 M
-passos para 45, na sequencia `GetStat -> GetID` da referencia. `scheduler.rs` ganhou `cancel`.
+**0122** — o `GetID` respondia a linha **No Disk** da spec (`INT5 08h,40h`) mesmo com disco dentro.
+Agora responde Licensed:Mode2 (`INT2 02h,00h,20h,00h,'S','C','E','A'`) quando ha disco. **O laco de
+retentativa acabou:** de 45 comandos repetindo para 4 lineares, e o shell pediu o proximo comando.
 
 ## Próxima tarefa
 
-**ROADMAP 4.4q — `GetID` responde "sem disco" com disco dentro.**
-`cdrom.rs` (`deliver_second`, caso 2) empilha sempre `08h, 40h, 00h x6` e `intsts = 5`. A spec
-(§ GetID, `docs/reference/06-cdrom.md` L1139-1153) identifica essa linha como **No Disk**. Para um
-disco licenciado Mode2 a linha certa e `INT2(02h,00h, 20h,00h, 53h,43h,45h,4xh)`, e L1170-1173 diz
-que *"the PSX refuses to boot if it doesn't match up for the local region"*. BIOS `SCPH1001` e
-NTSC-U, entao a quarta letra e `'A'` — `SCEA`.
-Sintoma que confirma: o shell repete `GetStat, GetStat, GetID` a cada ~18,9 M passos, para sempre.
-Alvo: `crates/psx-core/src/cdrom.rs` (so o caso 2 do `deliver_second`); a resposta passa a depender
-de `disc_inserted`, mantendo a linha No Disk quando nao ha disco.
-Armadilha conhecida: `cdrom_regs.rs::getid_sem_disco_retorna_int5` cobre o caminho SEM disco e tem
-de continuar verde — o item so muda o caminho COM disco. Regiao fixada em `SCEA` e buraco assumido:
-o certo e deriva-la do setor de licenca do `.bin` (abra item de backlog, nao implemente agora).
-Critério de aceitação: o `cdstate.rs` mostra `Setloc`/`SeekL`/`ReadN` depois do `GetID`.
+**ROADMAP 4.4r — `GetTOC` (1Eh) nunca arma a segunda resposta.**
+Medido na 0122: depois do `GetID` o shell emite `GetTOC` no passo 88 380 174 e nao pede mais nada.
+`send_command` nao tem braco para `0x1E`; ele cai no `_ =>`, que empilha o stat, seta `intsts = 3`
+e faz `busy = false` **sem tocar em `pending_second`**. A spec (§ Second Responses,
+`docs/reference/06-cdrom.md` L2002) exige `1Eh ReadTOC — INT3(late-stat), INT2(stat)`, e a
+§ ReadTOC (L961) avisa: *"rather slow, the second response appears after about 1 second delay"*.
+Alvo: `crates/psx-core/src/cdrom.rs`, braco novo `0x1E` no `send_command`. O caso 1 do
+`deliver_second` (Init) ja faz exatamente `INT2(stat)` — reusar `pending_second = 1`.
+Armadilha conhecida: o `first_response_cycles` ja trata `0x1E` como o atraso longo (0x13CCE), entao
+NAO mexa nele. E a segunda resposta continua saindo no ack do guest, nao por tempo (buraco 10.54):
+o "1 second delay" da spec nao e modelado, e isso e assumido, nao esquecido.
+Critério de aceitação: o `cdstate.rs` mostra um comando novo depois do `GetTOC` — a referencia do
+DuckStation em `psx-estado/referencias/` continua sendo o gabarito da cadeia.
 Invariantes relevantes: 26, 28.
 
 **Meta em vigor (ordem do usuario, 31/07):** emendar as iteracoes ate o M4 fechar, sem parar entre
@@ -52,7 +52,7 @@ de gouraud no losango (candidato 10.14).
 
 ## Placar de testes
 
-Workspace: **800** testes.
+Workspace: **808** testes.
 
 ## Bloqueios
 

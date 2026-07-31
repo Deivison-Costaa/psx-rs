@@ -146,7 +146,11 @@ fn i_stat_bit3_e_de_borda_e_nao_volta_sozinho() {
     escreve_dicr(&mut bus, MASTER | MASCARA_CH6);
     conclui_otc(&mut bus);
     ack_i_stat_irq3(&mut bus);
-    assert_eq!(i_stat(&bus) & IRQ3, 0, "pre-condicao: I_STAT.3 limpo no ack");
+    assert_eq!(
+        i_stat(&bus) & IRQ3,
+        0,
+        "pre-condicao: I_STAT.3 limpo no ack"
+    );
 
     // O bit 31 continua alto (o flag do canal nao foi reconhecido): nao ha nova borda 0->1.
     escreve_dicr(&mut bus, MASTER | MASCARA_CH6);
@@ -166,7 +170,11 @@ fn escrever_1_no_flag_limpa_o_flag_e_derruba_o_bit31() {
     let mut bus = bus();
     escreve_dicr(&mut bus, MASTER | MASCARA_CH6);
     conclui_otc(&mut bus);
-    assert_ne!(dicr(&bus) & FLAG_CH6, 0, "pre-condicao: flag do canal 6 alto");
+    assert_ne!(
+        dicr(&bus) & FLAG_CH6,
+        0,
+        "pre-condicao: flag do canal 6 alto"
+    );
 
     escreve_dicr(&mut bus, MASTER | MASCARA_CH6 | FLAG_CH6);
 

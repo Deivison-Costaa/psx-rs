@@ -222,6 +222,12 @@ impl Bus {
         }
     }
 
+    fn service_dma_irq(&mut self) {
+        if self.dma.take_irq3_edge() {
+            self.irq.raise(3);
+        }
+    }
+
     fn service_cdrom_irq(&mut self) {
         if self.cdrom.take_irq2_edge() {
             self.irq.raise(2);
@@ -377,6 +383,7 @@ impl Bus {
                     }
                     _ => {}
                 }
+                self.service_dma_irq();
                 true
             }
             0x1F80_10F0 => {
@@ -385,6 +392,7 @@ impl Bus {
             }
             0x1F80_10F4 => {
                 self.dma.write_dicr(val);
+                self.service_dma_irq();
                 true
             }
             0xFFFE_0130 => {

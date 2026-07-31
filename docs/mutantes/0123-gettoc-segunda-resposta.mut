@@ -1,0 +1,105 @@
+# Manifesto de mutação da iteração 0123 — gettoc-segunda-resposta
+formato: 1
+iteracao: 0123
+item: 4.4r
+alvo: crates/psx-core/src/cdrom.rs
+teste: cdrom_gettoc
+
+mutante: m1
+rotulo: ReadTOC volta a nao armar segunda resposta (o defeito original)
+@@DE
+            0x1E => {
+                self.result_push(self.stat_byte());
+                self.intsts.set(3);
+                self.pending_second.set(1);
+            }
+@@PARA
+            0x1E => {
+                self.result_push(self.stat_byte());
+                self.intsts.set(3);
+            }
+@@FIM
+
+mutante: m2
+rotulo: ReadTOC arma a segunda resposta do Pause, que zera o flag de leitura
+@@DE
+            0x1E => {
+                self.result_push(self.stat_byte());
+                self.intsts.set(3);
+                self.pending_second.set(1);
+            }
+@@PARA
+            0x1E => {
+                self.result_push(self.stat_byte());
+                self.intsts.set(3);
+                self.pending_second.set(2);
+            }
+@@FIM
+
+mutante: m3
+rotulo: primeira resposta do ReadTOC sai como INT2 em vez de INT3
+@@DE
+            0x1E => {
+                self.result_push(self.stat_byte());
+                self.intsts.set(3);
+@@PARA
+            0x1E => {
+                self.result_push(self.stat_byte());
+                self.intsts.set(2);
+@@FIM
+
+mutante: m4
+rotulo: primeira resposta do ReadTOC nao empilha o stat
+@@DE
+            0x1E => {
+                self.result_push(self.stat_byte());
+@@PARA
+            0x1E => {
+                self.result_push(0x00);
+@@FIM
+
+mutante: m5
+rotulo: ReadTOC usa o atraso curto da primeira resposta em vez do do Init
+@@DE
+            0x0A | 0x1E => 0x1_3CCE,
+@@PARA
+            0x0A => 0x1_3CCE,
+@@FIM
+
+mutante: m6
+rotulo: segunda resposta do caso 1 nao baixa o BUSYSTS
+@@DE
+            1 => {
+                self.busy.set(false);
+                self.result_clear();
+                self.result_push(self.stat_byte());
+                self.intsts.set(2);
+            }
+@@PARA
+            1 => {
+                self.result_clear();
+                self.result_push(self.stat_byte());
+                self.intsts.set(2);
+            }
+@@FIM
+
+controle: c1
+rotulo: stat da primeira resposta do ReadTOC passa por variavel local (cosmetico)
+@@DE
+            0x1E => {
+                self.result_push(self.stat_byte());
+                self.intsts.set(3);
+@@PARA
+            0x1E => {
+                let stat = self.stat_byte();
+                self.result_push(stat);
+                self.intsts.set(3);
+@@FIM
+
+controle: c2
+rotulo: braco do atraso longo escrito com match guard equivalente (cosmetico)
+@@DE
+            0x0A | 0x1E => 0x1_3CCE,
+@@PARA
+            c if c == 0x0A || c == 0x1E => 0x1_3CCE,
+@@FIM

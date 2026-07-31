@@ -270,6 +270,11 @@ impl Cdrom {
                 self.intsts.set(3);
                 self.pending_second.set(1);
             }
+            0x1E => {
+                self.result_push(self.stat_byte());
+                self.intsts.set(3);
+                self.pending_second.set(1);
+            }
             0x15 => {
                 if !self.disc_inserted.get() {
                     self.result_push(self.stat_byte() | 0x01);

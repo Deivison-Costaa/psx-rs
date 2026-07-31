@@ -28,8 +28,18 @@ rotulo: GetStat 20h retorna mes em vez de ano invertendo o primeiro push
 mutante: m3
 rotulo: Init nao gera segunda resposta (pending_second nunca setado)
 @@DE
+                if self.disc_inserted.get() {
+                    self.motor_on.set(true);
+                }
+                self.result_push(self.stat_byte());
+                self.intsts.set(3);
                 self.pending_second.set(1);
 @@PARA
+                if self.disc_inserted.get() {
+                    self.motor_on.set(true);
+                }
+                self.result_push(self.stat_byte());
+                self.intsts.set(3);
                 let _ = cmd;
 @@FIM
 

@@ -7,30 +7,31 @@
 
 ## Última iteração concluída
 
-**0117** — o canal 2 do DMA nao olhava o bit 0 do `CHCR` (sentido): o `StoreImage` do kernel
-(`CHCR=0x01000200`, device->RAM) rodava ao contrario, empurrando RAM no `GP0` e deixando a janela
-do `GP0(C0h)` sem drenar. Com a GPU parada em `VramToCpu`, o `GPUSTAT.26` ficava zero e o driver
-imprimia `GPU timeout`. **O `GPU timeout` sumiu e o boot passou do logo** (ROADMAP 4.4l).
+**0118** — o shell nao pedia NADA ao disco (2 comandos em 400 M passos). A causa nao era o
+CD-ROM: ele girava num laco esperando o contador do timer 2, e `lhu`/`sh` nas portas
+`0x1F801100..2F` caiam no braco-sumidouro do `bus.rs` — os timers estavam certos e inalcancaveis
+pela largura de acesso que o kernel usa (invariante 25, 2a vez). Corrigido; o contador agora
+avanca e o laco sai (ROADMAP 4.4m).
 
 ## Próxima tarefa
 
-**ROADMAP 4.4m — o shell nao arranca o jogo.**
-Medido na 0117 (400 M passos, BIOS + disco do Crash): TTY limpo, sem `GPU timeout`, terminando em
-`PS-X Control PAD Driver Ver 3.0`; `GPUSTAT=0x544E220A` (bit 26 alto); PC circulando em
-`0x80059ED8..0x80059F0C` e `0x8003D404`; VRAM com 322 325 px nao-zero, fundo azul-escuro e a
-esfera da abertura desenhada. Ou seja: o shell roda, desenha, e nao chega ao jogo.
-**Meça primeiro** (invariante 26): instrumente os comandos do CD-ROM enviados depois do passo
-~160 M — o shell tem de fazer `Setloc`+`ReadN` da trilha 1 para ler `SYSTEM.CNF` e depois o
-executavel. O harness `psx-estado/instrumentacao/shellwait.rs` ja decodifica os portos
-`0x1F801800..3`; reaproveite em vez de escrever outro. Confira TAMBEM se o `INT1` de dados
-prontos chega, agora que `I_STAT.2` funciona (0114).
-Spec: `docs/reference/06-cdrom.md` (§ Getloc/Setloc/ReadN) e `docs/reference/15-cdrom-format.md`
-(§ ISO 9660, § SYSTEM.CNF). Arquivos-alvo: `crates/psx-core/src/cdrom.rs`.
-Armadilha conhecida: o shell so olha o disco depois de montar a tela; nao confunda "nao le o
-disco" com "le e nao entende o sistema de arquivos" — o harness tem de mostrar QUAL comando saiu.
-Critério de aceitação: o TTY mostra o shell lendo o disco, ou a medicao prova que ele nem tenta
-(e ai o item vira outro).
-Invariantes relevantes: 24, 26.
+**ROADMAP 4.4n — driver de CD-ROM do kernel nao conclui o `GetStat`.**
+Medido na 0118: o laco quente agora e `0x8003D6FC`, decodificado a mao —
+`lui $t7,0x8008 / lw $t7,0x3C58($t7) / slti $at,$t7,2 / beq` — ou seja
+`while ([0x80083C58] >= 2) ;`. E o estado do driver de CD do kernel, e ele nunca cai abaixo de 2
+depois do `GetStat` enviado no passo 87 464 254 (`pc=0x80057554`). Nenhum outro comando sai depois
+disso, e `HINTSTS==INT1` nunca acontece.
+**Meça primeiro** (invariante 26): instrumente TODA escrita em `0x80083C58` (qual PC escreve, com
+que valor) e o caminho do handler de IRQ2 — o `psx-estado/instrumentacao/cdshell.rs` ja decodifica
+os portos do CD e tem histograma de PC; acrescente o watch da variavel em vez de escrever outro
+harness. Confira se o handler chega a rodar e se o ack do `HCLRCTL` sai na ordem certa (0114).
+Spec: `docs/reference/06-cdrom.md` (§ GetStat, § HCLRCTL) e `docs/reference/13-kernel-bios.md`
+(§ CdromDecodeIRQ, § callbacks do CD). Arquivos-alvo: `crates/psx-core/src/cdrom.rs`.
+Armadilha conhecida: a resposta do `GetStat` e um INT3 de uma so entrega; se o driver espera um
+evento de conclusao que so o segundo INT produz, o estado fica preso — nao "conserte" o cdrom.rs
+sem antes ver QUEM escreve a variavel.
+Critério de aceitação: `[0x80083C58]` cai abaixo de 2 e o shell emite um comando novo ao disco.
+Invariantes relevantes: 24, 25, 26.
 
 **Referencia externa (30/07):** captura canonica do DuckStation em
 `psx-estado/referencias/tela-de-boot-duckstation.png`; fundo (180,180,180) e cores do losango
@@ -49,10 +50,10 @@ de gouraud no losango (candidato 10.14).
 
 ## Placar de testes
 
-Workspace: **782** testes.
+Workspace: **790** testes.
 
 ## Bloqueios
 
 - **4.4 Boot de jogo**: sem bloqueio conhecido; desde a 0115 o boot passa do handshake do
-  controle e para no driver de GPU do kernel; a 0117 destravou o `GPU timeout` e o boot passa do logo (4.4m). Imagens de disco ficam fora do repositório, em
+  controle e para no driver de GPU do kernel; a 0118 destravou o timer e o boot chega ao driver de CD do kernel (4.4n). Imagens de disco ficam fora do repositório, em
   `.../Programacao com agentes/roms/extraido/`. **Nunca commitar imagem de disco.**

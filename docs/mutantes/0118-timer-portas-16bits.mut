@@ -1,0 +1,75 @@
+# Manifesto de mutação da iteração 0118 — timer-portas-16bits
+formato: 1
+iteracao: 0118
+item: 4.4m
+alvo: crates/psx-core/src/bus.rs
+teste: timer_portas_16bits
+
+mutante: m1
+rotulo: leitura de byte dos timers devolve zero (o defeito 4.4m original)
+@@DE
+                let val = self.timers.peek32(base);
+@@PARA
+                let val = 0u32;
+@@FIM
+
+mutante: m2
+rotulo: leitura de byte dos timers ignora o offset — meia palavra le duas vezes o byte baixo
+@@DE
+                let val = self.timers.peek32(base);
+                let byte_index = ((phys & 3) + offset) & 3;
+@@PARA
+                let val = self.timers.peek32(base);
+                let byte_index = phys & 3;
+@@FIM
+
+mutante: m3
+rotulo: escrita de byte nos timers nao chega ao modulo
+@@DE
+                self.timers.write32(base, novo);
+@@PARA
+                let _ = novo;
+@@FIM
+
+mutante: m4
+rotulo: escrita de byte nos timers ignora o offset
+@@DE
+                let byte_index = ((phys & 3) + offset) & 3;
+                let shift = byte_index * 8;
+@@PARA
+                let byte_index = phys & 3;
+                let shift = byte_index * 8;
+@@FIM
+
+mutante: m5
+rotulo: escrita de byte apaga os outros bytes do registrador em vez de mesclar
+@@DE
+                let novo = (atual & !(0xFFu32 << shift)) | ((val as u32) << shift);
+@@PARA
+                let novo = (val as u32) << shift;
+@@FIM
+
+mutante: m6
+rotulo: peek do registrador de modo devolve zero
+arquivo: crates/psx-core/src/timers.rs
+@@DE
+            0x4 => t.mode.get(),
+@@PARA
+            0x4 => 0,
+@@FIM
+
+controle: c1
+rotulo: deslocamento escrito com os fatores trocados (cosmetico)
+@@DE
+                let shift = byte_index * 8;
+@@PARA
+                let shift = 8 * byte_index;
+@@FIM
+
+controle: c2
+rotulo: tipo do valor atual anotado explicitamente (cosmetico)
+@@DE
+                let atual = self.timers.peek32(base);
+@@PARA
+                let atual: u32 = self.timers.peek32(base);
+@@FIM

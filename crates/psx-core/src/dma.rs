@@ -192,19 +192,25 @@ impl Dma {
             ((bcr >> 16) & 0xFFFF) as usize
         };
         let step: i32 = if self.chcr[2] & 2 != 0 { -4 } else { 4 };
+        let para_dispositivo = self.chcr[2] & 1 != 0;
         let mut addr = self.madr[2] & 0x00FF_FFFC;
 
         for _ in 0..ba {
             for _ in 0..bs {
                 let offset = (addr & 0x1F_FF_FF) as usize;
                 if offset + 4 <= ram.len() {
-                    let word = u32::from_le_bytes([
-                        ram[offset],
-                        ram[offset + 1],
-                        ram[offset + 2],
-                        ram[offset + 3],
-                    ]);
-                    gpu.write32(0, word);
+                    if para_dispositivo {
+                        let word = u32::from_le_bytes([
+                            ram[offset],
+                            ram[offset + 1],
+                            ram[offset + 2],
+                            ram[offset + 3],
+                        ]);
+                        gpu.write32(0, word);
+                    } else {
+                        let word = gpu.read32(0);
+                        ram[offset..offset + 4].copy_from_slice(&word.to_le_bytes());
+                    }
                 }
                 addr = if step < 0 {
                     addr.wrapping_sub(4)

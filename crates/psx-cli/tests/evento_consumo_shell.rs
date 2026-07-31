@@ -195,14 +195,14 @@ fn trace_wait_e_test_event_diagnostico() {
     if count_wait_event == 0 {
         eprintln!(
             "DIAGNOSTICO: WaitEvent (B(0Ah)) NUNCA foi chamado em {} passos. \
-             TestEvent foi chamado {} vezes, mas os eventos de CD-ROM \
-             (EvCB[0] spec=10h e EvCB[5] spec=200h, ambos status=4000h ready) \
-             permanecem nao consumidos. O elo entre 'EvCB ready' e o \
-             shell (dispatch loop 0x8004205C comparando tipos 20h/30h) \
-             esta em TestEvent: ele retorna 0 (busy) para eventos ready. \
-             Proximo passo: rastrear R4/a0 de TestEvent para ver qual event \
-             descriptor esta sendo testado.",
-            max_steps, count_test_event
+             TestEvent foi chamado {} vezes, a ULTIMA no passo {}. \
+             Os eventos de CD-ROM (EvCB[0] spec=10h e EvCB[5] spec=200h, \
+             ambos status=4000h ready na iter 0126) permanecem nao consumidos. \
+             HIPOTESE NAO MEDIDA: 'TestEvent retorna 0 (busy) para eventos \
+             ready' — o discriminante em \
+             evcb_status_checkpoints_discriminante (psx-core) decide entre \
+             corrida (ready DEPOIS do ultimo TestEvent) e defeito (ready ANTES).",
+            max_steps, count_test_event, last_test_step
         );
     } else {
         eprintln!(

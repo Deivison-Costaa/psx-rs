@@ -153,6 +153,31 @@ fn ack_do_hclrctl_sem_ack_do_i_stat_nao_gera_pedido_novo() {
 }
 
 #[test]
+fn ack_parcial_do_hclrctl_deixa_a_fonte_alta_e_nao_gera_borda_nova() {
+    let mut bus = bus();
+    habilita_hintmsk(&mut bus, 0x1F);
+    manda_getstat(&mut bus);
+    ack_i_stat_irq2(&mut bus);
+
+    // HCLRCTL=01h em HINTSTS=3 (INT3) deixa 2 (INT2): a fonte continua nao-zero.
+    ack_hclrctl(&mut bus, 0x01);
+
+    assert_eq!(
+        i_stat(&bus) & IRQ2,
+        0,
+        "ack parcial nao zera (HINTMSK & HINTSTS); a fonte nunca desceu, entao nao ha borda \
+         false->true e I_STAT.2 tem de continuar limpo"
+    );
+
+    set_bank(&mut bus, 0);
+    assert_eq!(
+        i_stat(&bus) & IRQ2,
+        0,
+        "nenhuma escrita posterior nos portos pode inventar uma borda com a fonte ja alta"
+    );
+}
+
+#[test]
 fn segunda_resposta_do_init_tambem_levanta_irq2() {
     let mut bus = bus();
     habilita_hintmsk(&mut bus, 0x1F);

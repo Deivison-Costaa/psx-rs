@@ -26,3 +26,4 @@ Cada arquivo comeca com um indice de secoes (`L<n>: titulo`, offset relativo a m
 | 14-io-map.md | docs/iomap.md |
 | 15-cdrom-format.md | docs/cdromformat.md |
 | 16-cdrom-file-formats.md | docs/cdromfileformats.md |
+| 17-sio.md | docs/serialinterfacessio.md |

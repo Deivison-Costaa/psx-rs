@@ -1,10 +1,10 @@
 # gerado por scripts/mutantes.ps1 — NAO editar a mao
-# commit: 8336d7f5b044234eddf584a3c372a49e7bf03456
-# rodado_em: 2026-07-30T21:07:09-03:00
-m1,mutante,morreu,morreu,0.9,bios_vazia_mostra_display_ligado_padrao_gpu
-m2,mutante,morreu,morreu,0.9,bios_vazia_mostra_display_ligado_padrao_gpu
-m3,mutante,morreu,morreu,0.9,bios_vazia_mostra_display_ligado_padrao_gpu
-m4,mutante,morreu,morreu,1,bios_vazia_mostra_display_ligado_padrao_gpu
-m5,mutante,morreu,morreu,0.9,bios_vazia_mostra_display_ligado_padrao_gpu
-c1,controle,sobreviveu,sobreviveu,0.8,
+# commit: cdd5a4d8a97ce1898d1405459508b67a1ff66910
+# rodado_em: 2026-07-30T21:19:01-03:00
+m1,mutante,morreu,morreu,1,bios_vazia_mostra_display_ligado_padrao_gpu
+m2,mutante,morreu,morreu,1,bios_vazia_mostra_display_ligado_padrao_gpu
+m3,mutante,morreu,morreu,1,bios_vazia_mostra_display_ligado_padrao_gpu
+m4,mutante,morreu,morreu,0.9,bios_vazia_mostra_display_ligado_padrao_gpu
+m5,mutante,morreu,morreu,1,bios_vazia_mostra_display_ligado_padrao_gpu
+c1,controle,sobreviveu,sobreviveu,1,
 c2,controle,sobreviveu,sobreviveu,0.9,

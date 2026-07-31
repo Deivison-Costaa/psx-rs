@@ -95,7 +95,7 @@ fn boot_com_disco_produz_irq2_e_handler() {
 
     let mut cpu = Cpu::new();
 
-    let max_steps = 80_000_000usize;
+    let max_steps = 150_000_000usize;
     for _ in 0..max_steps {
         cpu.step(&mut bus);
     }
@@ -106,6 +106,16 @@ fn boot_com_disco_produz_irq2_e_handler() {
     eprintln!(
         "Diagnostico (com disco): IRQ2={}, handler_entries={} ({} passos)",
         irq2_count, handler_entries, max_steps
+    );
+
+    assert!(
+        irq2_count > 0,
+        "o boot com disco tem de levantar IRQ2 ate 150 M passos (medido: 107 entre 80 M e \
+         100 M); zero aqui significa janela curta demais ou regressao na cadeia do CD-ROM"
+    );
+    assert!(
+        handler_entries > 0,
+        "a CPU tem de vetorizar para 0x80000080 durante o boot"
     );
 
     eprintln!(
@@ -151,7 +161,7 @@ fn tabela_de_tabelas_evcb_esta_presente_apos_o_boot() {
     bus.cdrom_mut().insert_disc();
 
     let mut cpu = Cpu::new();
-    let max_steps = 80_000_000usize;
+    let max_steps = 150_000_000usize;
 
     for _ in 0..max_steps {
         cpu.step(&mut bus);
@@ -176,9 +186,10 @@ fn tabela_de_tabelas_evcb_esta_presente_apos_o_boot() {
         evcb_ptr_raw, evcb_ptr, evcb_size, evcb_size
     );
 
+    let mut blocos_registrados = 0u32;
+    let mut ready_events = 0u32;
     if evcb_ptr != 0 && evcb_ptr < 0x0020_0000 && evcb_size > 0 && evcb_size <= 0x10000 {
         let num_blocks = evcb_size / 0x1C;
-        let mut ready_events = 0u32;
         eprintln!(
             "  EvCB dump ({} blocos, base=0x{:08X}):",
             num_blocks, evcb_ptr
@@ -190,6 +201,7 @@ fn tabela_de_tabelas_evcb_esta_presente_apos_o_boot() {
             let spec = bus.read32::<psx_core::bus::BusRead>(base + 8);
             let mode = bus.read32::<psx_core::bus::BusRead>(base + 0xC);
             if status != 0 {
+                blocos_registrados += 1;
                 eprintln!(
                     "  [{}] 0x{:08X}: class=0x{:08X} status=0x{:04X} spec=0x{:08X} mode=0x{:04X}",
                     i, base, class, status, spec, mode
@@ -206,4 +218,10 @@ fn tabela_de_tabelas_evcb_esta_presente_apos_o_boot() {
             evcb_ptr, evcb_size
         );
     }
+
+    assert!(
+        blocos_registrados > 0,
+        "ate 150 M passos o kernel tem de ter registrado eventos de CD-ROM nos EvCBs \
+         (medido: 6 blocos class=F0000003h a 700 M; vazio aqui = janela curta ou regressao)"
+    );
 }

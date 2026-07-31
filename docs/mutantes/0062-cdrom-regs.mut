@@ -36,9 +36,15 @@ rotulo: Init nao gera segunda resposta (pending_second nunca setado)
 mutante: m4
 rotulo: GetID sem disco retorna INT2 em vez de INT5
 @@DE
-                self.intsts.set(5);
+                    for _ in 0..6 {
+                        self.result_push(0x00);
+                    }
+                    self.intsts.set(5);
 @@PARA
-                self.intsts.set(2);
+                    for _ in 0..6 {
+                        self.result_push(0x00);
+                    }
+                    self.intsts.set(2);
 @@FIM
 
 mutante: m5

@@ -40,4 +40,24 @@ fn max_steps_limita_o_runner() {
         stderr.contains("passos"),
         "stderr deve conter contagem de passos; stderr={stderr:?}"
     );
+
+    let steps_line = stderr
+        .lines()
+        .find(|l| l.contains("passos"))
+        .expect("linha 'Runner: N passos' deve existir");
+    let steps_str = steps_line
+        .split_whitespace()
+        .nth(1)
+        .expect("stderr deve ter 'Runner: <N> passos'");
+    let steps: usize = steps_str
+        .parse()
+        .expect("o numero de passos deve ser um inteiro");
+    assert!(
+        steps <= 1000,
+        "--max-steps 1000 deve limitar a {steps} passos, nao mais"
+    );
+    assert!(
+        steps > 0,
+        "--max-steps 1000 deve executar pelo menos 1 passo"
+    );
 }

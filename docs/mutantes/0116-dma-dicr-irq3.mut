@@ -1,0 +1,92 @@
+# Manifesto de mutação da iteração 0116 — dma-dicr-irq3
+formato: 1
+iteracao: 0116
+item: 4.4k
+alvo: crates/psx-core/src/dma.rs
+teste: dma_dicr_irq3
+
+mutante: m1
+rotulo: conclusao de canal nao marca flag nenhum (o defeito 4.4k original)
+@@DE
+        let mascara = self.dicr & (1 << (16 + ch)) != 0;
+        let master_enable = self.dicr & (1 << 23) != 0;
+        if mascara && master_enable {
+@@PARA
+        let mascara = self.dicr & (1 << (16 + ch)) != 0;
+        let master_enable = self.dicr & (1 << 23) != 0;
+        if false && mascara && master_enable {
+@@FIM
+
+mutante: m2
+rotulo: flag de conclusao ignora a mascara por canal (b16-22)
+@@DE
+        if mascara && master_enable {
+@@PARA
+        if master_enable {
+@@FIM
+
+mutante: m3
+rotulo: flag de conclusao ignora o master enable (b23)
+@@DE
+        if mascara && master_enable {
+@@PARA
+        if mascara {
+@@FIM
+
+mutante: m4
+rotulo: bus error (b15) deixa de forcar o flag mestre
+@@DE
+        if bus_error || (master_enable && algum_flag) {
+@@PARA
+        if master_enable && algum_flag {
+@@FIM
+
+mutante: m5
+rotulo: escrever 1 nos bits 24-30 SETA o flag em vez de reconhecer
+@@DE
+        let flags = self.dicr & !(val & 0x7F00_0000);
+@@PARA
+        let flags = self.dicr | (val & 0x7F00_0000);
+@@FIM
+
+mutante: m6
+rotulo: IRQ3 por nivel em vez de borda do bit 31
+@@DE
+        let borda = nivel && !self.irq_line;
+@@PARA
+        let borda = nivel;
+@@FIM
+
+mutante: m7
+rotulo: linha de IRQ3 nunca sobe
+@@DE
+    pub fn take_irq3_edge(&mut self) -> bool {
+        let nivel = self.irq3_pending();
+        let borda = nivel && !self.irq_line;
+        self.irq_line = nivel;
+        borda
+    }
+@@PARA
+    pub fn take_irq3_edge(&mut self) -> bool {
+        false
+    }
+@@FIM
+
+controle: c1
+rotulo: condicao do flag mestre calculada numa ligacao antes do if (cosmetico)
+@@DE
+        if bus_error || (master_enable && algum_flag) {
+            self.dicr |= 1 << 31;
+@@PARA
+        let mestre = bus_error || (master_enable && algum_flag);
+        if mestre {
+            self.dicr |= 1 << 31;
+@@FIM
+
+controle: c2
+rotulo: mascara dos flags escrita como deslocamento (cosmetico)
+@@DE
+        let algum_flag = self.dicr & 0x7F00_0000 != 0;
+@@PARA
+        let algum_flag = self.dicr & (0x7F << 24) != 0;
+@@FIM

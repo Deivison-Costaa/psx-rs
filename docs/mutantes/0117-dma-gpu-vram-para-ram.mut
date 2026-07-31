@@ -26,7 +26,7 @@ rotulo: sentido device para RAM grava zero em vez do que a GPU entrega
 @@DE
                         let word = gpu.read32(0);
 @@PARA
-                        let word = 0;
+                        let word = 0u32;
 @@FIM
 
 mutante: m4

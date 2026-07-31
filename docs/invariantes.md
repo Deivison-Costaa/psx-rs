@@ -211,3 +211,11 @@ Regra imposta por `status_handoff.rs`.
     `rodado_em:` so com a data — o script grava timestamp ISO completo. Bateria de CLI e
     manual: aplicar o mutante, rodar `cargo test -p psx-cli --test <t> --release`, colar a
     saida; o revisor reaplica ao menos os dois mais suspeitos antes do merge.
+30. **Contador zerado so e medida negativa se a janela cobre o horizonte conhecido do
+    fenomeno.** A 0126 mediu `raise_counts[2]`=0 em 80 M passos e concluiu "o CD-ROM nunca
+    levanta IRQ2"; a mesma medicao com checkpoints mostra o contador saltando para 107 entre
+    80 M e 100 M — e as iters 0121–0124 ja tinham visto a troca de comandos bem alem de 80 M.
+    Regra: afirmacao negativa exige janela alem do ultimo ponto onde alguma iteracao viu o
+    fenomeno, e o doc mostra o checkpoint em que o contador satura. Corolario operacional:
+    depois de bateria de mutacao, `cargo clean -p <crate>` antes de medir — um rlib stale do
+    psx-core produziu contadores impossiveis (11 bits identicos, em lockstep) nesta revisao.

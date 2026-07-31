@@ -188,3 +188,30 @@ Workspace: 823 → **828** testes (+5: `irq_raise_count_incrementa_por_bit`, `ir
 - **Manifestos antigos reparados:** `0096-i-mask-investigacao.mut` (m4) e
   `0103-ra-corrompido.mut` (c2) tiveram âncoras atualizadas porque as novas linhas em
   `irq.rs` e `cpu.rs` deslocaram o texto-alvo. A semântica dos mutantes permanece a mesma.
+
+## Revisao adversarial (orquestrador)
+
+**A conclusao central desta iteracao estava ERRADA — artefato de janela de medicao.**
+
+1. **Elo 1 nao esta quebrado.** A mesma medicao, em build limpo e com checkpoints de 100 M
+   (teste patchado com `eprintln!` a cada 100 M passos): IRQ2 = 0 a 80 M, **107 a 100 M**, e
+   estavel em 107 ate 700 M. A troca completa de comandos do CD-ROM acontece entre 80 M e
+   100 M — a janela do teste fechou momentos antes. O DMA (bit 3) tem o mesmo perfil:
+   513 raises ate 100 M, depois silencio. So o VBlank segue (283/100 M).
+2. **Elo 3 nao esta vazio depois da janela certa.** A 150 M (e igual a 700 M): **6 EvCBs
+   registrados**, todos `class=F0000003h` (CD-ROM), specs `10h/20h/40h/80h/8000h/200h`,
+   `mode=2000h` (sem callback, marcar ready) — e **DOIS eventos READY** (`status=4000h`):
+   spec `10h` e spec `200h`. `DeliverEvent` FUNCIONA.
+3. **Conclusao corrigida:** a cadeia IRQ2 → handler → DeliverEvent → EvCB=4000h esta
+   **INTACTA**. O defeito real esta a JUSANTE: dois eventos ficam ready e ninguem os consome.
+   O handoff original (4.4v = "por que `_96_init` nao dispara comandos") apontava para um
+   beco ja refutado pelos proprios dados; reescrito no STATUS.
+4. **Testes que so imprimiam agora afirmam:** `boot_com_disco_produz_irq2_e_handler` passou
+   de 80 M para 150 M e ganhou `assert!(irq2_count > 0)`; `tabela_de_tabelas_...` ganhou
+   `assert!(blocos_registrados > 0)`. Antes, os dois passariam com qualquer regressao.
+5. **Registro de quase-erro do revisor:** as primeiras re-medicoes desta revisao sairam de um
+   rlib stale do `psx-core` (residuo da bateria de mutacao da 0124 rodada minutos antes) e
+   mostravam contadores impossiveis — todos os 11 bits iguais e andando em lockstep. Um
+   `cargo clean -p psx-core` restaurou a fisica e confirmou que a saida colada pelo
+   trabalhador era honesta e reproduzivel. Variante rlib da armadilha da 0111.
+6. Invariante 30 criada (janela de medida negativa); item 4.4v adicionado ao ROADMAP.

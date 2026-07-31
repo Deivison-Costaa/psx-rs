@@ -363,6 +363,16 @@ foreach ($manifestPath in $manifestPaths) {
         continue
     }
 
+    if ($hdr.alvo -notmatch '^crates/psx-core/') {
+        # O script so roda `cargo test -p psx-core`: mutante fora do psx-core nunca e
+        # recompilado e o 0/5 resultante mede o script, nao o teste (invariante 29).
+        # A prova de execucao dessas baterias e o .resultado manual, verificado na revisao.
+        Write-Host "  FORA-DO-PSX-CORE - bateria NAO rodada para alvo '$($hdr.alvo)' (invariante 29)." -ForegroundColor Yellow
+        Write-Host "  Prova de execucao: .resultado manual + reaplicacao pelo revisor. Ver ROADMAP 10.58." -ForegroundColor Yellow
+        Write-Host ""
+        continue
+    }
+
     @(
         "# gerado por scripts/mutantes.ps1 — NAO editar a mao",
         "# commit: $commit",

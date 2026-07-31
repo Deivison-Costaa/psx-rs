@@ -24,6 +24,8 @@ M2 (GPU) e M3 (DMA/IRQ/timers). Regra imposta por `roadmap_arquivo.rs`.
 - [x] 4.4e Handler de excecao em 0x80000080 despacha para tabela de eventos do kernel (ehk) — VSync callbacks nao rodam (iter 0095)
 - [x] 4.4f Interrupcao no delay slot sequestrava o handler e sumia com o `addiu $sp` (iter 0103)
 - [x] 4.4g Custo em ciclos do load: laco de espera de VSync da BIOS cobria 69% de um frame (iter 0104)
+- [x] 4.4i IRQ2 do CD-ROM nunca chegava ao I_STAT: drive pedia, ninguem lia; agora sobe por borda (iter 0114)
+- [ ] 4.4j Boot para em `0x000045C4` esperando `JOY_STAT.1` (RX FIFO): resposta do controle no SIO0
 
 ## M5 — GTE
 - [x] 5.1 Registradores + MFC2/MTC2/CFC2/CTC2/LWC2/SWC2 (iter 0084)
@@ -109,6 +111,7 @@ M2 (GPU) e M3 (DMA/IRQ/timers). Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 10.44 Manifesto com alvo em documento vivo (STATUS.md) envelhece na iteracao seguinte, sempre
 - [ ] 10.45 Load shadow: acesso lento se sobrepoe as instrucoes seguintes (`docs/reference/02-cpu.md` L281-296)
 - [ ] 10.46 `justificativa:` do equivalente nao aceita continuacao de linha em NENHUM dos dois parsers
+- [ ] 10.47 Lacos de espera da BIOS (`0x80059DA4` frame, `0x80059D54` GPUSTAT.31) tem orcamento de 0x8000 giros e um frame nosso gasta ~230 k passos: saem por timeout, nao por sucesso (medido na 0114)
 
 ## M11 — Apresentação (incremental desde o M1)
 - [x] 11.1 Relatório consolidado (docs/relatorio.md — atualizado a cada marco) (iter 0096)

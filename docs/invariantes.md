@@ -159,3 +159,12 @@ Regra imposta por `status_handoff.rs`.
     65 M passos ate estourar como `$ra=4` (era o item 4.4h). Excecao: IRQ entre o load e a
     instrucao seguinte completa o load antes do handler (§ Caution - Load Delay, L255-257).
     Bateria 0111; teste `cpu_load_delay_escrita_vence.rs`.
+24. **Modulo que sabe pedir interrupcao mas nao tem quem pergunte e subsistema desligado.** O
+    `Cdrom::irq_pending()` existia, estava CERTO e nunca foi chamado: nao havia um so `raise(2)`
+    no repositorio, e a BIOS ficava 213 M passos no laco pos-logo esperando o INT3 do
+    `Test(20h)`. Regra de busca que ficou: `pub fn` de `psx-core` sem chamador e candidato a
+    subsistema inteiro desligado — foi assim que o 4.4d (I_MASK) e o 4.4i (IRQ2) apareceram.
+    Corolario de forma: bits do `I_STAT` sao de **borda** (§ Interrupt Request / Execution,
+    11-interrupts.md), entao a fiacao guarda o nivel anterior da fonte; e o ack do porto baixa
+    a linha na hora, senao a segunda resposta de um comando (Init 0Ah: INT3 -> INT2) nunca
+    produz borda nova. Bateria 0114; teste `cdrom_irq2.rs`.

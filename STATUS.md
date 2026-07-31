@@ -7,30 +7,29 @@
 
 ## Última iteração concluída
 
-**0123** — `GetTOC` (1Eh) caia no braco default e nunca armava a segunda resposta. Agora faz
-INT3(stat) + INT2(stat), reusando o caso 1 do `deliver_second`. **O boot passou a ler o disco:**
-4 comandos viraram 17, com a cadeia `Setloc/SeekL/Setmode/ReadN/Pause` da referencia e INT1 em
-27 924 passos.
+**0124** — `read_sector_from_disc` lia todo setor de `010h` (offset do Mode1); num disco
+Mode2/Form1 isso devolve o sub-header como dado e desloca o setor 8 bytes. Agora o offset sai do
+byte `00Fh` de cada setor. **Defeito real, mas NAO era a causa:** os 17 comandos e o ponto de
+parada ficaram identicos (invariante 26, agora pelo lado negativo).
 
 ## Próxima tarefa
 
-**ROADMAP 4.4s — setor Mode2/Form1 lido a partir do offset do Mode1.**
-Medido na 0123, despejando o `.bin`: o byte `00Fh` do setor 4 e `02h` — **Mode2/Form1**. A spec
-(§ Mode2/Form1 (CD-XA), `docs/reference/15-cdrom-format.md` L621) da para esse formato
-`010h 4 Sub-Header`, `014h 4 Copy of Sub-Header` e os dados so em **`018h`**; o Mode1 (L613) e que
-comeca em `010h`. O `read_sector_from_disc` usa `abs_sector*2352 + 0x10` fixo, entao **todo setor
-sai 8 bytes deslocado**, com o sub-header na frente. Prova no setor 16 (PVD do ISO9660): de `010h`
-sai `00 00 09 00 00 00 09 00 01 'CD001'` em vez de `01 'CD001'`.
-Sintoma: a BIOS le os setores de licenca (LBA 4 e 5, `Setloc 00:02:04`/`00:02:05`), reemite `GetID`
-e para. E a verificacao de licenca falhando com dados deslocados.
-Alvo: `crates/psx-core/src/cdrom.rs`, `read_sector_from_disc` — escolher o offset pelo byte de modo
-do proprio setor (`00Fh`), nao por constante.
-Armadilha conhecida: o disco de stub dos testes (`insert_disc` sem `.bin`) preenche `i+1` e nao tem
-header nenhum; os 11 testes de `cdrom_read.rs`/`cdrom_dma.rs` que dependem dele NAO podem quebrar.
-E ha `read_n_retorna_dados_do_bin_no_setor_correto` em `cdrom_read.rs`, que monta um `.bin`
-sintetico — confira em que modo ele monta antes de mudar o offset.
-Critério de aceitação: o `cdstate.rs` mostra comando novo depois do terceiro `GetID`.
-Invariantes relevantes: 26, 28.
+**ROADMAP 4.4t — o shell para depois da tela de licenca, e o bloqueio nao e mais do CD-ROM.**
+Tres medicoes da 0124 dizem isso: (a) a troca do terceiro `GetID` e completa — a BIOS le o INT3,
+acka, le os OITO bytes do INT2 licenciado, acka, e nao pede mais nada em 310 M passos; (b) a tela
+**SONY COMPUTER ENTERTAINMENT** renderiza inteira e correta (VRAM em
+`psx-estado/referencias/0124-vram-apos-licenca.png`, display 640x478, 318 278 pixels nao-zero);
+(c) o TTY do kernel para em `SetGraphDebug:level:1,type:0`, sem nenhuma linha sobre `SYSTEM.CNF` —
+a referencia do DuckStation ja carregou `SCUS_949.00` neste ponto.
+O PC final fica num laco de contagem do shell:
+`0x800422D8: addiu $t1,$t1,1` / `0x800422DC: bne $t1,$s1,0x8004205C`.
+**Iteracao de diagnostico.** Instrumentar esse laco: quem sao `$t1` e `$s1`, que tabela ele varre,
+e o que ele espera mudar. Ver tambem `0x800422C8`/`0x800422D0` (`beq $v0,$t4` / `beq $v0,$t5`).
+Armadilha conhecida: NAO instrumente o CD-ROM de novo — as tres medicoes acima ja o eliminaram, e
+foi exatamente esse erro que custou a 0119 (quatro hipoteses refutadas por olhar o subsistema
+errado). O discriminador barato aqui e o TTY contra a referencia, invariante 27.
+Critério de aceitação: nomear o que o laco espera, com medicao — ou mostrar `SYSTEM.CNF` sendo lido.
+Invariantes relevantes: 26, 27, 28.
 
 **Meta em vigor (ordem do usuario, 31/07):** emendar as iteracoes ate o M4 fechar, sem parar entre
 PRs. Pronto = **menu navegavel no `psx-desktop`**. Parada: 5 iteracoes fechadas sem o jogo bootar,
@@ -56,7 +55,7 @@ de gouraud no losango (candidato 10.14).
 
 ## Placar de testes
 
-Workspace: **814** testes.
+Workspace: **821** testes.
 
 ## Bloqueios
 

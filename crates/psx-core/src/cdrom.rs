@@ -510,7 +510,15 @@ fn read_sector_from_disc(
     let abs_sector =
         bcd_to_int(min_bcd) * 60 * 75 + bcd_to_int(sec_bcd) * 75 + bcd_to_int(sect_bcd);
     let offset = abs_sector as usize * 2352;
-    let data_start = offset + 0x10;
+    if offset + 0x10 > bin.len() {
+        return None;
+    }
+    let cabecalho = if bin[offset + 0x0F] == 0x02 {
+        0x18
+    } else {
+        0x10
+    };
+    let data_start = offset + cabecalho;
     let data_end = data_start + 2048;
     if data_end > bin.len() {
         return None;

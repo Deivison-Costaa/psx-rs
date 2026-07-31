@@ -1,0 +1,10 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: 0000000000000000000000000000000000000000
+# rodado_em: 2026-07-31T00:00:00-03:00
+m1,mutante,morreu,morreu,0.8,irq_raise_count_incrementa_por_bit
+m2,mutante,morreu,morreu,0.8,irq_raise_count_incrementa_por_bit
+m3,mutante,morreu,morreu,0.8,irq_raise_count_incrementa_por_bit
+m4,mutante,morreu,morreu,0.8,irq_raise_count_incrementa_por_bit
+m5,mutante,morreu,morreu,0.8,irq_raise_count_incrementa_por_bit
+c1,controle,sobreviveu,sobreviveu,0.8,
+c2,controle,sobreviveu,sobreviveu,0.8,

@@ -7,25 +7,24 @@
 
 ## Última iteração concluída
 
-**0125** — O laco `0x8004205C..0x800422DC` e um **dispatch de eventos** do kernel: varre uma
-tabela de entradas, despacha as de tipo `0x20` e `0x30` (registradores `$t4`/`$t5`), e retorna.
-Nao e um laco de espera — e um laco de varredura que o shell chama a cada quadro. O evento que
-faria o shell montar o sistema de arquivos e ler `SYSTEM.CNF` **nao esta sendo postado na tabela**.
-`psx-cli` agora tem `--max-steps`, `--trace-pcs` e `--dump-mem` para diagnostico.
+**0126** — Diagnostico da corrente de entrega de evento CD-ROM → kernel. `Irq::raise_counts[2]`
+= 0 apos 80 M passos: o CD-ROM **nunca** levanta IRQ2 durante o boot completo com disco. A
+cadeia arrebenta no elo 1. EvCB alocado (16 blocos em 0xE028) mas totalmente vazio (status=0).
+O TTY termina em `ResetCallback: _96_remove ..`. O problema nao e o dispatch (4.4t) nem o CD-ROM
+isolado — e a INICIALIZACAO do CD-ROM pela BIOS (`_96_init` / `A(96h)`).
 
 ## Próxima tarefa
 
-**ROADMAP 4.4u — o evento que falta esta a montante do dispatch.** O laco de dispatch (4.4t) esta
-entendido: ele varre a tabela de eventos, despacha tipos `0x20` e `0x30`, e retorna. Quem deveria
-postar um evento que dispara a montagem do sistema de arquivos nao o faz. A referencia do
-DuckStation carrega `SCUS_949.00` depois de `SetGraphDebug`; nos nao lemos `SYSTEM.CNF`.
-**Iteracao de diagnostico.** Rastrear o fluxo de eventos entre o CD-ROM e o kernel: quem produz
-o evento que faz o shell sair do `SetGraphDebug`? Candidatos: o handler de interrupcao do CD-ROM
-nao traduz INT para evento de kernel, ou o scheduler de threads do kernel nunca acorda a thread
-do sistema de arquivos. O discriminador barato e o TTY contra a referencia (invariante 27).
-Armadilha conhecida: nao instrumente o loop de dispatch de novo — ele ja e entendido. O alvo e
-QUEM alimenta a tabela, nao QUEM a consome.
-Invariantes relevantes: 26, 27.
+**ROADMAP 4.4v — por que o `_96_init()` nao dispara comandos de CD-ROM?** O kernel chama
+`_96_init()` durante o boot, que deveria enviar comandos ao CD-ROM (Test, GetStat) e receber
+respostas com IRQ2. A prova: `raise_counts[2]` = 0 em 80 M passos. Candidatos: (a) o drive esta
+em estado que o BIOS interpreta como "sem disco" e pula a init; (b) a flag de shell-open (bit 4
+do stat do CD-ROM) esta bloqueando; (c) o `_96_init()` executa mas os comandos sao rejeitados
+antes de produzir resposta. **Iteracao de diagnostico.** Instrumentar o caminho do `_96_init`:
+quais portas do CD-ROM sao escritas, quais comandos sao enviados, e por que nenhum produz IRQ2.
+Ferramentas: `--max-steps`, `--trace-pcs`, `--dump-mem` + contadores `raise_counts`.
+Invariantes relevantes: 24, 26, 27. Armadilha conhecida: o CD-ROM isolado FUNCIONA (iters
+0114–0124); o defeito esta na integracao BIOS↔CD-ROM, nao no dispositivo em si.
 
 **Meta em vigor (ordem do usuario, 31/07):** emendar as iteracoes ate o M4 fechar, sem parar entre
 PRs. Pronto = **menu navegavel no `psx-desktop`**. Parada: 5 iteracoes fechadas sem o jogo bootar,
@@ -51,7 +50,7 @@ de gouraud no losango (candidato 10.14).
 
 ## Placar de testes
 
-Workspace: **823** testes.
+Workspace: **828** testes.
 
 ## Bloqueios
 

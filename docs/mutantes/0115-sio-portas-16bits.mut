@@ -1,0 +1,76 @@
+# Manifesto de mutação da iteração 0115 — sio-portas-16bits
+formato: 1
+iteracao: 0115
+item: 4.4j
+alvo: crates/psx-core/src/bus.rs
+teste: sio_portas_16bits
+
+mutante: m1
+rotulo: leitura de 16 bits do SIO0 ignora o offset (o defeito 4.4j do lado da leitura)
+@@DE
+            0x1F80_1044..=0x1F80_104F => Some(self.sio.read_byte(phys + offset)),
+@@PARA
+            0x1F80_1044..=0x1F80_104F => Some(self.sio.read_byte(phys)),
+@@FIM
+
+mutante: m2
+rotulo: escrita de 16 bits do SIO0 ignora o offset (o defeito 4.4j do lado da escrita)
+@@DE
+                self.sio.write_byte(phys + offset, val);
+@@PARA
+                self.sio.write_byte(phys, val);
+@@FIM
+
+mutante: m3
+rotulo: write16 entrega o byte alto no offset 0 — mesma perda, um nivel acima
+@@DE
+            && self.region_write_byte(phys, Self::kseg(addr), 1, (val >> 8) as u8)
+@@PARA
+            && self.region_write_byte(phys, Self::kseg(addr), 0, (val >> 8) as u8)
+@@FIM
+
+mutante: m4
+rotulo: read16 compoe o byte alto lendo o offset 0
+@@DE
+            self.region_read_byte(phys, Self::kseg(addr), 1),
+@@PARA
+            self.region_read_byte(phys, Self::kseg(addr), 0),
+@@FIM
+
+mutante: m5
+rotulo: byte alto do JOY_CTRL (1F80104Bh) e descartado — perde DSR-IRQ-Enable e slot
+arquivo: crates/psx-core/src/sio.rs
+@@DE
+            0x1F80_104B => {
+                let new_ctrl = (self.ctrl.get() & 0x00FF) | ((val as u16) << 8);
+                self.update_ctrl(new_ctrl);
+            }
+@@PARA
+            0x1F80_104B => {}
+@@FIM
+
+mutante: m6
+rotulo: byte alto do JOY_STAT (1F801045h) le zero — bit 9 (Interrupt Request) some
+arquivo: crates/psx-core/src/sio.rs
+@@DE
+            0x1F80_1045 => ((self.read_stat() >> 8) & 0xFF) as u8,
+@@PARA
+            0x1F80_1045 => 0,
+@@FIM
+
+controle: c1
+rotulo: soma do offset com os operandos trocados (cosmetico)
+@@DE
+            0x1F80_1040 => Some(self.sio.read_byte(phys + offset)),
+@@PARA
+            0x1F80_1040 => Some(self.sio.read_byte(offset + phys)),
+@@FIM
+
+controle: c2
+rotulo: porta calculada numa ligacao antes da chamada (cosmetico)
+@@DE
+                self.sio.write_byte(phys + offset, val);
+@@PARA
+                let porta = phys + offset;
+                self.sio.write_byte(porta, val);
+@@FIM

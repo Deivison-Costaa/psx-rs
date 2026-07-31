@@ -168,3 +168,13 @@ Regra imposta por `status_handoff.rs`.
     11-interrupts.md), entao a fiacao guarda o nivel anterior da fonte; e o ack do porto baixa
     a linha na hora, senao a segunda resposta de um comando (Init 0Ah: INT3 -> INT2) nunca
     produz borda nova. Bateria 0114; teste `cdrom_irq2.rs`.
+25. **Suite verde de um modulo nao prova que a CPU alcanca o modulo.** Os 9 testes de
+    `sio_digital_pad.rs` (0091) falam com `Sio::new()` direto e passavam; a BIOS nao conseguia
+    ler o controle porque `region_read_byte`/`region_write_byte` ignoravam o parametro `offset`
+    no braco do SIO0, e todo `sh`/`lhu` em `JOY_CTRL`/`JOY_STAT` batia duas vezes no mesmo byte
+    (`JOY_CTRL=1003h` virava `0010h`, soltando o /CS). Regra de busca: teste de dispositivo que
+    instancia o dispositivo e um teste de dispositivo, nao de sistema — o item so esta coberto
+    quando existe teste que chega la por `Bus::write16`/`read16`. Corolario de medicao: ao
+    instrumentar acesso a porto, registre o TAMANHO do acesso (decodificado do opcode) junto com
+    o endereco; foi o campo que separou "falta modelar o pad" de "o barramento perde o byte
+    alto". Bateria 0115; teste `sio_portas_16bits.rs`.

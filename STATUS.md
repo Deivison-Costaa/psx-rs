@@ -7,27 +7,30 @@
 
 ## Última iteração concluída
 
-**0114** — IRQ2 do CD-ROM: o drive pedia interrupcao (`irq_pending()` certo desde a 0062) e
-ninguem levantava o bit; agora `service_cdrom_irq` sobe `I_STAT.2` por BORDA de
-`(HINTMSK & HINTSTS)`. O boot passou do logo: TTY imprime a versao do controlador do CD e o
-driver do PAD (ROADMAP 4.4i).
+**0115** — portas do SIO0 em 16 bits: `write16`/`read16` quebravam a meia-palavra em dois bytes
+e o braco do SIO0 ignorava o `offset`, batendo duas vezes no byte baixo. `JOY_CTRL=1003h` do
+driver virava `0010h` e soltava o /CS. Corrigido no `bus.rs`; o boot sai do laco do controle e o
+TTY passa do driver de pad (ROADMAP 4.4j).
 
 ## Próxima tarefa
 
-**ROADMAP 4.4j — resposta do controle no SIO0 (proximo degrau para a shell da BIOS).**
-Medido na 0114 com `psx-estado/instrumentacao/shellwait.rs`: o boot agora para em
-`PC=0x000045C4`, laco `lhu $t4,4($s1) / andi $t5,$t4,2 / beq` com `$s1=0x1F801040` — espera
-`JOY_STAT.1` (RX FIFO nao vazia), a resposta do controle, que nunca chega. Perto dali
-(`0x00004560`) ha um laco irmao esperando `JOY_STAT.0`, e `$s0=0x1F801070` (I_STAT), entao
-IRQ7 tambem entra na conta: `sio.rs` ja tem `take_irq7`/`service_sio_irq` ligados.
-Spec: `docs/reference/10-controllers-memcards.md` (§ JOY_STAT, § Controller sequence de um pad
-digital SCPH-1080: resposta `hi-Z, 41h, 5Ah, botoes`). Arquivo-alvo: `crates/psx-core/src/sio.rs`.
-Armadilha conhecida: `I_STAT` e de borda (invariante 24) — a mesma regra que custou dois erros
-na 0114 vale aqui, e o ack do JOY_CTRL.bit4 vem DEPOIS do ack do I_STAT
-(§ Interrupt Acknowledge, 11-interrupts.md).
-Critério de aceitação: o boot sai de `0x000045C4` e o TTY avanca alem de
-`PS-X Control PAD Driver Ver 3.0`.
-Invariantes relevantes: 23, 24.
+**ROADMAP 4.4k — `GPU timeout` do kernel depois do driver de pad.**
+Medido na 0115 com `psx-estado/instrumentacao/rodajogo.rs` (BIOS + disco, 400 M passos): depois
+de `PS-X Control PAD Driver Ver 3.0` o TTY passa a repetir
+`GPU timeout:QUE=( 5, 5),CODE=(0,0,00FFFFFF)` e depois `QUE=( 2, 2)`, e o PC circula pelo driver
+de GPU do kernel (`0x800511DC`, `0x80051308`, `0x8005131C`) e por `0x00001C28`.
+Candidato medido, NAO confirmado: nao existe um so `raise(3)` no repositorio — o IRQ do DMA
+nunca chega ao `I_STAT` (mesma forma da invariante 24; `grep -rn "raise(" crates/psx-core/src`
+devolve so os bits 0, 2, 7 e timers). **Meça antes de implementar**: instrumente os portos do
+DMA2 (`0x1F8010A0..AF`), o `DICR` (`0x1F8010F4`) e o PC do laco, como o `padwait` fez com o SIO0
+— registrando o TAMANHO do acesso junto com o endereco (invariante 25).
+Spec: `docs/reference/04-dma.md` (§ DMA Interrupt Register, § DMA Channel Control) e
+`docs/reference/11-interrupts.md` (§ Interrupt Request / Execution). Arquivos-alvo:
+`crates/psx-core/src/dma.rs` e `crates/psx-core/src/bus.rs`.
+Armadilha conhecida: `I_STAT` e de borda (invariante 24) e o `DICR` tem bit-31 calculado
+(flag mestre) — nao e um bit gravavel comum.
+Critério de aceitação: o TTY para de repetir `GPU timeout` e o PC sai do laco do driver de GPU.
+Invariantes relevantes: 24, 25.
 
 **Referencia externa (30/07):** captura canonica do DuckStation em
 `psx-estado/referencias/tela-de-boot-duckstation.png`; fundo (180,180,180) e cores do losango
@@ -46,10 +49,10 @@ de gouraud no losango (candidato 10.14).
 
 ## Placar de testes
 
-Workspace: **758** testes.
+Workspace: **766** testes.
 
 ## Bloqueios
 
-- **4.4 Boot de jogo**: sem bloqueio conhecido; desde a 0114 o boot passa do logo e para no
-  handshake do controle (4.4j). Imagens de disco ficam fora do repositório, em
+- **4.4 Boot de jogo**: sem bloqueio conhecido; desde a 0115 o boot passa do handshake do
+  controle e para no driver de GPU do kernel (4.4k). Imagens de disco ficam fora do repositório, em
   `.../Programacao com agentes/roms/extraido/`. **Nunca commitar imagem de disco.**

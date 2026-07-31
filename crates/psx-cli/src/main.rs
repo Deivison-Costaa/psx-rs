@@ -82,6 +82,7 @@ fn main() {
     let mut disc_arg: Option<String> = None;
     let mut max_steps: Option<usize> = None;
     let mut trace_pcs: HashSet<u32> = HashSet::new();
+    let mut dump_mem: Vec<(u32, usize)> = Vec::new();
     let mut i = 1;
     while i < args.len() {
         match args[i].as_str() {
@@ -132,6 +133,32 @@ fn main() {
             "--bios" | "--exe" | "--disc" => {
                 eprintln!("Erro: '{}' requer um caminho", args[i]);
                 std::process::exit(1);
+            }
+            "--dump-mem" if i + 2 < args.len() => {
+                let addr = match u32::from_str_radix(args[i + 1].trim_start_matches("0x"), 16) {
+                    Ok(a) => a,
+                    Err(e) => {
+                        eprintln!(
+                            "Erro: '--dump-mem' espera endereco hex, '{}': {}",
+                            args[i + 1],
+                            e
+                        );
+                        std::process::exit(1);
+                    }
+                };
+                let len = match usize::from_str_radix(args[i + 2].trim_start_matches("0x"), 16) {
+                    Ok(n) => n,
+                    Err(e) => {
+                        eprintln!(
+                            "Erro: '--dump-mem' espera um comprimento hex, '{}': {}",
+                            args[i + 2],
+                            e
+                        );
+                        std::process::exit(1);
+                    }
+                };
+                dump_mem.push((addr, len));
+                i += 3;
             }
             "--max-steps" | "--trace-pcs" => {
                 eprintln!("Erro: '{}' requer um valor", args[i]);
@@ -208,6 +235,14 @@ fn main() {
 
             eprintln!("Runner: {} passos, TTY: {} bytes", steps, tty.len());
 
+            for &(addr, len) in &dump_mem {
+                eprintln!("dump {:08X}:", addr);
+                for off in (0..len).step_by(4) {
+                    let word = bus.read32::<BusRead>(addr.wrapping_add(off as u32));
+                    eprintln!("  {:08X}: {:08X}", addr.wrapping_add(off as u32), word);
+                }
+            }
+
             return;
         }
         (Some(bios_path), None, disc_path) => {
@@ -255,6 +290,14 @@ fn main() {
             }
 
             eprintln!("Runner: {} passos, TTY: {} bytes", steps, tty.len());
+
+            for &(addr, len) in &dump_mem {
+                eprintln!("dump {:08X}:", addr);
+                for off in (0..len).step_by(4) {
+                    let word = bus.read32::<BusRead>(addr.wrapping_add(off as u32));
+                    eprintln!("  {:08X}: {:08X}", addr.wrapping_add(off as u32), word);
+                }
+            }
 
             return;
         }

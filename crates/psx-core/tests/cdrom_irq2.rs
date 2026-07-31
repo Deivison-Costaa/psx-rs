@@ -5,6 +5,7 @@ use psx_core::cpu::Cpu;
 use support::asm;
 
 const CD_BASE: u32 = 0x1F80_1800;
+const ESPERA_PRIMEIRA_RESPOSTA: u32 = 0x1_4000;
 const I_STAT: u32 = 0x1F80_1070;
 const IRQ2: u32 = 1 << 2;
 
@@ -41,6 +42,7 @@ fn ack_hclrctl(bus: &mut Bus, val: u8) {
 fn manda_getstat(bus: &mut Bus) {
     set_bank(bus, 0);
     cd_write(bus, 1, 0x01);
+    bus.tick_timers(ESPERA_PRIMEIRA_RESPOSTA);
 }
 
 #[test]
@@ -185,6 +187,7 @@ fn segunda_resposta_do_init_tambem_levanta_irq2() {
     // Init (0Ah) --> INT3(stat) --> INT2(stat): a segunda resposta chega no ack do HCLRCTL.
     set_bank(&mut bus, 0);
     cd_write(&mut bus, 1, 0x0A);
+    bus.tick_timers(ESPERA_PRIMEIRA_RESPOSTA);
     assert_eq!(i_stat(&bus) & IRQ2, IRQ2, "INT3 do Init levanta IRQ2");
 
     ack_i_stat_irq2(&mut bus);

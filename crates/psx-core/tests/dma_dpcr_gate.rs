@@ -8,6 +8,7 @@ fn bus_com_dma() -> Bus {
 }
 
 const CD_BASE: u32 = 0x1F80_1800;
+const ESPERA_PRIMEIRA_RESPOSTA: u32 = 0x1_4000;
 const D2_MADR: u32 = 0x1F80_10A0;
 const D2_BCR: u32 = 0x1F80_10A4;
 const D2_CHCR: u32 = 0x1F80_10A8;
@@ -54,14 +55,22 @@ fn preparar_cdrom_para_dma3(bus: &mut Bus) {
     cd_write(bus, 2, 0x10);
     cd_write(bus, 2, 0x00);
     cd_write(bus, 1, 0x02);
+    bus.tick_timers(ESPERA_PRIMEIRA_RESPOSTA);
     let _ = cd_read(bus, 1);
 
     cd_write(bus, 1, 0x06);
+    bus.tick_timers(ESPERA_PRIMEIRA_RESPOSTA);
     let _ = cd_read(bus, 1);
 
     set_bank(bus, 1);
     cd_write(bus, 3, 0x07);
+    let hintsts = cd_read(bus, 3) & 0x7;
     set_bank(bus, 0);
+    assert_eq!(
+        hintsts, 1,
+        "pre-condicao: o setor tem de ter chegado (INT1), senao o teste negativo abaixo \
+         fica verde por o drive estar morto"
+    );
     let _ = cd_read(bus, 1);
 
     set_bank(bus, 0);

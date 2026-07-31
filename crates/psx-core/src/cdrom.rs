@@ -27,6 +27,10 @@ pub struct Cdrom {
     read_mode: Cell<u8>,
     hchpctl: Cell<u8>,
     irq_line: Cell<bool>,
+    pending_cmd: Cell<Option<u8>>,
+    pending_params: Cell<[u8; 16]>,
+    pending_param_count: Cell<u8>,
+    issued_cmd: Cell<Option<u8>>,
 }
 
 impl Cdrom {
@@ -55,6 +59,10 @@ impl Cdrom {
             read_mode: Cell::new(0),
             hchpctl: Cell::new(0),
             irq_line: Cell::new(false),
+            pending_cmd: Cell::new(None),
+            pending_params: Cell::new([0u8; 16]),
+            pending_param_count: Cell::new(0),
+            issued_cmd: Cell::new(None),
         }
     }
 
@@ -173,6 +181,34 @@ impl Cdrom {
 
     fn set_bank(&self, val: u8) {
         self.bank.set(val & 0x3);
+    }
+
+    fn latch_command(&self, cmd: u8) {
+        self.pending_cmd.set(Some(cmd));
+        self.pending_params.set(self.param_buf.get());
+        self.pending_param_count.set(self.param_count.get());
+        self.issued_cmd.set(Some(cmd));
+    }
+
+    pub fn take_issued_command(&self) -> Option<u8> {
+        self.issued_cmd.take()
+    }
+
+    pub fn first_response_cycles(cmd: u8) -> u64 {
+        match cmd {
+            0x0A | 0x1E => 0x1_3CCE,
+            _ => 0xC4E1,
+        }
+    }
+
+    pub fn deliver_first(&self) {
+        let cmd = match self.pending_cmd.take() {
+            Some(cmd) => cmd,
+            None => return,
+        };
+        self.param_buf.set(self.pending_params.get());
+        self.param_count.set(self.pending_param_count.get());
+        self.send_command(cmd);
     }
 
     fn send_command(&self, cmd: u8) {
@@ -330,7 +366,7 @@ impl Cdrom {
     ) {
         match offset & 0x3 {
             0 => self.set_bank(val),
-            1 if self.bank.get() == 0 => self.send_command(val),
+            1 if self.bank.get() == 0 => self.latch_command(val),
             2 if self.bank.get() == 0 => self.param_push(val),
             2 if self.bank.get() == 1 => {
                 self.intmsk.set(val & 0x1F);

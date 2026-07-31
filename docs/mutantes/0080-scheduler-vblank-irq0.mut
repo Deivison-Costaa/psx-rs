@@ -35,6 +35,12 @@ rotulo: nao processa eventos no tick_timers (comenta while do scheduler)
                         EventId(VBLANK_EXIT),
                     );
                 }
+                CDROM_RESPONSE => {
+                    self.cdrom.deliver_first();
+                    if self.cdrom.take_irq2_edge() {
+                        self.irq.raise(2);
+                    }
+                }
                 _ => {}
             }
         }

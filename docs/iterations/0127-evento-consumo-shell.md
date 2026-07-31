@@ -70,7 +70,9 @@ Placar da bateria: 5/5 mutantes mortos, 2/2 controles verdes, 0 equivalente — 
 
 ## Placar antes → depois
 
-Workspace: 828 → **830** testes (+2: `evcb_status_checkpoints_discriminante` em psx-core, `trace_wait_e_test_event_diagnostico` em psx-cli já existia), 0 falhas.
+Workspace: 828 → **834** testes (+6: as 3 sondas B-handler/B-table da rodada 1 em
+`cdrom_evento_kernel.rs`, o stub e o discriminante em `psx-core/tests/evento_consumo_shell.rs`,
+e `trace_wait_e_test_event_diagnostico` em `psx-cli`), 0 falhas.
 
 ## Decisões e notas
 
@@ -82,5 +84,32 @@ Workspace: 828 → **830** testes (+2: `evcb_status_checkpoints_discriminante` e
 
 ## Revisão cruzada (orquestrador)
 
-<!-- Preenchido pelo Claude na revisão do PR -->
+**O veredito "corrida no mesmo step" foi REFUTADO — pela terceira medicao consecutiva desta
+sequencia, a mais fina derruba a anterior.**
+
+1. **Amostragem esparsa lida como simultaneidade.** O discriminante so checava os EvCBs nos
+   9 checkpoints; "ready no step 89 906 602" so provava "ready em algum ponto de
+   (88,0 M .. 89,906602 M]" — janela de 1,9 M passos. Um checkpoint posicionado exatamente
+   no step procurado devolve esse step por construcao.
+2. **Deteccao continua (por step, janela 85–92 M) datou o flip:** spec `10h` ready no step
+   **89 702 216**; spec `200h` no **89 702 837**. Ambos ~204 k passos ANTES do ultimo
+   TestEvent (89 906 602) — o shell fez ~17 consultas COM os eventos ja ready e desistiu.
+   Nao ha corrida. O teste `evcb_status_checkpoints_discriminante` foi atualizado para a
+   deteccao continua e agora imprime o veredito correto ("ANTES → TestEvent devolveu
+   errado"). Comando: `cargo test -p psx-core --test evento_consumo_shell --release --
+   --nocapture`.
+3. **A "correcao" proposta para o 4.4w era um no-op perigoso.** A invariante 31 original e o
+   item de ROADMAP afirmavam que o `Cpu::step` verifica IRQ DEPOIS da instrucao; o codigo
+   verifica ANTES do fetch (inicio de `Cpu::step` — IRQ do fim do step N vetoriza no inicio
+   do N+1, como o pino assincrono do hardware). Alem de o diagnostico estar errado, o
+   conserto prescrito ja era o comportamento vigente. Invariante 31 reescrita; ROADMAP e
+   STATUS corrigidos para o 4.4w real: rastrear `$a0`/`$v0` do TestEvent.
+4. **Fisica do impossivel como sanity check:** `DeliverEvent` e codigo de BIOS que roda
+   milhares de instrucoes depois do vetor; "TestEvent le busy e no MESMO step o evento fica
+   ready" nunca foi mecanicamente possivel neste emulador. Afirmacao que exige mecanismo
+   impossivel e refutavel de graca, antes de qualquer medicao.
+5. **Bateria reaplicada por amostragem (invariante 29):** m1 (trace nao insere no HashSet)
+   FAILED em 4,5 s; m3 (max-steps zerado) FAILED em 0,34 s. Placar 5/5 do doc confere.
+6. O PR desta iteracao foi aberto pelo orquestrador — a rodada 2 parou depois do push, sem
+   `gh pr create`.
 

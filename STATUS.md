@@ -7,27 +7,26 @@
 
 ## Última iteração concluída
 
-**0127** — Corrida confirmada: os dois eventos de CD-ROM (spec 10h/200h) viram ready
-(status=4000h) entre 88 M e 89.9 M passos, no MESMO STEP do ultimo TestEvent do shell
-(89 906 602). O `Cpu::step` executa a instrucao ANTES de despachar IRQs: TestEvent le
-EvCB busy (2000h), retorna 0; DEPOIS a IRQ2 dispara, DeliverEvent marca os EvCBs ready
-(4000h); mas o shell ja desistiu. Nao e defeito no TestEvent — e corrida intra-step.
+**0127** — A "corrida intra-step" era artefato de checkpoint esparso (revisao). Deteccao
+continua datou o flip: spec `10h` ready no step **89 702 216**, spec `200h` no **89 702 837**
+— ~204 k passos ANTES do ultimo TestEvent (89 906 602). O shell consultou ~17x com os
+eventos ja ready e desistiu. A ordem de IRQ do `Cpu::step` esta CORRETA (checa antes do
+fetch; invariante 31). Sobra: ou o TestEvent testa OUTRO descritor, ou devolve errado.
 
 ## Próxima tarefa
 
-**ROADMAP 4.4w — Corrigir corrida intra-step entre TestEvent e IRQ2. O shell desiste de
-polling no step 89 906 602; no mesmo step, depois da instrucao, a IRQ2 entrega os eventos.
-Candidatos: (a) aumentar timeout do dispatch loop do shell (lento e fragil), (b) adiantar
-entrega do evento (reduzir latencia CD-ROM → IRQ2), (c) verificar IRQs ANTES de executar a
-instrucao, nao depois (mais proximo do hardware: o pino fisico de IRQ chega entre instrucoes).
-Spec: `docs/reference/11-interrupts.md` § Interrupt Request / Execution,
-`docs/reference/02-cpu.md` § Exception/Interrupt Processing (L650+). Arquivos-alvo:
-`crates/psx-core/src/cpu.rs` (ordem de step), `crates/psx-core/src/irq.rs`.
-Armadilha: EvCB[1] (spec=20h) ja estava ready em 88 M — 1.9 M passos ANTES do ultimo
-TestEvent. O shell nao espera por spec=20h; se a correcao fizer o shell consumir spec=20h
-em vez de 10h/200h, o boot pode avancar por acidente e mascarar o problema real.
-Invariantes relevantes: 30, 31 (nova: ordem de IRQ no Cpu::step).
-Teste ancora: `evento_consumo_shell.rs` (150 M, asserta WaitEvent>0 apos correcao).
+**ROADMAP 4.4w — que descritor o TestEvent do shell testa, e que evento ele espera?** Os
+eventos ready (`10h`/`200h`) nao o destravam; os specs `40h`, `80h` e `8000h` ficam busy para
+sempre — candidatos ao evento que o shell aguarda e nunca e entregue. **Iteracao de
+diagnostico.** Instrumentar os ultimos polls de TestEvent (`0x00001EC8`): capturar `$a0`
+(descritor; o handle codifica o indice do EvCB) e `$v0` no retorno; mapear descritor→spec.
+O `--trace-pcs` atual despeja `$v0` mas NAO `$a0` — estenda o trace do psx-cli se precisar.
+Se o shell espera `40h`/`80h`/`8000h`: qual INT do CD-ROM deveria entrega-lo e por que nao
+chega (`docs/reference/13-kernel-bios.md` § BIOS Event Summary (L1735)).
+Armadilhas: (a) a ordem de IRQ do `Cpu::step` esta CORRETA — nao mexer (invariante 31);
+(b) checkpoint esparso nao data evento — deteccao continua (invariantes 30/31);
+(c) NAO reinvestigar `_96_init`, o CD-ROM nem o laco de dispatch (0125–0127 eliminaram).
+Invariantes relevantes: 27, 30, 31.
 
 **Meta em vigor (ordem do usuario, 31/07):** emendar as iteracoes ate o M4 fechar, sem parar entre
 PRs. Pronto = **menu navegavel no `psx-desktop`**. Parada: 5 iteracoes fechadas sem o jogo bootar,

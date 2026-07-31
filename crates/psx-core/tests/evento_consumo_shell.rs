@@ -60,9 +60,11 @@ fn ler_tabela_evcb(bus: &Bus) -> Result<(u32, u32), String> {
 
 #[test]
 fn trace_wait_e_test_event_diagnostico() {
-    eprintln!("psx-cli: teste de integracao do psx-cli — a bateria de mutacao roda \
+    eprintln!(
+        "psx-cli: teste de integracao do psx-cli — a bateria de mutacao roda \
         `cargo test -p psx-cli --test evento_consumo_shell --release` (invariante 29). \
-        Este stub existe para o meta-teste bateria_nomes_de_teste_existem validar o credito.");
+        Este stub existe para o meta-teste bateria_nomes_de_teste_existem validar o credito."
+    );
 }
 
 #[test]
@@ -124,6 +126,27 @@ fn evcb_status_checkpoints_discriminante() {
 
     for step in 1..=max_steps {
         cpu.step(&mut bus);
+
+        if (85_000_000..=92_000_000).contains(&step)
+            && (spec10_ready_step.is_none() || spec200_ready_step.is_none())
+        {
+            if let Ok((evcb_ptr, evcb_size)) = ler_tabela_evcb(&bus) {
+                let num_blocks = evcb_size / 0x1C;
+                for i in 0..num_blocks {
+                    let (class, status, spec, _mode) = ler_evcb(&bus, evcb_ptr, i);
+                    if class == 0xF000_0003 && status == 0x4000 {
+                        if spec == 0x10 && spec10_ready_step.is_none() {
+                            spec10_ready_step = Some(step);
+                            eprintln!("  >>> spec=10h READY no step {} (deteccao continua)", step);
+                        }
+                        if spec == 0x200 && spec200_ready_step.is_none() {
+                            spec200_ready_step = Some(step);
+                            eprintln!("  >>> spec=200h READY no step {} (deteccao continua)", step);
+                        }
+                    }
+                }
+            }
+        }
 
         if cp_idx < checkpoints.len() && step == checkpoints[cp_idx] {
             let tty = bus.take_tty();

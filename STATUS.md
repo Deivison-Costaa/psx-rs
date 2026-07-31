@@ -7,27 +7,27 @@
 
 ## Última iteração concluída
 
-**0126** — Diagnostico da corrente CD-ROM → kernel, **corrigido na revisao**: a conclusao
-original ("IRQ2 nunca sobe") era artefato da janela de 80 M. Medido em build limpo: IRQ2 da
-107 raises entre 80 M e 100 M e depois silencia; 6 EvCBs `class=F0000003h` registrados; e
-`DeliverEvent` deixa **DOIS eventos ready** (`status=4000h`, specs `10h` e `200h`) que ninguem
-consome. Elos IRQ2→handler→DeliverEvent→EvCB **intactos**; o defeito e o CONSUMO.
+**0127** — Corrida confirmada: os dois eventos de CD-ROM (spec 10h/200h) viram ready
+(status=4000h) entre 88 M e 89.9 M passos, no MESMO STEP do ultimo TestEvent do shell
+(89 906 602). O `Cpu::step` executa a instrucao ANTES de despachar IRQs: TestEvent le
+EvCB busy (2000h), retorna 0; DEPOIS a IRQ2 dispara, DeliverEvent marca os EvCBs ready
+(4000h); mas o shell ja desistiu. Nao e defeito no TestEvent — e corrida intra-step.
 
 ## Próxima tarefa
 
-**ROADMAP 4.4v — dois eventos de CD-ROM ficam READY e o shell nao age.** Medidos a 150 M e
-estaveis ate 700 M: `EvCB[0] class=F0000003h spec=10h` e `EvCB[5] spec=200h`, ambos
-`status=4000h`, `mode=2000h` (sem callback — cabe a alguem testar/esperar). O TTY para em
-`SetGraphDebug` e `SYSTEM.CNF` nunca e lido (invariante 27; DuckStation carrega `SCUS_949.00`
-aqui). **Iteracao de diagnostico.** Rastrear o CONSUMO: quem deveria consumir esses eventos
-(`docs/reference/13-kernel-bios.md`: § B(0Ah) - WaitEvent (L1625), § B(0Bh) - TestEvent
-(L1637), § BIOS Event Summary (L1735)) e por que nao
-chega la. Relacionar com o laco de dispatch da 0125 (`0x8004205C`, compara tipos `20h`/`30h`
-numa tabela que NAO e o EvCB — achar o elo entre EvCB ready e essa tabela). Teste ancora:
-`cdrom_evento_kernel.rs` (150 M; asserta IRQ2>0 e EvCBs registrados).
-Armadilhas: (a) NAO reinvestigar `_96_init` nem o CD-ROM — 107 IRQ2 e 6 EvCBs provam que
-rodam; (b) medida negativa com janela <150 M nao vale (invariante 30).
-Invariantes relevantes: 26, 27, 30.
+**ROADMAP 4.4w — Corrigir corrida intra-step entre TestEvent e IRQ2. O shell desiste de
+polling no step 89 906 602; no mesmo step, depois da instrucao, a IRQ2 entrega os eventos.
+Candidatos: (a) aumentar timeout do dispatch loop do shell (lento e fragil), (b) adiantar
+entrega do evento (reduzir latencia CD-ROM → IRQ2), (c) verificar IRQs ANTES de executar a
+instrucao, nao depois (mais proximo do hardware: o pino fisico de IRQ chega entre instrucoes).
+Spec: `docs/reference/11-interrupts.md` § Interrupt Request / Execution,
+`docs/reference/02-cpu.md` § Exception/Interrupt Processing (L650+). Arquivos-alvo:
+`crates/psx-core/src/cpu.rs` (ordem de step), `crates/psx-core/src/irq.rs`.
+Armadilha: EvCB[1] (spec=20h) ja estava ready em 88 M — 1.9 M passos ANTES do ultimo
+TestEvent. O shell nao espera por spec=20h; se a correcao fizer o shell consumir spec=20h
+em vez de 10h/200h, o boot pode avancar por acidente e mascarar o problema real.
+Invariantes relevantes: 30, 31 (nova: ordem de IRQ no Cpu::step).
+Teste ancora: `evento_consumo_shell.rs` (150 M, asserta WaitEvent>0 apos correcao).
 
 **Meta em vigor (ordem do usuario, 31/07):** emendar as iteracoes ate o M4 fechar, sem parar entre
 PRs. Pronto = **menu navegavel no `psx-desktop`**. Parada: 5 iteracoes fechadas sem o jogo bootar,
@@ -53,7 +53,7 @@ de gouraud no losango (candidato 10.14).
 
 ## Placar de testes
 
-Workspace: **828** testes.
+Workspace: **834** testes.
 
 ## Bloqueios
 

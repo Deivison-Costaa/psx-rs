@@ -219,3 +219,15 @@ Regra imposta por `status_handoff.rs`.
     fenomeno, e o doc mostra o checkpoint em que o contador satura. Corolario operacional:
     depois de bateria de mutacao, `cargo clean -p <crate>` antes de medir — um rlib stale do
     psx-core produziu contadores impossiveis (11 bits identicos, em lockstep) nesta revisao.
+31. **A ordem de IRQ no `Cpu::step` e instrucao-primeiro, IRQ-depois.** O step executa
+    uma instrucao, avanca o scheduler (dispositivos entregam respostas), e so entao verifica
+    IRQs pendentes. No hardware real, o pino de IRQ e assincrono e o CPU o detecta entre
+    instrucoes — o que equivale a verificar ANTES da proxima instrucao. Na pratica atual,
+    uma IRQ levantada pelo scheduler no step N so e processada DEPOIS da instrucao do step N;
+    se essa instrucao for um `TestEvent` que le o EvCB antes de a IRQ entregar o evento,
+    o resultado e um falso-negativo (retorna 0 para evento que fica ready no mesmo step).
+    Medido e confirmado na iter 0127: o ultimo TestEvent do shell (step 89 906 602) leu
+    EvCB busy (2000h), e no mesmo step a IRQ2 marcou o EvCB como ready (4000h).
+    Corolario: qualquer correcao que inverta a ordem (IRQ antes da instrucao) deve ser
+    validada contra o boot completo com disco — o shell precisa consumir os eventos e
+    avancar para a leitura do `SYSTEM.CNF`.

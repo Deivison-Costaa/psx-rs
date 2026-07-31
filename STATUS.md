@@ -7,31 +7,32 @@
 
 ## Última iteração concluída
 
-**0118** — o shell nao pedia NADA ao disco (2 comandos em 400 M passos). A causa nao era o
-CD-ROM: ele girava num laco esperando o contador do timer 2, e `lhu`/`sh` nas portas
-`0x1F801100..2F` caiam no braco-sumidouro do `bus.rs` — os timers estavam certos e inalcancaveis
-pela largura de acesso que o kernel usa (invariante 25, 2a vez). Corrigido; o contador agora
-avanca e o laco sai (ROADMAP 4.4m).
+**0119** — diagnostico, sem codigo de producao. A troca do `GetStat` esta correta porto a porto
+(comando, poll do HSTS, leitura do HINTSTS, leitura da resposta, ack `HCLRCTL=07h`) e
+`[0x80083C58]` NAO esta travada: ela cicla posta/expira/retenta com cadencia de quadro, chegando a
+zero uma vez. Quatro hipoteses refutadas, incluindo duas do handoff anterior (ROADMAP 4.4n).
 
 ## Próxima tarefa
 
-**ROADMAP 4.4n — driver de CD-ROM do kernel nao conclui o `GetStat`.**
-Medido na 0118: o laco quente agora e `0x8003D6FC`, decodificado a mao —
-`lui $t7,0x8008 / lw $t7,0x3C58($t7) / slti $at,$t7,2 / beq` — ou seja
-`while ([0x80083C58] >= 2) ;`. E o estado do driver de CD do kernel, e ele nunca cai abaixo de 2
-depois do `GetStat` enviado no passo 87 464 254 (`pc=0x80057554`). Nenhum outro comando sai depois
-disso, e `HINTSTS==INT1` nunca acontece.
-**Meça primeiro** (invariante 26): instrumente TODA escrita em `0x80083C58` (qual PC escreve, com
-que valor) e o caminho do handler de IRQ2 — o `psx-estado/instrumentacao/cdshell.rs` ja decodifica
-os portos do CD e tem histograma de PC; acrescente o watch da variavel em vez de escrever outro
-harness. Confira se o handler chega a rodar e se o ack do `HCLRCTL` sai na ordem certa (0114).
-Spec: `docs/reference/06-cdrom.md` (§ GetStat, § HCLRCTL) e `docs/reference/13-kernel-bios.md`
-(§ CdromDecodeIRQ, § callbacks do CD). Arquivos-alvo: `crates/psx-core/src/cdrom.rs`.
-Armadilha conhecida: a resposta do `GetStat` e um INT3 de uma so entrega; se o driver espera um
-evento de conclusao que so o segundo INT produz, o estado fica preso — nao "conserte" o cdrom.rs
-sem antes ver QUEM escreve a variavel.
-Critério de aceitação: `[0x80083C58]` cai abaixo de 2 e o shell emite um comando novo ao disco.
-Invariantes relevantes: 24, 25, 26.
+**ROADMAP 4.4o — comparar a sequencia de comandos do CD contra emulador de referencia.**
+Depois do `GetStat` do passo 87 464 254 o shell nao toca mais no drive em 312 M passos; ele fica
+num laco por quadro lendo o controle (endereco `0x01`, ~1 por quadro) e ciclando o contador
+interno. Nenhum `Setloc`/`ReadN`/`GetID`, `HINTSTS==INT1` zero, e 417 entradas no handler depois
+do `GetStat` (IRQs correm).
+**Nao escreva outro harness cego** (invariante 27): rode a MESMA BIOS (`bios/SCPH1001.BIN`) com o
+MESMO disco (`../roms/extraido/Crash Bandicoot (USA).cue`) no DuckStation de
+`psx-estado/referencias/`, ligue o log de CD-ROM dele e compare a sequencia de comandos com a
+nossa (`Test(20h)`, `GetStat`, e nada). Duas saidas possiveis, as duas uteis: (a) no real sai um
+`GetID` depois do `GetStat` — entao o alvo e o que provoca esse `GetID`; (b) no real tambem nao
+sai — entao o shell espera outra coisa e o alvo muda de subsistema.
+Harness ja pronto: `psx-estado/instrumentacao/cdstate.rs` (watch de variavel, janela de portos do
+CD, contagem do handler, bytes de endereco do SIO0).
+Spec: `docs/reference/06-cdrom.md` (§ GetID, § GetStat) e `docs/reference/13-kernel-bios.md`.
+Armadilha conhecida: `[0x80083C58]` NAO e comprovadamente o estado do driver de CD — foi um chute
+meu na 0118. Nao construa o proximo item sobre esse nome.
+Critério de aceitação: a diferenca entre as duas sequencias esta medida e escrita, e o proximo
+alvo sai dela.
+Invariantes relevantes: 26, 27.
 
 **Referencia externa (30/07):** captura canonica do DuckStation em
 `psx-estado/referencias/tela-de-boot-duckstation.png`; fundo (180,180,180) e cores do losango
@@ -55,5 +56,5 @@ Workspace: **790** testes.
 ## Bloqueios
 
 - **4.4 Boot de jogo**: sem bloqueio conhecido; desde a 0115 o boot passa do handshake do
-  controle e para no driver de GPU do kernel; a 0118 destravou o timer e o boot chega ao driver de CD do kernel (4.4n). Imagens de disco ficam fora do repositório, em
+  controle e para no driver de GPU do kernel; desde a 0118 o shell roda e nao pede nada ao disco; proximo passo e comparar com referencia (4.4o). Imagens de disco ficam fora do repositório, em
   `.../Programacao com agentes/roms/extraido/`. **Nunca commitar imagem de disco.**

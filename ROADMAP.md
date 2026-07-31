@@ -29,7 +29,8 @@ M2 (GPU) e M3 (DMA/IRQ/timers). Regra imposta por `roadmap_arquivo.rs`.
 - [x] 4.4k `DICR` guardava o valor cru: sem flags de conclusao, sem bit 31 calculado e sem IRQ3 — o handler de DMA do kernel nunca rodava (iter 0116)
 - [x] 4.4l Canal 2 do DMA nao tinha sentido device->RAM: o `StoreImage` rodava ao contrario e o `C0h` nunca era drenado — `GPU timeout` some (iter 0117)
 - [x] 4.4m Shell nao pede nada ao disco (2 comandos em 400 M passos): laco esperava o contador do timer 2, e `lhu`/`sh` nas portas dos timers caiam no braco-sumidouro do `bus.rs` (iter 0118)
-- [ ] 4.4n Laco novo em `0x8003D6FC` espera `[0x80083C58] < 2` — estado do driver de CD-ROM do kernel apos o `GetStat` que nunca conclui
+- [x] 4.4n Diagnostico: a troca do `GetStat` esta correta porto a porto e `[0x80083C58]` cicla (posta/expira/retenta, cadencia de quadro); shell decide nao pedir mais nada ao disco (iter 0119)
+- [ ] 4.4o Comparar a sequencia de comandos do CD-ROM contra emulador de referencia (mesma BIOS, mesmo disco): existe `GetID` depois do `GetStat` no real?
 
 ## M5 — GTE
 - [x] 5.1 Registradores + MFC2/MTC2/CFC2/CTC2/LWC2/SWC2 (iter 0084)

@@ -186,3 +186,12 @@ Regra imposta por `status_handoff.rs`.
     "causa" no doc depois de medir o SINTOMA sumindo; ate la, escreva "defeito encontrado a
     caminho". Custo de nao fazer isso: um item do ROADMAP que se declara fechado com o boot no
     mesmo lugar. Bateria 0116; teste `dma_dicr_irq3.rs`.
+27. **Depois de N hipoteses refutadas por instrumentacao, troque de instrumento.** Na 0119 foram
+    quatro refutacoes seguidas (evento de CD, memory card, bit de motor, sistema de arquivos) sem
+    uma confirmacao, com tres reconstrucoes de harness e um patch experimental descartado. Sinal de
+    parada: quando cada medicao nova so elimina candidato e nao aponta o proximo, o discriminador
+    barato deixou de ser outro harness e passou a ser um **oraculo externo** — rodar a mesma BIOS e
+    o mesmo disco num emulador de referencia e diferenciar o comportamento. Referencia canonica ja
+    guardada em `psx-estado/referencias/`. Corolario: batize variavel de BIOS so com o que a
+    medicao mostra (`[0x80083C58]` foi chamada de "estado do driver de CD" na 0118 sem prova; o que
+    estava provado era o formato do ciclo).

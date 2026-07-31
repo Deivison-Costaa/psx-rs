@@ -68,8 +68,16 @@ fn framebuffer_480i_le_linhas_consecutivas_da_vram() {
         let o = (y * fb.width as usize + x) * 4;
         (fb.data[o], fb.data[o + 1], fb.data[o + 2])
     };
-    assert_eq!(px(0, 0), (0xF8, 0, 0), "linha 0 do fb vem da linha 0 da VRAM");
-    assert_eq!(px(0, 1), (0, 0xF8, 0), "linha 1 do fb vem da linha 1 da VRAM");
+    assert_eq!(
+        px(0, 0),
+        (0xF8, 0, 0),
+        "linha 0 do fb vem da linha 0 da VRAM"
+    );
+    assert_eq!(
+        px(0, 1),
+        (0, 0xF8, 0),
+        "linha 1 do fb vem da linha 1 da VRAM"
+    );
     assert_eq!(
         px(0, 479),
         (0, 0, 0xF8),

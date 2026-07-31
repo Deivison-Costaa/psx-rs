@@ -1,0 +1,11 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: d4bd5ab2a99f49866b32f5422ed7dbea6f0541f8
+# rodado_em: 2026-07-30T23:28:30-03:00
+m1,mutante,morreu,morreu,1.1,contador_que_anda_e_visto_por_lhu;lbu_do_contador_devolve_o_byte_certo_nos_dois_lados;lhu_do_alvo_e_do_modo_tambem_saem_do_registrador;lhu_do_contador_devolve_o_valor_e_nao_zero;os_tres_timers_respondem_a_meia_palavra
+m2,mutante,morreu,morreu,1,lhu_do_alvo_e_do_modo_tambem_saem_do_registrador;lhu_do_contador_devolve_o_valor_e_nao_zero;os_tres_timers_respondem_a_meia_palavra
+m3,mutante,morreu,morreu,0.9,sh_no_alvo_grava_as_duas_metades;sh_no_contador_grava_as_duas_metades;sh_no_modo_zera_o_contador_como_manda_a_spec
+m4,mutante,morreu,morreu,1.1,sh_no_alvo_grava_as_duas_metades;sh_no_contador_grava_as_duas_metades
+m5,mutante,morreu,morreu,1.1,sh_no_alvo_grava_as_duas_metades;sh_no_contador_grava_as_duas_metades
+m6,mutante,morreu,morreu,1,lhu_do_alvo_e_do_modo_tambem_saem_do_registrador
+c1,controle,sobreviveu,sobreviveu,1,
+c2,controle,sobreviveu,sobreviveu,1,

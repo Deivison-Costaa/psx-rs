@@ -406,12 +406,23 @@ impl Cdrom {
             2 => {
                 self.busy.set(false);
                 self.result_clear();
-                self.result_push(0x08);
-                self.result_push(0x40);
-                for _ in 0..6 {
+                if self.disc_inserted.get() {
+                    self.result_push(self.stat_byte());
                     self.result_push(0x00);
+                    self.result_push(0x20);
+                    self.result_push(0x00);
+                    for letra in b"SCEA" {
+                        self.result_push(*letra);
+                    }
+                    self.intsts.set(2);
+                } else {
+                    self.result_push(0x08);
+                    self.result_push(0x40);
+                    for _ in 0..6 {
+                        self.result_push(0x00);
+                    }
+                    self.intsts.set(5);
                 }
-                self.intsts.set(5);
             }
             3 => {
                 self.busy.set(false);

@@ -1,0 +1,98 @@
+# Manifesto de mutação da iteração 0122 — getid-disco-licenciado
+formato: 1
+iteracao: 0122
+item: 4.4q
+alvo: crates/psx-core/src/cdrom.rs
+teste: cdrom_getid_disco
+
+mutante: m1
+rotulo: GetID ignora o disco e responde sempre a linha No Disk (o defeito original)
+@@DE
+                self.result_clear();
+                if self.disc_inserted.get() {
+@@PARA
+                self.result_clear();
+                if false {
+@@FIM
+
+mutante: m2
+rotulo: GetID com disco responde INT5 em vez de INT2
+@@DE
+                    for letra in b"SCEA" {
+                        self.result_push(*letra);
+                    }
+                    self.intsts.set(2);
+@@PARA
+                    for letra in b"SCEA" {
+                        self.result_push(*letra);
+                    }
+                    self.intsts.set(5);
+@@FIM
+
+mutante: m3
+rotulo: regiao devolvida e a europeia, que a BIOS NTSC-U recusa
+@@DE
+                    for letra in b"SCEA" {
+@@PARA
+                    for letra in b"SCEE" {
+@@FIM
+
+mutante: m4
+rotulo: byte de flags marca o disco como negado e ausente
+@@DE
+                    self.result_push(self.stat_byte());
+                    self.result_push(0x00);
+                    self.result_push(0x20);
+@@PARA
+                    self.result_push(self.stat_byte());
+                    self.result_push(0xC0);
+                    self.result_push(0x20);
+@@FIM
+
+mutante: m5
+rotulo: tipo do disco vai como Mode1/Audio em vez de Mode2
+@@DE
+                    self.result_push(0x20);
+                    self.result_push(0x00);
+                    for letra in b"SCEA" {
+@@PARA
+                    self.result_push(0x00);
+                    self.result_push(0x00);
+                    for letra in b"SCEA" {
+@@FIM
+
+mutante: m6
+rotulo: primeiro byte da segunda resposta nao e o stat
+@@DE
+                    self.result_push(self.stat_byte());
+                    self.result_push(0x00);
+                    self.result_push(0x20);
+                    self.result_push(0x00);
+@@PARA
+                    self.result_push(0x08);
+                    self.result_push(0x00);
+                    self.result_push(0x20);
+                    self.result_push(0x00);
+@@FIM
+
+controle: c1
+rotulo: regiao escrita byte a byte em vez de literal de bytes (equivalente)
+@@DE
+                    for letra in b"SCEA" {
+                        self.result_push(*letra);
+                    }
+@@PARA
+                    for letra in &[0x53u8, 0x43, 0x45, 0x41] {
+                        self.result_push(*letra);
+                    }
+@@FIM
+
+controle: c2
+rotulo: condicao do disco escrita com variavel local (cosmetico)
+@@DE
+                self.result_clear();
+                if self.disc_inserted.get() {
+@@PARA
+                self.result_clear();
+                if { let ha_disco = self.disc_inserted.get(); ha_disco } {
+@@FIM

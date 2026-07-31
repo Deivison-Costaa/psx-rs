@@ -32,7 +32,8 @@ M2 (GPU) e M3 (DMA/IRQ/timers). Regra imposta por `roadmap_arquivo.rs`.
 - [x] 4.4n Diagnostico: troca do `GetStat` correta porto a porto (iter 0119)
 - [x] 4.4o Referencia DuckStation: stat identico, falta o `GetID` (iter 0120)
 - [x] 4.4p Primeira resposta do CD-ROM saia em ZERO ciclo; vai pelo `scheduler` com o atraso da spec e o `GetID` aparece (iter 0121)
-- [ ] 4.4q `GetID` responde sempre a linha No Disk da spec (`INT5 08h,40h`), mesmo com disco: o shell repete GetStat/GetID para sempre
+- [x] 4.4q `GetID` respondia sempre a linha No Disk mesmo com disco; agora Licensed:Mode2 + SCEA e o laco acaba (iter 0122)
+- [ ] 4.4r `GetTOC` (1Eh) cai no braco default e nunca arma segunda resposta; 06-cdrom.md L2002 exige INT3(stat) + INT2(stat)
 
 ## M5 — GTE
 - [x] 5.1 Registradores + MFC2/MTC2/CFC2/CTC2/LWC2/SWC2 (iter 0084)
@@ -123,6 +124,7 @@ M2 (GPU) e M3 (DMA/IRQ/timers). Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 10.50 `GP0(C0h)` sem transferencia pendente devolve zero, e dreno alem da janela le zeros (visto na 0117)
 - [ ] 10.49 Bit 15 do `DICR` (bus error) e gravavel mas nada o levanta: transferencia fora da RAM e ignorada (visto na 0116)
 - [ ] 10.48 `sw` em `1F801044h..1F80104Fh` cai no sumidouro de `region_write32`: JOY_MODE/JOY_CTRL engolidos (visto na 0115)
+- [ ] 10.57 Regiao do `GetID` fixada em SCEA; o certo e ler o setor de licenca do `.bin` (0122)
 - [ ] 10.56 Result FIFO do comando anterior continua legivel na janela da primeira resposta (0121)
 - [ ] 10.55 Atraso da primeira resposta ignora o motor: spec da `Nop (when stopped) 0x5CF4` (0121)
 - [ ] 10.54 Segunda resposta ainda e dirigida pelo ack do guest, nao por tempo (06-cdrom.md L2066) (0121)

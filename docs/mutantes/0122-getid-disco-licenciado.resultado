@@ -1,0 +1,11 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: f2153a16050ffcd41e19e0494406236c84527715
+# rodado_em: 2026-07-31T02:40:03-03:00
+m1,mutante,morreu,morreu,0.9,flags_dizem_licenciado_presente_e_nao_audio;getid_com_disco_devolve_os_oito_bytes_da_spec;getid_com_disco_responde_int2_e_nao_int5;primeiro_byte_da_segunda_resposta_e_o_stat;regiao_e_scea_para_a_bios_ntsc_u;tipo_do_disco_e_mode2
+m2,mutante,morreu,morreu,0.8,getid_com_disco_responde_int2_e_nao_int5
+m3,mutante,morreu,morreu,0.8,getid_com_disco_devolve_os_oito_bytes_da_spec;regiao_e_scea_para_a_bios_ntsc_u
+m4,mutante,morreu,morreu,0.8,flags_dizem_licenciado_presente_e_nao_audio;getid_com_disco_devolve_os_oito_bytes_da_spec
+m5,mutante,morreu,morreu,0.9,getid_com_disco_devolve_os_oito_bytes_da_spec;tipo_do_disco_e_mode2
+m6,mutante,morreu,morreu,0.8,getid_com_disco_devolve_os_oito_bytes_da_spec;primeiro_byte_da_segunda_resposta_e_o_stat
+c1,controle,sobreviveu,sobreviveu,0.8,
+c2,controle,sobreviveu,sobreviveu,0.8,

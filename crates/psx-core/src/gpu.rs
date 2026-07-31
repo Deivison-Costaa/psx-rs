@@ -443,7 +443,7 @@ impl Gpu {
     }
 
     pub fn framebuffer_for_display(&self) -> Option<Framebuffer> {
-        if self.stat.get() & (1 << 23) == 0 {
+        if self.stat.get() & (1 << 23) != 0 {
             return None;
         }
         Some(self.framebuffer())

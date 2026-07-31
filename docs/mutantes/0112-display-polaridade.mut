@@ -1,0 +1,64 @@
+# Manifesto de mutação da iteração 0112 — display-polaridade
+# Complementa a bateria 0053 (reancorada), que ja cobre a guarda do
+# framebuffer_for_display; esta cobre o handler de GP1(03h).
+formato: 1
+iteracao: 0112
+item: 2.10
+alvo: crates/psx-core/src/gpu.rs
+teste: gpu_display_polaridade
+
+mutante: m1
+rotulo: handler compara com 1 — sentido do parametro invertido por outro caminho
+@@DE
+                if bit == 0 {
+@@PARA
+                if bit == 1 {
+@@FIM
+
+mutante: m2
+rotulo: handler invertido — GP1(03h)=0 desliga em vez de ligar
+@@DE
+                if bit == 0 {
+@@PARA
+                if bit != 0 {
+@@FIM
+
+mutante: m3
+rotulo: ligar o display vira no-op (bit 23 nunca limpa)
+@@DE
+                    self.stat.set(s & !(1 << 23));
+@@PARA
+                    self.stat.set(s);
+@@FIM
+
+mutante: m4
+rotulo: desligar o display vira no-op (bit 23 nunca seta)
+@@DE
+                    self.stat.set(s | (1 << 23));
+@@PARA
+                    self.stat.set(s);
+@@FIM
+
+mutante: m5
+rotulo: desligar seta o bit errado (22 em vez de 23)
+@@DE
+                    self.stat.set(s | (1 << 23));
+@@PARA
+                    self.stat.set(s | (1 << 22));
+@@FIM
+
+controle: c1
+rotulo: comparacao espelhada (cosmetico)
+@@DE
+                if bit == 0 {
+@@PARA
+                if 0 == bit {
+@@FIM
+
+controle: c2
+rotulo: mascara de limpeza reescrita com xor de tudo-1 (cosmetico)
+@@DE
+                    self.stat.set(s & !(1 << 23));
+@@PARA
+                    self.stat.set(s & (u32::MAX ^ (1 << 23)));
+@@FIM

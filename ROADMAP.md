@@ -27,7 +27,8 @@ M3 (DMA/IRQ/timers). Regra imposta por `roadmap_arquivo.rs`.
 - [x] 2.7b Timing NTSC/PAL, vblank IRQ (dividido da 2.7 por R4 — display regs ja implementado) (iter 0051)
 - [x] 2.8 psx-desktop eframe/egui (iter 0052/0053)
 - [x] 2.9 Suíte GPU do ps1-tests no scoreboard (iter 0054)
-- [ ] 2.10 `framebuffer_for_display` le GPUSTAT.23 invertido — `docs/reference/03-gpu.md` § GPU Status Register (L1001): bit23 0=Enabled; hoje devolve None com display LIGADO (testes d1/d2 da 0053 codificam a polaridade errada)
+- [x] 2.10 `framebuffer_for_display` le GPUSTAT.23 invertido — polaridade corrigida; d1/d2/d3 da 0053 e o teste da 0090 virados com citacao (iter 0112)
+- [ ] 2.11 Altura do display em 480i: `display_height` devolve y2-y1 cru — com GPUSTAT.19/22 ligados sao (y2-y1)*2 linhas (`docs/reference/03-gpu.md` § GP1(08h) - Display mode (L885)); o app mostraria so a metade de cima da cena de 480
 
 ## M4 — CDROM
 - [x] 4.1 Regs/FIFOs/IRQs + GetStat/GetID/Test (iter 0062)

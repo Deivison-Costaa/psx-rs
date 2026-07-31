@@ -1,0 +1,10 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: 8e5c585f54f6e58d81d620b6d823aed31e663cdc
+# rodado_em: 2026-07-30T21:05:49-03:00
+m1,mutante,morreu,morreu,5,gp1_03_param_um_desliga_o_display;gp1_03_param_zero_liga_o_display;religar_depois_de_desligar_volta_a_mostrar
+m2,mutante,morreu,morreu,0.8,gp1_03_param_um_desliga_o_display;gp1_03_param_zero_liga_o_display;religar_depois_de_desligar_volta_a_mostrar
+m3,mutante,morreu,morreu,0.8,gp1_03_param_zero_liga_o_display;religar_depois_de_desligar_volta_a_mostrar
+m4,mutante,morreu,morreu,0.8,gp1_03_param_um_desliga_o_display
+m5,mutante,morreu,morreu,0.7,gp1_03_param_um_desliga_o_display
+c1,controle,sobreviveu,sobreviveu,0.7,
+c2,controle,sobreviveu,sobreviveu,0.7,

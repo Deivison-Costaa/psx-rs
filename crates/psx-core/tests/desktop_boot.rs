@@ -1,4 +1,4 @@
-use psx_core::bus::{Bios, Bus, Ram};
+use psx_core::bus::{Bios, Bus, BusWrite, Ram};
 use psx_core::cpu::Cpu;
 
 #[test]
@@ -20,11 +20,17 @@ fn bios_vazia_mostra_display_ligado_padrao_gpu() {
         "CPU deve avancar PC apos 1M NOPs (BIOS vazia = so NOPs)"
     );
 
+    assert!(
+        bus.gpu().framebuffer_for_display().is_none(),
+        "sem GP1(03h)=0 o display segue DESLIGADO apos reset (GPUSTAT.23=1=Disabled; \
+         polaridade corrigida na iter 0112 — a versao anterior deste teste lia o bit invertido)"
+    );
+
+    bus.write32::<BusWrite>(0x1F80_1814, 0x0300_0000);
     let fb = bus
         .gpu()
         .framebuffer_for_display()
-        .expect("GPU padrao tem display ligado (bit 23 set)");
-
+        .expect("GP1(03h)=0 liga o display: framebuffer deve existir");
     assert!(
         fb.width > 0,
         "Framebuffer width deve ser > 0, obtido {}",

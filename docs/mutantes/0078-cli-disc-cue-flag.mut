@@ -12,6 +12,38 @@ rotulo: --disc nao eh parseado no laco de argumentos (regressao)
                 disc_arg = Some(args[i + 1].clone());
                 i += 2;
             }
+            "--max-steps" if i + 1 < args.len() => match args[i + 1].parse::<usize>() {
+                Ok(n) => {
+                    max_steps = Some(n);
+                    i += 2;
+                }
+                Err(e) => {
+                    eprintln!(
+                        "Erro: '--max-steps' espera um numero, '{}': {}",
+                        args[i + 1],
+                        e
+                    );
+                    std::process::exit(1);
+                }
+            },
+            "--trace-pcs" if i + 1 < args.len() => {
+                for piece in args[i + 1].split(',') {
+                    let piece = piece.trim();
+                    match u32::from_str_radix(piece.trim_start_matches("0x"), 16) {
+                        Ok(addr) => {
+                            trace_pcs.insert(addr);
+                        }
+                        Err(e) => {
+                            eprintln!(
+                                "Erro: '--trace-pcs' espera enderecos hex, '{}': {}",
+                                piece, e
+                            );
+                            std::process::exit(1);
+                        }
+                    }
+                }
+                i += 2;
+            }
             "--bios" | "--exe" | "--disc" => {
 @@PARA
             "--bios" | "--exe" | "--disc" => {
@@ -29,7 +61,7 @@ mutante: m3
 rotulo: nao executa o laco de boot (run substituido por return antecipado)
 ocorrencias: 2
 @@DE
-            let steps = run(&mut cpu, &mut bus, RUNNER_MAX_STEPS);
+            let steps = run(&mut cpu, &mut bus, max_steps, &trace_pcs);
 @@PARA
             return;
 @@FIM

@@ -18,7 +18,7 @@ mutante: m2
 rotulo: substitui run() por panic no laco de boot
 ocorrencias: 2
 @@DE
-            let steps = run(&mut cpu, &mut bus, RUNNER_MAX_STEPS);
+            let steps = run(&mut cpu, &mut bus, max_steps, &trace_pcs);
 @@PARA
             panic!("boot desabilitado");
 @@FIM

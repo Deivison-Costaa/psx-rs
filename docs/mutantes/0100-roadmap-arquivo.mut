@@ -14,19 +14,27 @@ rotulo: M6 fica 100% fechado e continua ocupando bytes da escada
 @@FIM
 
 mutante: m2
-rotulo: M2 fica 100% fechado e continua ocupando bytes da escada
+rotulo: M5 fica 100% fechado e continua ocupando bytes da escada
 @@DE
-- [ ] 2.11 Altura do display em 480i: `display_height` devolve y2-y1 cru — com GPUSTAT.19/22 ligados sao (y2-y1)*2 linhas (`docs/reference/03-gpu.md` § GP1(08h) - Display mode (L885)); o app mostraria so a metade de cima da cena de 480
+- [ ] 5.4b NCS/NCT/NCCS/NCCT
+- [ ] 5.4c NCDS/NCDT/CC/CDP
+- [ ] 5.4d DCPL/DPCS/DPCT/INTPL
+- [ ] 5.5 Flags de saturação/overflow completos
+- [ ] 5.6 Amidog psxtest_gte no scoreboard → jogo 3D jogável
 @@PARA
-- [x] 2.11 Altura do display em 480i: `display_height` devolve y2-y1 cru — com GPUSTAT.19/22 ligados sao (y2-y1)*2 linhas (`docs/reference/03-gpu.md` § GP1(08h) - Display mode (L885)); o app mostraria so a metade de cima da cena de 480
+- [x] 5.4b NCS/NCT/NCCS/NCCT
+- [x] 5.4c NCDS/NCDT/CC/CDP
+- [x] 5.4d DCPL/DPCS/DPCT/INTPL
+- [x] 5.5 Flags de saturação/overflow completos
+- [x] 5.6 Amidog psxtest_gte no scoreboard → jogo 3D jogável
 @@FIM
 
 mutante: m3
 rotulo: ponteiro para o arquivo de historico some do ROADMAP
 @@DE
-Marco que fecha 100% sai daqui para `docs/ROADMAP-fechado.md` — hoje M0 (infra), M1 (CPU) e
+Marco que fecha 100% sai daqui para `docs/ROADMAP-fechado.md` — hoje M0 (infra), M1 (CPU),
 @@PARA
-Marco que fecha 100% sai daqui para outro lugar — hoje M0 (infra), M1 (CPU) e
+Marco que fecha 100% sai daqui para outro lugar — hoje M0 (infra), M1 (CPU),
 @@FIM
 
 mutante: m4
@@ -56,7 +64,7 @@ rotulo: rotulo de item aberto reescrito sem mudar id nem estado (cosmetico)
 controle: c2
 rotulo: segunda linha do ponteiro reescrita sem tirar o caminho (cosmetico)
 @@DE
-M3 (DMA/IRQ/timers). Regra imposta por `roadmap_arquivo.rs`.
+M2 (GPU) e M3 (DMA/IRQ/timers). Regra imposta por `roadmap_arquivo.rs`.
 @@PARA
-M3 (DMA, IRQ e timers). Regra imposta por `roadmap_arquivo.rs`.
+M2 (GPU) e M3 (DMA, IRQ e timers). Regra imposta por `roadmap_arquivo.rs`.
 @@FIM

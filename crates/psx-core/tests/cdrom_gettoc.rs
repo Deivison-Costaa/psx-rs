@@ -99,6 +99,12 @@ fn segunda_resposta_do_gettoc_devolve_o_stat() {
         0x02,
         "spec § Second Responses: INT2(stat) — a segunda resposta do ReadTOC e so o stat"
     );
+    assert_eq!(
+        cd_read(&bus, 0) & (1 << 5),
+        0,
+        "RSLRRDY baixo: INT2(stat) tem UM byte. O GetID tambem responde INT2 com o mesmo 02h no \
+         primeiro byte, mas com oito bytes — sem olhar o tamanho, os dois sao indistinguiveis"
+    );
 }
 
 #[test]

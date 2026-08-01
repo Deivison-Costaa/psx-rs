@@ -517,7 +517,8 @@ fn read_sector_from_disc(
 ) -> Option<[u8; 2048]> {
     let abs_sector =
         bcd_to_int(min_bcd) * 60 * 75 + bcd_to_int(sec_bcd) * 75 + bcd_to_int(sect_bcd);
-    let offset = abs_sector as usize * 2352;
+    let file_sector = abs_sector.checked_sub(150)?;
+    let offset = file_sector as usize * 2352;
     if offset + 0x10 > bin.len() {
         return None;
     }

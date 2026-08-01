@@ -123,7 +123,7 @@ fn le_quatro_bytes_do_frame(bin: Vec<u8>, ss: u8, ff: u8) -> [u8; 4] {
 
 #[test]
 fn setor_mode2_form1_le_os_dados_a_partir_de_0x18() {
-    let bin = bin_com(&[(150, 0x02, [0xDE, 0xAD, 0xBE, 0xEF])]);
+    let bin = bin_com(&[(0, 0x02, [0xDE, 0xAD, 0xBE, 0xEF])]);
 
     assert_eq!(
         le_quatro_bytes_do_frame(bin, 0x02, 0x00),
@@ -135,7 +135,7 @@ fn setor_mode2_form1_le_os_dados_a_partir_de_0x18() {
 
 #[test]
 fn subheader_do_mode2_nao_entra_nos_dados() {
-    let bin = bin_com(&[(150, 0x02, [0x11, 0x22, 0x33, 0x44])]);
+    let bin = bin_com(&[(0, 0x02, [0x11, 0x22, 0x33, 0x44])]);
     let lidos = le_quatro_bytes_do_frame(bin, 0x02, 0x00);
 
     assert_ne!(
@@ -147,7 +147,7 @@ fn subheader_do_mode2_nao_entra_nos_dados() {
 
 #[test]
 fn setor_mode1_continua_lendo_a_partir_de_0x10() {
-    let bin = bin_com(&[(150, 0x01, [0xCA, 0xFE, 0xBA, 0xBE])]);
+    let bin = bin_com(&[(0, 0x01, [0xCA, 0xFE, 0xBA, 0xBE])]);
 
     assert_eq!(
         le_quatro_bytes_do_frame(bin, 0x02, 0x00),
@@ -158,7 +158,7 @@ fn setor_mode1_continua_lendo_a_partir_de_0x10() {
 
 #[test]
 fn setor_com_modo_zero_usa_o_offset_do_mode1() {
-    let bin = bin_com(&[(150, 0x00, [0x01, 0x02, 0x03, 0x04])]);
+    let bin = bin_com(&[(0, 0x00, [0x01, 0x02, 0x03, 0x04])]);
 
     assert_eq!(
         le_quatro_bytes_do_frame(bin, 0x02, 0x00),
@@ -171,26 +171,26 @@ fn setor_com_modo_zero_usa_o_offset_do_mode1() {
 #[test]
 fn o_modo_e_lido_de_cada_setor_e_nao_do_disco() {
     let bin = bin_com(&[
-        (150, 0x01, [0x1A, 0x1B, 0x1C, 0x1D]),
-        (151, 0x02, [0x2A, 0x2B, 0x2C, 0x2D]),
+        (0, 0x01, [0x1A, 0x1B, 0x1C, 0x1D]),
+        (1, 0x02, [0x2A, 0x2B, 0x2C, 0x2D]),
     ]);
 
     assert_eq!(
         le_quatro_bytes_do_frame(bin.clone(), 0x02, 0x00),
         [0x1A, 0x1B, 0x1C, 0x1D],
-        "frame 150 e Mode1"
+        "frame 0 do arquivo e Mode1"
     );
     assert_eq!(
         le_quatro_bytes_do_frame(bin, 0x02, 0x01),
         [0x2A, 0x2B, 0x2C, 0x2D],
-        "frame 151 e Mode2/Form1 no MESMO disco — o offset sai do byte 00Fh de cada setor"
+        "frame 1 do arquivo e Mode2/Form1 no MESMO disco — o offset sai do byte 00Fh de cada setor"
     );
 }
 
 #[test]
 fn setor_com_cabecalho_truncado_no_fim_do_bin_nao_estoura() {
-    let mut bin = bin_com(&[(150, 0x02, [0xDE, 0xAD, 0xBE, 0xEF])]);
-    bin.truncate(150 * 2352 + 5);
+    let mut bin = bin_com(&[(0, 0x02, [0xDE, 0xAD, 0xBE, 0xEF])]);
+    bin.truncate(5);
 
     let lidos = le_quatro_bytes_do_frame(bin, 0x02, 0x00);
 
@@ -204,7 +204,7 @@ fn setor_com_cabecalho_truncado_no_fim_do_bin_nao_estoura() {
 
 #[test]
 fn setor_alem_do_fim_do_bin_nao_estoura() {
-    let bin = bin_com(&[(150, 0x02, [0xDE, 0xAD, 0xBE, 0xEF])]);
+    let bin = bin_com(&[(0, 0x02, [0xDE, 0xAD, 0xBE, 0xEF])]);
     let mut bus = bus();
     bus.inject_disc(layout(), bin);
     bus.cdrom_mut().insert_disc();

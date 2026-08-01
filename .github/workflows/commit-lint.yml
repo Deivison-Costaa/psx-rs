@@ -22,7 +22,7 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           set -e
-          echo "$PR_TITLE" | grep -Eq '^iter [0-9]{4}[a-z]?: .+ \(ROADMAP [0-9]+\.[0-9]+[a-z]?\)$' \
+          echo "$PR_TITLE" | grep -Eq '^iter [0-9]{4}[a-z]?: .+ \(ROADMAP [0-9]+\.[0-9]+[a-z]{0,2}\)$' \
             || { echo "::error::Título de PR inválido: '$PR_TITLE'. Formato: iter NNNN: resumo (ROADMAP X.Y)"; exit 1; }
           bad=0
           while IFS= read -r subj; do

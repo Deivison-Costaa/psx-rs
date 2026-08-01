@@ -4,6 +4,7 @@ iteracao: 0077
 item: 4.3b
 alvo: crates/psx-core/src/cdrom.rs
 teste: cdrom_read
+arquivada: registros m4/c1 ancoravam a linha do offset (abs_sector * 2352) que a 0132 substituiu pela subtracao do pregap; placar historico preservado no .resultado
 
 mutante: m1
 rotulo: troca minuto com segundo no calculo do setor absoluto

@@ -1,0 +1,67 @@
+# Manifesto de mutação da iteração 0144 — kernel-funcao-2db8
+formato: 1
+iteracao: 0144
+item: 4.5
+alvo: crates/psx-cli/src/main.rs
+teste: kernel_funcao_2db8
+
+mutante: m1
+rotulo: remove ra($31) do format string do eprintln (registro cego)
+@@DE
+                 v0($2)=0x{:08X} t4($12)=0x{:08X} t5($13)=0x{:08X} ra($31)=0x{:08X}",
+@@PARA
+                 v0($2)=0x{:08X} t4($12)=0x{:08X} t5($13)=0x{:08X}",
+@@FIM
+
+mutante: m2
+rotulo: troca cpu.regs[31] por cpu.regs[30] (registrador errado)
+@@DE
+                cpu.regs[31],
+@@PARA
+                cpu.regs[30],
+@@FIM
+
+mutante: m3
+rotulo: label do registrador errada — ra($31) vira ra($0) na string do trace
+@@DE
+                 v0($2)=0x{:08X} t4($12)=0x{:08X} t5($13)=0x{:08X} ra($31)=0x{:08X}",
+@@PARA
+                 v0($2)=0x{:08X} t4($12)=0x{:08X} t5($13)=0x{:08X} ra($0)=0x{:08X}",
+@@FIM
+
+mutante: m4
+rotulo: formato decimal em vez de hex — ra($31)={}
+@@DE
+                 v0($2)=0x{:08X} t4($12)=0x{:08X} t5($13)=0x{:08X} ra($31)=0x{:08X}",
+@@PARA
+                 v0($2)=0x{:08X} t4($12)=0x{:08X} t5($13)=0x{:08X} ra($31)={}",
+@@FIM
+
+mutante: m5
+rotulo: inverte a ordem de cpu.regs[13] e cpu.regs[31] nos argumentos
+@@DE
+                cpu.regs[13],
+                cpu.regs[31],
+@@PARA
+                cpu.regs[31],
+                cpu.regs[13],
+@@FIM
+
+controle: K1
+rotulo: K1 — adiciona comentario inofensivo antes do eprintln do trace
+@@DE
+            eprintln!(
+                "trace pc=0x{:08X} step={} instr=0x{:08X} \
+@@PARA
+            // trace diagnostic output
+            eprintln!(
+                "trace pc=0x{:08X} step={} instr=0x{:08X} \
+@@FIM
+
+controle: K2
+rotulo: K2 — renomeia localmente uma variavel nao usada (_rs -> _rss)
+@@DE
+            let _rs = ((instr >> 21) & 0x1F) as usize;
+@@PARA
+            let _rss = ((instr >> 21) & 0x1F) as usize;
+@@FIM

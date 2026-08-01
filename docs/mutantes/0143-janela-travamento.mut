@@ -1,0 +1,62 @@
+# Manifesto de mutação da iteração 0143 — janela-travamento
+formato: 1
+iteracao: 0143
+item: 10.62
+alvo: scripts/oc-iter.ps1
+teste: ci_oc_iter
+
+mutante: m1
+rotulo: janela volta ao valor obsoleto que matou as duas rodadas da 0140
+@@DE
+    [int]$TravamentoMin = 25,
+@@PARA
+    [int]$TravamentoMin = 5,
+@@FIM
+
+mutante: m2
+rotulo: janela um minuto abaixo do portao, morre na cauda do cargo test
+@@DE
+    [int]$TravamentoMin = 25,
+@@PARA
+    [int]$TravamentoMin = 14,
+@@FIM
+
+mutante: m3
+rotulo: parede encolhe abaixo da janela e o detector nunca dispara antes dela
+@@DE
+    [int]$TimeoutMin = 75,
+@@PARA
+    [int]$TimeoutMin = 20,
+@@FIM
+
+mutante: m4
+rotulo: parede igual a janela, mesma degeneracao por outro lado
+@@DE
+    [int]$TimeoutMin = 75,
+@@PARA
+    [int]$TimeoutMin = 25,
+@@FIM
+
+mutante: m5
+rotulo: parede zerada, a rodada morre antes de comecar
+@@DE
+    [int]$TimeoutMin = 75,
+@@PARA
+    [int]$TimeoutMin = 0,
+@@FIM
+
+controle: c1
+rotulo: porta do daemon muda de 4096 para 4097, nenhum teste afirma o numero
+@@DE
+    [int]$Port = 4096,
+@@PARA
+    [int]$Port = 4097,
+@@FIM
+
+controle: c2
+rotulo: intervalo de sondagem do laco de 10 para 11 segundos (cosmetico)
+@@DE
+    Start-Sleep -Seconds 10
+@@PARA
+    Start-Sleep -Seconds 11
+@@FIM

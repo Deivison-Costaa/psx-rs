@@ -19,8 +19,13 @@ param(
     # cobrir a cauda lenta.
     [int]$TimeoutMin = 75,
     # Janela sem NENHUM byte novo no JSON da rodada que caracteriza provedor mudo. Ver o doc
-    # da iteracao 0098 para as duas medicoes que fixaram este valor.
-    [int]$TravamentoMin = 5,
+    # da iteracao 0098 para as duas medicoes que fixaram o valor original (5 min).
+    # Subiu para 25 na 0143: o PORTAO do passo 7 (`cargo test --all`) passou a levar 842 s
+    # depois que a BIOS e o disco chegaram (0139) e os testes de emulacao deixaram de pular.
+    # Durante o portao o trabalhador nao emite evento — o JSON para de crescer — e 5 min lia
+    # esse silencio legitimo como provedor mudo: as DUAS rodadas da 0140 morreram assim.
+    # O piso esta travado por ci_oc_iter.rs (MINUTOS_DO_PORTAO); se o portao encolher, o piso cai.
+    [int]$TravamentoMin = 25,
     [int]$Port = 4096,
     # Rodada de CONTINUACAO de um item reprovado na revisao: fica na branch que ja existe e
     # troca o texto envoltorio, que senao manda "ao abrir o PR, PARE" — com o PR ja aberto,

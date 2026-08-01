@@ -172,7 +172,7 @@ fn read_n_continua_apos_primeiro_acknowledge() {
 }
 
 #[test]
-fn read_s_para_apos_primeiro_acknowledge() {
+fn read_s_continua_apos_primeiro_acknowledge() {
     let mut bus = bus();
     insert_stub_disc(&mut bus);
     param_write(&mut bus, bcd_minute(0x02));
@@ -192,7 +192,13 @@ fn read_s_para_apos_primeiro_acknowledge() {
     bus.tick_timers(0x6000);
 
     let hintsts3 = hintsts_read_bank1(&mut bus);
-    assert_eq!(hintsts3 & 0x7, 0, "INT0 — ReadS para apos primeiro setor");
+    assert_eq!(
+        hintsts3 & 0x7,
+        1,
+        "INT1 — ReadS le sequencialmente igual ao ReadN (06-cdrom.md L925-926); a \
+         versao anterior deste teste consagrava o espelho da implementacao (parar \
+         apos 1 setor), nao a spec"
+    );
 }
 
 #[test]

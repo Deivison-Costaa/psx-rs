@@ -8,9 +8,9 @@ teste: deliverevent_diagnostico
 mutante: m1
 rotulo: etiqueta a1($5) trocada para x1($5) — teste nao encontra a1
 @@DE
-                 regs: a0($4)=0x{:08X} a1($5)=0x{:08X} t1($9)=0x{:08X} s1($17)=0x{:08X} v0($2)=0x{:08X} t4($12)=0x{:08X} t5($13)=0x{:08X}",
+                 regs: a0($4)=0x{:08X} a1($5)=0x{:08X} t1($9)=0x{:08X} s1($17)=0x{:08X} \
 @@PARA
-                 regs: a0($4)=0x{:08X} x1($5)=0x{:08X} t1($9)=0x{:08X} s1($17)=0x{:08X} v0($2)=0x{:08X} t4($12)=0x{:08X} t5($13)=0x{:08X}",
+                 regs: a0($4)=0x{:08X} x1($5)=0x{:08X} t1($9)=0x{:08X} s1($17)=0x{:08X} \
 @@FIM
 
 mutante: m2

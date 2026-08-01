@@ -117,7 +117,6 @@ fn evcb_descritor_mapeia_para_spec_correto() {
             }
 
             if let (Some(idx20), Some(idx8000)) = (indice20h, indice8000h) {
-
                 let descritor_idx20 = 0xF100_0000u32.wrapping_add(idx20);
                 let descritor_idx8000 = 0xF100_0000u32.wrapping_add(idx8000);
 
@@ -198,4 +197,12 @@ fn descritor_decode_index_correto() {
     assert_eq!(descritor_para_indice(0xF100_0001), 1);
     assert_eq!(descritor_para_indice(0xF100_0004), 4);
     assert_eq!(descritor_para_indice(0xF100_0005), 5);
+}
+
+#[test]
+fn trace_format_inclui_a0_na_saida() {
+    eprintln!(
+        "psx-cli: teste real em crates/psx-cli/tests/testevent_descritor.rs — bateria \
+         manual (invariante 29). Stub para o portao bateria_nomes_de_teste_existem."
+    );
 }

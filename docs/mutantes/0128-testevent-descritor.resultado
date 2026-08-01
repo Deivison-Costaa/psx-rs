@@ -1,0 +1,10 @@
+# gerado por bateria MANUAL executada pelo orquestrador na revisao — mutantes.ps1 NAO se aplica: so roda `cargo test -p psx-core` e o teste real vive em crates/psx-cli (invariante 29)
+# commit: 2ec4b0f211f59ba24587d390576ca41679f3693c
+# rodado_em: 2026-07-31T21:35:00-03:00
+m1,mutante,morreu,morreu,0.2,trace_format_inclui_a0_na_saida
+m2,mutante,morreu,morreu,0.5,trace_format_inclui_a0_na_saida
+m3,mutante,morreu,morreu,0.5,trace_format_inclui_a0_na_saida
+m4,mutante,morreu,morreu,0.5,trace_format_inclui_a0_na_saida
+m5,mutante,morreu,morreu,0.5,trace_format_inclui_a0_na_saida
+c1,controle,sobreviveu,sobreviveu,0.5,
+c2,controle,sobreviveu,sobreviveu,0.5,

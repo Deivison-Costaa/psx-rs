@@ -61,7 +61,13 @@ fn trace_format_inclui_a0_na_saida() {
     let _ = fs::create_dir_all(bins_dir());
 
     let code_addr: u32 = 0x8000_0000;
-    let code = [j(0x02, code_addr), nop()];
+    let loop_addr: u32 = 0x8000_0008;
+    let code = [
+        0x3404_002A, // ori $a0, $zero, 0x2A
+        0x3402_0099, // ori $v0, $zero, 0x99
+        j(0x02, loop_addr),
+        nop(),
+    ];
     let exe_data = build_ps_exe(&code, code_addr, code_addr);
 
     let exe_path = bins_dir().join("trace_a0.psexe");
@@ -75,9 +81,9 @@ fn trace_format_inclui_a0_na_saida() {
         .arg("--exe")
         .arg(&exe_path)
         .arg("--trace-pcs")
-        .arg(format!("0x{:08X}", code_addr))
+        .arg(format!("0x{:08X}", loop_addr))
         .arg("--max-steps")
-        .arg("3")
+        .arg("8")
         .output()
         .expect("executar psx-cli com trace");
 
@@ -90,8 +96,15 @@ fn trace_format_inclui_a0_na_saida() {
     );
 
     assert!(
-        stderr.contains("a0($4)"),
-        "stderr do trace deve conter 'a0($4)'; mas conteudo foi:\n{}",
+        stderr.contains("a0($4)=0x0000002A"),
+        "o trace deve reportar o VALOR de $a0 (ori $a0,$zero,0x2A) sob o rotulo a0($4) — \
+         rotulo presente com valor errado significa registrador trocado; stderr:\n{}",
+        stderr
+    );
+    assert!(
+        stderr.contains("v0($2)=0x00000099"),
+        "o trace deve reportar o VALOR de $v0 (ori $v0,$zero,0x99) sob o rotulo v0($2); \
+         stderr:\n{}",
         stderr
     );
 

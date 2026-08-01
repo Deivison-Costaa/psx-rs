@@ -65,10 +65,10 @@ fn run(cpu: &mut Cpu, bus: &mut Bus, max_steps: usize, trace_pcs: &HashSet<u32>)
 @@FIM
 
 controle: c2
-rotulo: renomeia cpu para processor na assinatura mas nao no corpo (nao compila)
+rotulo: comentario cosmetico na declaracao do contador de passos
 @@DE
-fn run(cpu: &mut Cpu, bus: &mut Bus, max_steps: usize, trace_pcs: &HashSet<u32>) -> usize {
+    let mut steps = 0;
 @@PARA
-fn run(cpu: &mut Cpu, bus: &mut Bus, max_steps: usize, trace_pcs: &HashSet<u32>) -> usize {
-    let _phantom = steps;
+    // contador de passos executados
+    let mut steps = 0;
 @@FIM

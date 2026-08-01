@@ -4,7 +4,6 @@ iteracao: 0100
 item: 10.39
 alvo: ROADMAP.md
 teste: roadmap_arquivo
-arquivada: ROADMAP.md mudou estruturalmente na iteracao 0140: o ponteiro e a linha 10.39 foram movidos; o resultado historico permanece preservado.
 
 mutante: m1
 rotulo: M6 fica 100% fechado e continua ocupando bytes da escada
@@ -33,9 +32,9 @@ rotulo: M5 fica 100% fechado e continua ocupando bytes da escada
 mutante: m3
 rotulo: ponteiro para o arquivo de historico some do ROADMAP
 @@DE
-Marco que fecha 100% sai daqui para `docs/ROADMAP-fechado.md` — hoje M0 (infra), M1 (CPU),
+Itens fechados saem daqui para `docs/ROADMAP-fechado.md`; a escada mantém só o que FALTA.
 @@PARA
-Marco que fecha 100% sai daqui para outro lugar — hoje M0 (infra), M1 (CPU),
+Itens fechados saem daqui para outro lugar; a escada mantém só o que FALTA.
 @@FIM
 
 mutante: m4
@@ -65,7 +64,7 @@ rotulo: rotulo de item aberto reescrito sem mudar id nem estado (cosmetico)
 controle: c2
 rotulo: segunda linha do ponteiro reescrita sem tirar o caminho (cosmetico)
 @@DE
-M2 (GPU) e M3 (DMA/IRQ/timers). Regra imposta por `roadmap_arquivo.rs`.
+Regra imposta por `roadmap_arquivo.rs`.
 @@PARA
-M2 (GPU) e M3 (DMA, IRQ e timers). Regra imposta por `roadmap_arquivo.rs`.
+Regra imposta pelo meta-teste `roadmap_arquivo.rs`.
 @@FIM

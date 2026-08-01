@@ -85,6 +85,7 @@ Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 10.58 mutantes.ps1 so roda psx-core; alvo por crate e revalidar 0078/0079 (invariante 29) (0125)
 - [ ] 10.62 `$TravamentoMin = 5` mata rodada rodando `cargo test --all` (842 s com BIOS/disco); reparar ancora do 0098 junto (0140)
 - [ ] 10.63 Envoltorio do `-ContinueBranch` afirma "reprovado na revisao" mesmo apos morte por travamento; trabalhador grava isso no doc (0140)
+- [ ] 10.65 Revisor via opencode isolado em /tmp nao le o repo e nao verifica citacao; precisa de acesso r/o (0141)
 - [ ] 10.64 `evcb_descritor_mapeia_para_spec_correto` sozinho custa 447 s dos 449 s da suite sob nextest (0140)
 
 ## M11 — Apresentação (incremental desde o M1)

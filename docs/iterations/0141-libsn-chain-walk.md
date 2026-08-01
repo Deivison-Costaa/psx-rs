@@ -103,7 +103,30 @@ Workspace: **870** → **870** testes. Nenhum código de produção mudou, por d
 
 ## Revisão cruzada (orquestrador)
 
-<!-- Preenchido na revisão do PR. -->
+**Tentativa de revisão cruzada falhou, e a causa é do ferramental.** Como o diff é do próprio
+orquestrador, mandei o `opencode-go/gpt-5.6-luna` revisar (foi o que funcionou na 0139). Rodei do
+scratchpad para que ele não pudesse escrever no repositório — e isso bloqueou a **leitura**: ele
+tentou abrir `docs/reference/13-kernel-bios.md` para conferir as citações de spec e foi barrado por
+permissão de diretório externo. Revisor sem acesso de leitura ao repo não consegue verificar
+afirmação nenhuma; o isolamento anulou a revisão. Fica como dívida.
+
+**Auto-ataque por medição, no lugar.** A objeção mais forte contra a conclusão desta iteração é:
+*"as chamadas 9-10 não se repetem como 11-12; o gancho `pc & 0x1FFFFFFF == 0xC0` é que dispara duas
+vezes por chamada"*. Se fosse verdade, a conclusão cairia — e ainda explicaria o item 10.43 sem
+boot duplo nenhum. Testei com segunda sonda, carimbando cada disparo com `bus.total_cycles()`:
+
+```
+chamadas  9-10 → ciclo 342.532.701 / 342.532.755
+chamadas 11-12 → ciclo 354.273.747 / 354.273.801
+```
+
+**11.741.046 ciclos de distância** (~25 frames). Os 14 disparos têm 14 carimbos distintos, nenhum
+par com ciclo idêntico. Não é gancho disparando duas vezes: é re-execução real. A objeção está
+refutada e a conclusão sai mais forte.
+
+A mesma sonda mostrou que os pares do BIOS se repetem ao longo de toda a execução — `DEQ D0/E0` em
+14,06 M e de novo em 53,34 M; `ENQ D0/E0` em 342,53 M e de novo em 354,27 M — o que é consistente
+com várias reinicializações de kernel, não com uma só.
 
 ## Decisões e notas
 

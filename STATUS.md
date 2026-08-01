@@ -7,29 +7,25 @@
 
 ## Última iteração concluída
 
-**0128** — Diagnostico: o shell testa os descritores **F1000001** (EvCB[1], spec=20h "command
-completed") e **F1000004** (EvCB[4], spec=8000h "error happened") em alternancia nos ultimos
-polls de `TestEvent(0x00001EC8)`. `$a0` medido: 0xF1000001 (3241x) e 0xF1000004 (3236x),
-total 7627 chamadas. Spec=20h nunca e entregue — `DeliverEvent(F0000003h, 20h)` nao ocorre.
-O trace do `psx-cli` agora inclui `a0($4)`.
+**0129** — A premissa da 0128 caiu por medicao direta: `DeliverEvent(F0000003h, 20h)`
+**OCORRE** (10x, steps 87,0M-89,6M; B-table[07h]=0x00001B44). O shell sai do loop de
+TestEvent (ultimo poll 89 906 602), le ~86 setores (INT1, Pause pendente) e desenha
+(SetGraphDebug + hankaku no TTY, que cresce 473→725 bytes). Depois: steps ~92M-200M sem
+NENHUM comando novo ao drive, so VBlank/IRQ0. Invariante 32 criada.
 
 ## Próxima tarefa
 
-**ROADMAP 4.4x — Por que `DeliverEvent(F0000003h, 20h)` nunca ocorre?** O shell espera o
-evento spec=20h (command completed) no descritor F1000001. A segunda resposta do CD-ROM
-(INT2, apos um comando como `GetID` ou `ReadN`) deve disparar o handler da BIOS que chama
-`DeliverEvent(F0000003h, 20h)` — mas isso nao acontece. **Duas hipoteses ABERTAS, decidir
-por medicao:** (a) nosso CD-ROM nao gera a INT2 do ultimo comando emitido — as dividas
-10.53/10.54 do ROADMAP (comando executa com INT pendente; 2a resposta dirigida por ack, nao
-por tempo) sao exatamente sobre isso; (b) a INT2 chega mas o handler da BIOS nao invoca
-`DeliverEvent(F0000003h, 20h)`. Discriminador: a partir de ~88 M, rastrear cada INT do
-CD-ROM entregue (tipo + comando pendente) e cada chamada de `DeliverEvent` (class+spec em
-`$a0`/`$a1`, endereco via B-table[07h]) ate o ultimo TestEvent (89 906 602). Nomear o
-ultimo comando enviado ao drive e o que aconteceu com a resposta dele.
-(`docs/reference/13-kernel-bios.md` § B(07h) - DeliverEvent (L1642), § BIOS Event Summary
-(L1735)). Armadilhas: (a) ordem de IRQ do `Cpu::step` CORRETA — nao mexer (invariante 31);
-(b) medida negativa exige janela alem de 90 M e deteccao continua (invariantes 30/31).
-Invariantes relevantes: 27, 30, 31.
+**ROADMAP 4.4y — O shell desenhou O QUÊ, e o que ele espera?** Medido na 0129: apos consumir
+os eventos do CD o shell inicializa graficos e entra em loop de VBlank sem pedir mais nada ao
+drive (ate step 200 M). Descobrir se a tela desenhada ja e o logo/menu e o que destrava a
+continuacao. Passos: (1) capturar a VRAM em ~120 M steps (harness tipo o `vramshot` da 0110,
+NAO commitar; conferir LastWriteTime do exe antes de confiar nele) e comparar com
+`psx-estado/referencias/tela-de-boot-duckstation.png`; (2) se a tela estiver certa, o
+suspeito vira entrada (joypad) ou tempo — medir o que o shell le no loop de VBlank (trace de
+PCs do loop, nao checkpoint). Armadilhas: (a) ordem de IRQ do `Cpu::step` CORRETA — nao
+mexer (invariante 31); (b) o pipeline de eventos do CD esta eliminado — nao reabrir
+(invariante 32); (c) medida negativa exige janela alem do horizonte (invariante 30).
+Invariantes relevantes: 30, 31, 32.
 
 **Meta em vigor (ordem do usuario, 31/07):** emendar as iteracoes ate o M4 fechar, sem parar entre
 PRs. Pronto = **menu navegavel no `psx-desktop`**. Parada: 5 iteracoes fechadas sem o jogo bootar,
@@ -55,11 +51,11 @@ de gouraud no losango (candidato 10.14).
 
 ## Placar de testes
 
-Workspace: **838** testes.
+Workspace: **840** testes.
 
 ## Bloqueios
 
-- **4.4 Boot de jogo**: sem bloqueio conhecido; o boot passa do handshake do controle, do logo
-  SONY e agora pede o `GetID`, mas recebe "sem disco" e repete para sempre (4.4q). Imagens de disco
+- **4.4 Boot de jogo**: sem bloqueio conhecido; com disco montado o shell consome os eventos
+  do CD, lê ~86 setores e desenha (0129) — fronteira atual é o 4.4y. Imagens de disco
   ficam fora do repositório, em `.../Programacao com agentes/roms/extraido/`.
   **Nunca commitar imagem de disco.**

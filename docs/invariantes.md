@@ -233,3 +233,12 @@ Regra imposta por `status_handoff.rs`.
     Corolario: qualquer correcao que inverta a ordem (IRQ antes da instrucao) deve ser
     validada contra o boot completo com disco — o shell precisa consumir os eventos e
     avancar para a leitura do `SYSTEM.CNF`.
+
+32. **O pipeline de eventos do CD-ROM esta ELIMINADO como gargalo do boot (medido na 0129).**
+    Com disco montado: o drive gera INT3/INT2/INT1, o handler da BIOS entrega
+    `DeliverEvent(F0000003h, 20h)` (10x, steps 87,0M-89,6M; B-table[07h]=0x00001B44), o
+    shell sai do loop de TestEvent (ultimo poll no step 89 906 602), le ~86 setores (INT1
+    com Pause pendente) e inicializa graficos (SetGraphDebug + hankaku no TTY). Qualquer
+    hipotese futura de "evento do CD nao chega ao shell" deve ser considerada refutada;
+    a fronteira do boot esta DEPOIS disso: steps ~92M-200M sem nenhum comando novo ao
+    drive, so VBlank/IRQ0 periodicos.

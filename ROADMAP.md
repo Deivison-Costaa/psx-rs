@@ -37,9 +37,10 @@ M2 (GPU) e M3 (DMA/IRQ/timers). Regra imposta por `roadmap_arquivo.rs`.
 - [x] 4.4s Setor Mode2/Form1 offset sai do byte de modo (iter 0124)
 - [x] 4.4t Laco de dispatch de eventos do shell (iter 0125)
 - [x] 4.4u Evento que dispara montagem do sistema de arquivos (iter 0126)
-- [x] 4.4v Eventos 10h/200h ficam ready ~204k passos ANTES do ultimo TestEvent; nao ha corrida (iter 0127)
-- [x] 4.4w Que descritor o TestEvent do shell testa ($a0/$v0)? (iter 0128)
-- [ ] 4.4x Por que DeliverEvent(F0000003h, 20h) nunca ocorre? Nossa INT2 (10.53/10.54) ou o handler da BIOS
+- [x] 4.4v Eventos 10h/200h ready antes do ultimo TestEvent; sem corrida (iter 0127)
+- [x] 4.4w Descritor testado pelo TestEvent do shell (iter 0128)
+- [x] 4.4x DeliverEvent(F0000003h,20h) ocorre; shell sai do loop e desenha (iter 0129)
+- [ ] 4.4y Shell desenha e para em VBlank: o que exibe/espera? VRAM vs referencia
 
 ## M5 — GTE
 - [x] 5.1 Registradores + MFC2/MTC2/CFC2/CTC2/LWC2/SWC2 (iter 0084)

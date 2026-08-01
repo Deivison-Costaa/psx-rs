@@ -369,7 +369,7 @@ fn read_n_retorna_dados_do_bin_no_setor_correto() {
     dados_setor[1] = 0xAD;
     dados_setor[2] = 0xBE;
     dados_setor[3] = 0xEF;
-    let bin = bin_com_setor_no_frame(150, &dados_setor);
+    let bin = bin_com_setor_no_frame(0, &dados_setor);
     let layout = disc_layout_track1_dois_segundos();
 
     bus.inject_disc(layout, bin);

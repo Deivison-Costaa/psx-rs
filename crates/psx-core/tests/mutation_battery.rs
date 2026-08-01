@@ -187,12 +187,32 @@ fn find_test_functions(file_content: &str) -> std::collections::HashSet<String> 
     names
 }
 
+fn todas_as_fns_de_teste(root: &std::path::Path) -> std::collections::HashSet<String> {
+    let mut fns = std::collections::HashSet::new();
+    let Ok(crates) = fs::read_dir(root.join("crates")) else {
+        return fns;
+    };
+    for c in crates.filter_map(|e| e.ok()) {
+        let Ok(arquivos) = fs::read_dir(c.path().join("tests")) else {
+            continue;
+        };
+        for a in arquivos.filter_map(|e| e.ok()) {
+            let p = a.path();
+            if p.extension().is_some_and(|e| e == "rs") {
+                fns.extend(find_test_functions(
+                    &fs::read_to_string(&p).unwrap_or_default(),
+                ));
+            }
+        }
+    }
+    fns
+}
+
 #[test]
 fn bateria_nomes_de_teste_existem() {
     let manifests = load_manifests().expect("erro carregando manifestos");
     let root = support::repo_root();
     let mutantes_dir = root.join("docs/mutantes");
-    let tests_dir = root.join("crates/psx-core/tests");
     let mut errs = Vec::new();
 
     for (_path, rel, manifest) in &manifests {
@@ -220,12 +240,7 @@ fn bateria_nomes_de_teste_existem() {
             Ok(r) => r,
             Err(_) => continue,
         };
-        let test_file = tests_dir.join(format!("{}.rs", manifest.teste));
-        let test_fns = if test_file.exists() {
-            find_test_functions(&fs::read_to_string(&test_file).unwrap_or_default())
-        } else {
-            std::collections::HashSet::new()
-        };
+        let test_fns = todas_as_fns_de_teste(&root);
         for row in &rows {
             if row.testes.is_empty() {
                 continue;
@@ -238,11 +253,11 @@ fn bateria_nomes_de_teste_existem() {
                 if !test_fns.contains(name) {
                     errs.push(format!(
                         "{}: registro '{}' credita teste '{}' que nao existe como fn em \
-                         crates/psx-core/tests/{}.rs. Se o nome foi digitado errado, \
+                         nenhum crates/*/tests/*.rs. Se o nome foi digitado errado, \
                          corrija no .resultado e rode a bateria de novo. Se acha que o \
                          credito e correto mas o nome nao existe, o .resultado foi \
                          adulterado — o script NAO inventa nomes.",
-                        rel, row.id, name, manifest.teste
+                        rel, row.id, name
                     ));
                 }
             }

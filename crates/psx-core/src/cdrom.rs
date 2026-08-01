@@ -14,6 +14,7 @@ pub struct Cdrom {
     intmsk: Cell<u8>,
     busy: Cell<bool>,
     pending_second: Cell<u8>,
+    second_request: Cell<bool>,
     disc_inserted: Cell<bool>,
     motor_on: Cell<bool>,
     seeking: Cell<bool>,
@@ -46,6 +47,7 @@ impl Cdrom {
             intmsk: Cell::new(0),
             busy: Cell::new(false),
             pending_second: Cell::new(0),
+            second_request: Cell::new(false),
             disc_inserted: Cell::new(false),
             motor_on: Cell::new(false),
             seeking: Cell::new(false),
@@ -366,8 +368,8 @@ impl Cdrom {
         &self,
         offset: u32,
         val: u8,
-        disc_layout: Option<&DiscLayout>,
-        disc_bin: Option<&[u8]>,
+        _disc_layout: Option<&DiscLayout>,
+        _disc_bin: Option<&[u8]>,
     ) {
         match offset & 0x3 {
             0 => self.set_bank(val),
@@ -385,18 +387,31 @@ impl Cdrom {
                     self.intsts.set(new_intsts);
                     self.irq_line.set(self.irq_pending());
                 }
-                let pending = self.pending_second.get();
-                if pending != 0 {
-                    self.deliver_second(disc_layout, disc_bin);
-                    if pending == 5 && self.read_mode.get() == 1 {
-                        self.pending_second.set(5);
-                    }
+                if self.pending_second.get() != 0 {
+                    self.second_request.set(true);
                 }
                 if val & 0x40 != 0 {
                     self.param_clear();
                 }
             }
             _ => {}
+        }
+    }
+
+    pub fn take_second_request(&self) -> bool {
+        let v = self.second_request.get();
+        self.second_request.set(false);
+        v
+    }
+
+    pub fn deliver_second_now(&self, disc_layout: Option<&DiscLayout>, disc_bin: Option<&[u8]>) {
+        let pending = self.pending_second.get();
+        if pending == 0 {
+            return;
+        }
+        self.deliver_second(disc_layout, disc_bin);
+        if pending == 5 && self.read_mode.get() == 1 {
+            self.pending_second.set(5);
         }
     }
 

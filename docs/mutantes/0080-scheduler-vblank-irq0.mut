@@ -4,6 +4,7 @@ iteracao: 0080
 item: 4.4b
 alvo: crates/psx-core/src/bus.rs
 teste: gpu_vblank_irq
+arquivada: registro m2 ancorava o bloco de constantes/dispatch de eventos do bus que a 0134 estendeu com CDROM_SECOND (4.4ac); placar historico preservado no .resultado
 
 mutante: m1
 rotulo: nao agenda eventos de vblank (comenta scheduler.schedule)

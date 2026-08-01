@@ -78,6 +78,7 @@ fn gettoc_arma_a_segunda_resposta_int2() {
     let _ = result_read(&mut bus);
 
     hclrctl_write(&mut bus, 0x07);
+    bus.tick_timers(0x6000);
 
     assert_eq!(
         hintsts(&mut bus),
@@ -93,6 +94,7 @@ fn segunda_resposta_do_gettoc_devolve_o_stat() {
     send_command(&mut bus, GETTOC);
     let _ = result_read(&mut bus);
     hclrctl_write(&mut bus, 0x07);
+    bus.tick_timers(0x6000);
 
     assert_eq!(
         result_read(&mut bus),
@@ -113,9 +115,11 @@ fn gettoc_nao_dispara_terceira_resposta() {
     send_command(&mut bus, GETTOC);
     let _ = result_read(&mut bus);
     hclrctl_write(&mut bus, 0x07);
+    bus.tick_timers(0x6000);
     let _ = result_read(&mut bus);
 
     hclrctl_write(&mut bus, 0x07);
+    bus.tick_timers(0x6000);
 
     assert_eq!(
         hintsts(&mut bus),
@@ -147,6 +151,7 @@ fn gettoc_deixa_o_drive_pronto_para_o_proximo_comando() {
     send_command(&mut bus, GETTOC);
     let _ = result_read(&mut bus);
     hclrctl_write(&mut bus, 0x07);
+    bus.tick_timers(0x6000);
     let _ = result_read(&mut bus);
     hclrctl_write(&mut bus, 0x07);
 

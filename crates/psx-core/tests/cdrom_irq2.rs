@@ -184,7 +184,7 @@ fn segunda_resposta_do_init_tambem_levanta_irq2() {
     let mut bus = bus();
     habilita_hintmsk(&mut bus, 0x1F);
 
-    // Init (0Ah) --> INT3(stat) --> INT2(stat): a segunda resposta chega no ack do HCLRCTL.
+    // Init (0Ah) --> INT3(stat) --> ack --> atraso fisico --> INT2(stat).
     set_bank(&mut bus, 0);
     cd_write(&mut bus, 1, 0x0A);
     bus.tick_timers(ESPERA_PRIMEIRA_RESPOSTA);
@@ -192,12 +192,13 @@ fn segunda_resposta_do_init_tambem_levanta_irq2() {
 
     ack_i_stat_irq2(&mut bus);
     ack_hclrctl(&mut bus, 0x07);
+    bus.tick_timers(0x6000);
 
     assert_eq!(
         i_stat(&bus) & IRQ2,
         IRQ2,
-        "o ack entrega a segunda resposta (INT2) do Init, que e uma nova borda e levanta IRQ2 \
-         de novo — sem isso a BIOS espera para sempre pelo fim do comando"
+        "a segunda resposta (INT2) do Init chega apos o atraso contado do ack e e uma nova \
+         borda que levanta IRQ2 de novo — sem isso a BIOS espera para sempre pelo fim do comando"
     );
 }
 

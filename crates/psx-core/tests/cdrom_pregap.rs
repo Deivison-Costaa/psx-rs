@@ -88,9 +88,10 @@ fn setloc_readn_primeiro_byte(bus: &mut Bus, mm: u8, ss: u8, ff: u8) -> u8 {
     assert_eq!(hintsts & 0x7, 3, "INT3 apos ReadN (06h)");
     let _ = result_read(bus);
     hclrctl_write(bus, 0x07);
+    bus.tick_timers(0x6000);
 
     let hintsts2 = hintsts_read_bank1(bus);
-    assert_eq!(hintsts2 & 0x7, 1, "INT1 com dados apos ack do INT3");
+    assert_eq!(hintsts2 & 0x7, 1, "INT1 com dados apos o atraso contado do ack do INT3");
     let _ = result_read(bus);
 
     rddata_read(bus)

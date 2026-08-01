@@ -98,6 +98,8 @@ fn read_n_retorna_int3_depois_int1_com_dados() {
 
     hclrctl_write(&mut bus, 0x07);
 
+    bus.tick_timers(0x6000);
+
     let hintsts2 = hintsts_read_bank1(&mut bus);
     assert_eq!(hintsts2 & 0x7, 1, "INT1 apos acknowledge do INT3 do ReadN");
 
@@ -129,6 +131,8 @@ fn read_s_retorna_int3_depois_int1_com_dados() {
 
     hclrctl_write(&mut bus, 0x07);
 
+    bus.tick_timers(0x6000);
+
     let hintsts2 = hintsts_read_bank1(&mut bus);
     assert_eq!(hintsts2 & 0x7, 1, "INT1 apos acknowledge do INT3 do ReadS");
 
@@ -152,9 +156,12 @@ fn read_n_continua_apos_primeiro_acknowledge() {
     send_command(&mut bus, 0x06);
     let _ = result_read(&mut bus);
     hclrctl_write(&mut bus, 0x07);
+    bus.tick_timers(0x6000);
     let _stat = result_read(&mut bus);
 
     hclrctl_write(&mut bus, 0x07);
+
+    bus.tick_timers(0x6000);
 
     let hintsts3 = hintsts_read_bank1(&mut bus);
     assert_eq!(
@@ -177,9 +184,12 @@ fn read_s_para_apos_primeiro_acknowledge() {
     send_command(&mut bus, 0x1B);
     let _ = result_read(&mut bus);
     hclrctl_write(&mut bus, 0x07);
+    bus.tick_timers(0x6000);
     let _stat = result_read(&mut bus);
 
     hclrctl_write(&mut bus, 0x07);
+
+    bus.tick_timers(0x6000);
 
     let hintsts3 = hintsts_read_bank1(&mut bus);
     assert_eq!(hintsts3 & 0x7, 0, "INT0 — ReadS para apos primeiro setor");
@@ -198,6 +208,7 @@ fn rddata_retorna_sequencia_de_bytes() {
     send_command(&mut bus, 0x06);
     let _ = result_read(&mut bus);
     hclrctl_write(&mut bus, 0x07);
+    bus.tick_timers(0x6000);
     let _ = result_read(&mut bus);
 
     let b0 = rddata_read(&mut bus);
@@ -257,6 +268,7 @@ fn pause_para_read_n() {
     send_command(&mut bus, 0x06);
     let _ = result_read(&mut bus);
     hclrctl_write(&mut bus, 0x07);
+    bus.tick_timers(0x6000);
     let _ = result_read(&mut bus);
 
     send_command(&mut bus, 0x09);
@@ -265,6 +277,7 @@ fn pause_para_read_n() {
 
     let _ = result_read(&mut bus);
     hclrctl_write(&mut bus, 0x07);
+    bus.tick_timers(0x6000);
 
     let hintsts_after = hintsts_read_bank1(&mut bus);
     assert_eq!(hintsts_after & 0x7, 2, "INT2 — segunda resposta do Pause");
@@ -273,6 +286,8 @@ fn pause_para_read_n() {
     assert_eq!(stat_after & (1 << 5), 0, "stat bit5=0 — parou de ler");
 
     hclrctl_write(&mut bus, 0x07);
+
+    bus.tick_timers(0x6000);
     let hintsts_final = hintsts_read_bank1(&mut bus);
     assert_eq!(
         hintsts_final & 0x7,
@@ -294,6 +309,7 @@ fn hsts_drqsts_setado_quando_dados_disponiveis() {
     send_command(&mut bus, 0x06);
     let _ = result_read(&mut bus);
     hclrctl_write(&mut bus, 0x07);
+    bus.tick_timers(0x6000);
     let _ = result_read(&mut bus);
     hchpctl_write(&mut bus, 0x80);
 
@@ -328,6 +344,7 @@ fn setloc_consumido_pelo_read_n() {
     setloc(&mut bus, 0x02, 0x10, 0x00);
     read_n(&mut bus);
     hclrctl_write(&mut bus, 0x07);
+    bus.tick_timers(0x6000);
     let hintsts = hintsts_read_bank1(&mut bus);
     assert_eq!(hintsts & 0x7, 1, "ReadN continua — Setloc foi consumido");
 }
@@ -385,6 +402,7 @@ fn read_n_retorna_dados_do_bin_no_setor_correto() {
     send_command(&mut bus, 0x06);
     let _ = result_read(&mut bus);
     hclrctl_write(&mut bus, 0x07);
+    bus.tick_timers(0x6000);
     let _ = result_read(&mut bus);
 
     let b0 = rddata_read(&mut bus);

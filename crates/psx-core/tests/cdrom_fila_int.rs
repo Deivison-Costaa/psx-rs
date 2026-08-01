@@ -87,7 +87,11 @@ fn segunda_resposta_chega_apos_o_atraso_do_ack() {
         "INT2 do Init aparece depois do atraso contado a partir do ack do INT3"
     );
     let stat = result_read(&mut bus);
-    assert_ne!(stat & (1 << 1), 0, "stat do INT2 do Init com motor ligado (bit1)");
+    assert_ne!(
+        stat & (1 << 1),
+        0,
+        "stat do INT2 do Init com motor ligado (bit1)"
+    );
 }
 
 #[test]

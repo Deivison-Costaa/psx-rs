@@ -394,6 +394,7 @@ impl Bus {
             | 0x1F80_1130..=0x1F80_1FFF => Some(0),
             0x1F80_1040 => Some(self.sio.read_data()),
             0x1F80_1044 => Some(self.sio.read_stat()),
+            0x1F80_2000..=0x1F80_3FFF => Some(0xFFFF_FFFF),
             _ => None,
         }
     }
@@ -492,6 +493,7 @@ impl Bus {
                 self.service_sio_irq();
                 true
             }
+            0x1F80_2000..=0x1F80_3FFF => true,
             _ => false,
         }
     }
@@ -539,6 +541,7 @@ impl Bus {
             }
             0x1F80_1040 => Some(self.sio.read_byte(phys + offset)),
             0x1F80_1044..=0x1F80_104F => Some(self.sio.read_byte(phys + offset)),
+            0x1F80_2000..=0x1F80_3FFF => Some(0xFF),
             _ => None,
         }
     }
@@ -587,6 +590,7 @@ impl Bus {
                 self.service_sio_irq();
                 true
             }
+            0x1F80_2000..=0x1F80_3FFF => true,
             _ => false,
         }
     }

@@ -7,29 +7,22 @@
 
 ## Última iteração concluída
 
-**0135** — Diagnostico puro (R8 suspensa por escrito): spec do CD-ROM lida INTEIRA e
-**docs/cdrom-comandos.md** commitado — design doc do motor 4.4ad com citacao de linha
-verificada, tabela por comando, unknowns explicitos e escopo dentro/fora decidido. Achado
-que muda o desenho: o hardware NAO tem fila — 2 flags (INT2/INT1 pendentes; INT3 imediato)
-e no maximo 1 INT1 nao entregue (06-cdrom.md L1969-1982). Spike de sideload registrado em
-docs/spikes/sideload-crash.md: o jogo RODA pos-injecao e trava em VSync timeout + 100% dos
-PCs no vetor de excecao — **GTE ainda nao e o muro; o proximo item-pai e VSync/IRQ do jogo**.
+**0136** — Motor de respostas do CD-ROM fechado: gate de comando com IRQ pendente, timing
+por comando/estado, avanço de MSF em ReadN/ReadS e cancelamento do setor armado quando o
+comando é aceito. Bateria: 6/6 mutantes mortos, 2/2 controles verdes; `cargo test --all`
+verde. 4.4ad fecha 10.53; o spike confirma que **GTE ainda nao e o muro** — o próximo
+diagnóstico é VSync/IRQ0 do jogo.
 
 ## Próxima tarefa
 
-**ROADMAP 4.4ad — passos 2 e 3: goldens do orquestrador + implementacao do worker.**
-(2) Orquestrador escreve `crates/psx-core/tests/cdrom_motor.rs` citando
-docs/cdrom-comandos.md: modelo de 2 flags; gate de comando com INT pendente (06-cdrom.md
-L1984-2000, fecha 10.53); timing DISTINTO por comando via § Second Response (L2064-2076;
-Pause != Init por construcao); AVANCO de seek entre setores (setores N/N+1 com bytes
-DIFERENTES num .bin sintetico — hoje reentrega o mesmo setor); rearm do ReadS; Setmode
-bit5 → buffer 800h/924h; 2a resposta so nos 10 comandos de L2004-2014; INT5 na 1a suprime
-a 2a (L2022-2026). (3) Worker implementa ate verde com R4 suspensa POR ESCRITO no doc da
-0136; escopo fechado = "Decisoes de escopo do motor" do cdrom-comandos.md — o que esta
-FORA e divida aceita, nao implementar. Armadilhas: (a) invariante 31 (ordem IRQ no
-Cpu::step); (b) caminho CDROM_RESPONSE do bus.rs tambem entrega INTs; (c) nao quebrar
-cdrom_fila_int (goldens do 4.4ac); (d) rebuild release antes de medir; (e) passo primo.
-Invariantes relevantes: 30, 31, 32, 33.
+**ROADMAP 4.4 — Boot de jogo 2D/menu: diagnóstico puro de VSync/IRQ0 do jogo.** Abrir o
+subitem após medir o spike em `docs/spikes/sideload-crash.md`; consultar `docs/reference/03-gpu.md`
+§ GP1(07h), L864-873 (Y2 pode interromper IRQ0).
+Consultar `docs/reference/11-interrupts.md` § Interrupt Request / Execution, L45-55. Alvos prováveis: `crates/psx-core/src/gpu.rs` e
+`bus.rs`, teste novo no padrão de um arquivo por item. Armadilha: não assumir que o caminho
+de VBlank que faz o shell avançar também entrega o callback LIBGPU; o Crash chega a
+`VSync: timeout` e depois ao vetor `0x80000080`. Não começar GTE antes desse diagnóstico.
+Invariantes relevantes: 31, 32, 33.
 
 **Meta em vigor (ordem do usuario, 31/07):** emendar as iteracoes ate o M4 fechar, sem parar entre
 PRs. Pronto = **menu navegavel no `psx-desktop`**. Parada: 5 iteracoes fechadas sem o jogo bootar,
@@ -59,7 +52,7 @@ Workspace: **857** testes.
 
 ## Bloqueios
 
-- **4.4 Boot de jogo**: fronteira atual é a leitura SEQUENCIAL de setores (4.4ad): o
-  loader da BIOS chegou ao "boot file" mas ReadN reentrega o mesmo setor. Imagens de disco
-  ficam fora do repositório, em `.../Programacao com agentes/roms/extraido/`.
+- **4.4 Boot de jogo**: o motor 4.4ad agora avança setores sequencialmente; a fronteira
+  seguinte medida no Crash é VSync/IRQ0 pós-kernel. Imagens de disco ficam fora do
+  repositório, em `.../Programacao com agentes/roms/extraido/`.
   **Nunca commitar imagem de disco.**

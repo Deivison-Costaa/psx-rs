@@ -4,6 +4,7 @@ iteracao: 0100
 item: 10.39
 alvo: ROADMAP.md
 teste: roadmap_arquivo
+arquivada: ROADMAP.md mudou estruturalmente na iteracao 0140: o ponteiro e a linha 10.39 foram movidos; o resultado historico permanece preservado.
 
 mutante: m1
 rotulo: M6 fica 100% fechado e continua ocupando bytes da escada

@@ -1,0 +1,64 @@
+# Manifesto de mutação da iteração 0132 — pregap-150
+formato: 1
+iteracao: 0132
+item: 4.4aa
+alvo: crates/psx-core/src/cdrom.rs
+teste: cdrom_pregap
+
+mutante: m1
+rotulo: pregap nao subtraido (o defeito original de volta)
+@@DE
+    let file_sector = abs_sector.checked_sub(150)?;
+@@PARA
+    let file_sector = abs_sector.checked_sub(0)?;
+@@FIM
+
+mutante: m2
+rotulo: off-by-one no pregap (151)
+@@DE
+    let file_sector = abs_sector.checked_sub(150)?;
+@@PARA
+    let file_sector = abs_sector.checked_sub(151)?;
+@@FIM
+
+mutante: m3
+rotulo: stride de setor 2048 em vez de 2352
+@@DE
+    let offset = file_sector as usize * 2352;
+@@PARA
+    let offset = file_sector as usize * 2048;
+@@FIM
+
+mutante: m4
+rotulo: saturating_sub engole o pregap (setor 0 entregue para MSF < 00:02:00)
+@@DE
+    let file_sector = abs_sector.checked_sub(150)?;
+@@PARA
+    let file_sector = abs_sector.saturating_sub(150);
+@@FIM
+
+mutante: m5
+rotulo: deteccao de mode2 quebrada (cabecalho sempre 0x10)
+@@DE
+    let cabecalho = if bin[offset + 0x0F] == 0x02 {
+@@PARA
+    let cabecalho = if bin[offset + 0x0F] == 0x03 {
+@@FIM
+
+controle: c1
+rotulo: comentario antes de read_sector_from_disc
+@@DE
+fn read_sector_from_disc(
+@@PARA
+// converte MSF absoluto em offset do arquivo bin
+fn read_sector_from_disc(
+@@FIM
+
+controle: c2
+rotulo: comentario antes de bcd_to_int
+@@DE
+fn bcd_to_int(b: u8) -> u32 {
+@@PARA
+// BCD compactado para inteiro
+fn bcd_to_int(b: u8) -> u32 {
+@@FIM

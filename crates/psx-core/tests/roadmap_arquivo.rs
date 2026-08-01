@@ -132,7 +132,8 @@ fn roadmap_nao_contem_itens_fechados() {
 fn item_10_61_da_iteracao_0140_foi_arquivado() {
     let roadmap = ler("ROADMAP.md");
     let arquivo = ler(ARQUIVO);
-    let esperado = "- [x] 10.61 Fechado sai da escada mesmo em marco aberto; teto cai para 7 KB (iter 0140)";
+    let esperado =
+        "- [x] 10.61 Fechado sai da escada mesmo em marco aberto; teto cai para 7 KB (iter 0140)";
 
     assert!(
         !roadmap

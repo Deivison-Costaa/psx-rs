@@ -1,0 +1,11 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: fe538969f619fd5f59b004776b592952954d1a38
+# rodado_em: 2026-08-01T05:37:01-03:00
+m1,mutante,morreu,morreu,1.1,pause_durante_leitura_leva_o_tempo_de_5_setores
+m2,mutante,morreu,morreu,1,pause_durante_leitura_leva_o_tempo_de_5_setores
+m3,mutante,morreu,morreu,0.9,pause_durante_leitura_leva_o_tempo_de_5_setores;timing_da_segunda_resposta_e_por_comando
+m4,mutante,morreu,morreu,1,read_n_avanca_de_setor_a_cada_int1;read_s_tambem_avanca_de_setor
+m5,mutante,morreu,morreu,0.9,read_n_avanca_de_setor_a_cada_int1;read_s_tambem_avanca_de_setor
+m6,mutante,morreu,morreu,1,pause_durante_leitura_leva_o_tempo_de_5_setores;timing_da_segunda_resposta_e_por_comando
+c1,controle,sobreviveu,sobreviveu,0.9,
+c2,controle,sobreviveu,sobreviveu,0.9,

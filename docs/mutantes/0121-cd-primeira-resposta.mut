@@ -4,6 +4,7 @@ iteracao: 0121
 item: 4.4p
 alvo: crates/psx-core/src/cdrom.rs
 teste: cdrom_primeira_resposta
+arquivada: despacho de comandos e respostas reestruturado nas iteracoes 0134-0136; placar historico preservado no .resultado
 
 mutante: m1
 rotulo: comando executado dentro da escrita no porto (o defeito 4.4p original)

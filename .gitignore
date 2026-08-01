@@ -6,6 +6,9 @@
 /target/
 /crates/psx-cli/tests/bins/
 
+# Dumps de execução na raiz (--dump-vram etc.)
+/*.raw
+
 # Baixados por script (scripts/fetch-*.ps1)
 /tests/exes/
 /.cache/

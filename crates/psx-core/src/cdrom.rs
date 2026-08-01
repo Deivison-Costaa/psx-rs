@@ -2,6 +2,11 @@ use std::cell::Cell;
 
 use crate::cdrom_bin_cue::DiscLayout;
 
+const PAUSE_READING_CYCLES: u64 = 0x021_181C;
+const PAUSE_IDLE_CYCLES: u64 = 0x1DF2;
+const STOP_MOTOR_CYCLES: u64 = 0x0D3_8ACA;
+const STOP_STOPPED_CYCLES: u64 = 0x1D7B;
+
 #[derive(Debug)]
 pub struct Cdrom {
     bank: Cell<u8>,
@@ -32,6 +37,14 @@ pub struct Cdrom {
     pending_params: Cell<[u8; 16]>,
     pending_param_count: Cell<u8>,
     issued_cmd: Cell<Option<u8>>,
+    int2_pending: Cell<bool>,
+    int1_pending: Cell<bool>,
+    second_cycles: Cell<u64>,
+    read_pos_mm: Cell<u8>,
+    read_pos_ss: Cell<u8>,
+    read_pos_ff: Cell<u8>,
+    mode: Cell<u8>,
+    second_dirty: Cell<bool>,
 }
 
 impl Cdrom {
@@ -65,6 +78,14 @@ impl Cdrom {
             pending_params: Cell::new([0u8; 16]),
             pending_param_count: Cell::new(0),
             issued_cmd: Cell::new(None),
+            int2_pending: Cell::new(false),
+            int1_pending: Cell::new(false),
+            second_cycles: Cell::new(0x4A00),
+            read_pos_mm: Cell::new(0),
+            read_pos_ss: Cell::new(0),
+            read_pos_ff: Cell::new(0),
+            mode: Cell::new(0),
+            second_dirty: Cell::new(false),
         }
     }
 
@@ -190,6 +211,9 @@ impl Cdrom {
         self.pending_params.set(self.param_buf.get());
         self.pending_param_count.set(self.param_count.get());
         self.issued_cmd.set(Some(cmd));
+        if self.intsts.get() == 0 && !self.int2_pending.get() && !self.int1_pending.get() {
+            self.second_dirty.set(true);
+        }
     }
 
     pub fn take_issued_command(&self) -> Option<u8> {
@@ -203,14 +227,39 @@ impl Cdrom {
         }
     }
 
-    pub fn deliver_first(&self) {
+    pub fn second_response_cycles_for(cmd: u8) -> u64 {
+        match cmd {
+            0x06 => 0x4_A00,
+            0x07 => 0x04_A00,
+            0x0A | 0x1E => 0x4_A00,
+            0x12 => 0x04_A00,
+            0x15 | 0x16 => 0x04_A00,
+            0x1A => 0x4_A00,
+            0x1B => 0x4_A00,
+            0x1D => 0x04_A00,
+            _ => 0x4_A00,
+        }
+    }
+
+    pub fn second_response_cycles(&self) -> u64 {
+        self.second_cycles.get()
+    }
+
+    pub fn deliver_first(&self) -> bool {
+        let blocked =
+            self.intsts.get() != 0 && (self.int2_pending.get() || self.int1_pending.get());
+        if blocked {
+            return false;
+        }
         let cmd = match self.pending_cmd.take() {
             Some(cmd) => cmd,
-            None => return,
+            None => return false,
         };
         self.param_buf.set(self.pending_params.get());
         self.param_count.set(self.pending_param_count.get());
         self.send_command(cmd);
+        self.second_dirty.set(true);
+        true
     }
 
     fn send_command(&self, cmd: u8) {
@@ -249,19 +298,49 @@ impl Cdrom {
                 } else {
                     self.reading.set(true);
                     self.read_mode.set(1);
+                    self.read_pos_mm.set(self.seek_min.get());
+                    self.read_pos_ss.set(self.seek_sec.get());
+                    self.read_pos_ff.set(self.seek_sect.get());
                     self.result_push(self.stat_byte());
                     self.intsts.set(3);
+                    self.int1_pending.set(true);
                     self.pending_second.set(5);
+                    self.second_cycles
+                        .set(Self::second_response_cycles_for(0x06));
                 }
             }
-            0x09 => {
+            0x08 => {
+                self.int1_pending.set(false);
                 let stat = self.stat_byte();
                 self.result_push(stat);
                 self.intsts.set(3);
+                self.int2_pending.set(true);
                 self.pending_second.set(4);
+                let timing = if self.motor_on.get() {
+                    STOP_MOTOR_CYCLES
+                } else {
+                    STOP_STOPPED_CYCLES
+                };
+                self.second_cycles.set(timing);
+                self.motor_on.set(false);
+            }
+            0x09 => {
+                self.int1_pending.set(false);
+                let stat = self.stat_byte();
+                self.result_push(stat);
+                self.intsts.set(3);
+                self.int2_pending.set(true);
+                self.read_mode.set(0);
+                self.pending_second.set(4);
+                let timing = if self.reading.get() {
+                    PAUSE_READING_CYCLES
+                } else {
+                    PAUSE_IDLE_CYCLES
+                };
+                self.second_cycles.set(timing);
             }
             0x0A => {
-                if self.pending_second.get() == 1 {
+                if self.int2_pending.get() && self.pending_second.get() == 1 {
                     self.busy.set(false);
                     return;
                 }
@@ -270,12 +349,27 @@ impl Cdrom {
                 }
                 self.result_push(self.stat_byte());
                 self.intsts.set(3);
+                self.int2_pending.set(true);
                 self.pending_second.set(1);
+                self.second_cycles
+                    .set(Self::second_response_cycles_for(0x0A));
+            }
+            0x0E => {
+                if !self.param_is_empty() {
+                    self.mode.set(self.param_pop());
+                }
+                self.param_clear();
+                self.result_push(self.stat_byte());
+                self.intsts.set(3);
+                self.busy.set(false);
             }
             0x1E => {
                 self.result_push(self.stat_byte());
                 self.intsts.set(3);
+                self.int2_pending.set(true);
                 self.pending_second.set(1);
+                self.second_cycles
+                    .set(Self::second_response_cycles_for(0x1E));
             }
             0x15 => {
                 if !self.disc_inserted.get() {
@@ -287,7 +381,10 @@ impl Cdrom {
                     self.seeking.set(true);
                     self.result_push(self.stat_byte());
                     self.intsts.set(3);
+                    self.int2_pending.set(true);
                     self.pending_second.set(3);
+                    self.second_cycles
+                        .set(Self::second_response_cycles_for(0x15));
                 }
             }
             0x19 => {
@@ -313,7 +410,10 @@ impl Cdrom {
             0x1A => {
                 self.result_push(self.stat_byte());
                 self.intsts.set(3);
+                self.int2_pending.set(true);
                 self.pending_second.set(2);
+                self.second_cycles
+                    .set(Self::second_response_cycles_for(0x1A));
             }
             0x1B => {
                 if !self.disc_inserted.get() {
@@ -324,9 +424,15 @@ impl Cdrom {
                 } else {
                     self.reading.set(true);
                     self.read_mode.set(2);
+                    self.read_pos_mm.set(self.seek_min.get());
+                    self.read_pos_ss.set(self.seek_sec.get());
+                    self.read_pos_ff.set(self.seek_sect.get());
                     self.result_push(self.stat_byte());
                     self.intsts.set(3);
+                    self.int1_pending.set(true);
                     self.pending_second.set(5);
+                    self.second_cycles
+                        .set(Self::second_response_cycles_for(0x1B));
                 }
             }
             _ => {
@@ -386,9 +492,19 @@ impl Cdrom {
                     let new_intsts = self.intsts.get() & !(val & 0x07);
                     self.intsts.set(new_intsts);
                     self.irq_line.set(self.irq_pending());
-                }
-                if self.pending_second.get() != 0 {
-                    self.second_request.set(true);
+                    if new_intsts == 0 {
+                        if self.int2_pending.get() {
+                            self.int2_pending.set(false);
+                            self.second_request.set(true);
+                            self.irq_line.set(false);
+                        } else if self.int1_pending.get() {
+                            self.int1_pending.set(false);
+                            self.second_request.set(true);
+                            self.irq_line.set(false);
+                        } else if self.pending_cmd.get().is_some() {
+                            self.deliver_first();
+                        }
+                    }
                 }
                 if val & 0x40 != 0 {
                     self.param_clear();
@@ -404,14 +520,28 @@ impl Cdrom {
         v
     }
 
+    pub fn take_second_dirty(&self) -> bool {
+        let v = self.second_dirty.get();
+        self.second_dirty.set(false);
+        v
+    }
+
     pub fn deliver_second_now(&self, disc_layout: Option<&DiscLayout>, disc_bin: Option<&[u8]>) {
         let pending = self.pending_second.get();
         if pending == 0 {
             return;
         }
         self.deliver_second(disc_layout, disc_bin);
-        if pending == 5 && self.read_mode.get() == 1 {
+        if pending == 5 && self.read_mode.get() != 0 {
             self.pending_second.set(5);
+            self.int1_pending.set(true);
+            let read_cmd = if self.read_mode.get() == 2 {
+                0x1B
+            } else {
+                0x06
+            };
+            self.second_cycles
+                .set(Self::second_response_cycles_for(read_cmd));
         }
     }
 
@@ -467,9 +597,9 @@ impl Cdrom {
                     read_sector_from_disc(
                         layout,
                         bin,
-                        self.seek_min.get(),
-                        self.seek_sec.get(),
-                        self.seek_sect.get(),
+                        self.read_pos_mm.get(),
+                        self.read_pos_ss.get(),
+                        self.read_pos_ff.get(),
                     )
                 } else {
                     None
@@ -485,6 +615,7 @@ impl Cdrom {
                 }
                 self.data_pos.set(0);
                 self.hchpctl.set(0);
+                advance_read_pos(&self.read_pos_mm, &self.read_pos_ss, &self.read_pos_ff);
             }
             _ => {}
         }
@@ -521,6 +652,26 @@ impl Cdrom {
 
 fn bcd_to_int(b: u8) -> u32 {
     ((b >> 4) as u32) * 10 + (b as u32 & 0xF)
+}
+
+fn int_to_bcd(n: u32) -> u8 {
+    (((n / 10) << 4) | (n % 10)) as u8
+}
+
+fn advance_read_pos(mm: &Cell<u8>, ss: &Cell<u8>, ff: &Cell<u8>) {
+    let f = bcd_to_int(ff.get()) + 1;
+    if f >= 75 {
+        ff.set(0);
+        let s = bcd_to_int(ss.get()) + 1;
+        if s >= 60 {
+            ss.set(0);
+            mm.set(int_to_bcd(bcd_to_int(mm.get()) + 1));
+        } else {
+            ss.set(int_to_bcd(s));
+        }
+    } else {
+        ff.set(int_to_bcd(f));
+    }
 }
 
 fn read_sector_from_disc(

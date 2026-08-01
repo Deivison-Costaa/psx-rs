@@ -4,6 +4,7 @@ iteracao: 0062
 item: 4.1
 alvo: crates/psx-core/src/cdrom.rs
 teste: cdrom_regs
+arquivada: handler de comandos reestruturado nas iteracoes 0121-0136; ancoras antigas preservadas no .resultado
 
 mutante: m1
 rotulo: bit PRMEMPT invertido no HSTS — param FIFO sempre parece cheia

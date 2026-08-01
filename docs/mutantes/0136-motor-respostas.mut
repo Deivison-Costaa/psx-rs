@@ -1,0 +1,100 @@
+# Manifesto de mutacao da iteracao 0136 — motor-respostas
+formato: 1
+iteracao: 0136
+item: 4.4ad
+alvo: crates/psx-core/src/cdrom.rs
+teste: cdrom_motor
+
+mutante: m1
+rotulo: comando deixa de preemptar setor armado
+@@DE
+        if self.intsts.get() == 0 && !self.int2_pending.get() && !self.int1_pending.get() {
+@@PARA
+        if self.intsts.get() != 0 && !self.int2_pending.get() && !self.int1_pending.get() {
+@@FIM
+
+mutante: m2
+rotulo: sinal de cancelamento nunca chega ao bus
+@@DE
+    pub fn take_second_dirty(&self) -> bool {
+        let v = self.second_dirty.get();
+        self.second_dirty.set(false);
+        v
+    }
+@@PARA
+    pub fn take_second_dirty(&self) -> bool {
+        let v = self.second_dirty.get();
+        self.second_dirty.set(false);
+        false
+    }
+@@FIM
+
+mutante: m3
+rotulo: Pause lendo usa timing de drive parado
+@@DE
+                let timing = if self.reading.get() {
+                    PAUSE_READING_CYCLES
+                } else {
+                    PAUSE_IDLE_CYCLES
+                };
+@@PARA
+                let timing = if self.reading.get() {
+                    PAUSE_IDLE_CYCLES
+                } else {
+                    PAUSE_READING_CYCLES
+                };
+@@FIM
+
+mutante: m4
+rotulo: Read nao avanca a posicao entre setores
+@@DE
+                advance_read_pos(&self.read_pos_mm, &self.read_pos_ss, &self.read_pos_ff);
+@@PARA
+                self.read_pos_ff.set(self.read_pos_ff.get());
+@@FIM
+
+mutante: m5
+rotulo: seek indexa o setor seguinte do arquivo
+@@DE
+    let file_sector = abs_sector.checked_sub(150)?;
+@@PARA
+    let file_sector = abs_sector.checked_sub(149)?;
+@@FIM
+
+mutante: m6
+rotulo: segunda resposta do Pause vira INT3
+@@DE
+            4 => {
+                self.busy.set(false);
+                self.reading.set(false);
+                self.result_clear();
+                self.result_push(self.stat_byte());
+                self.intsts.set(2);
+            }
+@@PARA
+            4 => {
+                self.busy.set(false);
+                self.reading.set(false);
+                self.result_clear();
+                self.result_push(self.stat_byte());
+                self.intsts.set(3);
+            }
+@@FIM
+
+controle: c1
+rotulo: comentario antes do avanço de setor
+@@DE
+fn advance_read_pos(mm: &Cell<u8>, ss: &Cell<u8>, ff: &Cell<u8>) {
+@@PARA
+// atualiza a posição MSF do próximo setor
+fn advance_read_pos(mm: &Cell<u8>, ss: &Cell<u8>, ff: &Cell<u8>) {
+@@FIM
+
+controle: c2
+rotulo: comentario antes da primeira resposta
+@@DE
+    pub fn deliver_first(&self) -> bool {
+@@PARA
+    // entrega INT3 somente quando o gate de IRQ permite
+    pub fn deliver_first(&self) -> bool {
+@@FIM

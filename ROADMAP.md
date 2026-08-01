@@ -45,7 +45,7 @@ M2 (GPU) e M3 (DMA/IRQ/timers). Regra imposta por `roadmap_arquivo.rs`.
 - [x] 4.4aa Pregap 150 no read; boot chega a licenca (iter 0132)
 - [x] 4.4ab BIOS re-envia Init; INT2 atropela INT3 (iter 0133)
 - [x] 4.4ac 2a resposta so apos ack (fila; fecha 10.54) (iter 0134)
-- [ ] 4.4ad Motor de respostas: fila tipada + timing por comando + avanco de seek (fecha 10.53)
+- [x] 4.4ad Motor de respostas: flags + timing por comando + avanco de seek (fecha 10.53) (iter 0136)
 
 ## M5 — GTE
 - [x] 5.1 Registradores + MFC2/MTC2/CFC2/CTC2/LWC2/SWC2 (iter 0084)

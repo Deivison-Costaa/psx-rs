@@ -113,8 +113,6 @@ const VBLANK_EXIT: u32 = 1;
 const CDROM_RESPONSE: u32 = 2;
 const CDROM_SECOND: u32 = 3;
 
-const CDROM_SECOND_RESPONSE_CYCLES: u64 = 0x4A00;
-
 #[derive(Debug)]
 pub struct Bus {
     ram: Ram,
@@ -259,7 +257,7 @@ impl Bus {
     fn schedule_cdrom_second(&mut self) {
         if self.cdrom.take_second_request() {
             self.scheduler.cancel(EventId(CDROM_SECOND));
-            let prazo = self.total_cycles + CDROM_SECOND_RESPONSE_CYCLES;
+            let prazo = self.total_cycles + self.cdrom.second_response_cycles();
             self.scheduler
                 .schedule(ScheduleKey::new(prazo), EventId(CDROM_SECOND));
         }
@@ -292,7 +290,9 @@ impl Bus {
                     );
                 }
                 CDROM_RESPONSE => {
-                    self.cdrom.deliver_first();
+                    if self.cdrom.deliver_first() {
+                        self.scheduler.cancel(EventId(CDROM_SECOND));
+                    }
                     if self.cdrom.take_irq2_edge() {
                         let ints = self.cdrom.intsts();
                         let cmd = self.cdrom.pending_cmd();
@@ -477,6 +477,9 @@ impl Bus {
                     .write8(3, (val >> 24) as u8, disc_layout, disc_bin);
                 self.schedule_cdrom_response();
                 self.schedule_cdrom_second();
+                if self.cdrom.take_second_dirty() {
+                    self.scheduler.cancel(EventId(CDROM_SECOND));
+                }
                 self.service_cdrom_irq();
                 true
             }
@@ -561,6 +564,9 @@ impl Bus {
                 );
                 self.schedule_cdrom_response();
                 self.schedule_cdrom_second();
+                if self.cdrom.take_second_dirty() {
+                    self.scheduler.cancel(EventId(CDROM_SECOND));
+                }
                 self.service_cdrom_irq();
                 true
             }

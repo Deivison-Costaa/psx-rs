@@ -7,26 +7,25 @@
 
 ## Última iteração concluída
 
-**0131** — Nenhum candidato do handoff: o shell nao espera hardware, espera DADO. Ele varre
-em spin infinito (~113M+) o TMD do logo PlayStation carregado em 0x80010000 procurando
-primitivos 0x20/0x30 — e o conteudo e lixo (contador de primitivas 0x2E0E1E1E) porque
-**todo read de CD entrega o setor N+150**: bytes da RAM localizados no `.bin` no setor 155;
-o TMD real esta no setor 5. 155-5 = pregap de 00:02:00. `--sample-pcs` novo no psx-cli.
-Invariante 33 (inclui: amostragem exige passo primo; nunca Set-Content em fonte).
+**0132** — Fix de 1 linha: `read_sector_from_disc` agora faz `checked_sub(150)` (pregap)
+antes de indexar o `.bin`. Criterio de sistema CUMPRIDO nos dois termos: o spin em
+0x80042xxx sumiu (0 amostras em 110M-200M) e a VRAM aos 200M mostra a **tela de licenca**
+("PlayStation TM / Licensed by SCEA"). Achado: o teste da 4.4o codificava o defeito
+(round-trip com o mapeamento errado) — corrigido. Bateria pelo mutantes.ps1 (5/5+2/2).
 
 ## Próxima tarefa
 
-**ROADMAP 4.4aa — Subtrair o pregap no read do CD.** Defeito nomeado:
-`read_sector_from_disc` (`crates/psx-core/src/cdrom.rs:518-520`) faz
-`offset = abs_sector * 2352`; o correto e `(abs_sector - 150) * 2352` porque o MSF de
-Setloc e absoluto (docs/reference/06-cdrom.md § Setloc - Command 02h (L787)) e a trilha 1
-comeca em 00:02:00 (docs/reference/06-cdrom.md L850) — o `.bin` comeca 150 setores depois
-do zero. Teste com golden do disco real: setor 5 do `.bin` comeca `41 00 00 00` (ID de TMD)
-apos os 24 bytes de header Form1; pedir MSF 00:02:05 tem que devolver esses bytes. Guardar
-tambem o caso abs_sector < 150 (retornar None, nao underflow — e usize!). Criterio de
-sucesso de sistema: rodar o boot 130M steps e o spin em 0x8004205C NAO existir mais
-(sample-pcs), e/ou a VRAM sair da tela SCE. Armadilhas: (a) invariantes 31/32 seguem
-valendo; (b) exe release stale — rebuild antes de medir (invariante 30, corolario rlib).
+**ROADMAP 4.4ab — Pos-licenca: o boot continua?** Aos 200M a tela de licenca esta na VRAM e
+o histograma de PCs (passo primo 100003, janela 110M-200M) da 61% em 0xBFC04xxx (BIOS ROM)
+e 23% em 0x80059xxx (shell). Decidir por medicao se e o fluxo normal (tempo de tela +
+proximas leituras) ou novo bloqueio: (1) estender a janela (300M+, invariante 30) com
+--dump-vram e --sample-pcs e ver se a tela vira o logo PS / boot do jogo (TTY deve ganhar
+linhas novas, p.ex. SYSTEM.CNF); (2) se travar, desassemblar o loop quente de 0xBFC04xxx
+via --dump-mem (e ROM: ler o offset correspondente da BIOS) + --trace-pcs para registrar o
+que ele le. Ferramentas ja existem no psx-cli. Armadilhas: (a) invariantes 31/32/33; (b)
+rebuild release apos bateria (corolario rlib); (c) passo de amostragem PRIMO (invariante
+33a); (d) o hot em BFC04xxx pode ser so o idle do kernel entre IRQs — conferir contra o
+TTY/VRAM antes de declarar bloqueio.
 Invariantes relevantes: 30, 31, 32, 33.
 
 **Meta em vigor (ordem do usuario, 31/07):** emendar as iteracoes ate o M4 fechar, sem parar entre
@@ -53,7 +52,7 @@ de gouraud no losango (candidato 10.14).
 
 ## Placar de testes
 
-Workspace: **844** testes.
+Workspace: **847** testes.
 
 ## Bloqueios
 

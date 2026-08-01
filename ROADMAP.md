@@ -42,7 +42,8 @@ M2 (GPU) e M3 (DMA/IRQ/timers). Regra imposta por `roadmap_arquivo.rs`.
 - [x] 4.4x DeliverEvent(F0000003h,20h) ocorre; shell sai do loop e desenha (iter 0129)
 - [x] 4.4y Tela SCE igual a referencia; congela 120M→200M (iter 0130)
 - [x] 4.4z Reads de CD entregam setor N+150; TMD do logo vira lixo (iter 0131)
-- [ ] 4.4aa Subtrair pregap 150 no read_sector_from_disc
+- [x] 4.4aa Pregap 150 no read; boot chega a licenca (iter 0132)
+- [ ] 4.4ab Pos-licenca: BIOS quente em BFC04xxx — fluxo ou bloqueio?
 
 ## M5 — GTE
 - [x] 5.1 Registradores + MFC2/MTC2/CFC2/CTC2/LWC2/SWC2 (iter 0084)
@@ -121,7 +122,7 @@ M2 (GPU) e M3 (DMA/IRQ/timers). Regra imposta por `roadmap_arquivo.rs`.
 - [x] 10.38 `oc-iter.ps1` pagava a parede de 45 min por rodada travada de 90 s de vida (iter 0098)
 - [x] 10.39 Marco 100% fechado sai da escada para `docs/ROADMAP-fechado.md` (iter 0100)
 - [ ] 10.40 `mutantes.ps1` so casa ancora em arquivo LF; em CRLF diz 'encontrada 0 vez(es)'
-- [x] 10.41 STATUS.md e handoff puro; invariantes em `docs/invariantes.md` citadas por numero (iter 0102)
+- [x] 10.41 STATUS handoff puro; invariantes por numero (iter 0102)
 - [ ] 10.42 Linhas tremulas na janela: captura do framebuffer nao sincroniza com vblank; 2o suspeito, page flip do GP1(05h) (visto em 30/07)
 - [ ] 10.42 Manifesto trata `#` como comentario dentro de `@@DE`/`@@PARA` — alvo `.md` nao ancora em cabecalho
 - [ ] 10.43 Todo texto do TTY sai duplicado (2 linhas 'System ROM' na main e depois do 0103)

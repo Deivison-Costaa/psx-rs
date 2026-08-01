@@ -7,22 +7,28 @@
 
 ## Última iteração concluída
 
-**0136** — Motor de respostas do CD-ROM fechado: gate de comando com IRQ pendente, timing
-por comando/estado, avanço de MSF em ReadN/ReadS e cancelamento do setor armado quando o
-comando é aceito. Bateria: 6/6 mutantes mortos, 2/2 controles verdes; `cargo test --all`
-verde. 4.4ad fecha 10.53; o spike confirma que **GTE ainda nao e o muro** — o próximo
-diagnóstico é VSync/IRQ0 do jogo.
+**0137** — Diagnostico puro do congelamento pos-boot: 8 hipoteses refutadas POR MEDICAO
+(comandos de CD, IRQ preso, TMR2, VBlank do kernel, leitura de CD, GPU/DrawSync, lhu do
+I_STAT, vetorizacao IEc). Mecanismo medido: o jogo enfileirou 2 handlers prio 0
+(SysEnqIntRP 0x80140004/14) e os REMOVEU (rollback de init falho); o kernel acka o bit6
+sozinho (221.520x, padrao 0xFFFFFFBF) e o WaitIntr do jogo (poll cru de 0x40&I_STAT,
+orcamento 0x800, $ra=0x8003EAF8) nunca ve o bit. Fila de streaming: 38 paginas em estado
+1, promocao 1→2 nunca roda. Dossie completo em docs/iterations/0137-*.md.
 
 ## Próxima tarefa
 
-**ROADMAP 4.4 — Boot de jogo 2D/menu: diagnóstico puro de VSync/IRQ0 do jogo.** Abrir o
-subitem após medir o spike em `docs/spikes/sideload-crash.md`; consultar `docs/reference/03-gpu.md`
-§ GP1(07h), L864-873 (Y2 pode interromper IRQ0).
-Consultar `docs/reference/11-interrupts.md` § Interrupt Request / Execution, L45-55. Alvos prováveis: `crates/psx-core/src/gpu.rs` e
-`bus.rs`, teste novo no padrão de um arquivo por item. Armadilha: não assumir que o caminho
-de VBlank que faz o shell avançar também entrega o callback LIBGPU; o Crash chega a
-`VSync: timeout` e depois ao vetor `0x80000080`. Não começar GTE antes desse diagnóstico.
-Invariantes relevantes: 31, 32, 33.
+**ROADMAP 4.5 — passo 1: confirmar o gatilho do rollback do init do LIBSN.** Dump da
+estrutura dos elementos 0x80140004/0x14/0x24 (verifier/handler) + sonda descartavel no
+chain walk do kernel (quem e chamado, o que o verifier le, por que devolve "nao e meu")
+na janela do init. Suspeito do painel (juiz adversarial): larco de espera com orcamento
+fixo perdendo corrida por ciclos subcustados — classe da 0104; cpu.rs:187 so custa
+opcodes 0x20-0x26 (LWC2/SWC2 pagam 1; divida 10.45). SE confirmar: goldens de custo por
+instrucao no padrao da 0104 com valor citado de docs/reference/02-cpu.md (NUNCA ajustado
+ao sintoma), gate "intr timeout: 2→0", e implementacao do trabalhador
+(opencode-go/gpt-5.6-luna, reasoningEffort max ja configurado em ~/.config/opencode).
+Armadilhas: (a) sondas sao descartaveis, reverter antes de commitar; (b) rebuild release
+antes de medir; (c) o EXE realoca codigo — disasm so da RAM em runtime.
+Invariantes relevantes: 30, 31, 32, 33.
 
 **Meta em vigor (ordem do usuario, 31/07):** emendar as iteracoes ate o M4 fechar, sem parar entre
 PRs. Pronto = **menu navegavel no `psx-desktop`**. Parada: 5 iteracoes fechadas sem o jogo bootar,

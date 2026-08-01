@@ -82,7 +82,11 @@ existe só para o portão `bateria_nomes_de_teste_existem` (mesmo padrão da 012
 
 ## Revisão cruzada (orquestrador)
 
-<!-- Preenchido pelo Claude na revisão do PR: achados no formato de docs/prompts/review.md, ou "sem achados". -->
+Sem achados. Verificações feitas: (a) o teste não depende de a BIOS ficar quieta — com
+`--exe` o load salta direto para o código sintético e nos 64 steps só ele roda; (b) o
+caminho `--disc` (sem `--exe`) foi exercitado pela própria medição (dois dumps de 1 048 576
+bytes); (c) o dump de 200 M foi conferido pela igualdade byte a byte com o de 120 M, cujo
+PNG foi inspecionado visualmente contra a referência.
 
 ## Decisões e notas
 

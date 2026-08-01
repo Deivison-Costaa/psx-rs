@@ -112,3 +112,36 @@ fn roadmap_aponta_para_o_arquivo_de_fechados() {
     );
     let _ = ler(ARQUIVO);
 }
+
+#[test]
+fn roadmap_nao_contem_itens_fechados() {
+    let roadmap = ler("ROADMAP.md");
+    let fechados: Vec<&str> = roadmap
+        .lines()
+        .filter(|linha| linha.starts_with("- [x] "))
+        .collect();
+
+    assert!(
+        fechados.is_empty(),
+        "ROADMAP.md deve conter somente itens abertos; itens fechados devem ir para {ARQUIVO}: \
+         {fechados:?}"
+    );
+}
+
+#[test]
+fn item_10_61_da_iteracao_0140_foi_arquivado() {
+    let roadmap = ler("ROADMAP.md");
+    let arquivo = ler(ARQUIVO);
+    let esperado = "- [x] 10.61 Fechado sai da escada mesmo em marco aberto; teto cai para 7 KB (iter 0140)";
+
+    assert!(
+        !roadmap
+            .lines()
+            .any(|linha| linha.starts_with("- [x] 10.61 ") || linha.starts_with("- [ ] 10.61 ")),
+        "o item 10.61 nao pode permanecer na escada depois de fechado"
+    );
+    assert!(
+        arquivo.lines().any(|linha| linha == esperado),
+        "o item 10.61 deve ser movido verbatim para {ARQUIVO} com o marcador da iteracao"
+    );
+}

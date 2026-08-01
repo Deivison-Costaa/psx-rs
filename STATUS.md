@@ -7,24 +7,25 @@
 
 ## Última iteração concluída
 
-**0129** — A premissa da 0128 caiu por medicao direta: `DeliverEvent(F0000003h, 20h)`
-**OCORRE** (10x, steps 87,0M-89,6M; B-table[07h]=0x00001B44). O shell sai do loop de
-TestEvent (ultimo poll 89 906 602), le ~86 setores (INT1, Pause pendente) e desenha
-(SetGraphDebug + hankaku no TTY, que cresce 473→725 bytes). Depois: steps ~92M-200M sem
-NENHUM comando novo ao drive, so VBlank/IRQ0. Invariante 32 criada.
+**0130** — `--dump-vram` no psx-cli (VRAM inteira, 15bpp LE cru). Medido: a tela SCE esta
+DESENHADA e igual a referencia do DuckStation (losango, SONY, fundo cinza, sem "®");
+**0 pixels mudam entre os dumps de 120M e 200M steps** — o shell congela na tela SCE
+(~14s emulados; em hardware ela dura ~3s). Combinado com a 0129: ele espera algo que nunca
+chega.
 
 ## Próxima tarefa
 
-**ROADMAP 4.4y — O shell desenhou O QUÊ, e o que ele espera?** Medido na 0129: apos consumir
-os eventos do CD o shell inicializa graficos e entra em loop de VBlank sem pedir mais nada ao
-drive (ate step 200 M). Descobrir se a tela desenhada ja e o logo/menu e o que destrava a
-continuacao. Passos: (1) capturar a VRAM em ~120 M steps (harness tipo o `vramshot` da 0110,
-NAO commitar; conferir LastWriteTime do exe antes de confiar nele) e comparar com
-`psx-estado/referencias/tela-de-boot-duckstation.png`; (2) se a tela estiver certa, o
-suspeito vira entrada (joypad) ou tempo — medir o que o shell le no loop de VBlank (trace de
-PCs do loop, nao checkpoint). Armadilhas: (a) ordem de IRQ do `Cpu::step` CORRETA — nao
-mexer (invariante 31); (b) o pipeline de eventos do CD esta eliminado — nao reabrir
-(invariante 32); (c) medida negativa exige janela alem do horizonte (invariante 30).
+**ROADMAP 4.4z — O que destrava a saída da tela SCE?** O shell desenhou a tela SCE
+(confirmado na 0130) e ficou em loop de VBlank sem falar com o CD (0129). Descobrir o que o
+loop espera. Candidatos, por ordem de suspeita: (1) SPU — o jingle de boot toca nessa tela e
+o shell pode esperar fim de voz/transferencia que nosso SPU stub nunca sinaliza; (2)
+contador de frames via VBlank — menos provavel, VBlank esta vivo (F2000003h/2 a cada frame,
+0129); (3) joypad no shell. Discriminador: trace de PCs do loop de VBlank do shell (janela
+100M-102M, deteccao continua) para achar o que ele le/testa a cada frame — enderecos de SPU
+(0x1F801Cxx), contadores em RAM, ou SIO. `--dump-vram` e `--dump-mem` ja existem no psx-cli.
+Armadilhas: (a) ordem de IRQ do `Cpu::step` CORRETA — nao mexer (invariante 31); (b) pipeline
+de eventos do CD eliminado — nao reabrir (invariante 32); (c) medida negativa exige janela
+alem do horizonte (invariante 30).
 Invariantes relevantes: 30, 31, 32.
 
 **Meta em vigor (ordem do usuario, 31/07):** emendar as iteracoes ate o M4 fechar, sem parar entre
@@ -51,7 +52,7 @@ de gouraud no losango (candidato 10.14).
 
 ## Placar de testes
 
-Workspace: **840** testes.
+Workspace: **842** testes.
 
 ## Bloqueios
 

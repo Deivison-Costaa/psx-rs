@@ -33,14 +33,15 @@ M2 (GPU) e M3 (DMA/IRQ/timers). Regra imposta por `roadmap_arquivo.rs`.
 - [x] 4.4o Referencia DuckStation: falta GetID (iter 0120)
 - [x] 4.4p 1a resposta do CD-ROM pelo scheduler; GetID aparece (iter 0121)
 - [x] 4.4q GetID Licensed:Mode2 + SCEA; laco de retentativa acaba (iter 0122)
-- [x] 4.4r GetTOC arma 2a resposta INT2(stat); boot le setores (iter 0123)
+- [x] 4.4r GetTOC arma 2a resposta INT2 (iter 0123)
 - [x] 4.4s Setor Mode2/Form1 offset sai do byte de modo (iter 0124)
 - [x] 4.4t Laco de dispatch de eventos do shell (iter 0125)
-- [x] 4.4u Evento que dispara montagem do sistema de arquivos (iter 0126)
+- [x] 4.4u Evento da montagem do filesystem (iter 0126)
 - [x] 4.4v Eventos 10h/200h ready antes do ultimo TestEvent; sem corrida (iter 0127)
 - [x] 4.4w Descritor testado pelo TestEvent do shell (iter 0128)
 - [x] 4.4x DeliverEvent(F0000003h,20h) ocorre; shell sai do loop e desenha (iter 0129)
-- [ ] 4.4y Shell desenha e para em VBlank: o que exibe/espera? VRAM vs referencia
+- [x] 4.4y Tela SCE igual a referencia; congela 120M→200M (iter 0130)
+- [ ] 4.4z O que destrava a saida da tela SCE? SPU/timer/pad
 
 ## M5 — GTE
 - [x] 5.1 Registradores + MFC2/MTC2/CFC2/CTC2/LWC2/SWC2 (iter 0084)

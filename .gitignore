@@ -4,6 +4,7 @@
 
 # Artefatos de build
 /target/
+/crates/psx-cli/tests/bins/
 
 # Baixados por script (scripts/fetch-*.ps1)
 /tests/exes/

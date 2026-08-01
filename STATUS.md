@@ -7,27 +7,28 @@
 
 ## Última iteração concluída
 
-**0133** — Medicao pura, zero codigo: o pos-licenca E bloqueio. A BIOS re-envia **Init
-(0x0A)** para sempre (laco em 0xBFC04A48-90, 99,85% das amostras 200M-400M; tela identica
-aos 400M) fazendo poll da flag RAM 0x91C4 que fica em 0. O drive RESPONDE (1317 IRQs), mas
-o **INT2 chega 383 cycles apos o INT3 — antes do ack** — violando a fila da spec
-(docs/reference/06-cdrom.md L333-337). E a divida 10.54 medida em campo.
+**0134** — 4.4ac fechado: 2a resposta ENFILEIRADA; o ack (HCLRCTL) so marca, o bus agenda
+CDROM_SECOND (+0x4A00) e o IRQ2 sobe na entrega — nunca no instante do ack (06-cdrom.md
+L333-337). Bateria 5/5+2/2. **Boot 400M: flag 0x91C4=1, BIOS saiu do retry de Init, TTY
+atravessa KERNEL SETUP → BOOTSTRAP LOADER → "boot file: cdrom:PSX.EXE;1"** — a tela passou
+da licenca. Fecha 10.54. Executada pelo orquestrador (plano de saida; papeis invertidos
+aprovados 01/08: goldens do orquestrador, implementacao do trabalhador).
 
 ## Próxima tarefa
 
-**ROADMAP 4.4ac — 2a resposta so apos o ack da 1a.** Mecanismo: hoje `cdrom.rs` agenda a
-2a resposta (INT2) por TEMPO; a spec manda ENFILEIRAR — "if the 1st response is INT3 ...
-the second is not delivered until INT3 is acknowledged" (docs/reference/06-cdrom.md § HINTSTS
-(L313), regra em L333-337). Implementar: resposta secundaria pendente fica numa fila; o ack
-via HCLRCTL (escrita em bank1 reg3) do INT corrente e o gatilho que promove a proxima
-resposta a INTSTS. Teste (golden da spec): mandar Init (0x0A); INT3 aparece; INTSTS NAO
-muda para 2 enquanto nao houver ack; apos HCLRCTL=0x07, INT2 aparece com stat correto.
-Criterio de sistema: boot 400M+ — flag 0x91C4 vira 1, BIOS sai do retry de Init e a tela
-passa da licenca (logo PS / leitura do SYSTEM.CNF no TTY). Fecha tambem 10.53/10.54 se a
-implementacao for a fila. Armadilhas: (a) NAO mexer na ordem de IRQ do Cpu::step
-(invariante 31); (b) o caminho CDROM_RESPONSE do bus.rs tambem entrega INTs — cobrir os
-dois; (c) rebuild release antes de medir (corolario rlib); (d) passo primo na amostragem.
-Invariantes relevantes: 30, 31, 32, 33.
+**ROADMAP 4.4ad — Motor de respostas do CD-ROM (Fase B do plano de saida).** Ordem: (1)
+diagnostico puro com R8 SUSPENSA por escrito so p/ este item: ler 06-cdrom.md INTEIRO e
+commitar docs/cdrom-comandos.md — tabela opcode → 1a/2a resposta, ciclos, citacao com
+linha conferida via grep -n, unknown marcado. (2) goldens do ORQUESTRADOR citando a
+tabela: fila tipada; timing DISTINTO por comando (Pause != Init por construcao); AVANCO de
+seek entre setores — hoje seek_min/sec/sect so sao escritos no Setloc e ReadN reentrega o
+MESMO setor (setores N/N+1 com bytes DIFERENTES no .bin sintetico); rearm do ReadS;
+Setmode; buffer 2340B. (3) worker implementa ate verde (R4 suspensa por escrito).
+Evidencia de que o avanco de seek e o bloqueio atual: loader caiu no fallback PSX.EXE
+(SYSTEM.CNF ilegivel) e PCs 367M-400M em laco de espera do kernel (0xA0/0x5C4-5DC).
+Armadilhas: (a) invariante 31 (ordem IRQ no Cpu::step); (b) o caminho CDROM_RESPONSE do
+bus.rs tambem entrega INTs — cobrir os dois; (c) rebuild release antes de medir (corolario
+rlib); (d) passo primo na amostragem. Invariantes relevantes: 30, 31, 32, 33.
 
 **Meta em vigor (ordem do usuario, 31/07):** emendar as iteracoes ate o M4 fechar, sem parar entre
 PRs. Pronto = **menu navegavel no `psx-desktop`**. Parada: 5 iteracoes fechadas sem o jogo bootar,
@@ -53,11 +54,11 @@ de gouraud no losango (candidato 10.14).
 
 ## Placar de testes
 
-Workspace: **847** testes.
+Workspace: **850** testes.
 
 ## Bloqueios
 
-- **4.4 Boot de jogo**: sem bloqueio conhecido; com disco montado o shell consome os eventos
-  do CD, lê ~86 setores e desenha (0129) — fronteira atual é o 4.4y. Imagens de disco
+- **4.4 Boot de jogo**: fronteira atual é a leitura SEQUENCIAL de setores (4.4ad): o
+  loader da BIOS chegou ao "boot file" mas ReadN reentrega o mesmo setor. Imagens de disco
   ficam fora do repositório, em `.../Programacao com agentes/roms/extraido/`.
   **Nunca commitar imagem de disco.**

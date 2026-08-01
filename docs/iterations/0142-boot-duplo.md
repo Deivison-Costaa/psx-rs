@@ -95,3 +95,28 @@ puro, e isso é deliberado: a 0137 nomeou um mecanismo errado ("rollback do init
 e esta nomeou o mecanismo certo. Implementar sobre a hipótese da 0137 teria produzido goldens de
 custo de ciclo para um sintoma cuja causa é outra. A dívida 10.45 (`cpu.rs:187` subcusta LWC2/SWC2)
 **continua aberta e continua legítima** — só não é a explicação deste congelamento.
+
+**4. Passo 3 já medido nesta mesma iteração: a leitura (a) está DESCARTADA.** Sonda de transição
+RAM→BIOS na janela do `SysInitMemory` (ciclos 354.241.000–354.242.400) achou **seis** transições, e
+a decisiva é:
+
+```
+ciclo=354241243  de=00002DB8 → 1FC06FDC  ra=00002DBC  epc=00001ED8  cause=00000000
+ciclo=354241659  de=00002DB8 → 1FC06FDC  ra=00002DBC  epc=00001ED8  cause=00000000
+```
+
+`ra = 0x2DBC` é exatamente `0x2DB8 + 4`, `cause = 0`, `epc` inalterado. É um **`jal` normal**:
+código do kernel em RAM (`0x2DB8`) chama deliberadamente a rotina do BIOS em `BFC06FDC`, que leva ao
+`SysInitMemory` de `BFC06F4C` 171 ciclos depois. Não há exceção mal vetorizada, salto com alvo
+errado nem `$ra` corrompido — as três formas da leitura (a).
+
+Uma verificação de controle na mesma sonda, com a janela larga (354,10 M–354,26 M): 1405 transições
+RAM→BIOS, **todas** de `0x1F0C` para três alvos alternados em `BFC07E8C/EAC/ED8`. É o trampolim de
+chamada do kernel funcionando normalmente — serve de linha de base e mostra que a sonda não estava
+inventando transições.
+
+**Portanto vale a leitura (b): a reinicialização é pedida, não acidental.** O que falta agora é
+identificar **que função do kernel mora em `0x2DB8`** e **quem a chama** — se o próprio jogo, via
+alguma A/B/C-function, ou se é caminho interno do kernel disparado por outra coisa. Note que
+`A(9Ch) SetConf`, o candidato óbvio (a spec diz que ele "deallocates all old ExCBs"), foi sondado e
+**não** dispara nesta execução.

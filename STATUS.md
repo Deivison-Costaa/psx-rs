@@ -16,17 +16,18 @@ Falta saber POR QUE o BIOS re-executa esse caminho aos 354 M.
 
 ## Próxima tarefa
 
-**ROADMAP 4.5 — passo 3: de ONDE se entra no BIOS aos 354 M.** Rodar pelo ORQUESTRADOR
-(trabalhador bloqueado por 10.62). Esta provado O QUE apaga a cadeia (`SysInitMemory` de
-`BFC06F4C`, ciclo 354.241.830) e POR QUE apaga (regiao contem o array de ExCB). Falta a entrada.
-`ra=BFC06F4C` diz so que a CHAMADA a C0(08) partiu do BIOS — nao diz quem entrou no BIOS.
-Medir: rastro de PC nos ~2000 passos ANTES do ciclo 354.241.830 (`--trace-pcs` ja existe no
-psx-cli), procurando a transicao `0x800xxxxx` → `0xBFC0xxxx`.
-Duas leituras a distinguir: (a) ESPURIA — exceção mal vetorizada, salto com alvo errado ou `$ra`
-corrompido levam o PC para o BIOS; conserto e no nosso codigo. (b) LEGITIMA — o jogo chama de
-proposito uma rotina que reinicializa memoria, e o defeito e o kernel nao repor os handlers.
-Se a entrada vier de codigo do jogo com `$ra` coerente, e (b).
-NAO implementar goldens de ciclo: a divida 10.45 continua aberta mas nao explica este sintoma.
+**ROADMAP 4.5 — passo 4: identificar a funcao do kernel em `0x2DB8` e quem a chama.**
+Rodar pelo ORQUESTRADOR (trabalhador bloqueado por 10.62).
+Ja provado: (i) `SysInitMemory` de `BFC06F4C` (ciclo 354.241.830) apaga o array de ExCB, que vive em
+`A000E004`, dentro da regiao `A000E000h`+`2000h` que a spec manda ele reinicializar; (ii) a entrada
+no BIOS e um `jal` LEGITIMO de `0x2DB8` para `BFC06FDC` (`ra=0x2DBC`, `cause=0`) — a leitura
+"desvio espurio nosso" esta DESCARTADA por medicao.
+Falta: que funcao mora em `0x2DB8` e quem a chama. Medir: (a) sonda de `jal`/`jr` com alvo
+`0x2DB8` na janela, registrando `$ra` do chamador — se vier de `0x800xxxxx` e o jogo; (b) conferir
+se algum A/B/C-function do kernel tem entrada que caia em `0x2DB8` (a tabela A0 fica em `0x200`,
+B0 em `0x874`, C0 em `0x674` segundo o mapa de RAM da spec).
+`A(9Ch) SetConf` ja foi sondado e NAO dispara — nao e ele.
+NAO implementar goldens de ciclo: divida 10.45 aberta, mas nao explica este sintoma.
 Armadilhas: (a) sondas descartaveis, reverter antes de commitar; (b) rebuild release antes de
 medir; (c) o EXE do Crash REALOCA codigo — disasm so da RAM em runtime.
 Invariantes relevantes: 25, 27, 30, 31.

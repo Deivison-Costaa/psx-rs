@@ -119,21 +119,21 @@ M2 (GPU) e M3 (DMA/IRQ/timers). Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 10.18 Nada torna `arquivada:` caro — 0052 e 0059 descartaram 17 registros (12 ainda casavam)
 - [ ] 10.33 `mutantes.ps1` so roda `cargo test -p psx-core` (linha 290) — outros crates precisam de bateria manual
 - [ ] 10.34 Nenhum meta-teste reprova `#[test]` sem assercao — T10 da 0080 era eprintln! e passou
-- [ ] 10.35 `mutantes.ps1` escreve nome qualificado no .resultado e `mutation_battery.rs` procura fn literal — nunca casam em modulo
+- [ ] 10.35 `mutantes.ps1` grava nome qualificado e `mutation_battery.rs` procura fn literal — nunca casam em modulo
 - [x] 10.36 Sideload de PS-EXE sem vetor 0x80000080 (iter 0093)
 - [x] 10.37 `oc-loop.ps1` anunciava merge que nao houve (iter 0094)
 - [x] 10.38 oc-iter pagava 45 min por rodada de 90 s (iter 0098)
 - [x] 10.39 Marco 100% fechado sai da escada para `docs/ROADMAP-fechado.md` (iter 0100)
 - [ ] 10.40 `mutantes.ps1` so casa ancora em arquivo LF; em CRLF diz 'encontrada 0 vez(es)'
 - [x] 10.41 STATUS handoff puro; invariantes por numero (iter 0102)
-- [ ] 10.42 Linhas tremulas na janela: captura do framebuffer nao sincroniza com vblank; 2o suspeito, page flip do GP1(05h) (visto em 30/07)
+- [ ] 10.42 Linhas tremulas: framebuffer capturado sem sincronizar com vblank; 2o suspeito page flip do GP1(05h) (30/07)
 - [ ] 10.42 Manifesto trata `#` como comentario dentro de `@@DE`/`@@PARA` — alvo `.md` nao ancora em cabecalho
 - [ ] 10.43 Todo texto do TTY sai duplicado (2 linhas 'System ROM' na main e depois do 0103)
 - [ ] 10.44 Manifesto com alvo em documento vivo (STATUS.md) envelhece na iteracao seguinte, sempre
 - [ ] 10.45 Load shadow: acesso lento se sobrepoe as instrucoes seguintes (`docs/reference/02-cpu.md` L281-296)
 - [ ] 10.46 `justificativa:` do equivalente nao aceita continuacao de linha em NENHUM dos dois parsers
-- [ ] 10.52 `lhu`/`lbu` no modo do timer nao limpa os bits 11/12 (caminho de byte usa `peek32`); 32 bits limpa (visto na 0118)
-- [ ] 10.51 Braco da GPU em `region_read_byte` faz `(phys & 3) + offset` sem mascara: desalinhado estoura em debug (visto na 0118)
+- [ ] 10.52 `lhu`/`lbu` no modo do timer nao limpa bits 11/12 (byte usa `peek32`); 32 bits limpa (0118)
+- [ ] 10.51 GPU em `region_read_byte`: `(phys & 3) + offset` sem mascara, desalinhado estoura em debug (0118)
 - [ ] 10.50 `GP0(C0h)` sem transferencia pendente devolve zero, e dreno alem da janela le zeros (visto na 0117)
 - [ ] 10.49 Bit 15 do `DICR` (bus error) e gravavel mas nada o levanta: transferencia fora da RAM e ignorada (visto na 0116)
 - [ ] 10.48 `sw` em `1F801044h..1F80104Fh` cai no sumidouro de `region_write32`: JOY_MODE/JOY_CTRL engolidos (visto na 0115)
@@ -143,7 +143,9 @@ M2 (GPU) e M3 (DMA/IRQ/timers). Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 10.55 Atraso da primeira resposta ignora o motor: spec da `Nop (when stopped) 0x5CF4` (0121)
 - [x] 10.54 2a resposta com atraso fisico apos o ack (06-cdrom.md L2066) (0121→0134)
 - [ ] 10.53 Comando executa mesmo com INT pendente; spec exige esperar o ack (06-cdrom.md L1984) (0121)
-- [ ] 10.47 Lacos de espera da BIOS (`0x80059DA4`, `0x80059D54`) tem orcamento de 0x8000 giros e um frame gasta ~230 k passos: saem por timeout (0114)
+- [ ] 10.47 Lacos de espera da BIOS (`0x80059DA4`/`0x80059D54`): orcamento 0x8000 giros, frame ~230 k passos, saem por timeout (0114)
+- [x] 10.60 oc-iter/oc-loop no Linux; trabalhador vira gpt-5.6-luna --variant max (0139)
+- [ ] 10.61 Fechado sai da escada mesmo em marco aberto; teto cai para 7 KB
 - [ ] 10.58 mutantes.ps1 so roda psx-core; alvo por crate e revalidar 0078/0079 (invariante 29) (0125)
 
 ## M11 — Apresentação (incremental desde o M1)

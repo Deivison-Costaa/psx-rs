@@ -43,7 +43,8 @@ M2 (GPU) e M3 (DMA/IRQ/timers). Regra imposta por `roadmap_arquivo.rs`.
 - [x] 4.4y Tela SCE igual a referencia; congela 120M→200M (iter 0130)
 - [x] 4.4z Reads de CD entregam setor N+150; TMD do logo vira lixo (iter 0131)
 - [x] 4.4aa Pregap 150 no read; boot chega a licenca (iter 0132)
-- [ ] 4.4ab Pos-licenca: BIOS quente em BFC04xxx — fluxo ou bloqueio?
+- [x] 4.4ab BIOS re-envia Init; INT2 atropela INT3 (iter 0133)
+- [ ] 4.4ac 2a resposta so apos ack da 1a (fila; fecha 10.53/10.54)
 
 ## M5 — GTE
 - [x] 5.1 Registradores + MFC2/MTC2/CFC2/CTC2/LWC2/SWC2 (iter 0084)
@@ -97,7 +98,7 @@ M2 (GPU) e M3 (DMA/IRQ/timers). Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 10.28 Tabela por registro nos docs vs `.resultado` — 0071 errou 3/9, 0038 inflou 2 creditos
 - [ ] 10.29 `dma_dpcr_gate.rs:141` usa `assert_ne!` como unica assercao numa correcao de defeito
 - [ ] 10.30 Habilitar canal no DPCR nao dispara transferencia pendente (so na escrita de CHCR)
-- [x] 10.31 Rodada morta seguia escrevendo: sessao vive no daemon, nao no cliente (iter 0101)
+- [x] 10.31 Rodada morta seguia escrevendo (daemon) (iter 0101)
 - [x] 10.32 GP1(09h) fecha gate nao limpa latch GPUSTAT.15 (iter 0076)
 - [ ] 10.25 `unwrap_or(\"\")` sobre caminho nos meta-testes — transformou falha de `strip_prefix` em silencio (10.12)
 - [ ] 10.13 GP0(24h) e modulacao, nao raw texture — bit 24 nao e lido (`docs/reference/03-gpu.md` L264/L1610); nao e causa do 2.2e (iter 0110)
@@ -119,7 +120,7 @@ M2 (GPU) e M3 (DMA/IRQ/timers). Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 10.35 `mutantes.ps1` escreve nome qualificado no .resultado e `mutation_battery.rs` procura fn literal — nunca casam em modulo
 - [x] 10.36 Sideload de PS-EXE sem vetor 0x80000080 (iter 0093)
 - [x] 10.37 `oc-loop.ps1` anunciava merge que nao houve (iter 0094)
-- [x] 10.38 `oc-iter.ps1` pagava a parede de 45 min por rodada travada de 90 s de vida (iter 0098)
+- [x] 10.38 oc-iter pagava 45 min por rodada de 90 s (iter 0098)
 - [x] 10.39 Marco 100% fechado sai da escada para `docs/ROADMAP-fechado.md` (iter 0100)
 - [ ] 10.40 `mutantes.ps1` so casa ancora em arquivo LF; em CRLF diz 'encontrada 0 vez(es)'
 - [x] 10.41 STATUS handoff puro; invariantes por numero (iter 0102)

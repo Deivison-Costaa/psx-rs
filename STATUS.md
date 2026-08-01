@@ -18,16 +18,18 @@ O trace do `psx-cli` agora inclui `a0($4)`.
 **ROADMAP 4.4x — Por que `DeliverEvent(F0000003h, 20h)` nunca ocorre?** O shell espera o
 evento spec=20h (command completed) no descritor F1000001. A segunda resposta do CD-ROM
 (INT2, apos um comando como `GetID` ou `ReadN`) deve disparar o handler da BIOS que chama
-`DeliverEvent(F0000003h, 20h)` — mas isso nao acontece. Hipotese: a INT2 e entregue (vimos
-a segunda resposta nos itens 0121–0124), mas o handler da BIOS **nao chama DeliverEvent para
-spec=20h**, ou chama com spec errado. Verificar no trace de IRQ2 (`--trace-pcs
-0x80000080`): quando a INT2 chega, qual `DeliverEvent(class, spec)` o handler invoca?
-(`docs/reference/13-kernel-bios.md` § B(07h) — DeliverEvent (L1642), § BIOS Event Summary
-(L1735)). Armadilha: (a) a ordem de IRQ do `Cpu::step` esta CORRETA — nao mexer
-(invariante 31); (b) NAO alterar o modelo de eventos do CD-ROM — o problema esta no que a
-BIOS faz com a INT2, nao em como geramos a INT2. Invariantes relevantes: 27, 31.
-Especs-alvo: `docs/reference/06-cdrom.md` § INT2 timing (se houver),
-`docs/reference/13-kernel-bios.md` § B(07h) — DeliverEvent (L1642).
+`DeliverEvent(F0000003h, 20h)` — mas isso nao acontece. **Duas hipoteses ABERTAS, decidir
+por medicao:** (a) nosso CD-ROM nao gera a INT2 do ultimo comando emitido — as dividas
+10.53/10.54 do ROADMAP (comando executa com INT pendente; 2a resposta dirigida por ack, nao
+por tempo) sao exatamente sobre isso; (b) a INT2 chega mas o handler da BIOS nao invoca
+`DeliverEvent(F0000003h, 20h)`. Discriminador: a partir de ~88 M, rastrear cada INT do
+CD-ROM entregue (tipo + comando pendente) e cada chamada de `DeliverEvent` (class+spec em
+`$a0`/`$a1`, endereco via B-table[07h]) ate o ultimo TestEvent (89 906 602). Nomear o
+ultimo comando enviado ao drive e o que aconteceu com a resposta dele.
+(`docs/reference/13-kernel-bios.md` § B(07h) - DeliverEvent (L1642), § BIOS Event Summary
+(L1735)). Armadilhas: (a) ordem de IRQ do `Cpu::step` CORRETA — nao mexer (invariante 31);
+(b) medida negativa exige janela alem de 90 M e deteccao continua (invariantes 30/31).
+Invariantes relevantes: 27, 30, 31.
 
 **Meta em vigor (ordem do usuario, 31/07):** emendar as iteracoes ate o M4 fechar, sem parar entre
 PRs. Pronto = **menu navegavel no `psx-desktop`**. Parada: 5 iteracoes fechadas sem o jogo bootar,

@@ -6,11 +6,11 @@ alvo: crates/psx-cli/src/main.rs
 teste: kernel_funcao_2db8
 
 mutante: m1
-rotulo: remove ra($31) do format string do eprintln (registro cego)
+rotulo: desalinha o contador de passos do trace em um, o chamador vira de outro passo
 @@DE
-                 v0($2)=0x{:08X} t4($12)=0x{:08X} t5($13)=0x{:08X} ra($31)=0x{:08X}",
+                steps,
 @@PARA
-                 v0($2)=0x{:08X} t4($12)=0x{:08X} t5($13)=0x{:08X}",
+                steps + 1,
 @@FIM
 
 mutante: m2

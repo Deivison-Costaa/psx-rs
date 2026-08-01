@@ -165,6 +165,41 @@ fn tabelas_kernel_nao_contem_2db8() {
     }
 }
 
+fn primeiro_encontro_de_pc(alvo: u32, max_passos: usize) -> Option<(usize, u32)> {
+    let bios_data = std::fs::read(bios_path()).expect("ler BIOS");
+    let bios = Bios::from_bytes(bios_data).expect("BIOS invalida");
+    let ram = Ram::new();
+    let mut bus = Bus::new(ram, bios);
+    let mut cpu = Cpu::new();
+    let mut passos = 0usize;
+    while passos < max_passos {
+        cpu.step(&mut bus);
+        passos += 1;
+        if cpu.pc == alvo {
+            return Some((passos, cpu.regs[31]));
+        }
+    }
+    None
+}
+
+fn campo_decimal(linha: &str, chave: &str) -> Option<usize> {
+    let resto = linha.split(chave).nth(1)?;
+    let digitos: String = resto.chars().take_while(|c| c.is_ascii_digit()).collect();
+    digitos.parse().ok()
+}
+
+fn campo_hex(linha: &str, chave: &str) -> Option<u32> {
+    let resto = linha.split(chave).nth(1)?;
+    let digitos: String = resto
+        .chars()
+        .take_while(|c| c.is_ascii_hexdigit())
+        .collect();
+    if digitos.len() != 8 {
+        return None;
+    }
+    u32::from_str_radix(&digitos, 16).ok()
+}
+
 #[test]
 fn trace_pcs_inclui_ra_do_chamador() {
     if !bios_path().exists() {
@@ -205,5 +240,26 @@ fn trace_pcs_inclui_ra_do_chamador() {
         tem_ra,
         "O trace --trace-pcs deve incluir ra($31); \
          sem ele o diagnostico do chamador e cego"
+    );
+
+    let (passo_esperado, ra_esperado) = primeiro_encontro_de_pc(0xA0, 500_000)
+        .expect("boot in-process deveria alcancar 0xA0 em 500k passos");
+
+    let primeira = trace_lines[0];
+    let passo_relatado = campo_decimal(primeira, "step=")
+        .unwrap_or_else(|| panic!("linha de trace sem campo step=: {}", primeira));
+    assert_eq!(
+        passo_relatado, passo_esperado,
+        "o primeiro trace deve sair no mesmo passo que o boot in-process alcanca 0x{:08X}",
+        0xA0
+    );
+
+    let ra_relatado = campo_hex(primeira, "ra($31)=0x")
+        .unwrap_or_else(|| panic!("linha de trace sem campo ra($31)=0x: {}", primeira));
+    assert_eq!(
+        ra_relatado, ra_esperado,
+        "ra($31) do trace tem de ser o VALOR do registrador 31 no passo {}, \
+         formatado em 8 digitos hex; relatado 0x{:08X}, esperado 0x{:08X}",
+        passo_esperado, ra_relatado, ra_esperado
     );
 }

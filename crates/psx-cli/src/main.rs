@@ -85,6 +85,23 @@ fn run(cpu: &mut Cpu, bus: &mut Bus, max_steps: usize, trace_pcs: &HashSet<u32>)
     steps
 }
 
+fn write_vram_dump(path: &str, bus: &Bus) {
+    let mut data = Vec::with_capacity(1024 * 512 * 2);
+    for y in 0..512u16 {
+        for x in 0..1024u16 {
+            data.extend_from_slice(&bus.gpu().vram_pixel(x, y).to_le_bytes());
+        }
+    }
+    if let Err(e) = std::fs::write(path, &data) {
+        eprintln!(
+            "Erro: nao foi possivel escrever dump de VRAM '{}': {}",
+            path, e
+        );
+        std::process::exit(1);
+    }
+    eprintln!("dump-vram: {} ({} bytes)", path, data.len());
+}
+
 fn load_disc(disc_path: &str) -> (DiscLayout, Vec<u8>) {
     let cue_text = match std::fs::read_to_string(disc_path) {
         Ok(t) => t,
@@ -128,6 +145,7 @@ fn main() {
     let mut max_steps: Option<usize> = None;
     let mut trace_pcs: HashSet<u32> = HashSet::new();
     let mut dump_mem: Vec<(u32, usize)> = Vec::new();
+    let mut dump_vram: Option<String> = None;
     let mut i = 1;
     while i < args.len() {
         match args[i].as_str() {
@@ -205,7 +223,11 @@ fn main() {
                 dump_mem.push((addr, len));
                 i += 3;
             }
-            "--max-steps" | "--trace-pcs" => {
+            "--dump-vram" if i + 1 < args.len() => {
+                dump_vram = Some(args[i + 1].clone());
+                i += 2;
+            }
+            "--max-steps" | "--trace-pcs" | "--dump-vram" => {
                 eprintln!("Erro: '{}' requer um valor", args[i]);
                 std::process::exit(1);
             }
@@ -288,6 +310,10 @@ fn main() {
                 }
             }
 
+            if let Some(path) = &dump_vram {
+                write_vram_dump(path, &bus);
+            }
+
             return;
         }
         (Some(bios_path), None, disc_path) => {
@@ -342,6 +368,10 @@ fn main() {
                     let word = bus.read32::<BusRead>(addr.wrapping_add(off as u32));
                     eprintln!("  {:08X}: {:08X}", addr.wrapping_add(off as u32), word);
                 }
+            }
+
+            if let Some(path) = &dump_vram {
+                write_vram_dump(path, &bus);
             }
 
             return;

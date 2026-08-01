@@ -1,0 +1,64 @@
+# Manifesto de mutação da iteração 0131 — espera-tela-sce
+formato: 1
+iteracao: 0131
+item: 4.4z
+alvo: crates/psx-cli/src/main.rs
+teste: espera_tela_sce
+
+mutante: m1
+rotulo: janela exclui o inicio (steps > start) — perde a amostra do step 16
+@@DE
+            if steps >= start && steps <= end && (steps - start) % stride == 0 {
+@@PARA
+            if steps > start && steps <= end && (steps - start) % stride == 0 {
+@@FIM
+
+mutante: m2
+rotulo: fase do passo deslocada (% stride == 1) — amostra nos steps errados
+@@DE
+            if steps >= start && steps <= end && (steps - start) % stride == 0 {
+@@PARA
+            if steps >= start && steps <= end && (steps - start) % stride == 1 {
+@@FIM
+
+mutante: m3
+rotulo: rotulo da linha de amostra trocado — filtro do teste nao casa
+@@DE
+                eprintln!("sample pc=0x{:08X} step={}", cpu.pc, steps);
+@@PARA
+                eprintln!("sampled pc=0x{:08X} step={}", cpu.pc, steps);
+@@FIM
+
+mutante: m4
+rotulo: amostra v0 em vez do PC — valor fora do loop conhecido
+@@DE
+                eprintln!("sample pc=0x{:08X} step={}", cpu.pc, steps);
+@@PARA
+                eprintln!("sample pc=0x{:08X} step={}", cpu.regs[2], steps);
+@@FIM
+
+mutante: m5
+rotulo: parser troca inicio e fim — janela vazia, zero amostras
+@@DE
+                        (Ok(s), Ok(e), Ok(st)) if st > 0 && s <= e => Some((s, e, st)),
+@@PARA
+                        (Ok(s), Ok(e), Ok(st)) if st > 0 && s <= e => Some((e, s, st)),
+@@FIM
+
+controle: c1
+rotulo: comentario na declaracao de sample_pcs
+@@DE
+    let mut sample_pcs: Option<(usize, usize, usize)> = None;
+@@PARA
+    // janela de amostragem inicio:fim:passo
+    let mut sample_pcs: Option<(usize, usize, usize)> = None;
+@@FIM
+
+controle: c2
+rotulo: comentario antes do bloco de amostragem
+@@DE
+        if let Some((start, end, stride)) = sample_pcs {
+@@PARA
+        // amostra o PC dentro da janela pedida
+        if let Some((start, end, stride)) = sample_pcs {
+@@FIM

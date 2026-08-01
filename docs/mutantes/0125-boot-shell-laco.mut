@@ -4,6 +4,7 @@ iteracao: 0125
 item: 4.4t
 alvo: crates/psx-cli/src/main.rs
 teste: max_steps
+arquivada: registro ancorado na assinatura/chamadas de run() que mudaram quando a 0131 adicionou sample_pcs; placar historico preservado no .resultado
 
 mutante: m1
 rotulo: --max-steps ignorado no laco de run (sempre usa o default)

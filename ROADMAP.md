@@ -41,7 +41,8 @@ M2 (GPU) e M3 (DMA/IRQ/timers). Regra imposta por `roadmap_arquivo.rs`.
 - [x] 4.4w Descritor testado pelo TestEvent do shell (iter 0128)
 - [x] 4.4x DeliverEvent(F0000003h,20h) ocorre; shell sai do loop e desenha (iter 0129)
 - [x] 4.4y Tela SCE igual a referencia; congela 120M→200M (iter 0130)
-- [ ] 4.4z O que destrava a saida da tela SCE? SPU/timer/pad
+- [x] 4.4z Reads de CD entregam setor N+150; TMD do logo vira lixo (iter 0131)
+- [ ] 4.4aa Subtrair pregap 150 no read_sector_from_disc
 
 ## M5 — GTE
 - [x] 5.1 Registradores + MFC2/MTC2/CFC2/CTC2/LWC2/SWC2 (iter 0084)
@@ -115,8 +116,8 @@ M2 (GPU) e M3 (DMA/IRQ/timers). Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 10.33 `mutantes.ps1` so roda `cargo test -p psx-core` (linha 290) — outros crates precisam de bateria manual
 - [ ] 10.34 Nenhum meta-teste reprova `#[test]` sem assercao — T10 da 0080 era eprintln! e passou
 - [ ] 10.35 `mutantes.ps1` escreve nome qualificado no .resultado e `mutation_battery.rs` procura fn literal — nunca casam em modulo
-- [x] 10.36 Interrupcoes nao funcionam em sideload de PS-EXE — vetor 0x80000080 nao configurado (iter 0093)
-- [x] 10.37 `oc-loop.ps1` anunciava merge que nao houve: `Wait-Checks` lia o commit anterior e falha de `gh pr merge` passava (iter 0094)
+- [x] 10.36 Sideload de PS-EXE sem vetor 0x80000080 (iter 0093)
+- [x] 10.37 `oc-loop.ps1` anunciava merge que nao houve (iter 0094)
 - [x] 10.38 `oc-iter.ps1` pagava a parede de 45 min por rodada travada de 90 s de vida (iter 0098)
 - [x] 10.39 Marco 100% fechado sai da escada para `docs/ROADMAP-fechado.md` (iter 0100)
 - [ ] 10.40 `mutantes.ps1` so casa ancora em arquivo LF; em CRLF diz 'encontrada 0 vez(es)'

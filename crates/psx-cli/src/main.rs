@@ -30,12 +30,24 @@ fn resolve_btable_entry(bus: &Bus, index: u32) -> Option<u32> {
     if addr == 0 { None } else { Some(addr) }
 }
 
-fn run(cpu: &mut Cpu, bus: &mut Bus, max_steps: usize, trace_pcs: &HashSet<u32>) -> usize {
+fn run(
+    cpu: &mut Cpu,
+    bus: &mut Bus,
+    max_steps: usize,
+    trace_pcs: &HashSet<u32>,
+    sample_pcs: Option<(usize, usize, usize)>,
+) -> usize {
     let mut steps = 0;
     let mut deliver_event_pc: Option<u32> = None;
     while steps < max_steps {
         cpu.step(bus);
         steps += 1;
+
+        if let Some((start, end, stride)) = sample_pcs {
+            if steps >= start && steps <= end && (steps - start) % stride == 0 {
+                eprintln!("sample pc=0x{:08X} step={}", cpu.pc, steps);
+            }
+        }
 
         if deliver_event_pc.is_none() && steps % 100_000 == 0 {
             if let Some(addr) = resolve_btable_entry(bus, 7) {
@@ -146,6 +158,7 @@ fn main() {
     let mut trace_pcs: HashSet<u32> = HashSet::new();
     let mut dump_mem: Vec<(u32, usize)> = Vec::new();
     let mut dump_vram: Option<String> = None;
+    let mut sample_pcs: Option<(usize, usize, usize)> = None;
     let mut i = 1;
     while i < args.len() {
         match args[i].as_str() {
@@ -227,7 +240,35 @@ fn main() {
                 dump_vram = Some(args[i + 1].clone());
                 i += 2;
             }
-            "--max-steps" | "--trace-pcs" | "--dump-vram" => {
+            "--sample-pcs" if i + 1 < args.len() => {
+                let parts: Vec<_> = args[i + 1].split(':').collect();
+                let parsed = if parts.len() == 3 {
+                    match (
+                        parts[0].parse::<usize>(),
+                        parts[1].parse::<usize>(),
+                        parts[2].parse::<usize>(),
+                    ) {
+                        (Ok(s), Ok(e), Ok(st)) if st > 0 && s <= e => Some((s, e, st)),
+                        _ => None,
+                    }
+                } else {
+                    None
+                };
+                match parsed {
+                    Some(v) => {
+                        sample_pcs = Some(v);
+                        i += 2;
+                    }
+                    None => {
+                        eprintln!(
+                            "Erro: '--sample-pcs' espera inicio:fim:passo decimais, '{}'",
+                            args[i + 1]
+                        );
+                        std::process::exit(1);
+                    }
+                }
+            }
+            "--max-steps" | "--trace-pcs" | "--dump-vram" | "--sample-pcs" => {
                 eprintln!("Erro: '{}' requer um valor", args[i]);
                 std::process::exit(1);
             }
@@ -292,7 +333,7 @@ fn main() {
 
             psx_core::psexe::install_return_stubs(&mut bus);
 
-            let steps = run(&mut cpu, &mut bus, max_steps, &trace_pcs);
+            let steps = run(&mut cpu, &mut bus, max_steps, &trace_pcs, sample_pcs);
 
             let tty = bus.take_tty();
             if !tty.is_empty() {
@@ -352,7 +393,7 @@ fn main() {
                 bus.cdrom_mut().insert_disc();
             }
 
-            let steps = run(&mut cpu, &mut bus, max_steps, &trace_pcs);
+            let steps = run(&mut cpu, &mut bus, max_steps, &trace_pcs, sample_pcs);
 
             let tty = bus.take_tty();
             if !tty.is_empty() {

@@ -7,26 +7,27 @@
 
 ## Última iteração concluída
 
-**0130** — `--dump-vram` no psx-cli (VRAM inteira, 15bpp LE cru). Medido: a tela SCE esta
-DESENHADA e igual a referencia do DuckStation (losango, SONY, fundo cinza, sem "®");
-**0 pixels mudam entre os dumps de 120M e 200M steps** — o shell congela na tela SCE
-(~14s emulados; em hardware ela dura ~3s). Combinado com a 0129: ele espera algo que nunca
-chega.
+**0131** — Nenhum candidato do handoff: o shell nao espera hardware, espera DADO. Ele varre
+em spin infinito (~113M+) o TMD do logo PlayStation carregado em 0x80010000 procurando
+primitivos 0x20/0x30 — e o conteudo e lixo (contador de primitivas 0x2E0E1E1E) porque
+**todo read de CD entrega o setor N+150**: bytes da RAM localizados no `.bin` no setor 155;
+o TMD real esta no setor 5. 155-5 = pregap de 00:02:00. `--sample-pcs` novo no psx-cli.
+Invariante 33 (inclui: amostragem exige passo primo; nunca Set-Content em fonte).
 
 ## Próxima tarefa
 
-**ROADMAP 4.4z — O que destrava a saída da tela SCE?** O shell desenhou a tela SCE
-(confirmado na 0130) e ficou em loop de VBlank sem falar com o CD (0129). Descobrir o que o
-loop espera. Candidatos, por ordem de suspeita: (1) SPU — o jingle de boot toca nessa tela e
-o shell pode esperar fim de voz/transferencia que nosso SPU stub nunca sinaliza; (2)
-contador de frames via VBlank — menos provavel, VBlank esta vivo (F2000003h/2 a cada frame,
-0129); (3) joypad no shell. Discriminador: trace de PCs do loop de VBlank do shell (janela
-100M-102M, deteccao continua) para achar o que ele le/testa a cada frame — enderecos de SPU
-(0x1F801Cxx), contadores em RAM, ou SIO. `--dump-vram` e `--dump-mem` ja existem no psx-cli.
-Armadilhas: (a) ordem de IRQ do `Cpu::step` CORRETA — nao mexer (invariante 31); (b) pipeline
-de eventos do CD eliminado — nao reabrir (invariante 32); (c) medida negativa exige janela
-alem do horizonte (invariante 30).
-Invariantes relevantes: 30, 31, 32.
+**ROADMAP 4.4aa — Subtrair o pregap no read do CD.** Defeito nomeado:
+`read_sector_from_disc` (`crates/psx-core/src/cdrom.rs:518-520`) faz
+`offset = abs_sector * 2352`; o correto e `(abs_sector - 150) * 2352` porque o MSF de
+Setloc e absoluto (docs/reference/06-cdrom.md § Setloc - Command 02h (L787)) e a trilha 1
+comeca em 00:02:00 (docs/reference/06-cdrom.md L850) — o `.bin` comeca 150 setores depois
+do zero. Teste com golden do disco real: setor 5 do `.bin` comeca `41 00 00 00` (ID de TMD)
+apos os 24 bytes de header Form1; pedir MSF 00:02:05 tem que devolver esses bytes. Guardar
+tambem o caso abs_sector < 150 (retornar None, nao underflow — e usize!). Criterio de
+sucesso de sistema: rodar o boot 130M steps e o spin em 0x8004205C NAO existir mais
+(sample-pcs), e/ou a VRAM sair da tela SCE. Armadilhas: (a) invariantes 31/32 seguem
+valendo; (b) exe release stale — rebuild antes de medir (invariante 30, corolario rlib).
+Invariantes relevantes: 30, 31, 32, 33.
 
 **Meta em vigor (ordem do usuario, 31/07):** emendar as iteracoes ate o M4 fechar, sem parar entre
 PRs. Pronto = **menu navegavel no `psx-desktop`**. Parada: 5 iteracoes fechadas sem o jogo bootar,
@@ -52,7 +53,7 @@ de gouraud no losango (candidato 10.14).
 
 ## Placar de testes
 
-Workspace: **842** testes.
+Workspace: **844** testes.
 
 ## Bloqueios
 

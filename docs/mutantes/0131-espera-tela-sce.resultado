@@ -1,0 +1,10 @@
+# gerado por bateria MANUAL executada pelo orquestrador — mutantes.ps1 NAO se aplica: alvo em crates/psx-cli (invariante 29)
+# commit: 2dd85797464d5806de0b1a59d80a4c3a614605ae
+# rodado_em: 2026-08-01T00:45:56-03:00
+m1,mutante,morreu,morreu,0.05,sample_pcs_amostra_o_loop_na_janela
+m2,mutante,morreu,morreu,0.05,sample_pcs_amostra_o_loop_na_janela
+m3,mutante,morreu,morreu,0.05,sample_pcs_amostra_o_loop_na_janela
+m4,mutante,morreu,morreu,0.06,sample_pcs_amostra_o_loop_na_janela
+m5,mutante,morreu,morreu,0.05,sample_pcs_amostra_o_loop_na_janela
+c1,controle,sobreviveu,sobreviveu,0.05,
+c2,controle,sobreviveu,sobreviveu,0.05,

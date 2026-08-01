@@ -4,6 +4,7 @@ iteracao: 0128
 item: 4.4w
 alvo: crates/psx-cli/src/main.rs
 teste: testevent_descritor
+arquivada: registro ancorado na assinatura/chamadas de run() que mudaram quando a 0131 adicionou sample_pcs; placar historico preservado no .resultado
 
 mutante: m1
 rotulo: remove a0($4) do formato de trace (parser nao encontra a0)

@@ -60,10 +60,10 @@ rotulo: valor de v0 usa regs[4] (a0) — v0 errado (0x2A em vez de 0x99)
 controle: c1
 rotulo: comentario cosmetico antes de fn run
 @@DE
-fn run(cpu: &mut Cpu, bus: &mut Bus, max_steps: usize, trace_pcs: &HashSet<u32>) -> usize {
+fn run(
 @@PARA
 // loop principal de emulacao com trace de DeliverEvent
-fn run(cpu: &mut Cpu, bus: &mut Bus, max_steps: usize, trace_pcs: &HashSet<u32>) -> usize {
+fn run(
 @@FIM
 
 controle: c2

@@ -104,6 +104,9 @@ $errFile = "logs/oc-iter-$stamp.err"
 # aspas, e uma aspa DENTRO dele fecha a regiao citada. Dai qualquer token comecando com "-"
 # que caia fora vira flag do CLI (o "->" de "remover o teto -> teste trava" derrubou a rodada
 # de 28/07 11:52, com o opencode imprimindo o help). Escapar as aspas resolve.
+# NAO tornar isto condicional a $IsWindows: medido na 0139, o pwsh no LINUX tambem achata o
+# -ArgumentList e o .NET reparseia com regras de aspas do Windows. Sem o escape o prompt chega
+# partido em 5 argumentos e o "--version" de dentro dele vira flag do CLI.
 $promptArg = '"' + ($prompt -replace '"', '\"') + '"'
 
 $sw = [System.Diagnostics.Stopwatch]::StartNew()

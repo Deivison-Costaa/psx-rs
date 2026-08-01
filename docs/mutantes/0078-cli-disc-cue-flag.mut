@@ -4,6 +4,7 @@ iteracao: 0078
 item: 4.3c
 alvo: crates/psx-cli/src/main.rs
 teste: disc_flag
+arquivada: registro ancorado na assinatura/chamadas de run() que mudaram quando a 0131 adicionou sample_pcs; placar historico preservado no .resultado
 
 mutante: m1
 rotulo: --disc nao eh parseado no laco de argumentos (regressao)

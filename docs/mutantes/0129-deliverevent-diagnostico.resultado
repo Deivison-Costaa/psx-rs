@@ -1,10 +1,10 @@
-# gerado por bateria MANUAL executada pelo orquestrador — mutantes.ps1 NAO se aplica: alvo em crates/psx-cli (invariante 29)
-# commit: c8935c92edc75944e0052524aa4fc0a4d9e42fc7
-# rodado_em: 2026-07-31T23:08:59-03:00
-m1,mutante,morreu,morreu,0.1,trace_format_inclui_a1_na_saida
-m2,mutante,morreu,morreu,0.1,trace_format_inclui_a1_na_saida
-m3,mutante,morreu,morreu,0.1,trace_format_inclui_a1_na_saida
-m4,mutante,morreu,morreu,0.1,trace_format_inclui_a1_na_saida
-m5,mutante,morreu,morreu,0.1,trace_format_inclui_a1_na_saida
-c1,controle,sobreviveu,sobreviveu,0.1,
-c2,controle,sobreviveu,sobreviveu,0.1,
+# gerado por bateria MANUAL re-executada pelo orquestrador na 0131 (ancora c1 atualizada apos refactor do run(); mutantes.ps1 NAO se aplica: alvo em crates/psx-cli, invariante 29)
+# commit: 2dd85797464d5806de0b1a59d80a4c3a614605ae
+# rodado_em: 2026-08-01T00:42:49-03:00
+m1,mutante,morreu,morreu,0.05,trace_format_inclui_a1_na_saida
+m2,mutante,morreu,morreu,0.05,trace_format_inclui_a1_na_saida
+m3,mutante,morreu,morreu,0.05,trace_format_inclui_a1_na_saida
+m4,mutante,morreu,morreu,0.05,trace_format_inclui_a1_na_saida
+m5,mutante,morreu,morreu,0.05,trace_format_inclui_a1_na_saida
+c1,controle,sobreviveu,sobreviveu,0.05,
+c2,controle,sobreviveu,sobreviveu,0.05,

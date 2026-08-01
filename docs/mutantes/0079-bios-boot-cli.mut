@@ -4,6 +4,7 @@ iteracao: 0079
 item: 4.4a
 alvo: crates/psx-cli/src/main.rs
 teste: bios_boot
+arquivada: registro ancorado na assinatura/chamadas de run() que mudaram quando a 0131 adicionou sample_pcs; placar historico preservado no .resultado
 
 mutante: m1
 rotulo: remove a linha de eprintln Runner do laco de boot (regressao)

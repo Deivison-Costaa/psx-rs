@@ -1,0 +1,10 @@
+# gerado por bateria MANUAL executada pelo orquestrador — mutantes.ps1 NAO se aplica: alvo em crates/psx-cli (invariante 29)
+# commit: d57416b4496302feee24176501db68136e718636
+# rodado_em: 2026-08-01T00:15:44-03:00
+m1,mutante,morreu,morreu,0.1,dump_vram_grava_fill_convertido_para_15bpp
+m2,mutante,morreu,morreu,0.1,dump_vram_grava_fill_convertido_para_15bpp
+m3,mutante,morreu,morreu,0.1,dump_vram_grava_fill_convertido_para_15bpp
+m4,mutante,morreu,morreu,0.1,dump_vram_grava_fill_convertido_para_15bpp
+m5,mutante,morreu,morreu,0.1,dump_vram_grava_fill_convertido_para_15bpp
+c1,controle,sobreviveu,sobreviveu,0.1,
+c2,controle,sobreviveu,sobreviveu,0.1,

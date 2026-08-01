@@ -7,26 +7,26 @@
 
 ## Última iteração concluída
 
-**0142** — Nomeado o mecanismo que a 0141 mediu. **Nao ha reset de CPU**: `reset_vector` dispara
-UMA vez, no ciclo 0. No ciclo 354.241.830 — dentro da janela em que a cadeia e resetada — codigo do
-BIOS em `BFC06F4C` chama `C(08h) SysInitMemory`, que pela spec reinicializa a regiao `A000E000h`
-tamanho `2000h`. E `[0x100] = A000E004`: **o array de ExCB vive dentro dessa regiao**. Reinicializa-la
-apaga as 4 cabecas de cadeia e leva junto o handler do jogo. Cadeia causal fechada ponta a ponta.
-Falta saber POR QUE o BIOS re-executa esse caminho aos 354 M.
+**0143** — Trabalhador DESTRAVADO. `$TravamentoMin` 5→25 min e o teste
+`janela_de_travamento_e_menor_que_a_parede_da_rodada` ganhou piso `MINUTOS_DO_PORTAO = 15`: o
+portao do passo 7 leva 842 s desde que BIOS/disco chegaram (0139) e o trabalhador fica calado
+durante ele, entao 5 min lia silencio legitimo como provedor mudo (matou as 2 rodadas da 0140).
+**Achado grave de processo:** ao pedir a linha de base, medi que o `.resultado` da 0098 MENTIA —
+`m4` registrado como morto SOBREVIVE, porque ele troca a janela por 45 e a parede subiu de 45 para
+75 depois que a bateria rodou. Nenhum meta-teste re-executa bateria; placar verde sobrevive a
+mudanca de constante (item novo 10.66). 0098 reparada e regenerada: 6/6+2/2.
 
 ## Próxima tarefa
 
 **ROADMAP 4.5 — passo 4: identificar a funcao do kernel em `0x2DB8` e quem a chama.**
-Rodar pelo ORQUESTRADOR (trabalhador bloqueado por 10.62).
-Ja provado: (i) `SysInitMemory` de `BFC06F4C` (ciclo 354.241.830) apaga o array de ExCB, que vive em
-`A000E004`, dentro da regiao `A000E000h`+`2000h` que a spec manda ele reinicializar; (ii) a entrada
-no BIOS e um `jal` LEGITIMO de `0x2DB8` para `BFC06FDC` (`ra=0x2DBC`, `cause=0`) — a leitura
-"desvio espurio nosso" esta DESCARTADA por medicao.
-Falta: que funcao mora em `0x2DB8` e quem a chama. Medir: (a) sonda de `jal`/`jr` com alvo
-`0x2DB8` na janela, registrando `$ra` do chamador — se vier de `0x800xxxxx` e o jogo; (b) conferir
-se algum A/B/C-function do kernel tem entrada que caia em `0x2DB8` (a tabela A0 fica em `0x200`,
-B0 em `0x874`, C0 em `0x674` segundo o mapa de RAM da spec).
-`A(9Ch) SetConf` ja foi sondado e NAO dispara — nao e ele.
+**AGORA PODE IR PARA O TRABALHADOR** (10.62 fechada na 0143; rodar `pwsh scripts/oc-iter.ps1`).
+Ja provado: (i) `SysInitMemory` de `BFC06F4C` (ciclo 354.241.830) apaga o array de ExCB, que vive
+em `A000E004`, dentro da regiao `A000E000h`+`2000h` que a spec manda ele reinicializar; (ii) a
+entrada no BIOS e um `jal` LEGITIMO de `0x2DB8` para `BFC06FDC` (`ra=0x2DBC`, `cause=0`) — a
+leitura "desvio espurio nosso" esta DESCARTADA por medicao.
+Falta: que funcao mora em `0x2DB8` e quem a chama. Medir: (a) sonda de `jal` com alvo `0x2DB8`,
+registrando `$ra` do chamador — se vier de `0x800xxxxx` e o jogo; (b) conferir se alguma entrada
+das tabelas A0/B0/C0 cai em `0x2DB8`. `A(9Ch) SetConf` ja foi sondado e NAO dispara.
 NAO implementar goldens de ciclo: divida 10.45 aberta, mas nao explica este sintoma.
 Armadilhas: (a) sondas descartaveis, reverter antes de commitar; (b) rebuild release antes de
 medir; (c) o EXE do Crash REALOCA codigo — disasm so da RAM em runtime.

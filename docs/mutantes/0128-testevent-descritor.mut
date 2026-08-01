@@ -1,0 +1,74 @@
+# Manifesto de mutação da iteração 0128 — testevent-descritor
+formato: 1
+iteracao: 0128
+item: 4.4w
+alvo: crates/psx-cli/src/main.rs
+teste: testevent_descritor
+
+mutante: m1
+rotulo: remove a0($4) do formato de trace (parser nao encontra a0)
+@@DE
+                "trace pc=0x{:08X} step={} instr=0x{:08X} \
+                 regs: a0($4)=0x{:08X} t1($9)=0x{:08X} s1($17)=0x{:08X} v0($2)=0x{:08X} t4($12)=0x{:08X} t5($13)=0x{:08X}",
+@@PARA
+                "trace pc=0x{:08X} step={} instr=0x{:08X} \
+                 regs: t1($9)=0x{:08X} s1($17)=0x{:08X} v0($2)=0x{:08X} t4($12)=0x{:08X} t5($13)=0x{:08X}",
+@@FIM
+
+mutante: m2
+rotulo: inverte a0 e v0 no formato do trace (valores trocados)
+@@DE
+                "trace pc=0x{:08X} step={} instr=0x{:08X} \
+                 regs: a0($4)=0x{:08X} t1($9)=0x{:08X} s1($17)=0x{:08X} v0($2)=0x{:08X} t4($12)=0x{:08X} t5($13)=0x{:08X}",
+@@PARA
+                "trace pc=0x{:08X} step={} instr=0x{:08X} \
+                 regs: v0($2)=0x{:08X} t1($9)=0x{:08X} s1($17)=0x{:08X} a0($4)=0x{:08X} t4($12)=0x{:08X} t5($13)=0x{:08X}",
+@@FIM
+
+mutante: m3
+rotulo: nao passa regs[4] como argumento do a0 (usa regs[2] em vez)
+@@DE
+                cpu.regs[4],
+@@PARA
+                cpu.regs[2],
+@@FIM
+
+mutante: m4
+rotulo: eprintln do trace substituido por println (vai para stdout, nao stderr)
+@@DE
+            eprintln!(
+                "trace pc=0x{:08X} step={} instr=0x{:08X} \
+                 regs: a0($4)=0x{:08X} t1($9)=0x{:08X} s1($17)=0x{:08X} v0($2)=0x{:08X} t4($12)=0x{:08X} t5($13)=0x{:08X}",
+                cpu.pc,
+@@PARA
+            println!(
+                "trace pc=0x{:08X} step={} instr=0x{:08X} \
+                 regs: a0($4)=0x{:08X} t1($9)=0x{:08X} s1($17)=0x{:08X} v0($2)=0x{:08X} t4($12)=0x{:08X} t5($13)=0x{:08X}",
+                cpu.pc,
+@@FIM
+
+mutante: m5
+rotulo: substitui --trace-pcs por argumento que nao insere enderecos
+@@DE
+                            trace_pcs.insert(addr);
+@@PARA
+                            let _ = addr;
+@@FIM
+
+controle: c1
+rotulo: acrescenta comentario cosmetico antes da funcao run (cosmetico)
+@@DE
+fn run(cpu: &mut Cpu, bus: &mut Bus, max_steps: usize, trace_pcs: &HashSet<u32>) -> usize {
+@@PARA
+// executa o loop de emulacao com trace opcional de PCs
+fn run(cpu: &mut Cpu, bus: &mut Bus, max_steps: usize, trace_pcs: &HashSet<u32>) -> usize {
+@@FIM
+
+controle: c2
+rotulo: renomeia cpu para processor na assinatura mas nao no corpo (nao compila)
+@@DE
+fn run(cpu: &mut Cpu, bus: &mut Bus, max_steps: usize, trace_pcs: &HashSet<u32>) -> usize {
+@@PARA
+fn run(cpu: &mut Cpu, bus: &mut Bus, max_steps: usize, trace_pcs: &HashSet<u32>) -> usize {
+    let _phantom = steps;
+@@FIM

@@ -30,17 +30,17 @@ rotulo: travamento cai no mesmo rotulo do timeout e some da metrica
 @@FIM
 
 mutante: m4
-rotulo: janela de travamento igual a parede, o detector nunca dispara
+rotulo: janela de travamento igual a parede (75), o detector nunca dispara
 @@DE
-    [int]$TravamentoMin = 5,
+    [int]$TravamentoMin = 25,
 @@PARA
-    [int]$TravamentoMin = 45,
+    [int]$TravamentoMin = 75,
 @@FIM
 
 mutante: m5
 rotulo: janela zero mata toda rodada na primeira volta
 @@DE
-    [int]$TravamentoMin = 5,
+    [int]$TravamentoMin = 25,
 @@PARA
     [int]$TravamentoMin = 0,
 @@FIM

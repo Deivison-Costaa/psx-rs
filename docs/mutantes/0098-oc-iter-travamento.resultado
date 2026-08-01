@@ -1,11 +1,11 @@
-# gerado por scripts/mutantes.ps1 — NAO editar a mao
-# commit: a026650d41c906c8aed5b88d419f5a3494afe6df
-# rodado_em: 2026-07-30T14:48:35-03:00
-m1,mutante,morreu,morreu,0.5,espera_da_rodada_nao_e_um_waitforexit_cego_de_parede_inteira
-m2,mutante,morreu,morreu,0.1,espera_observa_o_crescimento_do_json_da_rodada
-m3,mutante,morreu,morreu,0.1,travamento_tem_rotulo_proprio_distinto_de_timeout
+# gerado por bateria MANUAL (invariante 29): alvo fora de crates/psx-core/, mutantes.ps1:366 pula
+# commit: 2ee91306f342841db8e6ba25e2e49e0e1deda459
+# rodado_em: 2026-08-01T17:58:10-03:00
+m1,mutante,morreu,morreu,0.2,espera_da_rodada_nao_e_um_waitforexit_cego_de_parede_inteira
+m2,mutante,morreu,morreu,0.2,espera_observa_o_crescimento_do_json_da_rodada
+m3,mutante,morreu,morreu,0.2,travamento_tem_rotulo_proprio_distinto_de_timeout
 m4,mutante,morreu,morreu,0.1,janela_de_travamento_e_menor_que_a_parede_da_rodada
-m5,mutante,morreu,morreu,0.1,janela_de_travamento_e_menor_que_a_parede_da_rodada
-m6,mutante,morreu,morreu,0.1,espera_observa_o_crescimento_do_json_da_rodada
+m5,mutante,morreu,morreu,0.2,janela_de_travamento_e_menor_que_a_parede_da_rodada
+m6,mutante,morreu,morreu,0.2,espera_observa_o_crescimento_do_json_da_rodada
 c1,controle,sobreviveu,sobreviveu,0.1,
-c2,controle,sobreviveu,sobreviveu,0.1,
+c2,controle,sobreviveu,sobreviveu,0.2,

@@ -198,11 +198,7 @@ fn linha_de(script: &str, agulha: &str) -> String {
     let pos = script
         .find(agulha)
         .unwrap_or_else(|| panic!("o script deve conter `{agulha}`"));
-    script[..pos]
-        .rsplit('\n')
-        .next()
-        .unwrap_or("")
-        .to_string()
+    script[..pos].rsplit('\n').next().unwrap_or("").to_string()
 }
 
 #[test]

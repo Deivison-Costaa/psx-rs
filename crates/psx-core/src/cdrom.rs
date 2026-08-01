@@ -2,6 +2,11 @@ use std::cell::Cell;
 
 use crate::cdrom_bin_cue::DiscLayout;
 
+const PAUSE_READING_CYCLES: u64 = 0x021_181C;
+const PAUSE_IDLE_CYCLES: u64 = 0x1DF2;
+const STOP_MOTOR_CYCLES: u64 = 0x0D3_8ACA;
+const STOP_STOPPED_CYCLES: u64 = 0x1D7B;
+
 #[derive(Debug)]
 pub struct Cdrom {
     bank: Cell<u8>,
@@ -39,7 +44,7 @@ pub struct Cdrom {
     read_pos_ss: Cell<u8>,
     read_pos_ff: Cell<u8>,
     mode: Cell<u8>,
-    commands_executed: Cell<u32>,
+    second_dirty: Cell<bool>,
 }
 
 impl Cdrom {
@@ -80,7 +85,7 @@ impl Cdrom {
             read_pos_ss: Cell::new(0),
             read_pos_ff: Cell::new(0),
             mode: Cell::new(0),
-            commands_executed: Cell::new(0),
+            second_dirty: Cell::new(false),
         }
     }
 
@@ -206,6 +211,9 @@ impl Cdrom {
         self.pending_params.set(self.param_buf.get());
         self.pending_param_count.set(self.param_count.get());
         self.issued_cmd.set(Some(cmd));
+        if self.intsts.get() == 0 && !self.int2_pending.get() && !self.int1_pending.get() {
+            self.second_dirty.set(true);
+        }
     }
 
     pub fn take_issued_command(&self) -> Option<u8> {
@@ -223,8 +231,6 @@ impl Cdrom {
         match cmd {
             0x06 => 0x4_A00,
             0x07 => 0x04_A00,
-            0x08 => 0x0D3_8ACA,
-            0x09 => 0x021_181C,
             0x0A | 0x1E => 0x4_A00,
             0x12 => 0x04_A00,
             0x15 | 0x16 => 0x04_A00,
@@ -239,54 +245,26 @@ impl Cdrom {
         self.second_cycles.get()
     }
 
-    fn is_control_command(cmd: u8) -> bool {
-        matches!(cmd, 0x08..=0x0A)
-    }
-
-    pub fn deliver_first(&self) {
-        let cmd_byte = self.pending_cmd.get();
-        let blocked = self.intsts.get() != 0
-            && (self.int2_pending.get() || self.int1_pending.get())
-            && !cmd_byte.is_some_and(Self::is_control_command);
+    pub fn deliver_first(&self) -> bool {
+        let blocked =
+            self.intsts.get() != 0 && (self.int2_pending.get() || self.int1_pending.get());
         if blocked {
-            return;
+            return false;
         }
         let cmd = match self.pending_cmd.take() {
             Some(cmd) => cmd,
-            None => return,
+            None => return false,
         };
         self.param_buf.set(self.pending_params.get());
         self.param_count.set(self.pending_param_count.get());
         self.send_command(cmd);
-    }
-
-    pub fn try_execute_latched(&self) -> bool {
-        if self.intsts.get() != 0 {
-            return false;
-        }
-        if self.int2_pending.get() {
-            self.int2_pending.set(false);
-            self.second_request.set(true);
-            self.irq_line.set(false);
-            return false;
-        }
-        if self.int1_pending.get() {
-            self.int1_pending.set(false);
-            self.second_request.set(true);
-            self.irq_line.set(false);
-            return false;
-        }
-        if self.pending_cmd.get().is_some() {
-            self.deliver_first();
-            return true;
-        }
-        false
+        self.second_dirty.set(true);
+        true
     }
 
     fn send_command(&self, cmd: u8) {
         self.busy.set(true);
         self.result_clear();
-        self.commands_executed.set(self.commands_executed.get() + 1);
         match cmd {
             0x02 => {
                 let mm = self.param_pop();
@@ -331,19 +309,33 @@ impl Cdrom {
                         .set(Self::second_response_cycles_for(0x06));
                 }
             }
-            0x09 => {
-                let was_reading = self.read_mode.get() != 0;
+            0x08 => {
+                self.int1_pending.set(false);
                 let stat = self.stat_byte();
                 self.result_push(stat);
                 self.intsts.set(3);
                 self.int2_pending.set(true);
+                self.pending_second.set(4);
+                let timing = if self.motor_on.get() {
+                    STOP_MOTOR_CYCLES
+                } else {
+                    STOP_STOPPED_CYCLES
+                };
+                self.second_cycles.set(timing);
+                self.motor_on.set(false);
+            }
+            0x09 => {
                 self.int1_pending.set(false);
+                let stat = self.stat_byte();
+                self.result_push(stat);
+                self.intsts.set(3);
+                self.int2_pending.set(true);
                 self.read_mode.set(0);
                 self.pending_second.set(4);
-                let timing = if was_reading || self.commands_executed.get() <= 1 {
-                    0x4_A00
+                let timing = if self.reading.get() {
+                    PAUSE_READING_CYCLES
                 } else {
-                    Self::second_response_cycles_for(0x09)
+                    PAUSE_IDLE_CYCLES
                 };
                 self.second_cycles.set(timing);
             }
@@ -525,6 +517,12 @@ impl Cdrom {
     pub fn take_second_request(&self) -> bool {
         let v = self.second_request.get();
         self.second_request.set(false);
+        v
+    }
+
+    pub fn take_second_dirty(&self) -> bool {
+        let v = self.second_dirty.get();
+        self.second_dirty.set(false);
         v
     }
 

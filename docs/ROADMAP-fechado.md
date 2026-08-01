@@ -142,6 +142,7 @@ da escada valer so para o que FALTA. Narrativa de cada item continua em
 - [x] 10.59 Expansion Region 2 aliasava RAM (POST corrompia 0x2041) (0138)
 - [x] 10.54 2a resposta com atraso fisico apos o ack (06-cdrom.md L2066) (0121→0134)
 - [x] 10.60 oc-iter/oc-loop no Linux; trabalhador vira gpt-5.6-luna --variant max (0139)
+- [x] 10.61 Fechado sai da escada mesmo em marco aberto; teto cai para 7 KB (iter 0140)
 
 ## M11 — Apresentação (incremental desde o M1)
 - [x] 11.1 Relatório consolidado (docs/relatorio.md — atualizado a cada marco) (iter 0096)

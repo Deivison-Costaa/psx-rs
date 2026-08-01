@@ -82,7 +82,6 @@ Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 10.55 Atraso da primeira resposta ignora o motor: spec da `Nop (when stopped) 0x5CF4` (0121)
 - [ ] 10.53 Comando executa mesmo com INT pendente; spec exige esperar o ack (06-cdrom.md L1984) (0121)
 - [ ] 10.47 Lacos de espera da BIOS (`0x80059DA4`/`0x80059D54`): orcamento 0x8000 giros, frame ~230 k passos, saem por timeout (0114)
-- [ ] 10.61 Fechado sai da escada mesmo em marco aberto; teto cai para 7 KB
 - [ ] 10.58 mutantes.ps1 so roda psx-core; alvo por crate e revalidar 0078/0079 (invariante 29) (0125)
 
 ## M11 — Apresentação (incremental desde o M1)

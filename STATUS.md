@@ -7,32 +7,23 @@
 
 ## Última iteração concluída
 
-**0139** — Operacao migrada de Windows para Linux (Fedora 44). oc-iter/oc-loop acham o
-binario do opencode nos dois SOs; flag de janela so no Windows (medido: `-WindowStyle`
-LANCA no pwsh Linux); trabalhador vira opencode-go/gpt-5.6-luna com `--variant max`
-(provider deepseek/ nao autentica nesta maquina). Bateria 8/8 + 2/2, MANUAL — mutantes.ps1
-pula alvo fora de crates/psx-core/ (mutantes.ps1:366). Erro de 1a tentativa registrado: o
-escape de aspas do prompt NAO e workaround so do Windows — o pwsh Linux tambem achata o
--ArgumentList, entao a mudanca planejada foi cortada. Contexto da 0137 (mecanismo do
-congelamento, 8 hipoteses refutadas) em docs/iterations/0137-*.md.
+**0140** — Itens fechados foram movidos de `ROADMAP.md` para `docs/ROADMAP-fechado.md`, inclusive
+o item 10.61 dentro do M10 aberto. A revisão adversarial encontrou o item corrente ainda aberto e
+um teste que só cobria marcos 100% fechados; a continuação adicionou duas asserções, viu o vermelho
+e corrigiu a movimentação. Bateria de mutação: não se aplica — nenhum código de produção.
 
 ## Próxima tarefa
 
-**ROADMAP 10.61 — item fechado sai da escada mesmo em marco aberto.** 64 itens `- [x]`
-ocupam 3906 dos 10000 bytes do ROADMAP (39% da escada e historico). A regra atual
-(`roadmap_arquivo.rs`) so arquiva marco 100% FECHADO, entao fechado dentro de marco aberto
-acumula para sempre — o M4 sozinho tem 37 fechados = 2126 bytes.
-VERMELHO: baixar `MAX_BYTES` de `crates/psx-core/tests/roadmap_size.rs` de 10_000 para
-7_000 (falha hoje: 9990). VERDE: mover TODOS os `- [x]` do ROADMAP.md para
-`docs/ROADMAP-fechado.md`, VERBATIM, agrupados sob o cabecalho `## Mx` de origem (criar o
-cabecalho la se faltar); atualizar o ponteiro no cabecalho do ROADMAP.
-NAO tocar em item aberto. NAO apagar linha nenhuma — e movimentacao, nao poda.
-Guardas que ja validam: `roadmap_arquivo.rs` (nenhum item nos dois arquivos; arquivo sem
-item aberto; ponteiro no cabecalho) e `status_handoff.rs` (handoff pode citar item que
-mora no arquivo de fechados). Marco que ficar sem NENHUM item perde o cabecalho tambem.
-Bateria: use o opt-out formal — linha `Bateria de mutação: não se aplica — <motivo>` com
-40+ chars de motivo no doc da iteracao (mutation_battery.rs), porque nao ha codigo de
-producao no diff. Invariantes relevantes: nenhum.
+**ROADMAP 4.5 — 1o frame do jogo: rollback do init do LIBSN e poll orfao do TMR2.** Confirmar
+primeiro a corrida de timing medida na 0137; so depois escrever goldens e implementar. Spec:
+`docs/reference/02-cpu.md` § Load Timing (L260) e § Load Shadow (L281);
+`docs/reference/05-timers.md` § Timer 0..2 Counter Mode (L30) e § Dotclock/Hblank (L79);
+`docs/reference/11-interrupts.md` § Interrupt Request / Execution (L45) e § Interrupt Acknowledge (L52).
+Arquivos-alvo:
+`crates/psx-core/src/cpu.rs`, `timers.rs`, `irq.rs` e teste novo em
+`crates/psx-core/tests/cpu_game_frame.rs`. Armadilha: o sintoma `VSync: timeout` antigo nao e a
+causa medida; nao inverter a ordem de IRQ do `Cpu::step`, nao atualizar timer por chamada manual
+e nao aceitar checkpoint esparso como data do evento. Invariantes relevantes: 17, 28, 31.
 
 **Meta em vigor (ordem do usuario, 31/07):** emendar as iteracoes ate o M4 fechar, sem parar entre
 PRs. Pronto = **menu navegavel no `psx-desktop`**. Parada: 5 iteracoes fechadas sem o jogo bootar,
@@ -58,7 +49,7 @@ de gouraud no losango (candidato 10.14).
 
 ## Placar de testes
 
-Workspace: **868** testes.
+Workspace: **870** testes.
 
 ## Bloqueios
 

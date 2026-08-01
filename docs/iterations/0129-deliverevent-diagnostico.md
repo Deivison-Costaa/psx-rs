@@ -33,8 +33,9 @@
 Resultado (janela de 200 M steps; idêntico na janela de 92 M para tudo que cabe nela):
 
 - `DeliverEvent(F0000003h, 20h)` **OCORRE 10 vezes** — steps 87 010 146, 87 484 677,
-  87 938 621, 88 449 963, 88 880 658, 89 640 133 (6 antes do último TestEvent) e mais 4 na
-  rajada final. Também: `F0000003h/200h` 76×, `F0000003h/10h` 2× (DMA finished,
+  87 938 621, 88 449 963, 88 880 658, 89 640 133, 89 725 535, 89 786 841, 89 876 463
+  (9 antes do último TestEvent) e 89 907 223 (621 steps depois dele). Também:
+  `F0000003h/200h` 76×, `F0000003h/10h` 2× (DMA finished,
   docs/reference/13-kernel-bios.md L1745).
 - O loop de `TestEvent` do shell **PARA**: último poll no step 89 906 602 (total 7 627 polls,
   mesmo número da 0128) — nenhum poll nos 110 M steps seguintes.
@@ -92,7 +93,17 @@ contagem canônica do portão `placar_do_status_bate_com_a_contagem_de_testes`).
 
 ## Revisão cruzada (orquestrador)
 
-<!-- Preenchido pelo Claude na revisão do PR: achados no formato de docs/prompts/review.md, ou "sem achados". -->
+- **A1 (doc, corrigido neste PR):** o rascunho dizia "6 entregas de spec=20h antes do último
+  TestEvent e 4 na rajada final" sem conferir os steps. Reconferido no trace: são 9 antes do
+  último poll (89 906 602) e a 10ª cai 621 steps DEPOIS dele (89 907 223). Não muda o
+  veredito (o shell recebeu 9 entregas e ainda poll-ava com v0=0 — o mecanismo de como o
+  TestEvent finalmente "viu" o evento fica para o 4.4y se relevante), mas o registro tem
+  que bater com o dado.
+- Diff de código reexaminado: instrumentação é só observação (eprintln + 2 getters);
+  `resolve_btable_entry` congela o endereço na primeira resolução — aceitável para
+  diagnóstico, stale se o kernel realocar a B-table (não realoca durante o boot).
+- Nota R3: os eprintln de IRQ2 vivem no psx-core (bus/cdrom) e saem em TODO boot; se
+  virarem ruído nas próximas medições, gate ou remoção é um `refactor` de uma linha.
 
 ## Decisões e notas
 

@@ -2,11 +2,16 @@
 # docs/metricas.csv. Usa `opencode serve` + `--attach` (bug de sessão headless do
 # `opencode run` direto no Windows, issue opencode#28407).
 # O trabalhador abre o PR e PARA; revisão e merge são do orquestrador (SKILL passo 9).
-# Modelo padrao: v4-pro. As iteracoes 0009..0017 rodaram em deepseek-chat (geracao anterior);
-# a troca foi decisao do usuario em 2026-07-27, no meio da segunda tentativa da 1.7. O par de
-# comparacao barato passa a ser deepseek-v4-flash, nao mais chat/reasoner.
+# Modelo padrao: gpt-5.6-luna pelo gateway opencode-go, esforco max. O provider `deepseek/` das
+# iteracoes 0009..0138 nao esta autenticado na maquina de operacao desde a migracao para Linux
+# (0139); o par de comparacao barato passa a ser opencode-go/deepseek-v4-pro.
 param(
-    [string]$Model = "deepseek/deepseek-v4-pro",
+    [string]$Model = "opencode-go/gpt-5.6-luna",
+    # Esforco de raciocinio da rodada (`opencode run --variant`). Parametro do SCRIPT, e nao
+    # configuracao de maquina: o handoff da 0137 afirmava "reasoningEffort max ja configurado em
+    # ~/.config/opencode" e o arquivo tinha so o $schema. Declarado aqui, o esforco viaja com o
+    # repo. Vazio suprime a flag.
+    [string]$Variant = "max",
     [string]$TaskOverride = "",
     # Parede da rodada. Era 45 min e matava rodada VIVA: 3 das 25 rodadas de 29-30/07 morreram
     # exatas em 2 700 023 ms com o JSON ainda crescendo. A rodada boa mediana leva 28 min, e
@@ -44,16 +49,26 @@ $headAntes = (git rev-parse --short HEAD).Trim()
 
 # Duas armadilhas do npm no Windows (smoke tests 0008b/1 e /2): o shim opencode.ps1 nao roda
 # via Start-Process, e o shim .cmd degrada aspas — um "--version" DENTRO do prompt virou
-# flag e o run imprimiu a versao e saiu com 0. Usar o .exe real, sem camada cmd.
+# flag e o run imprimiu a versao e saiu com 0. Usar o .exe real, sem camada cmd. Fora do
+# Windows nao ha shim: a instalacao e nativa e o caminho do PATH JA e o binario (0139).
 $shim = (Get-Command opencode -ErrorAction SilentlyContinue)?.Source
-$oc = if ($shim) {
+$oc = if (-not $shim) {
+    $null
+} elseif ($IsWindows) {
     Join-Path (Split-Path $shim) "node_modules\opencode-ai\bin\opencode.exe"
-} else { $null }
-if (-not ($oc -and (Test-Path $oc))) { Write-Error "opencode.exe nao encontrado (npm i -g opencode-ai)" }
+} else {
+    $shim
+}
+if (-not ($oc -and (Test-Path $oc))) { Write-Error "binario do opencode nao encontrado (Windows: npm i -g opencode-ai; Linux: instalacao nativa no PATH)" }
 
 $up = Test-Connection -TargetName 127.0.0.1 -TcpPort $Port -Quiet -TimeoutSeconds 2
 if (-not $up) {
-    Start-Process $oc -ArgumentList "serve", "--port", $Port -WindowStyle Hidden
+    # WindowStyle lanca no PowerShell do Linux ("not supported for the cmdlet 'Start-Process'
+    # on this edition"); com $ErrorActionPreference = "Stop" isso mata a rodada na subida do
+    # daemon, antes do primeiro token. E enfeite de janela: vai por splat, so no Windows (0139).
+    $serveArgs = @{ ArgumentList = @("serve", "--port", $Port) }
+    if ($IsWindows) { $serveArgs["WindowStyle"] = "Hidden" }
+    Start-Process $oc @serveArgs
     foreach ($i in 1..30) {
         if (Test-Connection -TargetName 127.0.0.1 -TcpPort $Port -Quiet -TimeoutSeconds 2) { break }
         Start-Sleep 1
@@ -89,11 +104,16 @@ $errFile = "logs/oc-iter-$stamp.err"
 # aspas, e uma aspa DENTRO dele fecha a regiao citada. Dai qualquer token comecando com "-"
 # que caia fora vira flag do CLI (o "->" de "remover o teto -> teste trava" derrubou a rodada
 # de 28/07 11:52, com o opencode imprimindo o help). Escapar as aspas resolve.
+# NAO tornar isto condicional a $IsWindows: medido na 0139, o pwsh no LINUX tambem achata o
+# -ArgumentList e o .NET reparseia com regras de aspas do Windows. Sem o escape o prompt chega
+# partido em 5 argumentos e o "--version" de dentro dele vira flag do CLI.
 $promptArg = '"' + ($prompt -replace '"', '\"') + '"'
 
 $sw = [System.Diagnostics.Stopwatch]::StartNew()
-$p = Start-Process $oc -ArgumentList "run", "--attach", "http://localhost:$Port",
-    "-m", $Model, "--format", "json", $promptArg -NoNewWindow -PassThru `
+$argsRun = @("run", "--attach", "http://localhost:$Port", "-m", $Model)
+if ($Variant) { $argsRun += @("--variant", $Variant) }
+$argsRun += @("--format", "json", $promptArg)
+$p = Start-Process $oc -ArgumentList $argsRun -NoNewWindow -PassThru `
     -RedirectStandardOutput $outFile -RedirectStandardError $errFile
 # Esperar so pela parede confunde rodada lenta com rodada travada e paga 45 min pelas duas.
 # O JSON cresce a cada evento enquanto o trabalhador vive, entao tamanho parado e provedor mudo.

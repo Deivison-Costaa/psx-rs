@@ -19,7 +19,11 @@
 param(
     [int]$N = 1,
     [switch]$AutoMerge,
-    [string]$Model = "deepseek/deepseek-v4-pro",
+    [string]$Model = "opencode-go/gpt-5.6-luna",
+    # Esforco de raciocinio repassado a TODA rodada do encadeamento. Sem o repasse, as rodadas
+    # caem no default do oc-iter e a corrida inteira roda num esforco que ninguem escolheu —
+    # a mesma classe do "default que nunca foi uma decisao" das iteracoes 0009..0017.
+    [string]$Variant = "max",
     # Instrucao permanente passada a TODA iteracao do encadeamento. Sem ela cada rodada usa
     # a "Proxima tarefa" do STATUS.md e nada olha para tras; com ela, a rodada N comeca
     # revisando o PR da rodada N-1 e consertando o que achar. Substitui a revisao externa.
@@ -75,9 +79,9 @@ foreach ($i in 1..$N) {
     }
     Write-Host "[oc-loop] iteracao $i de $N"
     if ($TaskFile) {
-        pwsh -NoProfile -File scripts/oc-iter.ps1 -Model $Model -TaskFile $TaskFile
+        pwsh -NoProfile -File scripts/oc-iter.ps1 -Model $Model -Variant $Variant -TaskFile $TaskFile
     } else {
-        pwsh -NoProfile -File scripts/oc-iter.ps1 -Model $Model
+        pwsh -NoProfile -File scripts/oc-iter.ps1 -Model $Model -Variant $Variant
     }
     if ($LASTEXITCODE -ne 0) {
         if ($ContinuarAposFalha) {

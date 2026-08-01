@@ -7,28 +7,32 @@
 
 ## Última iteração concluída
 
-**0137** — Diagnostico puro do congelamento pos-boot: 8 hipoteses refutadas POR MEDICAO
-(comandos de CD, IRQ preso, TMR2, VBlank do kernel, leitura de CD, GPU/DrawSync, lhu do
-I_STAT, vetorizacao IEc). Mecanismo medido: o jogo enfileirou 2 handlers prio 0
-(SysEnqIntRP 0x80140004/14) e os REMOVEU (rollback de init falho); o kernel acka o bit6
-sozinho (221.520x, padrao 0xFFFFFFBF) e o WaitIntr do jogo (poll cru de 0x40&I_STAT,
-orcamento 0x800, $ra=0x8003EAF8) nunca ve o bit. Fila de streaming: 38 paginas em estado
-1, promocao 1→2 nunca roda. Dossie completo em docs/iterations/0137-*.md.
+**0139** — Operacao migrada de Windows para Linux (Fedora 44). oc-iter/oc-loop acham o
+binario do opencode nos dois SOs; flag de janela so no Windows (medido: `-WindowStyle`
+LANCA no pwsh Linux); trabalhador vira opencode-go/gpt-5.6-luna com `--variant max`
+(provider deepseek/ nao autentica nesta maquina). Bateria 8/8 + 2/2, MANUAL — mutantes.ps1
+pula alvo fora de crates/psx-core/ (mutantes.ps1:366). Erro de 1a tentativa registrado: o
+escape de aspas do prompt NAO e workaround so do Windows — o pwsh Linux tambem achata o
+-ArgumentList, entao a mudanca planejada foi cortada. Contexto da 0137 (mecanismo do
+congelamento, 8 hipoteses refutadas) em docs/iterations/0137-*.md.
 
 ## Próxima tarefa
 
-**ROADMAP 4.5 — passo 1: confirmar o gatilho do rollback do init do LIBSN.** Dump da
-estrutura dos elementos 0x80140004/0x14/0x24 (verifier/handler) + sonda descartavel no
-chain walk do kernel (quem e chamado, o que o verifier le, por que devolve "nao e meu")
-na janela do init. Suspeito do painel (juiz adversarial): larco de espera com orcamento
-fixo perdendo corrida por ciclos subcustados — classe da 0104; cpu.rs:187 so custa
-opcodes 0x20-0x26 (LWC2/SWC2 pagam 1; divida 10.45). SE confirmar: goldens de custo por
-instrucao no padrao da 0104 com valor citado de docs/reference/02-cpu.md (NUNCA ajustado
-ao sintoma), gate "intr timeout: 2→0", e implementacao do trabalhador
-(opencode-go/gpt-5.6-luna, reasoningEffort max ja configurado em ~/.config/opencode).
-Armadilhas: (a) sondas sao descartaveis, reverter antes de commitar; (b) rebuild release
-antes de medir; (c) o EXE realoca codigo — disasm so da RAM em runtime.
-Invariantes relevantes: 30, 31, 32, 33.
+**ROADMAP 10.61 — item fechado sai da escada mesmo em marco aberto.** 64 itens `- [x]`
+ocupam 3906 dos 10000 bytes do ROADMAP (39% da escada e historico). A regra atual
+(`roadmap_arquivo.rs`) so arquiva marco 100% FECHADO, entao fechado dentro de marco aberto
+acumula para sempre — o M4 sozinho tem 37 fechados = 2126 bytes.
+VERMELHO: baixar `MAX_BYTES` de `crates/psx-core/tests/roadmap_size.rs` de 10_000 para
+7_000 (falha hoje: 9990). VERDE: mover TODOS os `- [x]` do ROADMAP.md para
+`docs/ROADMAP-fechado.md`, VERBATIM, agrupados sob o cabecalho `## Mx` de origem (criar o
+cabecalho la se faltar); atualizar o ponteiro no cabecalho do ROADMAP.
+NAO tocar em item aberto. NAO apagar linha nenhuma — e movimentacao, nao poda.
+Guardas que ja validam: `roadmap_arquivo.rs` (nenhum item nos dois arquivos; arquivo sem
+item aberto; ponteiro no cabecalho) e `status_handoff.rs` (handoff pode citar item que
+mora no arquivo de fechados). Marco que ficar sem NENHUM item perde o cabecalho tambem.
+Bateria: use o opt-out formal — linha `Bateria de mutação: não se aplica — <motivo>` com
+40+ chars de motivo no doc da iteracao (mutation_battery.rs), porque nao ha codigo de
+producao no diff. Invariantes relevantes: nenhum.
 
 **Meta em vigor (ordem do usuario, 31/07):** emendar as iteracoes ate o M4 fechar, sem parar entre
 PRs. Pronto = **menu navegavel no `psx-desktop`**. Parada: 5 iteracoes fechadas sem o jogo bootar,
@@ -54,7 +58,7 @@ de gouraud no losango (candidato 10.14).
 
 ## Placar de testes
 
-Workspace: **861** testes.
+Workspace: **868** testes.
 
 ## Bloqueios
 

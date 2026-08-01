@@ -24,5 +24,7 @@ um loop desatendido com protocolo ruim produz N PRs ruins em vez de 1. O custo d
 
 ## Pré-requisitos da máquina
 
-- Rust ≥1.85, gh autenticado, PowerShell 7, opencode com provider `deepseek` autenticado.
+- Rust ≥1.85, gh autenticado, PowerShell 7 (no Linux: `dotnet tool install --global powershell`,
+  com `~/.dotnet/tools` no PATH), opencode ≥1.18.5 com o provider do trabalhador autenticado
+  (`opencode-go` desde a 0139; `deepseek` nas iterações 0009–0138).
 - `bios/SCPH1001.BIN` local (gitignored) para os checks que exigem BIOS.

@@ -5,8 +5,9 @@
 
 ## Papéis
 
-- **Trabalhador** — opencode + DeepSeek (`deepseek/deepseek-v4-pro` desde 2026-07-27;
-  `deepseek-chat` nas iterações 0009–0017), disparado por
+- **Trabalhador** — opencode (`opencode-go/gpt-5.6-luna --variant max` desde 2026-08-01;
+  `deepseek/deepseek-v4-pro` de 2026-07-27 a 2026-08-01; `deepseek-chat` nas iterações
+  0009–0017), disparado por
   `scripts/oc-iter.ps1`. Escreve todo o código de emulação seguindo
   `.claude/skills/iterate/SKILL.md`. Custo por iteração ~duas ordens de grandeza menor que
   um modelo de fronteira (medido no gb-rs: US$ 0,11 vs US$ 5–8).
@@ -374,3 +375,46 @@ correto.** Isso preserva o registro sem deixar o literal errado no caminho de qu
   uma rodada perdida e a descoberta de que `oc-iter.ps1` faz `git checkout main` incondicional
   na linha 19 — o que só não quebrou a correção porque a tarefa mandava o trabalhador fazer
   checkout da branch do PR.
+
+## 2026-08-01 — a orquestração muda de máquina (Windows → Linux) e de trabalhador
+
+O repositório foi clonado limpo num Fedora 44. Três coisas quebraram, nenhuma de emulação: não
+havia `pwsh`; o `oc-iter.ps1` procurava o opencode no layout do npm global do Windows
+(`node_modules\opencode-ai\bin\opencode.exe`), e aqui a instalação é nativa; e o provider
+`deepseek/` das 110 iterações anteriores não está autenticado nesta máquina — só `opencode-go`.
+
+**Não portamos os `.ps1` para bash.** A CI roda em `ubuntu-latest`, que já traz `pwsh`, então ela
+nunca esteve quebrada: só a máquina local estava. Um porte quebraria ~40 asserções literais de
+sintaxe PowerShell espalhadas por `ci_oc_iter.rs`, `ci_oc_loop.rs`, `ci_scoreboard.rs`,
+`gpu_scoreboard.rs` e `mutation_battery.rs`, mais 3 manifestos de mutação e o `ci.yml` — várias
+iterações de trabalho de processo, sem uma linha de emulação, jogando fora as travas existentes.
+Instalamos o pwsh (`dotnet tool install --global powershell`, 7.6.4, sem sudo).
+
+**Troca de modelo.** `opencode-go/gpt-5.6-luna` com `--variant max`. A tabela do gateway em
+2026-08-01: luna in US$ 0,10/M · out US$ 0,60/M · ctx 1,05 M, contra deepseek-v4-pro in US$ 0,435/M
+· out US$ 0,87/M. Pela mediana das rodadas da `metricas.csv` (~100 k in / 30 k out), a iteração cai
+de ~US$ 0,15 para ~US$ 0,03. Luna nunca rodou como trabalhador — só uma vez como orquestrador
+(0136) — então a 0140 é o primeiro dado real desse papel. `opencode models --refresh` foi
+necessário: o cache local estava velho e escondia o modelo.
+
+**Três medições que decidiram o escopo, em vez de suposição.**
+
+1. `Start-Process -WindowStyle Hidden` **lança** no pwsh Linux. Com `$ErrorActionPreference = "Stop"`
+   isso mata a rodada na subida do daemon. Vira splat condicional a `$IsWindows`.
+2. `Test-Connection -TargetName 127.0.0.1 -TcpPort` **funciona** (usa `TcpClient`, multiplataforma).
+   Nada mudou — o que é sorte, porque `ci_oc_iter.rs:192` exige essa string literal e a linha 54 é
+   âncora viva de `0101-matar-sessao.mut`.
+3. O escape de aspas do `$promptArg` **não** é workaround exclusivo do Windows. O pwsh no Linux
+   também achata o `-ArgumentList` num único `Arguments` reparseado com regras de aspas do Windows:
+   com escape sai 1 argumento, sem escape saem 5 e `--version` vira flag do CLI. O plano aprovado
+   mandava tornar isso condicional; a medição **refutou** e a mudança foi cortada. O rótulo
+   "armadilha do Windows" no comentário descrevia a ORIGEM do bug, não a plataforma do comportamento
+   — e essa distinção é o achado transferível desta iteração.
+
+**Achado de processo: o job `mutantes` da CI sai verde medindo zero para alvo `.ps1`.** A guarda de
+`mutantes.ps1:366` pula manifesto cuja `alvo:` não casa `^crates/psx-core/` (invariante 29). Os
+`.resultado` de 0098 e 0101, sobre o mesmo alvo, são legítimos porque rodaram ANTES da guarda, que
+entrou na 0125. Mas a justificativa da invariante — "mutante fora do psx-core nunca é recompilado" —
+**não se aplica** a `.ps1`: `ci_oc_iter.rs` lê o arquivo do disco em runtime, então mutá-lo afeta o
+teste sem recompilação nenhuma. A guarda super-bloqueia este caso. A bateria da 0139 foi manual;
+a dívida encosta em 10.58 e 10.33 e não foi consertada aqui (R4).

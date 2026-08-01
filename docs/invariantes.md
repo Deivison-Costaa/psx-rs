@@ -219,3 +219,17 @@ Regra imposta por `status_handoff.rs`.
     fenomeno, e o doc mostra o checkpoint em que o contador satura. Corolario operacional:
     depois de bateria de mutacao, `cargo clean -p <crate>` antes de medir — um rlib stale do
     psx-core produziu contadores impossiveis (11 bits identicos, em lockstep) nesta revisao.
+31. **A checagem de IRQ do `Cpu::step` ja e "entre instrucoes" — e checkpoint esparso nao
+    data evento.** O step verifica IRQ pendente ANTES do fetch (inicio de `Cpu::step`); IRQ
+    levantada pelo scheduler no fim do step N vetoriza no inicio do step N+1, equivalente ao
+    pino assincrono do hardware. A 0127 concluiu "corrida intra-step" porque o discriminante
+    so amostrava nos checkpoints, e um deles caia exatamente no step procurado — coincidencia
+    de amostragem lida como simultaneidade. Deteccao continua (por step) datou o flip:
+    spec 10h ready no step 89 702 216, spec 200h no 89 702 837 — ~204 k passos ANTES do
+    ultimo TestEvent (89 906 602). Nao ha corrida: o shell consultou ~17 vezes com os eventos
+    ja ready e desistiu. Regra dupla: (a) nao mexer na ordem de IRQ do step — ela esta
+    correta; (b) para datar transicao de estado, deteccao continua na janela suspeita, nunca
+    checkpoint que coincide com o instante procurado.
+    Corolario: qualquer correcao que inverta a ordem (IRQ antes da instrucao) deve ser
+    validada contra o boot completo com disco — o shell precisa consumir os eventos e
+    avancar para a leitura do `SYSTEM.CNF`.

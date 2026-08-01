@@ -1,0 +1,74 @@
+# Manifesto de mutação da iteração 0127 — evento-consumo-shell
+formato: 1
+iteracao: 0127
+item: 4.4v
+alvo: crates/psx-cli/src/main.rs
+teste: evento_consumo_shell
+
+mutante: m1
+rotulo: --trace-pcs nao insere enderecos no HashSet (trace nunca dispara)
+@@DE
+                            trace_pcs.insert(addr);
+@@PARA
+                             let _ = addr;
+@@FIM
+
+mutante: m2
+rotulo: eprintln de trace perde o prefixo trace pc= (parser nao encontra linhas)
+@@DE
+                "trace pc=0x{:08X} step={} instr=0x{:08X} \
+@@PARA
+                "0x{:08X} step={} instr=0x{:08X} \
+@@FIM
+
+mutante: m3
+rotulo: --max-steps zera o limite (passos=0, sem TTY)
+@@DE
+                    max_steps = Some(n);
+@@PARA
+                     max_steps = Some(0);
+@@FIM
+
+mutante: m4
+rotulo: --trace-pcs avanca i em 1 (argumento seguinte vira erro de parse)
+ocorrencias: 4
+@@DE
+                i += 2;
+@@PARA
+                i += 1;
+@@FIM
+
+mutante: m5
+rotulo: bloco de trace do run e removido (if false, count_test_event=0)
+@@DE
+        if !trace_pcs.is_empty() && trace_pcs.contains(&cpu.pc) {
+@@PARA
+        if false {
+@@FIM
+
+controle: c1
+rotulo: acrescenta comentario cosmetico antes da funcao main
+@@DE
+fn main() {
+@@PARA
+// ponto de entrada do psx-cli
+fn main() {
+@@FIM
+
+controle: c2
+rotulo: renomeia a variavel max_steps para max_steps_parsed (renomeacao consistente)
+@@DE
+    let mut max_steps: Option<usize> = None;
+@@PARA
+    let mut max_steps_parsed: Option<usize> = None;
+@@FIM
+@@DE
+                    max_steps = Some(n);
+@@PARA
+                     max_steps_parsed = Some(n);
+@@FIM
+@@DE
+    let max_steps = max_steps.unwrap_or(RUNNER_MAX_STEPS);
+@@PARA
+    let max_steps = max_steps_parsed.unwrap_or(RUNNER_MAX_STEPS);
+@@FIM

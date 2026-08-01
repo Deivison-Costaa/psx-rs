@@ -7,27 +7,26 @@
 
 ## Última iteração concluída
 
-**0126** — Diagnostico da corrente CD-ROM → kernel, **corrigido na revisao**: a conclusao
-original ("IRQ2 nunca sobe") era artefato da janela de 80 M. Medido em build limpo: IRQ2 da
-107 raises entre 80 M e 100 M e depois silencia; 6 EvCBs `class=F0000003h` registrados; e
-`DeliverEvent` deixa **DOIS eventos ready** (`status=4000h`, specs `10h` e `200h`) que ninguem
-consome. Elos IRQ2→handler→DeliverEvent→EvCB **intactos**; o defeito e o CONSUMO.
+**0127** — A "corrida intra-step" era artefato de checkpoint esparso (revisao). Deteccao
+continua datou o flip: spec `10h` ready no step **89 702 216**, spec `200h` no **89 702 837**
+— ~204 k passos ANTES do ultimo TestEvent (89 906 602). O shell consultou ~17x com os
+eventos ja ready e desistiu. A ordem de IRQ do `Cpu::step` esta CORRETA (checa antes do
+fetch; invariante 31). Sobra: ou o TestEvent testa OUTRO descritor, ou devolve errado.
 
 ## Próxima tarefa
 
-**ROADMAP 4.4v — dois eventos de CD-ROM ficam READY e o shell nao age.** Medidos a 150 M e
-estaveis ate 700 M: `EvCB[0] class=F0000003h spec=10h` e `EvCB[5] spec=200h`, ambos
-`status=4000h`, `mode=2000h` (sem callback — cabe a alguem testar/esperar). O TTY para em
-`SetGraphDebug` e `SYSTEM.CNF` nunca e lido (invariante 27; DuckStation carrega `SCUS_949.00`
-aqui). **Iteracao de diagnostico.** Rastrear o CONSUMO: quem deveria consumir esses eventos
-(`docs/reference/13-kernel-bios.md`: § B(0Ah) - WaitEvent (L1625), § B(0Bh) - TestEvent
-(L1637), § BIOS Event Summary (L1735)) e por que nao
-chega la. Relacionar com o laco de dispatch da 0125 (`0x8004205C`, compara tipos `20h`/`30h`
-numa tabela que NAO e o EvCB — achar o elo entre EvCB ready e essa tabela). Teste ancora:
-`cdrom_evento_kernel.rs` (150 M; asserta IRQ2>0 e EvCBs registrados).
-Armadilhas: (a) NAO reinvestigar `_96_init` nem o CD-ROM — 107 IRQ2 e 6 EvCBs provam que
-rodam; (b) medida negativa com janela <150 M nao vale (invariante 30).
-Invariantes relevantes: 26, 27, 30.
+**ROADMAP 4.4w — que descritor o TestEvent do shell testa, e que evento ele espera?** Os
+eventos ready (`10h`/`200h`) nao o destravam; os specs `40h`, `80h` e `8000h` ficam busy para
+sempre — candidatos ao evento que o shell aguarda e nunca e entregue. **Iteracao de
+diagnostico.** Instrumentar os ultimos polls de TestEvent (`0x00001EC8`): capturar `$a0`
+(descritor; o handle codifica o indice do EvCB) e `$v0` no retorno; mapear descritor→spec.
+O `--trace-pcs` atual despeja `$v0` mas NAO `$a0` — estenda o trace do psx-cli se precisar.
+Se o shell espera `40h`/`80h`/`8000h`: qual INT do CD-ROM deveria entrega-lo e por que nao
+chega (`docs/reference/13-kernel-bios.md` § BIOS Event Summary (L1735)).
+Armadilhas: (a) a ordem de IRQ do `Cpu::step` esta CORRETA — nao mexer (invariante 31);
+(b) checkpoint esparso nao data evento — deteccao continua (invariantes 30/31);
+(c) NAO reinvestigar `_96_init`, o CD-ROM nem o laco de dispatch (0125–0127 eliminaram).
+Invariantes relevantes: 27, 30, 31.
 
 **Meta em vigor (ordem do usuario, 31/07):** emendar as iteracoes ate o M4 fechar, sem parar entre
 PRs. Pronto = **menu navegavel no `psx-desktop`**. Parada: 5 iteracoes fechadas sem o jogo bootar,
@@ -53,7 +52,7 @@ de gouraud no losango (candidato 10.14).
 
 ## Placar de testes
 
-Workspace: **828** testes.
+Workspace: **834** testes.
 
 ## Bloqueios
 

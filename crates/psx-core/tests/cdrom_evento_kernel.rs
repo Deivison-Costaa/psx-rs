@@ -225,3 +225,173 @@ fn tabela_de_tabelas_evcb_esta_presente_apos_o_boot() {
          (medido: 6 blocos class=F0000003h a 700 M; vazio aqui = janela curta ou regressao)"
     );
 }
+
+fn parse_bhandler_addr(bus: &Bus) -> Option<u32> {
+    let w_lui = bus.read32::<psx_core::bus::BusRead>(0x0000_00B0);
+    let w_addiu = bus.read32::<psx_core::bus::BusRead>(0x0000_00B4);
+    let op_lui = w_lui >> 26;
+    let op_addiu = w_addiu >> 26;
+    if op_lui != 0b001111 || op_addiu != 0b001001 {
+        return None;
+    }
+    let imm_lui = w_lui & 0xFFFF;
+    let imm_addiu = w_addiu & 0xFFFF;
+    let base = imm_lui << 16;
+    let offset = imm_addiu;
+    Some(base.wrapping_add(offset))
+}
+
+fn parse_ahandler_addr(bus: &Bus) -> Option<u32> {
+    let w_lui = bus.read32::<psx_core::bus::BusRead>(0x0000_00A0);
+    let w_addiu = bus.read32::<psx_core::bus::BusRead>(0x0000_00A4);
+    let op_lui = w_lui >> 26;
+    let op_addiu = w_addiu >> 26;
+    if op_lui != 0b001111 || op_addiu != 0b001001 {
+        return None;
+    }
+    let imm_lui = w_lui & 0xFFFF;
+    let imm_addiu = w_addiu & 0xFFFF;
+    let base = imm_lui << 16;
+    let offset = imm_addiu;
+    Some(base.wrapping_add(offset))
+}
+
+#[test]
+fn bhandler_addr_e_valido_e_em_ram() {
+    if !bios_existe() {
+        eprintln!("BIOS nao encontrada — teste ignorado");
+        return;
+    }
+
+    let bios = carregar_bios().expect("BIOS invalida");
+    let ram = Ram::new();
+    let mut bus = Bus::new(ram, bios);
+    let mut cpu = Cpu::new();
+
+    for _ in 0..5_000_000 {
+        cpu.step(&mut bus);
+    }
+
+    let b_addr = parse_bhandler_addr(&bus);
+    assert!(
+        b_addr.is_some(),
+        "B-handler deve ser parseavel de RAM[0xB0..0xB7]; RAM[0xB0]=0x{:08X} RAM[0xB4]=0x{:08X}",
+        bus.read32::<psx_core::bus::BusRead>(0x0000_00B0),
+        bus.read32::<psx_core::bus::BusRead>(0x0000_00B4)
+    );
+
+    let b_addr = b_addr.unwrap();
+    eprintln!("B-handler target addr = 0x{:08X}", b_addr);
+    assert!(
+        b_addr > 0 && b_addr < 0x0020_0000,
+        "B-handler target 0x{:08X} deve estar em RAM baixa (<2MB)",
+        b_addr
+    );
+
+    let _dispatch_instr = bus.read32::<psx_core::bus::BusRead>(b_addr);
+}
+
+#[test]
+fn ahandler_addr_e_valido_e_em_ram() {
+    if !bios_existe() {
+        eprintln!("BIOS nao encontrada — teste ignorado");
+        return;
+    }
+
+    let bios = carregar_bios().expect("BIOS invalida");
+    let ram = Ram::new();
+    let mut bus = Bus::new(ram, bios);
+    let mut cpu = Cpu::new();
+
+    for _ in 0..5_000_000 {
+        cpu.step(&mut bus);
+    }
+
+    let a_addr = parse_ahandler_addr(&bus);
+    assert!(
+        a_addr.is_some(),
+        "A-handler deve ser parseavel de RAM[0xA0..0xA7]"
+    );
+    let a_addr = a_addr.unwrap();
+    eprintln!("A-handler target addr = 0x{:08X}", a_addr);
+    assert!(
+        a_addr > 0 && a_addr < 0x0020_0000,
+        "A-handler target 0x{:08X} deve estar em RAM baixa",
+        a_addr
+    );
+}
+
+fn b_bfun_table_base(bus: &Bus) -> Option<u32> {
+    let b_addr = parse_bhandler_addr(bus)?;
+    let w_lui = bus.read32::<psx_core::bus::BusRead>(b_addr);
+    let w_addiu = bus.read32::<psx_core::bus::BusRead>(b_addr + 4);
+    let op_lui = w_lui >> 26;
+    let op_addiu = w_addiu >> 26;
+    if op_lui != 0b001111 || op_addiu != 0b001001 {
+        return None;
+    }
+    let imm_lui = w_lui & 0xFFFF;
+    let imm_addiu = w_addiu & 0xFFFF;
+    let base = (imm_lui << 16).wrapping_add(imm_addiu);
+    if base == 0 || base >= 0x0020_0000 {
+        return None;
+    }
+    Some(base)
+}
+
+#[test]
+fn dump_atable_e_bdispatcher() {
+    if !bios_existe() {
+        eprintln!("BIOS nao encontrada — teste ignorado");
+        return;
+    }
+
+    let bios = carregar_bios().expect("BIOS invalida");
+    let ram = Ram::new();
+    let mut bus = Bus::new(ram, bios);
+    let mut cpu = Cpu::new();
+
+    for _ in 0..5_000_000 {
+        cpu.step(&mut bus);
+    }
+
+    let b_table_base = b_bfun_table_base(&bus);
+    if let Some(base) = b_table_base {
+        eprintln!("B-table base = 0x{:08X}", base);
+        eprintln!("=== B-table entries ===");
+        for i in 0..0x30u32 {
+            let addr = base + i * 4;
+            let val = bus.read32::<psx_core::bus::BusRead>(addr);
+            if val != 0 {
+                let name = match i {
+                    0x0A => "WaitEvent",
+                    0x0B => "TestEvent",
+                    0x07 => "DeliverEvent",
+                    0x08 => "OpenEvent",
+                    0x09 => "CloseEvent",
+                    0x0C => "EnableEvent",
+                    0x0D => "DisableEvent",
+                    0x20 => "UnDeliverEvent",
+                    _ => "",
+                };
+                eprintln!(
+                    "  B-table[0x{:02X} @ 0x{:08X}] = 0x{:08X} {}",
+                    i, addr, val, name
+                );
+            }
+        }
+    } else {
+        eprintln!("B-table base nao encontrada");
+    }
+
+    eprintln!("=== Table of Tables ===");
+    let toc_entries = [(0x100u32, "ExCB"), (0x120, "EvCB"), (0x140, "FCB")];
+    for &(addr, name) in &toc_entries {
+        let ptr = bus.read32::<psx_core::bus::BusRead>(addr);
+        let sz = bus.read32::<psx_core::bus::BusRead>(addr + 4);
+        eprintln!(
+            "  {} @ 0x{:04X}: ptr=0x{:08X} sz=0x{:X}",
+            name, addr, ptr, sz
+        );
+    }
+}

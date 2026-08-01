@@ -37,7 +37,8 @@ M2 (GPU) e M3 (DMA/IRQ/timers). Regra imposta por `roadmap_arquivo.rs`.
 - [x] 4.4s Setor Mode2/Form1 offset sai do byte de modo (iter 0124)
 - [x] 4.4t Laco de dispatch de eventos do shell (iter 0125)
 - [x] 4.4u Evento que dispara montagem do sistema de arquivos (iter 0126)
-- [ ] 4.4v Dois eventos CD (F0000003h spec 10h/200h) ficam ready e ninguem consome; SYSTEM.CNF nunca e lido
+- [x] 4.4v Eventos 10h/200h ficam ready ~204k passos ANTES do ultimo TestEvent; nao ha corrida (iter 0127)
+- [ ] 4.4w Que descritor o TestEvent do shell testa ($a0/$v0)? Specs 40h/80h/8000h nunca ficam ready
 
 ## M5 — GTE
 - [x] 5.1 Registradores + MFC2/MTC2/CFC2/CTC2/LWC2/SWC2 (iter 0084)

@@ -7,11 +7,54 @@ use std::io::Write;
 
 const RUNNER_MAX_STEPS: usize = 50_000_000;
 
+fn resolve_btable_entry(bus: &Bus, index: u32) -> Option<u32> {
+    let w_b0 = bus.read32::<BusRead>(0x0000_00B0);
+    let w_b4 = bus.read32::<BusRead>(0x0000_00B4);
+    let imm_lui = w_b0 & 0xFFFF;
+    let imm_addiu = w_b4 & 0xFFFF;
+    let b_dispatch = (imm_lui << 16).wrapping_add(imm_addiu);
+    if b_dispatch == 0 {
+        return None;
+    }
+
+    let w_lui_disp = bus.read32::<BusRead>(b_dispatch);
+    let w_addiu_disp = bus.read32::<BusRead>(b_dispatch + 4);
+    let imm_lui_disp = w_lui_disp & 0xFFFF;
+    let imm_addiu_disp = w_addiu_disp & 0xFFFF;
+    let b_table = (imm_lui_disp << 16).wrapping_add(imm_addiu_disp);
+    if b_table == 0 {
+        return None;
+    }
+
+    let addr = bus.read32::<BusRead>(b_table + index * 4);
+    if addr == 0 { None } else { Some(addr) }
+}
+
 fn run(cpu: &mut Cpu, bus: &mut Bus, max_steps: usize, trace_pcs: &HashSet<u32>) -> usize {
     let mut steps = 0;
+    let mut deliver_event_pc: Option<u32> = None;
     while steps < max_steps {
         cpu.step(bus);
         steps += 1;
+
+        if deliver_event_pc.is_none() && steps % 100_000 == 0 {
+            if let Some(addr) = resolve_btable_entry(bus, 7) {
+                deliver_event_pc = Some(addr);
+                eprintln!(
+                    "# DeliverEvent B-table[07h]=0x{:08X} (step={})",
+                    addr, steps
+                );
+            }
+        }
+
+        if let Some(depc) = deliver_event_pc {
+            if cpu.pc == depc {
+                eprintln!(
+                    "# DeliverEvent pc=0x{:08X} step={} class(a0)=0x{:08X} spec(a1)=0x{:08X}",
+                    cpu.pc, steps, cpu.regs[4], cpu.regs[5]
+                );
+            }
+        }
 
         if !trace_pcs.is_empty() && trace_pcs.contains(&cpu.pc) {
             let instr = bus.read32::<BusRead>(cpu.pc);
@@ -19,11 +62,12 @@ fn run(cpu: &mut Cpu, bus: &mut Bus, max_steps: usize, trace_pcs: &HashSet<u32>)
             let _rt = ((instr >> 16) & 0x1F) as usize;
             eprintln!(
                 "trace pc=0x{:08X} step={} instr=0x{:08X} \
-                 regs: a0($4)=0x{:08X} t1($9)=0x{:08X} s1($17)=0x{:08X} v0($2)=0x{:08X} t4($12)=0x{:08X} t5($13)=0x{:08X}",
+                 regs: a0($4)=0x{:08X} a1($5)=0x{:08X} t1($9)=0x{:08X} s1($17)=0x{:08X} v0($2)=0x{:08X} t4($12)=0x{:08X} t5($13)=0x{:08X}",
                 cpu.pc,
                 steps,
                 instr,
                 cpu.regs[4],
+                cpu.regs[5],
                 cpu.regs[9],
                 cpu.regs[17],
                 cpu.regs[2],

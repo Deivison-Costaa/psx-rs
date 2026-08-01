@@ -231,6 +231,15 @@ impl Bus {
 
     fn service_cdrom_irq(&mut self) {
         if self.cdrom.take_irq2_edge() {
+            let ints = self.cdrom.intsts();
+            let cmd = self.cdrom.pending_cmd();
+            eprintln!(
+                "# CDROM_IRQ2 step={} total_cycles={} intsts=0x{:02X} pending_cmd=0x{:02X}",
+                self.total_cycles,
+                self.total_cycles,
+                ints,
+                cmd.unwrap_or(0xFF)
+            );
             self.irq.raise(2);
         }
     }
@@ -273,6 +282,15 @@ impl Bus {
                 CDROM_RESPONSE => {
                     self.cdrom.deliver_first();
                     if self.cdrom.take_irq2_edge() {
+                        let ints = self.cdrom.intsts();
+                        let cmd = self.cdrom.pending_cmd();
+                        eprintln!(
+                            "# CDROM_RESPONSE_IRQ2 step={} total_cycles={} intsts=0x{:02X} pending_cmd=0x{:02X}",
+                            self.total_cycles,
+                            self.total_cycles,
+                            ints,
+                            cmd.unwrap_or(0xFF)
+                        );
                         self.irq.raise(2);
                     }
                 }

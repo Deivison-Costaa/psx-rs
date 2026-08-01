@@ -488,6 +488,14 @@ impl Cdrom {
         (self.intsts.get() & self.intmsk.get() & 0x7) != 0
     }
 
+    pub fn intsts(&self) -> u8 {
+        self.intsts.get()
+    }
+
+    pub fn pending_cmd(&self) -> Option<u8> {
+        self.pending_cmd.get()
+    }
+
     pub fn take_irq2_edge(&self) -> bool {
         let nivel = self.irq_pending();
         let borda = nivel && !self.irq_line.get();

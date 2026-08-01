@@ -7,30 +7,27 @@
 
 ## Última iteração concluída
 
-**0141** — Diagnostico puro. **A conclusao da 0137 esta REFUTADA por medicao**: nao houve
-rollback do init pelo jogo. Sonda no gancho de C0 com `head_antes` mostrou que o handler do jogo
-(`0x80140004`, prio 0) SOBREVIVE as duas chamadas de SysDeqIntRP — a que remove `0x80140014` e
-correta (era a cabeca), e a que "remove" `0x80140024` nao remove nada (o elemento nunca foi
-enfileirado; a spec marca a funcao como bugged). Quem destroi o handler e uma **SEGUNDA execucao
-da sequencia de boot**: entre as chamadas 10 e 11 a cabeca pula de A00091E0 para 00006DA8, as
-chamadas 9-10 se repetem como 11-12, e o TTY traz `reading file system` e `Inited and Allocated`
-DUAS vezes. Sonda revertida; nenhum codigo de producao mudou.
+**0142** — Nomeado o mecanismo que a 0141 mediu. **Nao ha reset de CPU**: `reset_vector` dispara
+UMA vez, no ciclo 0. No ciclo 354.241.830 — dentro da janela em que a cadeia e resetada — codigo do
+BIOS em `BFC06F4C` chama `C(08h) SysInitMemory`, que pela spec reinicializa a regiao `A000E000h`
+tamanho `2000h`. E `[0x100] = A000E004`: **o array de ExCB vive dentro dessa regiao**. Reinicializa-la
+apaga as 4 cabecas de cadeia e leva junto o handler do jogo. Cadeia causal fechada ponta a ponta.
+Falta saber POR QUE o BIOS re-executa esse caminho aos 354 M.
 
 ## Próxima tarefa
 
-**ROADMAP 4.5 — passo 2: achar o que dispara o SEGUNDO boot.** Rodar pelo ORQUESTRADOR
-(trabalhador bloqueado por 10.62). O handler do jogo so some porque a cadeia de excecoes e
-resetada; o alvo agora e a causa desse reset, nao mais a corrida de timing.
-Medir: (a) quantas vezes o PC entra em `0xBFC00000` (reset vector) e em `0x80030000`; (b) quem
-escreve na cabeca da cadeia (`[[0x100]] + prio*8`) entre a 10a e a 11a chamada de C0(02h/03h) —
-sonda descartavel no caminho de escrita do bus; (c) se o segundo boot e espurio (nosso) ou pedido
-pelo jogo. SE espurio: some com ele. SE legitimo: o defeito e o kernel nao repor os handlers.
-**Testar junto o item 10.43** (TTY duplicado, hoje catalogado como defeito de TTY): se o boot roda
-2x de fato, o TTY duplicado e SINTOMA, nao causa — a 0141 e a primeira medicao que da outra leitura
-para aquele item, e ela e barata de conferir.
-NAO implementar goldens de custo de ciclo ainda: a hipotese do painel da 0137 (`cpu.rs:187`
-subcusta LWC2/SWC2; divida 10.45) continua ABERTA mas deixou de explicar o sintoma.
-Armadilhas: (a) sondas sao descartaveis, reverter antes de commitar; (b) rebuild release antes de
+**ROADMAP 4.5 — passo 3: de ONDE se entra no BIOS aos 354 M.** Rodar pelo ORQUESTRADOR
+(trabalhador bloqueado por 10.62). Esta provado O QUE apaga a cadeia (`SysInitMemory` de
+`BFC06F4C`, ciclo 354.241.830) e POR QUE apaga (regiao contem o array de ExCB). Falta a entrada.
+`ra=BFC06F4C` diz so que a CHAMADA a C0(08) partiu do BIOS — nao diz quem entrou no BIOS.
+Medir: rastro de PC nos ~2000 passos ANTES do ciclo 354.241.830 (`--trace-pcs` ja existe no
+psx-cli), procurando a transicao `0x800xxxxx` → `0xBFC0xxxx`.
+Duas leituras a distinguir: (a) ESPURIA — exceção mal vetorizada, salto com alvo errado ou `$ra`
+corrompido levam o PC para o BIOS; conserto e no nosso codigo. (b) LEGITIMA — o jogo chama de
+proposito uma rotina que reinicializa memoria, e o defeito e o kernel nao repor os handlers.
+Se a entrada vier de codigo do jogo com `$ra` coerente, e (b).
+NAO implementar goldens de ciclo: a divida 10.45 continua aberta mas nao explica este sintoma.
+Armadilhas: (a) sondas descartaveis, reverter antes de commitar; (b) rebuild release antes de
 medir; (c) o EXE do Crash REALOCA codigo — disasm so da RAM em runtime.
 Invariantes relevantes: 25, 27, 30, 31.
 

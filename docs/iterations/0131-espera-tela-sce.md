@@ -93,7 +93,13 @@ regravado). Stub do portão em `crates/psx-core/tests/espera_tela_sce.rs`.
 
 ## Revisão cruzada (orquestrador)
 
-<!-- Preenchido pelo Claude na revisão do PR: achados no formato de docs/prompts/review.md, ou "sem achados". -->
+- **A1 (menor):** `espera_tela_sce.rs` não remove o `.psexe` sintético ao fim (os testes
+  irmãos removem). Artefato de 4 KB órfão em `tests/bins/` — sem efeito em medição; limpar
+  na próxima passada pelo arquivo.
+- Verificações: (a) a identificação "setor 5 = TMD" bate com o formato (ID 0x00000041 no
+  primeiro word do user data); (b) o passo primo foi conferido contra o mesmo fenômeno em
+  duas janelas distintas; (c) a re-execução da bateria 0129 seguiu a regra do portão
+  ("atualizou âncora → rode a bateria de novo"), não foi placar herdado.
 
 ## Decisões e notas
 

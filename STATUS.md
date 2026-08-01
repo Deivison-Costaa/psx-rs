@@ -7,25 +7,26 @@
 
 ## Última iteração concluída
 
-**0132** — Fix de 1 linha: `read_sector_from_disc` agora faz `checked_sub(150)` (pregap)
-antes de indexar o `.bin`. Criterio de sistema CUMPRIDO nos dois termos: o spin em
-0x80042xxx sumiu (0 amostras em 110M-200M) e a VRAM aos 200M mostra a **tela de licenca**
-("PlayStation TM / Licensed by SCEA"). Achado: o teste da 4.4o codificava o defeito
-(round-trip com o mapeamento errado) — corrigido. Bateria pelo mutantes.ps1 (5/5+2/2).
+**0133** — Medicao pura, zero codigo: o pos-licenca E bloqueio. A BIOS re-envia **Init
+(0x0A)** para sempre (laco em 0xBFC04A48-90, 99,85% das amostras 200M-400M; tela identica
+aos 400M) fazendo poll da flag RAM 0x91C4 que fica em 0. O drive RESPONDE (1317 IRQs), mas
+o **INT2 chega 383 cycles apos o INT3 — antes do ack** — violando a fila da spec
+(docs/reference/06-cdrom.md L333-337). E a divida 10.54 medida em campo.
 
 ## Próxima tarefa
 
-**ROADMAP 4.4ab — Pos-licenca: o boot continua?** Aos 200M a tela de licenca esta na VRAM e
-o histograma de PCs (passo primo 100003, janela 110M-200M) da 61% em 0xBFC04xxx (BIOS ROM)
-e 23% em 0x80059xxx (shell). Decidir por medicao se e o fluxo normal (tempo de tela +
-proximas leituras) ou novo bloqueio: (1) estender a janela (300M+, invariante 30) com
---dump-vram e --sample-pcs e ver se a tela vira o logo PS / boot do jogo (TTY deve ganhar
-linhas novas, p.ex. SYSTEM.CNF); (2) se travar, desassemblar o loop quente de 0xBFC04xxx
-via --dump-mem (e ROM: ler o offset correspondente da BIOS) + --trace-pcs para registrar o
-que ele le. Ferramentas ja existem no psx-cli. Armadilhas: (a) invariantes 31/32/33; (b)
-rebuild release apos bateria (corolario rlib); (c) passo de amostragem PRIMO (invariante
-33a); (d) o hot em BFC04xxx pode ser so o idle do kernel entre IRQs — conferir contra o
-TTY/VRAM antes de declarar bloqueio.
+**ROADMAP 4.4ac — 2a resposta so apos o ack da 1a.** Mecanismo: hoje `cdrom.rs` agenda a
+2a resposta (INT2) por TEMPO; a spec manda ENFILEIRAR — "if the 1st response is INT3 ...
+the second is not delivered until INT3 is acknowledged" (docs/reference/06-cdrom.md § HINTSTS
+(L313), regra em L333-337). Implementar: resposta secundaria pendente fica numa fila; o ack
+via HCLRCTL (escrita em bank1 reg3) do INT corrente e o gatilho que promove a proxima
+resposta a INTSTS. Teste (golden da spec): mandar Init (0x0A); INT3 aparece; INTSTS NAO
+muda para 2 enquanto nao houver ack; apos HCLRCTL=0x07, INT2 aparece com stat correto.
+Criterio de sistema: boot 400M+ — flag 0x91C4 vira 1, BIOS sai do retry de Init e a tela
+passa da licenca (logo PS / leitura do SYSTEM.CNF no TTY). Fecha tambem 10.53/10.54 se a
+implementacao for a fila. Armadilhas: (a) NAO mexer na ordem de IRQ do Cpu::step
+(invariante 31); (b) o caminho CDROM_RESPONSE do bus.rs tambem entrega INTs — cobrir os
+dois; (c) rebuild release antes de medir (corolario rlib); (d) passo primo na amostragem.
 Invariantes relevantes: 30, 31, 32, 33.
 
 **Meta em vigor (ordem do usuario, 31/07):** emendar as iteracoes ate o M4 fechar, sem parar entre

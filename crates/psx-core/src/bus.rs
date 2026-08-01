@@ -113,8 +113,6 @@ const VBLANK_EXIT: u32 = 1;
 const CDROM_RESPONSE: u32 = 2;
 const CDROM_SECOND: u32 = 3;
 
-const CDROM_SECOND_RESPONSE_CYCLES: u64 = 0x4A00;
-
 #[derive(Debug)]
 pub struct Bus {
     ram: Ram,
@@ -259,7 +257,7 @@ impl Bus {
     fn schedule_cdrom_second(&mut self) {
         if self.cdrom.take_second_request() {
             self.scheduler.cancel(EventId(CDROM_SECOND));
-            let prazo = self.total_cycles + CDROM_SECOND_RESPONSE_CYCLES;
+            let prazo = self.total_cycles + self.cdrom.second_response_cycles();
             self.scheduler
                 .schedule(ScheduleKey::new(prazo), EventId(CDROM_SECOND));
         }

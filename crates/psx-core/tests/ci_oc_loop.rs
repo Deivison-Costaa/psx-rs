@@ -102,3 +102,40 @@ fn gh_pr_merge_verifica_estado_merged_apos_o_merge() {
          falha de merge passa por sucesso e o log imprime 'mergeado' incondicionalmente."
     );
 }
+
+#[test]
+fn modelo_padrao_do_loop_acompanha_o_do_oc_iter() {
+    let script = oc_loop_content();
+
+    assert!(
+        script.contains("[string]$Model = \"opencode-go/gpt-5.6-luna\""),
+        "o loop tem default proprio de -Model e o passa EXPLICITAMENTE em toda invocacao, entao \
+         ele sobrepoe o default do oc-iter. Consertar so o oc-iter deixa o caminho realmente \
+         usado — o loop — apontando para o provedor que nao autentica nesta maquina"
+    );
+    assert!(
+        !script.contains("[string]$Model = \"deepseek"),
+        "default antigo ainda declarado no loop"
+    );
+}
+
+#[test]
+fn loop_repassa_a_variante_em_todos_os_bracos() {
+    let script = oc_loop_content();
+
+    assert!(
+        script.contains("[string]$Variant = \"max\""),
+        "sem o parametro no loop nao ha como mudar o esforco de uma corrida de N rodadas sem \
+         editar o script"
+    );
+    let chamadas = script
+        .matches("pwsh -NoProfile -File scripts/oc-iter.ps1")
+        .count();
+    let repasses = script.matches("-Variant $Variant").count();
+    assert_eq!(
+        repasses, chamadas,
+        "{chamadas} invocacao(oes) do oc-iter e {repasses} repasse(s) de -Variant. Os bracos (com \
+         e sem -TaskFile) divergem em silencio: consertar um so faz parte das rodadas cair no \
+         esforco default, e a diferenca nao aparece em log nenhum"
+    );
+}

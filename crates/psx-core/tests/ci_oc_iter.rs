@@ -193,3 +193,117 @@ fn deteccao_da_porta_usa_o_endereco_em_que_o_daemon_escuta() {
         "a checagem da porta tem de existir usando 127.0.0.1"
     );
 }
+
+fn linha_de(script: &str, agulha: &str) -> String {
+    let pos = script
+        .find(agulha)
+        .unwrap_or_else(|| panic!("o script deve conter `{agulha}`"));
+    script[..pos]
+        .rsplit('\n')
+        .next()
+        .unwrap_or("")
+        .to_string()
+}
+
+#[test]
+fn descoberta_do_binario_nao_e_so_o_caminho_do_npm_do_windows() {
+    let script = oc_iter_content();
+    let inicio = script
+        .find("Get-Command opencode")
+        .expect("o script tem de descobrir o binario por Get-Command");
+    let fim = script[inicio..]
+        .find("Write-Error")
+        .map(|p| p + inicio)
+        .expect("a descoberta tem de terminar numa guarda de 'nao encontrado'");
+    let trecho = &script[inicio..fim];
+
+    assert!(
+        trecho.contains("$IsWindows"),
+        "a descoberta do binario e a UNICA coisa do script que depende de sistema. No Windows o \
+         caminho que o `Get-Command` devolve e um shim do npm — o .ps1 nao roda via Start-Process \
+         e o .cmd degrada aspas (smoke 0008b/1 e /2) — e o binario real mora sob `node_modules`. \
+         Fora do Windows a instalacao e nativa e esse caminho JA e o binario. Sem bifurcar, o \
+         script monta um `...\\node_modules\\opencode-ai\\bin\\opencode.exe` que nao existe no \
+         Linux e aborta no Write-Error antes de gastar um token — a rodada morre sem sequer \
+         aparecer na metricas.csv"
+    );
+    assert!(
+        trecho.contains("\n    $shim\n"),
+        "o braco de fora do Windows tem de resolver para o proprio caminho devolvido pelo \
+         Get-Command ($shim). Bifurcar por plataforma e montar caminho de npm nos dois lados \
+         nao conserta nada"
+    );
+}
+
+#[test]
+fn flag_de_janela_do_windows_nao_vaza_para_o_daemon_no_linux() {
+    let script = oc_iter_content();
+
+    assert!(
+        linha_de(&script, "$serveArgs[\"WindowStyle\"]").contains("$IsWindows"),
+        "medido em 01/08 nesta maquina: `Start-Process -WindowStyle Hidden` LANCA no PowerShell \
+         do Linux (\"The parameter '-WindowStyle' is not supported for the cmdlet \
+         'Start-Process' on this edition of PowerShell\"). Com $ErrorActionPreference = \"Stop\" \
+         isso mata a rodada na subida do daemon, antes do primeiro token. A guarda tem de estar \
+         na MESMA linha da atribuicao: conferida no arquivo inteiro, $IsWindows aparece adiante \
+         por outro motivo e o teste fica verde com a guarda apagada"
+    );
+    assert!(
+        !script.contains("-WindowStyle"),
+        "esconder janela e conceito de Windows e nao pode ser emitido como parametro fixo da \
+         chamada: passe por splat, so quando $IsWindows"
+    );
+}
+
+#[test]
+fn modelo_padrao_e_o_trabalhador_em_vigor() {
+    let script = oc_iter_content();
+
+    assert!(
+        script.contains("[string]$Model = \"opencode-go/gpt-5.6-luna\""),
+        "o default de -Model e o unico lugar que decide quem trabalha quando ninguem passa a \
+         flag, e foi assim que as iteracoes 0009..0017 rodaram na geracao anterior do modelo sem \
+         ninguem ter decidido isso (docs/orquestracao.md, 'o default que nunca foi uma decisao')"
+    );
+    assert!(
+        !script.contains("[string]$Model = \"deepseek"),
+        "o provider `deepseek/` nao esta autenticado na maquina de operacao desde a migracao \
+         para Linux (`opencode auth` so tem `opencode-go`): com ele no default a rodada morre no \
+         provedor, nao no codigo, e a metrica registra falha sem causa"
+    );
+}
+
+#[test]
+fn variante_do_modelo_e_repassada_ao_cli_e_nao_so_declarada() {
+    let script = oc_iter_content();
+
+    assert!(
+        script.contains("[string]$Variant = \"max\""),
+        "o esforco de raciocinio vem da flag `--variant` do `opencode run` e o default tem de ser \
+         max. O handoff da 0137 afirmava `reasoningEffort max ja configurado em \
+         ~/.config/opencode` e o arquivo tinha so o $schema — a afirmacao nao sobreviveu a troca \
+         de maquina. Declarado no script, o esforco viaja com o repo"
+    );
+    let declaracao = script
+        .find("[string]$Variant")
+        .expect("parametro conferido acima");
+    let uso = script.find("\"--variant\", $Variant").expect(
+        "o parametro tem de ser REPASSADO ao CLI (`\"--variant\", $Variant`), nao so declarado: \
+         parametro declarado e nunca usado e decoracao que mente — a rodada corre no esforco \
+         default do provedor e a metricas.csv credita um esforco que nao foi usado",
+    );
+    assert!(declaracao < uso, "declaracao antes do uso");
+}
+
+#[test]
+fn variante_vazia_nao_emite_flag_orfa() {
+    let script = oc_iter_content();
+
+    assert!(
+        linha_de(&script, "\"--variant\", $Variant").contains("if ($Variant)"),
+        "`-Variant \"\"` tem de suprimir a flag inteira. Emitida com valor vazio, o achatamento \
+         do -ArgumentList produz `--variant --format json` e o CLI le `--format` como VALOR da \
+         variante: a rodada sai com o help impresso e exit 0 — exatamente o modo de falha do \
+         smoke 0008b/2 que o rotulo `falha:sem-execucao` existe para pegar"
+    );
+}

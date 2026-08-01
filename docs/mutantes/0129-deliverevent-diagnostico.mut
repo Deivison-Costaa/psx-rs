@@ -1,0 +1,76 @@
+# Manifesto de mutação da iteração 0129 — deliverevent-diagnostico
+formato: 1
+iteracao: 0129
+item: 4.4x
+alvo: crates/psx-cli/src/main.rs
+teste: deliverevent_diagnostico
+
+mutante: m1
+rotulo: etiqueta a1($5) trocada para x1($5) — teste nao encontra a1
+@@DE
+                 regs: a0($4)=0x{:08X} a1($5)=0x{:08X} t1($9)=0x{:08X} s1($17)=0x{:08X} v0($2)=0x{:08X} t4($12)=0x{:08X} t5($13)=0x{:08X}",
+@@PARA
+                 regs: a0($4)=0x{:08X} x1($5)=0x{:08X} t1($9)=0x{:08X} s1($17)=0x{:08X} v0($2)=0x{:08X} t4($12)=0x{:08X} t5($13)=0x{:08X}",
+@@FIM
+
+mutante: m2
+rotulo: passa regs[2] no lugar de regs[5] como valor de a1
+@@DE
+                cpu.regs[4],
+                cpu.regs[5],
+                cpu.regs[9],
+@@PARA
+                cpu.regs[4],
+                cpu.regs[2],
+                cpu.regs[9],
+@@FIM
+
+mutante: m3
+rotulo: valor de a0 usa regs[5] (a1) — a0 errado (0x77 em vez de 0x2A)
+@@DE
+                cpu.regs[4],
+                cpu.regs[5],
+@@PARA
+                cpu.regs[5],
+                cpu.regs[5],
+@@FIM
+
+mutante: m4
+rotulo: eprintln do trace trocado por println — saida vai para stdout
+@@DE
+            eprintln!(
+                "trace pc=0x{:08X} step={} instr=0x{:08X} \
+@@PARA
+            println!(
+                "trace pc=0x{:08X} step={} instr=0x{:08X} \
+@@FIM
+
+mutante: m5
+rotulo: valor de v0 usa regs[4] (a0) — v0 errado (0x2A em vez de 0x99)
+@@DE
+                cpu.regs[2],
+                cpu.regs[12],
+                cpu.regs[13],
+@@PARA
+                cpu.regs[4],
+                cpu.regs[12],
+                cpu.regs[13],
+@@FIM
+
+controle: c1
+rotulo: comentario cosmetico antes de fn run
+@@DE
+fn run(cpu: &mut Cpu, bus: &mut Bus, max_steps: usize, trace_pcs: &HashSet<u32>) -> usize {
+@@PARA
+// loop principal de emulacao com trace de DeliverEvent
+fn run(cpu: &mut Cpu, bus: &mut Bus, max_steps: usize, trace_pcs: &HashSet<u32>) -> usize {
+@@FIM
+
+controle: c2
+rotulo: comentario na declaracao de deliver_event_pc
+@@DE
+    let mut deliver_event_pc: Option<u32> = None;
+@@PARA
+    // endereco resolvido de DeliverEvent via B-table[07h]
+    let mut deliver_event_pc: Option<u32> = None;
+@@FIM

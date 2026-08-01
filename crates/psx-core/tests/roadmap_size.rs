@@ -2,7 +2,7 @@ mod support;
 
 use std::fs;
 
-const MAX_BYTES: u64 = 10_000;
+const MAX_BYTES: u64 = 7_000;
 
 #[test]
 fn roadmap_dentro_do_teto() {

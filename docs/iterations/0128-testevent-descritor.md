@@ -152,7 +152,7 @@ test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 
 | Metrica | Antes | Depois |
 |---|---|---|
-| Testes no workspace | 834 | 836 |
+| Testes no workspace | 834 | 838 (836 do trabalhador + stub do portao da bateria + assert extra; contado na revisao) |
 | EvCB descritor mapeado | desconhecido | F1000001→spec 20h, F1000004→spec 8000h |
 | $a0 no trace | ausente | presente |
 

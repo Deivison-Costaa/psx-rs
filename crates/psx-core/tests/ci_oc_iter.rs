@@ -7,6 +7,9 @@ fn oc_iter_content() -> String {
     fs::read_to_string(&path).expect("scripts/oc-iter.ps1 deve existir")
 }
 
+/// Duracao medida do portao do passo 7 (`cargo test --all`), em minutos, arredondada para cima.
+const MINUTOS_DO_PORTAO: i64 = 15;
+
 fn parametro_inteiro(script: &str, nome: &str) -> i64 {
     let agulha = format!("[int]${nome} = ");
     let pos = script
@@ -112,6 +115,17 @@ fn janela_de_travamento_e_menor_que_a_parede_da_rodada() {
         "a janela de travamento ({travamento} min) tem de ser MENOR que a parede da rodada \
          ({parede} min). Igual ou maior, o detector nunca dispara antes do timeout e o conserto \
          inteiro vira decoracao."
+    );
+    assert!(
+        travamento >= MINUTOS_DO_PORTAO,
+        "a janela de travamento ({travamento} min) tem de caber o PORTAO do passo 7 do protocolo, \
+         que hoje leva {MINUTOS_DO_PORTAO} min (`cargo test --all`: 842 s medidos em 01/08, com \
+         BIOS e disco presentes). Durante o portao o trabalhador nao emite evento nenhum — ele \
+         esta esperando o cargo — entao o JSON para de crescer e o detector le silencio legitimo \
+         como provedor mudo. Medido na 0140: as DUAS rodadas do trabalhador morreram em \
+         `falha:travamento` exatamente ali, uma no 1o `cargo test --all` e outra no 3o. O valor \
+         era 5 min e ficou obsoleto no instante em que a BIOS e o disco chegaram (0139) e os \
+         testes de emulacao deixaram de pular."
     );
 }
 

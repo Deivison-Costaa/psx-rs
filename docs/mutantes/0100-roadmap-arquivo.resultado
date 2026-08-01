@@ -1,10 +1,10 @@
-# gerado por scripts/mutantes.ps1 — NAO editar a mao
-# commit: 54c675eba445f9744102c3cbcc6d8d35f5f0ab3a
-# rodado_em: 2026-07-30T21:26:30-03:00
-m1,mutante,morreu,morreu,0.1,marco_totalmente_fechado_nao_fica_no_roadmap
-m2,mutante,morreu,morreu,0.1,marco_totalmente_fechado_nao_fica_no_roadmap
+# gerado por bateria MANUAL (invariante 29): alvo fora de crates/psx-core/, mutantes.ps1:366 pula
+# commit: 9de728bc556e76f835da53c8006d8c64820cac45
+# rodado_em: 2026-08-01T15:26:19-03:00
+m1,mutante,morreu,morreu,0.1,marco_totalmente_fechado_nao_fica_no_roadmap;roadmap_nao_contem_itens_fechados
+m2,mutante,morreu,morreu,0.1,marco_totalmente_fechado_nao_fica_no_roadmap;roadmap_nao_contem_itens_fechados
 m3,mutante,morreu,morreu,0.1,roadmap_aponta_para_o_arquivo_de_fechados
-m4,mutante,morreu,morreu,0.1,nenhum_item_aparece_nos_dois_arquivos
+m4,mutante,morreu,morreu,0.2,nenhum_item_aparece_nos_dois_arquivos
 m5,mutante,morreu,morreu,0.1,nenhum_item_aparece_nos_dois_arquivos
-c1,controle,sobreviveu,sobreviveu,0.1,
+c1,controle,sobreviveu,sobreviveu,0.2,
 c2,controle,sobreviveu,sobreviveu,0.1,

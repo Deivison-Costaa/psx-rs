@@ -19,10 +19,11 @@ fn run(cpu: &mut Cpu, bus: &mut Bus, max_steps: usize, trace_pcs: &HashSet<u32>)
             let _rt = ((instr >> 16) & 0x1F) as usize;
             eprintln!(
                 "trace pc=0x{:08X} step={} instr=0x{:08X} \
-                 regs: t1($9)=0x{:08X} s1($17)=0x{:08X} v0($2)=0x{:08X} t4($12)=0x{:08X} t5($13)=0x{:08X}",
+                 regs: a0($4)=0x{:08X} t1($9)=0x{:08X} s1($17)=0x{:08X} v0($2)=0x{:08X} t4($12)=0x{:08X} t5($13)=0x{:08X}",
                 cpu.pc,
                 steps,
                 instr,
+                cpu.regs[4],
                 cpu.regs[9],
                 cpu.regs[17],
                 cpu.regs[2],

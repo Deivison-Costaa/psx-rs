@@ -7,25 +7,28 @@
 
 ## Última iteração concluída
 
-**0127** — A "corrida intra-step" era artefato de checkpoint esparso (revisao). Deteccao
-continua datou o flip: spec `10h` ready no step **89 702 216**, spec `200h` no **89 702 837**
-— ~204 k passos ANTES do ultimo TestEvent (89 906 602). O shell consultou ~17x com os
-eventos ja ready e desistiu. A ordem de IRQ do `Cpu::step` esta CORRETA (checa antes do
-fetch; invariante 31). Sobra: ou o TestEvent testa OUTRO descritor, ou devolve errado.
+**0128** — Diagnostico: o shell testa os descritores **F1000001** (EvCB[1], spec=20h "command
+completed") e **F1000004** (EvCB[4], spec=8000h "error happened") em alternancia nos ultimos
+polls de `TestEvent(0x00001EC8)`. `$a0` medido: 0xF1000001 (3241x) e 0xF1000004 (3236x),
+total 7627 chamadas. Spec=20h nunca e entregue — `DeliverEvent(F0000003h, 20h)` nao ocorre.
+O trace do `psx-cli` agora inclui `a0($4)`.
 
 ## Próxima tarefa
 
-**ROADMAP 4.4w — que descritor o TestEvent do shell testa, e que evento ele espera?** Os
-eventos ready (`10h`/`200h`) nao o destravam; os specs `40h`, `80h` e `8000h` ficam busy para
-sempre — candidatos ao evento que o shell aguarda e nunca e entregue. **Iteracao de
-diagnostico.** Instrumentar os ultimos polls de TestEvent (`0x00001EC8`): capturar `$a0`
-(descritor; o handle codifica o indice do EvCB) e `$v0` no retorno; mapear descritor→spec.
-O `--trace-pcs` atual despeja `$v0` mas NAO `$a0` — estenda o trace do psx-cli se precisar.
-Se o shell espera `40h`/`80h`/`8000h`: qual INT do CD-ROM deveria entrega-lo e por que nao
-chega (`docs/reference/13-kernel-bios.md` § BIOS Event Summary (L1735)).
-Armadilhas: (a) a ordem de IRQ do `Cpu::step` esta CORRETA — nao mexer (invariante 31);
-(b) checkpoint esparso nao data evento — deteccao continua (invariantes 30/31);
-(c) NAO reinvestigar `_96_init`, o CD-ROM nem o laco de dispatch (0125–0127 eliminaram).
+**ROADMAP 4.4x — Por que `DeliverEvent(F0000003h, 20h)` nunca ocorre?** O shell espera o
+evento spec=20h (command completed) no descritor F1000001. A segunda resposta do CD-ROM
+(INT2, apos um comando como `GetID` ou `ReadN`) deve disparar o handler da BIOS que chama
+`DeliverEvent(F0000003h, 20h)` — mas isso nao acontece. **Duas hipoteses ABERTAS, decidir
+por medicao:** (a) nosso CD-ROM nao gera a INT2 do ultimo comando emitido — as dividas
+10.53/10.54 do ROADMAP (comando executa com INT pendente; 2a resposta dirigida por ack, nao
+por tempo) sao exatamente sobre isso; (b) a INT2 chega mas o handler da BIOS nao invoca
+`DeliverEvent(F0000003h, 20h)`. Discriminador: a partir de ~88 M, rastrear cada INT do
+CD-ROM entregue (tipo + comando pendente) e cada chamada de `DeliverEvent` (class+spec em
+`$a0`/`$a1`, endereco via B-table[07h]) ate o ultimo TestEvent (89 906 602). Nomear o
+ultimo comando enviado ao drive e o que aconteceu com a resposta dele.
+(`docs/reference/13-kernel-bios.md` § B(07h) - DeliverEvent (L1642), § BIOS Event Summary
+(L1735)). Armadilhas: (a) ordem de IRQ do `Cpu::step` CORRETA — nao mexer (invariante 31);
+(b) medida negativa exige janela alem de 90 M e deteccao continua (invariantes 30/31).
 Invariantes relevantes: 27, 30, 31.
 
 **Meta em vigor (ordem do usuario, 31/07):** emendar as iteracoes ate o M4 fechar, sem parar entre
@@ -52,7 +55,7 @@ de gouraud no losango (candidato 10.14).
 
 ## Placar de testes
 
-Workspace: **834** testes.
+Workspace: **838** testes.
 
 ## Bloqueios
 

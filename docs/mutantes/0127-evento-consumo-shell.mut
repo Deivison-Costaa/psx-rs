@@ -4,6 +4,7 @@ iteracao: 0127
 item: 4.4v
 alvo: crates/psx-cli/src/main.rs
 teste: evento_consumo_shell
+arquivada: ancora do m4 (linha 'i += 2;', ocorrencias 4) envelheceu quando a 0130 adicionou o parse de --dump-vram (5a ocorrencia); placar historico preservado no .resultado
 
 mutante: m1
 rotulo: --trace-pcs nao insere enderecos no HashSet (trace nunca dispara)

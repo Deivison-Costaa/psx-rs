@@ -1,0 +1,64 @@
+# Manifesto de mutação da iteração 0130 — shell-vram-tela
+formato: 1
+iteracao: 0130
+item: 4.4y
+alvo: crates/psx-cli/src/main.rs
+teste: shell_vram_tela
+
+mutante: m1
+rotulo: endianness do halfword invertida (to_be_bytes) — pixel LE lido errado
+@@DE
+            data.extend_from_slice(&bus.gpu().vram_pixel(x, y).to_le_bytes());
+@@PARA
+            data.extend_from_slice(&bus.gpu().vram_pixel(x, y).to_be_bytes());
+@@FIM
+
+mutante: m2
+rotulo: dump cobre so 256 linhas — arquivo com metade do tamanho
+@@DE
+    for y in 0..512u16 {
+@@PARA
+    for y in 0..256u16 {
+@@FIM
+
+mutante: m3
+rotulo: dump cobre so 512 colunas — arquivo com metade do tamanho
+@@DE
+        for x in 0..1024u16 {
+@@PARA
+        for x in 0..512u16 {
+@@FIM
+
+mutante: m4
+rotulo: coordenadas transpostas (vram_pixel(y, x)) — area 32x16 vira 16x32
+@@DE
+            data.extend_from_slice(&bus.gpu().vram_pixel(x, y).to_le_bytes());
+@@PARA
+            data.extend_from_slice(&bus.gpu().vram_pixel(y, x).to_le_bytes());
+@@FIM
+
+mutante: m5
+rotulo: bit15 forcado em cada pixel — fill deveria zerar o mask bit
+@@DE
+            data.extend_from_slice(&bus.gpu().vram_pixel(x, y).to_le_bytes());
+@@PARA
+            data.extend_from_slice(&(bus.gpu().vram_pixel(x, y) | 0x8000).to_le_bytes());
+@@FIM
+
+controle: c1
+rotulo: comentario cosmetico antes de write_vram_dump
+@@DE
+fn write_vram_dump(path: &str, bus: &Bus) {
+@@PARA
+// grava a VRAM inteira em 15bpp little-endian
+fn write_vram_dump(path: &str, bus: &Bus) {
+@@FIM
+
+controle: c2
+rotulo: comentario antes do fs::write do dump
+@@DE
+    if let Err(e) = std::fs::write(path, &data) {
+@@PARA
+    // escrita unica do buffer montado
+    if let Err(e) = std::fs::write(path, &data) {
+@@FIM

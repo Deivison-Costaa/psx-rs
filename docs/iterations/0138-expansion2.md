@@ -14,7 +14,7 @@
 
 | Fonte | Seção | Arquivo local |
 |---|---|---|
-| psx-spx | Memory map: 1F802000h = 8K Expansion Region 2 (I/O) (L32) | docs/reference/01-memory-map.md |
+| psx-spx | linha L32 da tabela de regioes: "1F802000h 9F802000h BF802000h 8K Expansion Region 2 (I/O Ports)" | docs/reference/01-memory-map.md |
 
 ## Mecanismo
 

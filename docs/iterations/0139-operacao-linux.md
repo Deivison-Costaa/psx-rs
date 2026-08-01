@@ -29,11 +29,11 @@ notas 1 a 3).
 |---|---|---|---|---|
 | 1 | ambiente | Que o escape de aspas do `$promptArg` fosse workaround exclusivo do Windows e devesse virar condicional a `$IsWindows` — estava assim no plano aprovado | **Falso.** O `Start-Process` do PowerShell no Linux também achata o `-ArgumentList` num único `Arguments` reparseado com regras de aspas do Windows. Com escape: `["a b \"c\" -d --version"]` (1 argumento). Sem escape: `["a","b","c","-d","--version"]` (5 argumentos, e `--version` vira flag do CLI) | Probe B, antes de escrever o teste. O rótulo "armadilha do Windows" no comentário do script descrevia a **origem** do bug, não a plataforma do comportamento. Implementar sem medir teria reencenado a falha de 28/07 11:52, em que o opencode imprimiu o help e saiu 0 |
 | 2 | processo | Que a bateria pudesse sair do `scripts/mutantes.ps1`, já que 0098 e 0101 têm `.resultado` gerado por ele sobre o mesmo alvo `.ps1` | O script **pula** alvo fora de `crates/psx-core/` (`mutantes.ps1:366-374`, invariante 29). Os dois `.resultado` antigos são legítimos porque rodaram **antes** da guarda existir — ela entrou na 0125 | Li a guarda ao conferir a premissa. Consequência: o job `mutantes` da CI sai **verde medindo zero** para alvo `.ps1`, e a justificativa da invariante 29 ("mutante fora do psx-core nunca é recompilado") **não se aplica** aqui — `ci_oc_iter.rs` lê o `.ps1` do disco em runtime. Dívida anotada abaixo |
-| 3 | processo | Escrevi os 7 testes e implementei antes de rodar, isto é, nunca vi o vermelho — violação da R5 | — | Percebi ao ir rodar. Recuperado com `git stash push -- scripts/`: 5 testes novos falharam **por asserção** e os 8 antigos seguiram verdes; só então restaurei e confirmei 18/18 |
+| 3 | processo | Escrevi os testes e implementei antes de rodar, isto é, nunca vi o vermelho — violação da R5 | — | Percebi ao ir rodar. Recuperado com `git stash push -- scripts/`: 5 testes novos falharam **por asserção** e os 8 antigos seguiram verdes; só então restaurei e confirmei 18/18 |
 
 ## Bateria de mutação
 
-Placar da bateria: 7/7 mutantes mortos, 2/2 controles verdes, 0 equivalente — docs/mutantes/0139-operacao-linux.mut
+Placar da bateria: 8/8 mutantes mortos, 2/2 controles verdes, 0 equivalente — docs/mutantes/0139-operacao-linux.mut
 
 | Registro | Rótulo | Testes que pegaram, conforme o `.resultado` |
 |---|---|---|
@@ -44,8 +44,12 @@ Placar da bateria: 7/7 mutantes mortos, 2/2 controles verdes, 0 equivalente — 
 | m5 | modelo volta ao provider sem autenticação | `modelo_padrao_e_o_trabalhador_em_vigor` |
 | m6 | variante declarada e nunca repassada | `variante_do_modelo_e_repassada_ao_cli_e_nao_so_declarada`; `variante_vazia_nao_emite_flag_orfa` |
 | m7 | flag da variante sem guarda, vazia vira flag órfã | `variante_vazia_nao_emite_flag_orfa` |
+| m8 | bifurcação escrita mas `$oc` sobrescrito logo abaixo | `descoberta_do_binario_nao_e_so_o_caminho_do_npm_do_windows` |
 | c1 | texto da mensagem de erro reescrito | — (sobreviveu, como esperado) |
 | c2 | `-m` vira `--model` | — (sobreviveu, como esperado) |
+
+O **m8 não existia na primeira versão** — nasceu da revisão adversarial (ver abaixo). Antes dele o
+placar era 7/7 e estava mentindo: um mutante óbvio sobrevivia.
 
 **Bateria MANUAL** (invariante 29): o `mutantes.ps1` pula este alvo. Aplicada por runner descartável
 que casa por linha inteira, roda `cargo test -p psx-core --test ci_oc_iter` e restaura o arquivo num
@@ -62,7 +66,28 @@ Primeira suíte verde desta máquina, e a primeira **com BIOS e disco presentes*
 
 ## Revisão cruzada (orquestrador)
 
-<!-- Preenchido na revisão do PR. -->
+**Revisor: `opencode-go/gpt-5.6-luna --variant max`**, não o orquestrador. O autor do diff foi o
+próprio Claude, e `docs/orquestracao.md` define revisão cruzada como "modelo de vendor diferente do
+autor" — auto-revisão não cumpre isso. Serviu também de smoke test do luna antes de confiar a 0140
+a ele. Quatro achados; **verifiquei os quatro por experimento, em vez de aceitar ou rejeitar de
+palavra**.
+
+| # | Achado | Veredito | Prova |
+|---|---|---|---|
+| 1 | `linha_de` não remove comentários; `... = "Hidden" # $IsWindows` burlaria a guarda | **REFUTADO** | apliquei o mutante: `flag_de_janela_... FAILED`. `linha_de` devolve o **prefixo antes** da agulha, então comentário no fim da linha não entra |
+| 2 | o teste checa a forma (`\n    $shim\n`), não o valor de `$oc`; reatribuir logo abaixo passa | **CONFIRMADO** | apliquei o mutante: **13/13 verdes** com `$oc` apontando para o caminho do npm. Corrigido com terceira afirmação (`$oc` atribuído exatamente 1×) e virou o mutante **m8** |
+| 3 | c1/c2 não são controles porque alteram comportamento observável | **REJEITADO** | é a convenção estabelecida do projeto para alvo `.ps1`: 0098 usa `Start-Sleep 10→12`, 0101 usa `AddSeconds(30)→40`, 0094 renomeia `$sha`. Pelo critério do revisor, os controles dessas três baterias também seriam inválidos. Controle existe para provar que os testes são específicos, não para ter efeito zero |
+| 4 | c2 assume `-m`/`--model` como aliases sem prova | **PROCEDENTE quanto à prova** | `opencode run --help` lista `-m, --model` na mesma linha — são o mesmo flag. O rótulo do c2 passou a citar isso |
+
+O achado 2 é o que justifica o exercício: o placar 7/7 da primeira versão estava **mentindo**, e o
+defeito era exatamente a família que este projeto já pagou quatro vezes (0094, 0098, 0100, 0101) —
+teste que lê o texto do script em vez de cobrar o efeito.
+
+Tentativa de correção do achado 3 que falhou e vale registro: troquei os controles por inserção de
+comentário (`# ...`), a convenção usada em alvo `.rs`. O parser reprovou com "@@DE e @@PARA
+idênticos ignorando whitespace" — ele trata `#` como comentário **do manifesto** e o remove de
+dentro do bloco. É o item **10.42** do ROADMAP, já catalogado. Em alvo `.ps1` não existe controle
+por comentário enquanto esse item não fechar.
 
 ## Decisões e notas
 
@@ -106,3 +131,10 @@ sem sudo, com link em `~/.local/bin`).
   "ainda não existem".
 - `STATUS.md` afirmava `reasoningEffort max ja configurado em ~/.config/opencode`; o arquivo desta
   máquina tem só o `$schema`. Corrigido nesta iteração — quem passa `max` agora é `--variant`.
+
+**7. Erro de primeira tentativa nº 4 (achado pela revisão, não por mim).** O primeiro placar da
+bateria foi 7/7 e estava errado: `descoberta_do_binario_...` afirmava a presença do texto
+`\n    $shim\n` mas não que `$oc` terminasse com esse valor. Um mutante que mantém a bifurcação
+escrita e reatribui `$oc` na linha seguinte passou 13/13. Categoria: **teste teatral** — a mesma que
+o passo 6 do SKILL existe para pegar e que já custou quatro baterias a este projeto. A terceira
+afirmação (contagem de atribuições de `$oc`) fecha o buraco, e o caso virou o mutante m8.

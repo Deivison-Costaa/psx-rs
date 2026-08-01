@@ -229,6 +229,18 @@ fn descoberta_do_binario_nao_e_so_o_caminho_do_npm_do_windows() {
          Get-Command ($shim). Bifurcar por plataforma e montar caminho de npm nos dois lados \
          nao conserta nada"
     );
+    let atribuicoes = trecho.matches("$oc = ").count();
+    assert_eq!(
+        atribuicoes, 1,
+        "$oc tem de ser atribuido UMA unica vez na descoberta (encontradas {atribuicoes}). As duas \
+         afirmacoes acima olham a FORMA do texto, nao o VALOR que sobra em $oc: com uma segunda \
+         atribuicao logo abaixo do if — `$oc = Join-Path ... node_modules ...` — a bifurcacao \
+         continua escrita, os dois asserts passam e o script volta a apontar para um caminho que \
+         nao existe no Linux. Achado da revisao adversarial da 0139 (revisor gpt-5.6-luna), \
+         confirmado por mutante que sobreviveu 13/13 antes desta terceira afirmacao. Mesma familia \
+         dos mutantes sobreviventes de 0094, 0098, 0100 e 0101: teste que le o texto em vez de \
+         cobrar o efeito"
+    );
 }
 
 #[test]

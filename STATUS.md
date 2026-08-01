@@ -10,7 +10,7 @@
 **0139** — Operacao migrada de Windows para Linux (Fedora 44). oc-iter/oc-loop acham o
 binario do opencode nos dois SOs; flag de janela so no Windows (medido: `-WindowStyle`
 LANCA no pwsh Linux); trabalhador vira opencode-go/gpt-5.6-luna com `--variant max`
-(provider deepseek/ nao autentica nesta maquina). Bateria 7/7 + 2/2, MANUAL — mutantes.ps1
+(provider deepseek/ nao autentica nesta maquina). Bateria 8/8 + 2/2, MANUAL — mutantes.ps1
 pula alvo fora de crates/psx-core/ (mutantes.ps1:366). Erro de 1a tentativa registrado: o
 escape de aspas do prompt NAO e workaround so do Windows — o pwsh Linux tambem achata o
 -ArgumentList, entao a mudanca planejada foi cortada. Contexto da 0137 (mecanismo do

@@ -75,6 +75,15 @@ if ($Variant) { $argsRun += @("--variant", $Variant) }
 $argsRun += @("--variant", $Variant)
 @@FIM
 
+mutante: m8
+rotulo: bifurcacao escrita mas $oc sobrescrito logo abaixo com o caminho do npm
+@@DE
+$shim = (Get-Command opencode -ErrorAction SilentlyContinue)?.Source
+@@PARA
+$shim = (Get-Command opencode -ErrorAction SilentlyContinue)?.Source
+$oc = Join-Path (Split-Path $shim) "node_modules/opencode-ai/bin/opencode"
+@@FIM
+
 controle: c1
 rotulo: texto da mensagem de erro da descoberta reescrito, sem mudar a logica
 @@DE
@@ -84,7 +93,7 @@ if (-not ($oc -and (Test-Path $oc))) { Write-Error "opencode ausente: instale an
 @@FIM
 
 controle: c2
-rotulo: alias longo do flag de modelo, de -m para --model, mesmo efeito no CLI
+rotulo: alias longo do flag de modelo; `opencode run --help` lista "-m, --model" como o MESMO flag
 @@DE
 $argsRun = @("run", "--attach", "http://localhost:$Port", "-m", $Model)
 @@PARA

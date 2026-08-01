@@ -1,0 +1,12 @@
+# gerado por bateria MANUAL (invariante 29): alvo fora de crates/psx-core/, mutantes.ps1:366 pula
+# commit: c75fd1f202ec69b0c64a83ec89060bfba141643b
+# rodado_em: 2026-08-01T12:58:53-03:00
+m1,mutante,morreu,morreu,0.1,descoberta_do_binario_nao_e_so_o_caminho_do_npm_do_windows
+m2,mutante,morreu,morreu,0.2,descoberta_do_binario_nao_e_so_o_caminho_do_npm_do_windows
+m3,mutante,morreu,morreu,0.2,flag_de_janela_do_windows_nao_vaza_para_o_daemon_no_linux
+m4,mutante,morreu,morreu,0.2,flag_de_janela_do_windows_nao_vaza_para_o_daemon_no_linux
+m5,mutante,morreu,morreu,0.1,modelo_padrao_e_o_trabalhador_em_vigor
+m6,mutante,morreu,morreu,0.2,variante_do_modelo_e_repassada_ao_cli_e_nao_so_declarada;variante_vazia_nao_emite_flag_orfa
+m7,mutante,morreu,morreu,0.2,variante_vazia_nao_emite_flag_orfa
+c1,controle,sobreviveu,sobreviveu,0.1,
+c2,controle,sobreviveu,sobreviveu,0.2,

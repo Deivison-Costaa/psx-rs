@@ -1,0 +1,92 @@
+# Manifesto de mutação da iteração 0139 — operacao-linux
+formato: 1
+iteracao: 0139
+item: 10.60
+alvo: scripts/oc-iter.ps1
+teste: ci_oc_iter
+
+mutante: m1
+rotulo: descoberta do binario volta a assumir o layout do npm do Windows
+@@DE
+$oc = if (-not $shim) {
+    $null
+} elseif ($IsWindows) {
+    Join-Path (Split-Path $shim) "node_modules\opencode-ai\bin\opencode.exe"
+} else {
+    $shim
+}
+@@PARA
+$oc = if ($shim) {
+    Join-Path (Split-Path $shim) "node_modules\opencode-ai\bin\opencode.exe"
+} else { $null }
+@@FIM
+
+mutante: m2
+rotulo: bifurca por plataforma mas os dois bracos montam caminho de npm
+@@DE
+} else {
+    $shim
+}
+@@PARA
+} else {
+    Join-Path (Split-Path $shim) "node_modules/opencode-ai/bin/opencode"
+}
+@@FIM
+
+mutante: m3
+rotulo: guarda de plataforma da flag de janela some, flag vira incondicional
+@@DE
+    if ($IsWindows) { $serveArgs["WindowStyle"] = "Hidden" }
+@@PARA
+    $serveArgs["WindowStyle"] = "Hidden"
+@@FIM
+
+mutante: m4
+rotulo: subida do daemon volta a forma de parametro nomeado do Windows
+@@DE
+    $serveArgs = @{ ArgumentList = @("serve", "--port", $Port) }
+    if ($IsWindows) { $serveArgs["WindowStyle"] = "Hidden" }
+    Start-Process $oc @serveArgs
+@@PARA
+    Start-Process $oc -ArgumentList "serve", "--port", $Port -WindowStyle Hidden
+@@FIM
+
+mutante: m5
+rotulo: modelo padrao volta ao provider que nao autentica nesta maquina
+@@DE
+    [string]$Model = "opencode-go/gpt-5.6-luna",
+@@PARA
+    [string]$Model = "deepseek/deepseek-v4-pro",
+@@FIM
+
+mutante: m6
+rotulo: variante declarada no param mas nunca repassada ao CLI
+@@DE
+if ($Variant) { $argsRun += @("--variant", $Variant) }
+@@PARA
+if ($Variant) { $argsRun += @() }
+@@FIM
+
+mutante: m7
+rotulo: flag da variante emitida sem guarda, valor vazio vira flag orfa
+@@DE
+if ($Variant) { $argsRun += @("--variant", $Variant) }
+@@PARA
+$argsRun += @("--variant", $Variant)
+@@FIM
+
+controle: c1
+rotulo: texto da mensagem de erro da descoberta reescrito, sem mudar a logica
+@@DE
+if (-not ($oc -and (Test-Path $oc))) { Write-Error "binario do opencode nao encontrado (Windows: npm i -g opencode-ai; Linux: instalacao nativa no PATH)" }
+@@PARA
+if (-not ($oc -and (Test-Path $oc))) { Write-Error "opencode ausente: instale antes de iterar" }
+@@FIM
+
+controle: c2
+rotulo: alias longo do flag de modelo, de -m para --model, mesmo efeito no CLI
+@@DE
+$argsRun = @("run", "--attach", "http://localhost:$Port", "-m", $Model)
+@@PARA
+$argsRun = @("run", "--attach", "http://localhost:$Port", "--model", $Model)
+@@FIM

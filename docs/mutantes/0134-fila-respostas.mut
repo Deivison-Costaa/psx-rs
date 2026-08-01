@@ -4,6 +4,7 @@ iteracao: 0134
 item: 4.4ac
 alvo: crates/psx-core/src/cdrom.rs
 teste: cdrom_fila_int
+arquivada: modelo de flags e despacho reestruturados na iteracao 0136; placar historico preservado no .resultado
 
 mutante: m1
 rotulo: ack nao enfileira a 2a resposta (second_request nunca sobe)

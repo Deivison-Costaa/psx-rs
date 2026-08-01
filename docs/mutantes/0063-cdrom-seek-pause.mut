@@ -4,6 +4,7 @@ iteracao: 0063
 item: 4.2a
 alvo: crates/psx-core/src/cdrom.rs
 teste: cdrom_seek_pause
+arquivada: handler de respostas reestruturado nas iteracoes 0134-0136; ancoras antigas preservadas no .resultado
 
 mutante: m1
 rotulo: BCD sec invalido aceito — troca validacao BCD por true

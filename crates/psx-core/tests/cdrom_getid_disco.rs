@@ -51,6 +51,7 @@ fn segunda_resposta_do_getid(bus: &mut Bus) -> Vec<u8> {
     send_command(bus, GETID);
     let _ = result_read(bus);
     hclrctl_write(bus, 0x07);
+    bus.tick_timers(0x6000);
     (0..8).map(|_| result_read(bus)).collect()
 }
 
@@ -66,6 +67,7 @@ fn getid_com_disco_responde_int2_e_nao_int5() {
     send_command(&mut bus, GETID);
     let _ = result_read(&mut bus);
     hclrctl_write(&mut bus, 0x07);
+    bus.tick_timers(0x6000);
 
     assert_eq!(
         hintsts(&mut bus),
@@ -153,6 +155,7 @@ fn getid_sem_disco_continua_respondendo_int5() {
     send_command(&mut bus, GETID);
     let _ = result_read(&mut bus);
     hclrctl_write(&mut bus, 0x07);
+    bus.tick_timers(0x6000);
 
     assert_eq!(
         hintsts(&mut bus),

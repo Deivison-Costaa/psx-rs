@@ -1,0 +1,99 @@
+# Manifesto de mutação da iteração 0134 — fila-respostas
+formato: 1
+iteracao: 0134
+item: 4.4ac
+alvo: crates/psx-core/src/cdrom.rs
+teste: cdrom_fila_int
+
+mutante: m1
+rotulo: ack nao enfileira a 2a resposta (second_request nunca sobe)
+@@DE
+                if self.pending_second.get() != 0 {
+                    self.second_request.set(true);
+                }
+@@PARA
+                if self.pending_second.get() != 0 {
+                    self.second_request.set(false);
+                }
+@@FIM
+
+mutante: m2
+rotulo: o defeito original de volta — entrega inline no instante do ack
+@@DE
+                if self.pending_second.get() != 0 {
+                    self.second_request.set(true);
+                }
+@@PARA
+                if self.pending_second.get() != 0 {
+                    self.deliver_second(_disc_layout, _disc_bin);
+                }
+@@FIM
+
+mutante: m3
+rotulo: take_second_request sempre nega — o bus nunca agenda CDROM_SECOND
+@@DE
+    pub fn take_second_request(&self) -> bool {
+        let v = self.second_request.get();
+        self.second_request.set(false);
+        v
+    }
+@@PARA
+    pub fn take_second_request(&self) -> bool {
+        let v = self.second_request.get();
+        self.second_request.set(false);
+        v && self.second_request.get()
+    }
+@@FIM
+
+mutante: m4
+rotulo: 2a resposta generica entrega INT3 em vez de INT2
+@@DE
+            1 => {
+                self.busy.set(false);
+                self.result_clear();
+                self.result_push(self.stat_byte());
+                self.intsts.set(2);
+            }
+@@PARA
+            1 => {
+                self.busy.set(false);
+                self.result_clear();
+                self.result_push(self.stat_byte());
+                self.intsts.set(3);
+            }
+@@FIM
+
+mutante: m5
+rotulo: 2a resposta sem stat no result FIFO
+@@DE
+            1 => {
+                self.busy.set(false);
+                self.result_clear();
+                self.result_push(self.stat_byte());
+                self.intsts.set(2);
+            }
+@@PARA
+            1 => {
+                self.busy.set(false);
+                self.result_clear();
+                self.intsts.set(2);
+            }
+@@FIM
+
+controle: c1
+rotulo: comentario antes de take_second_request
+@@DE
+    pub fn take_second_request(&self) -> bool {
+@@PARA
+    // consumido pelo bus para agendar a entrega da 2a resposta
+    pub fn take_second_request(&self) -> bool {
+@@FIM
+
+controle: c2
+rotulo: comentario antes de deliver_second_now
+@@DE
+    pub fn deliver_second_now(&self, disc_layout: Option<&DiscLayout>, disc_bin: Option<&[u8]>) {
+@@PARA
+    // chamado pelo evento CDROM_SECOND do scheduler
+    pub fn deliver_second_now(&self, disc_layout: Option<&DiscLayout>, disc_bin: Option<&[u8]>) {
+@@FIM

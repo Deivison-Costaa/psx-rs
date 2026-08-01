@@ -111,6 +111,9 @@ impl MemoryOp for BusWrite {
 const VBLANK_ENTER: u32 = 0;
 const VBLANK_EXIT: u32 = 1;
 const CDROM_RESPONSE: u32 = 2;
+const CDROM_SECOND: u32 = 3;
+
+const CDROM_SECOND_RESPONSE_CYCLES: u64 = 0x4A00;
 
 #[derive(Debug)]
 pub struct Bus {
@@ -253,6 +256,15 @@ impl Bus {
         }
     }
 
+    fn schedule_cdrom_second(&mut self) {
+        if self.cdrom.take_second_request() {
+            self.scheduler.cancel(EventId(CDROM_SECOND));
+            let prazo = self.total_cycles + CDROM_SECOND_RESPONSE_CYCLES;
+            self.scheduler
+                .schedule(ScheduleKey::new(prazo), EventId(CDROM_SECOND));
+        }
+    }
+
     pub fn total_cycles(&self) -> u64 {
         self.total_cycles
     }
@@ -290,6 +302,18 @@ impl Bus {
                             self.total_cycles,
                             ints,
                             cmd.unwrap_or(0xFF)
+                        );
+                        self.irq.raise(2);
+                    }
+                }
+                CDROM_SECOND => {
+                    self.cdrom
+                        .deliver_second_now(self.disc_layout.as_ref(), self.disc_bin.as_deref());
+                    if self.cdrom.take_irq2_edge() {
+                        let ints = self.cdrom.intsts();
+                        eprintln!(
+                            "# CDROM_SECOND_IRQ2 total_cycles={} intsts=0x{:02X}",
+                            self.total_cycles, ints
                         );
                         self.irq.raise(2);
                     }
@@ -452,6 +476,7 @@ impl Bus {
                 self.cdrom
                     .write8(3, (val >> 24) as u8, disc_layout, disc_bin);
                 self.schedule_cdrom_response();
+                self.schedule_cdrom_second();
                 self.service_cdrom_irq();
                 true
             }
@@ -535,6 +560,7 @@ impl Bus {
                     self.disc_bin.as_deref(),
                 );
                 self.schedule_cdrom_response();
+                self.schedule_cdrom_second();
                 self.service_cdrom_irq();
                 true
             }

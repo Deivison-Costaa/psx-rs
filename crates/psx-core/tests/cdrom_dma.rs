@@ -74,6 +74,7 @@ fn read_n_and_int1(bus: &mut Bus) {
     send_command(bus, 0x06);
     let _ = result_read(bus);
     hclrctl_write(bus, 0x07);
+    bus.tick_timers(0x6000);
     set_bank(bus, 1);
     let hintsts = cd_read(bus, 3) & 0x7;
     set_bank(bus, 0);

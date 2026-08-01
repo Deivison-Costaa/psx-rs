@@ -5,6 +5,8 @@ use support::asm;
 
 const CD_BASE: u32 = 0x1F80_1800;
 const ESPERA_PRIMEIRA_RESPOSTA: u32 = 0x1_4000;
+// 06-cdrom.md L333-337: 2a resposta so apos o ack, com atraso fisico (divida 10.53).
+const ESPERA_SEGUNDA_RESPOSTA: u32 = 0x6000;
 
 fn bus() -> Bus {
     asm::bus_with_bios_empty()
@@ -162,6 +164,7 @@ fn seek_l_com_disco_retorna_int3_depois_int2() {
     assert_eq!(stat & 0x01, 0, "stat bit0=0 — sem erro");
     assert_ne!(stat & (1 << 6), 0, "stat bit6=1 — seeking");
     hclrctl_write(&mut bus, 0x07);
+    bus.tick_timers(ESPERA_SEGUNDA_RESPOSTA);
     let hintsts2 = hintsts_read_bank1(&mut bus);
     assert_eq!(hintsts2 & 0x7, 2, "INT2 apos acknowledge do SeekL");
     let stat2 = result_read(&mut bus);
@@ -196,6 +199,7 @@ fn pause_retorna_int3_depois_int2() {
     let stat = result_read(&mut bus);
     assert_eq!(stat & 0x01, 0, "stat bit0=0 — sem erro");
     hclrctl_write(&mut bus, 0x07);
+    bus.tick_timers(ESPERA_SEGUNDA_RESPOSTA);
     let hintsts2 = hintsts_read_bank1(&mut bus);
     assert_eq!(hintsts2 & 0x7, 2, "INT2 apos acknowledge do Pause");
     let stat2 = result_read(&mut bus);

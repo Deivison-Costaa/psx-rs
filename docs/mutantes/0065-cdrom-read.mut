@@ -4,6 +4,7 @@ iteracao: 0065
 item: 4.2c
 alvo: crates/psx-core/src/cdrom.rs
 teste: cdrom_read
+arquivada: registro m4 ancorava o handler do ack (HCLRCTL) que a 0134 reestruturou — entrega da 2a resposta saiu do ack e virou evento CDROM_SECOND no scheduler (4.4ac); placar historico preservado no .resultado
 
 mutante: m1
 rotulo: ReadN sem disco retorna INT3 em vez de INT5 — condicao vira false

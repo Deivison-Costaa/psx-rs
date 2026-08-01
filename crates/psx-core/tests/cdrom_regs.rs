@@ -5,6 +5,9 @@ use support::asm;
 
 const CD_BASE: u32 = 0x1F80_1800;
 const ESPERA_PRIMEIRA_RESPOSTA: u32 = 0x1_4000;
+// 06-cdrom.md L333-337: 2a resposta so e entregue apos o ack da 1a, com atraso
+// fisico > 0; o valor exato por comando e a divida 10.53 (tabela na Fase B).
+const ESPERA_SEGUNDA_RESPOSTA: u32 = 0x6000;
 
 fn bus() -> Bus {
     asm::bus_with_bios_empty()
@@ -99,8 +102,19 @@ fn init_command_dispara_int3_e_depois_int2() {
         "stat bit1=1 — motor ligado apos Init com disco"
     );
     hclrctl_write(&mut bus, 0x07);
+    let no_ack = hintsts_read_bank1(&mut bus);
+    assert_eq!(
+        no_ack & 0x7,
+        0,
+        "nenhum INT no instante do ack — a fila espera o atraso fisico"
+    );
+    bus.tick_timers(ESPERA_SEGUNDA_RESPOSTA);
     let hintsts2 = hintsts_read_bank1(&mut bus);
-    assert_eq!(hintsts2 & 0x7, 2, "INT2 apos acknowledge do INT3 do Init");
+    assert_eq!(
+        hintsts2 & 0x7,
+        2,
+        "INT2 do Init chega apos o atraso contado a partir do ack"
+    );
 }
 
 #[test]
@@ -148,6 +162,7 @@ fn getid_sem_disco_retorna_int5() {
     assert_eq!(hintsts & 0x7, 3, "INT3 na primeira resposta do GetID");
     cd_read(&bus, 1);
     hclrctl_write(&mut bus, 0x07);
+    bus.tick_timers(ESPERA_SEGUNDA_RESPOSTA);
     let hintsts2 = hintsts_read_bank1(&mut bus);
     assert_eq!(hintsts2 & 0x7, 5, "INT5 na segunda resposta (sem disco)");
     set_bank(&mut bus, 0);
@@ -242,6 +257,7 @@ fn result_fifo_esvaziado_apos_acknowledge_e_leitura_da_segunda_resposta() {
         "stat bit1=1 — motor ligado apos Init com disco"
     );
     hclrctl_write(&mut bus, 0x03);
+    bus.tick_timers(ESPERA_SEGUNDA_RESPOSTA);
     set_bank(&mut bus, 0);
     let stat2 = cd_read(&bus, 1);
     assert_eq!(stat2 & (1 << 1), 1 << 1, "INT2 stat bit1=1 — motor ligado");

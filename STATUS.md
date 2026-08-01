@@ -7,28 +7,29 @@
 
 ## Última iteração concluída
 
-**0134** — 4.4ac fechado: 2a resposta ENFILEIRADA; o ack (HCLRCTL) so marca, o bus agenda
-CDROM_SECOND (+0x4A00) e o IRQ2 sobe na entrega — nunca no instante do ack (06-cdrom.md
-L333-337). Bateria 5/5+2/2. **Boot 400M: flag 0x91C4=1, BIOS saiu do retry de Init, TTY
-atravessa KERNEL SETUP → BOOTSTRAP LOADER → "boot file: cdrom:PSX.EXE;1"** — a tela passou
-da licenca. Fecha 10.54. Executada pelo orquestrador (plano de saida; papeis invertidos
-aprovados 01/08: goldens do orquestrador, implementacao do trabalhador).
+**0135** — Diagnostico puro (R8 suspensa por escrito): spec do CD-ROM lida INTEIRA e
+**docs/cdrom-comandos.md** commitado — design doc do motor 4.4ad com citacao de linha
+verificada, tabela por comando, unknowns explicitos e escopo dentro/fora decidido. Achado
+que muda o desenho: o hardware NAO tem fila — 2 flags (INT2/INT1 pendentes; INT3 imediato)
+e no maximo 1 INT1 nao entregue (06-cdrom.md L1969-1982). Spike de sideload registrado em
+docs/spikes/sideload-crash.md: o jogo RODA pos-injecao e trava em VSync timeout + 100% dos
+PCs no vetor de excecao — **GTE ainda nao e o muro; o proximo item-pai e VSync/IRQ do jogo**.
 
 ## Próxima tarefa
 
-**ROADMAP 4.4ad — Motor de respostas do CD-ROM (Fase B do plano de saida).** Ordem: (1)
-diagnostico puro com R8 SUSPENSA por escrito so p/ este item: ler 06-cdrom.md INTEIRO e
-commitar docs/cdrom-comandos.md — tabela opcode → 1a/2a resposta, ciclos, citacao com
-linha conferida via grep -n, unknown marcado. (2) goldens do ORQUESTRADOR citando a
-tabela: fila tipada; timing DISTINTO por comando (Pause != Init por construcao); AVANCO de
-seek entre setores — hoje seek_min/sec/sect so sao escritos no Setloc e ReadN reentrega o
-MESMO setor (setores N/N+1 com bytes DIFERENTES no .bin sintetico); rearm do ReadS;
-Setmode; buffer 2340B. (3) worker implementa ate verde (R4 suspensa por escrito).
-Evidencia de que o avanco de seek e o bloqueio atual: loader caiu no fallback PSX.EXE
-(SYSTEM.CNF ilegivel) e PCs 367M-400M em laco de espera do kernel (0xA0/0x5C4-5DC).
-Armadilhas: (a) invariante 31 (ordem IRQ no Cpu::step); (b) o caminho CDROM_RESPONSE do
-bus.rs tambem entrega INTs — cobrir os dois; (c) rebuild release antes de medir (corolario
-rlib); (d) passo primo na amostragem. Invariantes relevantes: 30, 31, 32, 33.
+**ROADMAP 4.4ad — passos 2 e 3: goldens do orquestrador + implementacao do worker.**
+(2) Orquestrador escreve `crates/psx-core/tests/cdrom_motor.rs` citando
+docs/cdrom-comandos.md: modelo de 2 flags; gate de comando com INT pendente (06-cdrom.md
+L1984-2000, fecha 10.53); timing DISTINTO por comando via § Second Response (L2064-2076;
+Pause != Init por construcao); AVANCO de seek entre setores (setores N/N+1 com bytes
+DIFERENTES num .bin sintetico — hoje reentrega o mesmo setor); rearm do ReadS; Setmode
+bit5 → buffer 800h/924h; 2a resposta so nos 10 comandos de L2004-2014; INT5 na 1a suprime
+a 2a (L2022-2026). (3) Worker implementa ate verde com R4 suspensa POR ESCRITO no doc da
+0136; escopo fechado = "Decisoes de escopo do motor" do cdrom-comandos.md — o que esta
+FORA e divida aceita, nao implementar. Armadilhas: (a) invariante 31 (ordem IRQ no
+Cpu::step); (b) caminho CDROM_RESPONSE do bus.rs tambem entrega INTs; (c) nao quebrar
+cdrom_fila_int (goldens do 4.4ac); (d) rebuild release antes de medir; (e) passo primo.
+Invariantes relevantes: 30, 31, 32, 33.
 
 **Meta em vigor (ordem do usuario, 31/07):** emendar as iteracoes ate o M4 fechar, sem parar entre
 PRs. Pronto = **menu navegavel no `psx-desktop`**. Parada: 5 iteracoes fechadas sem o jogo bootar,

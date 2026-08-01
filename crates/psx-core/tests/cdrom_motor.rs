@@ -11,8 +11,10 @@ const ESPERA_PRIMEIRA_RESPOSTA: u32 = 0x1_4000;
 // avg 21181Ch, min 20EAEFh. Os goldens usam janelas com folga em torno desses valores.
 const GETID_SEGUNDA_MIN: u32 = 0x1000;
 const GETID_SEGUNDA_MAX: u32 = 0x8000;
-const PAUSE_AINDA_NAO: u32 = 0x10_0000;
-const PAUSE_SEGUNDA_MAX: u32 = 0x24_0000;
+const PAUSE_IDLE_AINDA_NAO: u32 = 0x800;
+const PAUSE_IDLE_MAX: u32 = 0x4000;
+const PAUSE_LENDO_AINDA_NAO: u32 = 0x10_0000;
+const PAUSE_LENDO_MAX: u32 = 0x24_0000;
 const ESPERA_GENEROSA: u32 = 0x24_0000;
 
 fn bus() -> Bus {
@@ -200,15 +202,57 @@ fn timing_da_segunda_resposta_e_por_comando() {
     send_command(&mut bus, 0x09);
     let _ = result_read(&mut bus);
     ack(&mut bus);
-    bus.tick_timers(PAUSE_AINDA_NAO);
+    bus.tick_timers(PAUSE_IDLE_AINDA_NAO);
     assert_eq!(
         hintsts(&mut bus),
         0,
-        "Pause: 100000h < min 20EAEFh — INT2 ainda nao; um unico atraso global para \
-         todo comando reprova aqui"
+        "Pause parado: 800h < min 1D25h — INT2 ainda nao (06-cdrom.md L2070)"
     );
-    bus.tick_timers(PAUSE_SEGUNDA_MAX);
-    assert_eq!(hintsts(&mut bus), 2, "Pause: INT2 ate ~21181Ch + folga");
+    bus.tick_timers(PAUSE_IDLE_MAX);
+    assert_eq!(
+        hintsts(&mut bus),
+        2,
+        "Pause com o drive parado e RAPIDO: 'when paused' avg 1DF2h (06-cdrom.md L2070) \
+         — o timing depende do ESTADO, nao de contadores de comandos"
+    );
+}
+
+#[test]
+fn pause_durante_leitura_leva_o_tempo_de_5_setores() {
+    let mut bus = bus_com_dois_setores();
+    setloc(&mut bus, 0x00, 0x02, 0x00);
+
+    send_command(&mut bus, 0x06);
+    let _ = result_read(&mut bus);
+    ack(&mut bus);
+    bus.tick_timers(ESPERA_GENEROSA);
+    assert_eq!(hintsts(&mut bus), 1, "INT1 do primeiro setor");
+    let _ = result_read(&mut bus);
+    ack(&mut bus);
+
+    send_command(&mut bus, 0x09);
+    assert_eq!(
+        hintsts(&mut bus),
+        3,
+        "INT3 do Pause — nada de INT1 atropelando"
+    );
+    let _ = result_read(&mut bus);
+    ack(&mut bus);
+    bus.tick_timers(PAUSE_LENDO_AINDA_NAO);
+    assert_eq!(
+        hintsts(&mut bus),
+        0,
+        "Pause durante leitura: 100000h < min 20EAEFh — INT2 ainda nao, e o evento de \
+         setor pre-armado NAO pode entregar a resposta do Pause adiantada"
+    );
+    bus.tick_timers(PAUSE_LENDO_MAX);
+    assert_eq!(
+        hintsts(&mut bus),
+        2,
+        "Pause durante leitura: INT2 em ~21181Ch — 'about 5 sectors' (06-cdrom.md L2068)"
+    );
+    let stat = result_read(&mut bus);
+    assert_eq!(stat & (1 << 5), 0, "stat bit5=0 — leitura parou");
 }
 
 #[test]

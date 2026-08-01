@@ -276,6 +276,7 @@ fn pause_para_read_n() {
     hclrctl_write(&mut bus, 0x07);
     bus.tick_timers(0x6000);
     let _ = result_read(&mut bus);
+    hclrctl_write(&mut bus, 0x07);
 
     send_command(&mut bus, 0x09);
     let hintsts_pause = hintsts_read_bank1(&mut bus);
@@ -283,17 +284,22 @@ fn pause_para_read_n() {
 
     let _ = result_read(&mut bus);
     hclrctl_write(&mut bus, 0x07);
-    bus.tick_timers(0x6000);
+    bus.tick_timers(0x24_0000);
 
     let hintsts_after = hintsts_read_bank1(&mut bus);
-    assert_eq!(hintsts_after & 0x7, 2, "INT2 — segunda resposta do Pause");
+    assert_eq!(
+        hintsts_after & 0x7,
+        2,
+        "INT2 do Pause durante leitura leva ~21181Ch cycles (06-cdrom.md L2068), \
+         nao o atraso curto de comando"
+    );
 
     let stat_after = result_read(&mut bus);
     assert_eq!(stat_after & (1 << 5), 0, "stat bit5=0 — parou de ler");
 
     hclrctl_write(&mut bus, 0x07);
 
-    bus.tick_timers(0x6000);
+    bus.tick_timers(0x24_0000);
     let hintsts_final = hintsts_read_bank1(&mut bus);
     assert_eq!(
         hintsts_final & 0x7,

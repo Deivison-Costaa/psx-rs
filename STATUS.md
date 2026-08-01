@@ -55,7 +55,7 @@ de gouraud no losango (candidato 10.14).
 
 ## Placar de testes
 
-Workspace: **850** testes.
+Workspace: **857** testes.
 
 ## Bloqueios
 

@@ -242,3 +242,13 @@ Regra imposta por `status_handoff.rs`.
     hipotese futura de "evento do CD nao chega ao shell" deve ser considerada refutada;
     a fronteira do boot esta DEPOIS disso: steps ~92M-200M sem nenhum comando novo ao
     drive, so VBlank/IRQ0 periodicos.
+
+33. **A saida da tela SCE e dirigida por DADO, nao por evento de hardware (medido na 0131).**
+    SPU, timers e joypad estao ELIMINADOS como bloqueio do boot pos-tela-SCE: o shell gasta
+    ~99% do tempo (spin infinito, ~113M+) varrendo o TMD do logo PlayStation carregado em
+    0x80010000 a procura de primitivos 0x20/0x30 que nao existem, porque ate a 0131 TODO
+    read de CD entregava o setor N+150 (read_sector_from_disc indexava o .bin pelo MSF
+    absoluto sem subtrair o pregap de 00:02:00). Corolarios de instrumentacao: (a) histograma
+    de PCs por amostragem periodica exige passo PRIMO — passo composto alia com o periodo do
+    laco (82% das amostras num unico PC com passo 200k); (b) nunca reescrever fonte com
+    Get-Content|Set-Content — vira CRLF e toda ancora de mutacao passa a falhar em cascata.

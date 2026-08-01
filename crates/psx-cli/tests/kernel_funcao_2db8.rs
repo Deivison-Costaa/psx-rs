@@ -186,7 +186,10 @@ fn trace_pcs_inclui_ra_do_chamador() {
 
     let stderr = String::from_utf8_lossy(&output.stderr);
 
-    let trace_lines: Vec<&str> = stderr.lines().filter(|l| l.starts_with("trace pc=")).collect();
+    let trace_lines: Vec<&str> = stderr
+        .lines()
+        .filter(|l| l.starts_with("trace pc="))
+        .collect();
     assert!(
         !trace_lines.is_empty(),
         "Esperava pelo menos uma linha de trace para 0xA0 em 500k passos"

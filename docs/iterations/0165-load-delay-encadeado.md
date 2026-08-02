@@ -20,19 +20,37 @@
 
 ## Bateria de mutação
 
-Placar da bateria: **5/5 mutantes mortos, 2/2 controles verdes, 0 equivalente** — `docs/mutantes/0165-load-delay-encadeado.resultado`.
+Placar da bateria: **6/6 mutantes mortos, 2/2 controles verdes, 0 equivalente** — `docs/mutantes/0165-load-delay-encadeado.resultado`.
+O sexto mutante entrou na revisão (ver abaixo): descarta o load recém-emitido junto com o pendente.
 
 A bateria envelhecida de `0111-sp-desalinhado` foi reancorada e reexecutada: **5/5 mutantes mortos, 2/2 controles verdes, 0 equivalente**.
 
 ## Placar antes → depois
 
-- Workspace: **915 -> 916 testes**.
+- Workspace: **915 -> 917 testes**.
 - Amidog CPU: `Result: 00000109`, **588** ocorrencias `nop_.*_d value error` -> `Result: 00000109`, **0** ocorrencias.
 - Portoes: `cargo fmt --all`, `cargo fmt --all -- --check`, `cargo clippy --all-targets -- -D warnings` e `cargo test --all --no-fail-fast`.
 
 ## Revisão cruzada (orquestrador)
 
-Pendente: revisar adversarialmente o encadeamento de loads e o impacto em LWL/LWR.
+Rodada do trabalhador (`openai/gpt-5.6-luna`), revisada pelo orquestrador antes do merge.
+
+**Achado 1 — asserção incompleta.** A matriz de 49 pares afirmava só o que o observador lê
+durante o delay (`INITIAL`). Uma implementação que jogasse fora **os dois** loads passaria no
+teste: o valor final do destino nunca era conferido. É a mesma fraqueza da iteração 0160
+(`ctrl_bit4_ack_limpa_stat_bit9` era vacuoso). O oráculo do Amidog cobria esse flanco — as 588
+linhas só zeram se o valor final bate — mas o teste do repositório tem de sustentar sozinho.
+Acrescentei `a_segunda_carga_encadeada_chega_ao_destino_quando_o_delay_dela_termina`, que fixa
+`0x7654_3210` para o par `lw`/`lw`, e o mutante `m6`, que descarta o load recém-emitido. Sem a
+asserção nova o `m6` sobrevive; com ela morre.
+
+**Achado 2 — reancoragem do 0111 não afrouxou a bateria.** As três âncoras editadas apenas
+absorveram o `&& !replaced_by_load` no texto casado; `m1` continua invertendo a guarda e `m2`
+continua removendo-a. Reexecutada: 5/5 e 2/2.
+
+**Conferido também:** manifesto com âncoras reais e pares `(de,para)` únicos; nenhum mutante
+morto por erro de compilação; o `.resultado` está versionado; a citação de spec aponta a seção de
+memória e não a homônima de coprocessador; CI verde nos quatro jobs.
 
 ## Decisões e notas
 

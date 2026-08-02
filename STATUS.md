@@ -7,17 +7,19 @@
 
 ## Última iteração concluída
 
-**0156** — IRQ0 sobe a cada 566187 ciclos no Rayman: mediana 566187, mínimo 566187,
-máximo 566213, razão 1.000000 contra o frame NTSC; 10.82 fecha sem defeito de taxa.
-Teste: `irq0_periodo_ntsc.rs`.
+**0157** — ativacao 0 do hook preserva VBlank: `0x2710` escreve `0xFFFFFFFF` e
+`0x4A1C` nao executa; na ativacao posterior `0x4A1C` acka antes do hook. Teste:
+`rayman_hook_activation.rs`. 10.83-A medida; B fica no proximo handoff.
 
 ## Próxima tarefa
 
-**ROADMAP 10.77 — drenar métricas reais do runner.**
+**ROADMAP 10.83 — medir B sem misturar as janelas do primeiro spin e do 1029o hook.**
 
-Handoff: 10.81 está em `docs/iterations/0155-rayman-irq-classification.md`; para 10.77, alvo
-`logs/metrics-pending.csv` → `docs/metricas.csv` e o fluxo de `scripts/oc-iter.ps1`; armadilha:
-nunca fabricar linha, duplicar `(ts,iter)` ou confundir o modelo do runner com o agente trabalhador.
+Handoff: A em `docs/iterations/0157-rayman-hook-activation.md`; spec em
+`docs/reference/13-kernel-bios.md` § B(19h) - HookEntryInt (L1476-L1483) e § Priority Chains
+(L1494-L1502); alvo: sonda/teste que pareie cada subida IRQ0 com vetor, hook ou
+`ReturnFromException`; armadilha: o primeiro spin tem 13 hooks, nao 1029, e metrica de
+runner nunca deve ser fabricada.
 
 Invariantes relevantes: nenhum.
 
@@ -35,7 +37,7 @@ Invariantes relevantes: nenhum.
 
 ## Placar de testes
 
-Workspace: **891** testes.
+Workspace: **892** testes.
 
 ## Bloqueios
 
@@ -50,6 +52,8 @@ Workspace: **891** testes.
   `0x4A1C` limpa IRQ0 antes da consulta de entrega, e o hook observa `I_STAT` diretamente.
 - **10.81 concluído como diagnóstico**: nos 458 intervalos sem ack do balanço, `I_STAT` tinha
   somente bit 2 (173 CDROM) ou bit 3 (285 DMA); não há defeito de VBlank a corrigir nesta rodada.
+- **10.83 parcial (0157-A)**: a ativação 0 chega ao hook antes de `0x4A1C`; a posterior executa
+  `0x4A1C` antes do hook. A parte B exige uma janela única, ainda não fechada.
 - **Premissa refutada:** o slot `$v1+0x18` não muda entre boots (0147). O defeito não está
   no valor do slot mas no encaixe temporal entre `SysInitMemory` e o enfileiramento dos
   handlers do jogo.

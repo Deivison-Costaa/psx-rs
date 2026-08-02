@@ -7,28 +7,25 @@
 
 ## Última iteração concluída
 
-**0163** — o TTY do BIOS resolveu a leitura: o segundo `KERNEL SETUP!` e do
-`BOOTSTRAP LOADER` lendo o `SYSTEM.CNF`, **boot normal**. O jogo so comeca em
-`Execute !` no passo 164.000.000 (`T_ADDR(80125000) T_SIZE(000aa800)`) e ja em 167.000.000
-imprime `VSync: timeout`, 142 vezes. **Experimento:** forcando `ChangeClearPAD(0)` nas duas
-religadas do kernel depois do `Execute !`, o contador `[0x801CF2CC]` vai de **1 para 145** e os
-142 timeouts viram **0**. O corpo do `StartPAD2` na RAM bate byte a byte com a ROM (offset
-`0x14680`), entao nao e corrupcao nossa. Itens 10.88 e 10.89 fechados como premissa refutada.
+**0164** — **primeiro placar de hardware do projeto.** A suite Amidog roda local
+(`scripts/fetch-test-exes.ps1`) e reprovava o CPU: `Result: 00000909`, 4.918 linhas de erro. O
+`step()` nao conferia alinhamento no fetch, entao `jr`/`jalr` para endereco desalinhado executava
+o alvo mascarado em vez de levantar `AdEL`. Corrigido: `Result: 00000109`, as 18 linhas de
+`jr/jalr exception error` sumiram. Bateria 6/6 e 3/3; 0055 reexecutada.
 
 ## Próxima tarefa
 
-**ROADMAP 10.90 — por que o jogo chama `ChangeClearPAD(0)` ANTES do `StartPAD2`, que o desfaz.**
+**ROADMAP 10.93 — load delay slot encadeado: ~590 erros `nop_lX_lY_d` na suite Amidog.**
 
-Handoff: o experimento de 0163 provou o elo final — com o auto-ack desligado depois do
-`Execute !`, o contador de VSync anda (1 → 145) e os 142 `VSync: timeout` somem. O codigo do
-`StartPAD2` que religa e ROM autentica (RAM `0x4B80..0x4C10` == ROM offset `0x14680`), entao o
-defeito **nao** esta na cadeia de excecao nem no BIOS que executamos. Restam duas pontas, as duas
-mediveis: (a) o fluxo real do jogo chamaria `ChangeClearPAD(0)` de novo depois do `StartPAD2`, e
-nao chega la por uma divergencia nossa anterior — tracar o que o jogo faz entre `0x801A7958`
-(retorno do StartPad) e a primeira espera de VSync; (b) o handler de pad de prioridade 2 alcanca
-o ack aqui em condicoes em que no hardware nao alcancaria — comparar quantas transferencias de
-pad ele completa por IRQ. Armadilha: **nada antes do passo 164.000.000 e do jogo**. Metrica da
-propria rodada nunca deve ser fabricada.
+Handoff: com o oraculo de hardware na mao, o trabalho agora e medivel a cada passo.
+`./target/release/psx-cli --bios bios/SCPH1001.BIN --exe tests/exes/amidog/cpu/psxtest_cpu.exe
+--max-steps 800000000` imprime o relatorio; `Result:` no fim e o placar. **Nao use
+`scripts/scoreboard.ps1` para isso** — ele conta bytes de TTY e joga o texto fora (10.23/10.24).
+Alvo: `nop_lb_lb_d value error @ 0,0,1: got ffffffab wanted 801f000c` e as ~590 variantes
+`nop_<load1>_<load2>_d`: dois loads seguidos no mesmo registrador dao o valor errado. Spec: a secao de load delay de memoria em `docs/reference/02-cpu.md` L251-L260 (ha outra
+homonima em L518, sobre coprocessador — nao e essa). Armadilha: R1 do CLAUDE.md e literal
+sobre isso — leia a secao antes de mexer em `load_delay`/`written_gpr` em `cpu.rs`, a intuicao de
+MIPS nao vale. O item 10.92 (4.312 erros de codificacao de branch) e maior e vem depois.
 
 Invariantes relevantes: nenhum.
 
@@ -46,7 +43,7 @@ Invariantes relevantes: nenhum.
 
 ## Placar de testes
 
-Workspace: **909** testes.
+Workspace: **915** testes.
 
 ## Bloqueios
 
@@ -63,6 +60,11 @@ Workspace: **909** testes.
   somente bit 2 (173 CDROM) ou bit 3 (285 DMA); não há defeito de VBlank a corrigir nesta rodada.
 - **10.85 (0159)**: o laço final do Rayman é `0x801B9574`, esperando `[0x801CF2CC] >= 2`. A espera
   do memory card NÃO é o bloqueio: termina sozinha em 166.321.383 com `F4000001h,0100h`.
+- **Oraculo de hardware disponivel (0164)**: 51 EXEs em `tests/exes/` (gitignored). Amidog CPU
+  em `Result: 00000109`. Depurar o CPU contra ele custa menos que inferir de jogo.
+- **Rayman parou de ser a frente principal (0164)**: a cadeia esta mapeada mas depende de um
+  auto-ack que o BIOS religa por projeto; com o CPU ainda reprovado em branch e load delay, o
+  sintoma do jogo nao e o lugar certo para trabalhar.
 - **Janela util do Rayman: depois do passo 164.000.000** (`Execute !`). Antes disso e boot do
   BIOS + BOOTSTRAP LOADER; `0x8003xxxx`/`0x8005xxxx` sao do carregador. O executavel do jogo ocupa
   `0x80125000..0x801CF800`.

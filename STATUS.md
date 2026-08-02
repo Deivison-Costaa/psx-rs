@@ -7,28 +7,19 @@
 
 ## Última iteração concluída
 
-**0150** — rastreamento da instalacao do VSync do Rayman. O jogo nao chama `OpenEvent` com
-`F0000001`, nao habilita Timer1 com sync de VBlank e nao escreve o vetor `0x80000080`. Em vez
-disso, chama `B(19h) HookEntryInt` em 164,111,334, instalando contexto em `0x801D0F78` cujo
-PC e `0x801B8E60`; o hook roda centenas de vezes. O codigo que grava o contador existe em
-`0x801B8C50` (`sw ...,0xF2CC`), mas nao e alcancado antes do spin.
+**0151** — as 20 primeiras entradas do hook `0x801B8E60` têm `r2=1`; `I_MASK` mantém o bit 0,
+mas `I_STAT` varia. Quando `I_STAT & I_MASK == 0`, o `beq` em `0x801B8EA0` toma o ramo para
+`0x801B8F94`; a hipótese do `r2` errado foi refutada e a do ack prematuro de `I_STAT` foi
+confirmada. O teste permanente é `rayman_hook_flow.rs`; nenhuma produção foi alterada.
 
 ## Próxima tarefa
 
-**ROADMAP 10.75 — por que o hook `0x801B8E60` nao alcanca o incremento em `0x801B8C50`.**
+**ROADMAP 4.4 — Boot de jogo 2D/menu.**
 
-Medido na 0150: o Rayman instala o hook por `B(19h) HookEntryInt` no passo 164.111.334
-(`a0=0x801D0F78`, `hook[0]=0x801B8E60`), e o hook **roda 1029 vezes** antes do spin. O codigo do
-incremento existe (`0x801B8C40` le `0x801DF2CC`; `0x801B8C50` e `sw ...,0xF2CC` = `0xAC22F2CC`),
-mas nao e alcancado. O contador recebe um unico store, de valor ZERO, em 163.969.223 vindo de
-`0x801ABCF0` — e a inicializacao.
-
-Medir: seguir calls/branches de `0x801B8E60` ate `0x801B8C40`, ou provar que o incremento depende
-de uma chamada que o hook deveria fazer e nao faz. **Nao alterar timers, IRQ nem vetor por
-intuicao** — as tres hipoteses do handoff anterior ja foram refutadas por medicao.
-
-Cuidado: existem DOIS `B(19h)`. O do passo 19.258.130 (`hook[0]=0x8005A1D8`) e do kernel; o do
-jogo e o de 164.111.334. Nao confundir.
+Handoff: o 10.75 confirmou que o caminho do Rayman depende de `I_STAT`, não de `r2`; consulte
+`docs/iterations/0151-hook-flow.md` e não altere timers, IRQ ou vetor por intuição. O contador
+agregado de hooks inclui o hook do kernel em `0x8005A1D8`; desambiguar sempre por `hook[0]`.
+O próximo alvo de produção deve ser escolhido pelo orquestrador após a revisão deste diagnóstico.
 
 Invariantes relevantes: 25, 27.
 
@@ -46,12 +37,12 @@ Invariantes relevantes: 25, 27.
 
 ## Placar de testes
 
-Workspace: **884** testes.
+Workspace: **885** testes.
 
 ## Bloqueios
 
 - **4.4 Boot de jogo**: o motor 4.4ad agora avanca setores sequencialmente; a fronteira
-  seguinte medida no Rayman e o caminho hook -> incremento. Imagens de disco ficam fora do
+  seguinte medida no Rayman foi o caminho hook -> incremento. Imagens de disco ficam fora do
   repositorio, em `.../Programacao com agentes/roms/extraido/`.
   **Nunca commitar imagem de disco.**
 - **Premissa refutada:** o slot `$v1+0x18` não muda entre boots (0147). O defeito não está

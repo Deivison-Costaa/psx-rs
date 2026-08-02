@@ -7,39 +7,29 @@
 
 ## Última iteração concluída
 
-**0145** — o `Cargo.toml` da raiz nao declarava perfil nenhum, entao a suite inteira rodava em
-`opt-level = 0`. Perfis `dev` e `test` passam a `opt-level = 1`, com `debug-assertions` e
-`overflow-checks` explicitamente `true`: velocidade sem abrir mao das checagens.
+**0146** — a sondagem da tabela EvCB em `testevent_descritor` rodava a cada passo da CPU (~66
+leituras de barramento contra 1-2 do `cpu.step`), e o evento so aparece no passo 86.988.128:
+eram 87 M de varreduras sem nada para achar. Passa a amostrar a cada 10 k passos, teto
+justificado por medicao (a condicao persiste >= 900 k passos). Teste: 100 s -> 12,7 s.
 
 ## Próxima tarefa
 
-**ROADMAP 10.70 — amostrar a sondagem de `testevent_descritor`.**
-
-O laco de `crates/psx-core/tests/testevent_descritor.rs:97` roda a varredura inteira da tabela
-EvCB **a cada passo da CPU**: ~66 leituras de barramento por passo contra 1-2 do `cpu.step`.
-Sondar a cada N passos em vez de a cada passo. O laco ja sai cedo (`return`) ao achar; 90 M e
-teto, nao trabalho feito.
-
-Risco que a bateria TEM de cobrir: **amostrar pode cegar o teste.** O alvo fica dentro de
-`crates/psx-core/src/`, entao `mutantes.ps1` roda sozinho; os mutantes atacam o mapeamento de
-descritor de evento e o teste amostrado tem de continuar matando todos. Mutante que sobrevive
-depois da amostragem e morria antes significa N grande demais — e isso e achado, nao ajuste
-silencioso. Comecar em N=1024 e conferir pela bateria, nao pela intuicao.
-
-Invariantes relevantes: 25, 29.
-
-## Depois desta — ROADMAP 4.5
-
-Rastrear **quem escreve** `BFC06FDC` em `mem[$v1+0x18]` entre o primeiro e o segundo boot.
+**ROADMAP 4.5 — rastrear quem escreve `BFC06FDC` em `mem[$v1+0x18]` entre o primeiro e o
+segundo boot.**
 
 Ja provado: (i) o trampolim `0x2C94..0x2DB8` carrega `$t0` de `mem[$v1+0x18]` e faz
 `jalr $ra, $t0`; (ii) no primeiro boot o slot aponta para funcoes normais do kernel; (iii) aos
-354 M contem `BFC06FDC`, que leva ao `SysInitMemory`. Medir: sonda de escrita (`sw`) com
-endereco-alvo `$v1+0x18` pos-primeiro-boot, registrando PC e valor.
+354 M contem `BFC06FDC`, que leva ao `SysInitMemory`, que reinicializa `A000E000h`+`2000h` —
+onde mora o array de ExCB.
 
-Armadilhas: (a) `$v1` e carregado antes do trampolim — ler `$v1` no STEP em `0x2DAC` e usar o
-valor dinamico; (b) reconstruir release antes de medir; (c) sondas sao descartaveis, reverter
-antes de commitar. Invariantes relevantes: 25, 27, 30, 31.
+Medir: sonda de escrita (`sw`) com endereco-alvo `$v1+0x18` pos-primeiro-boot, registrando PC e
+valor escrito.
+
+Armadilhas: (a) `$v1` e carregado antes do trampolim, entao o endereco-alvo depende do valor em
+runtime — ler `$v1` no STEP em `0x2DAC` e usar o valor dinamico; (b) reconstruir release antes
+de medir; (c) sondas sao descartaveis, reverter antes de commitar.
+
+Invariantes relevantes: 25, 27, 30, 31.
 
 **Meta em vigor (ordem do usuario, 31/07):** emendar as iteracoes ate o M4 fechar, sem parar entre
 PRs. Pronto = **menu navegavel no `psx-desktop`**. Parada: 5 iteracoes fechadas sem o jogo bootar,
@@ -65,7 +55,7 @@ de gouraud no losango (candidato 10.14).
 
 ## Placar de testes
 
-Workspace: **876** testes.
+Workspace: **880** testes.
 
 ## Bloqueios
 

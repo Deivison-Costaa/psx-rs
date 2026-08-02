@@ -1,0 +1,70 @@
+# Manifesto de mutação da iteração 0146 — amostragem-sondagem
+formato: 1
+iteracao: 0146
+item: 10.70
+alvo: crates/psx-core/tests/testevent_descritor.rs
+teste: testevent_descritor
+
+mutante: m1
+rotulo: passo de sondagem acima do teto medido de persistencia, arrisca pular a janela
+teste: custo_de_sondagem
+@@DE
+const PASSOS_ENTRE_SONDAGENS: usize = 10_000;
+@@PARA
+const PASSOS_ENTRE_SONDAGENS: usize = 2_000_000;
+@@FIM
+
+mutante: m2
+rotulo: sondagem volta a praticamente cada passo e o custo volta com ela
+teste: custo_de_sondagem
+@@DE
+const PASSOS_ENTRE_SONDAGENS: usize = 10_000;
+@@PARA
+const PASSOS_ENTRE_SONDAGENS: usize = 1;
+@@FIM
+
+mutante: m3
+rotulo: deve_sondar sempre falso — a varredura NUNCA roda e o teste cega de vez
+teste: testevent_descritor
+@@DE
+    passo % PASSOS_ENTRE_SONDAGENS == 0
+@@PARA
+    passo % PASSOS_ENTRE_SONDAGENS == 1
+@@FIM
+
+mutante: m4
+rotulo: deve_sondar sempre verdadeiro — nunca pula, a sondagem a cada passo volta inteira
+teste: testevent_descritor
+@@DE
+    passo % PASSOS_ENTRE_SONDAGENS == 0
+@@PARA
+    passo < usize::MAX
+@@FIM
+
+mutante: m5
+rotulo: base do descritor de evento desalinhada em um
+teste: testevent_descritor
+@@DE
+    descritor.wrapping_sub(0xF100_0000)
+@@PARA
+    descritor.wrapping_sub(0xF100_0001)
+@@FIM
+
+controle: c1
+rotulo: c1 — teto do laco sobe 1 M; nenhum teste afirma o valor e a saida e antecipada
+teste: testevent_descritor
+@@DE
+    let max_steps: usize = 90_000_000;
+@@PARA
+    let max_steps: usize = 91_000_000;
+@@FIM
+
+controle: c2
+rotulo: c2 — indice esperado de spec=8000h continua 4, so muda a formatacao da linha
+teste: testevent_descritor
+@@DE
+                    idx8000, 4,
+@@PARA
+                    idx8000,
+                    4,
+@@FIM

@@ -147,6 +147,7 @@ da escada valer so para o que FALTA. Narrativa de cada item continua em
 - [x] 10.67 mutation_battery so procurava fn de teste em crates/psx-core/tests; bateria de outro crate nunca era validada (0144)
 - [x] 10.69 Cargo.toml da raiz sem nenhum [profile]: suite inteira em opt-level 0, 528 s contra 76 s no testevent_descritor (0145)
 - [x] 10.70 Sondagem da EvCB rodava a cada passo; amostragem a cada 10 k derruba o teste de 100 s para 12,7 s (0146)
+- [x] 10.72 `parse_cue` guarda um unico bin_path; cue multi-file fica com a track de audio — registrado, Rayman roda com cue reduzido (0148)
 
 ## M11 — Apresentação (incremental desde o M1)
 - [x] 11.1 Relatório consolidado (docs/relatorio.md — atualizado a cada marco) (iter 0096)

@@ -7,29 +7,38 @@
 
 ## Última iteração concluída
 
-**0147** — rastreou quem escreve `BFC06FDC` em `mem[$v1+0x18]`. Resposta: o BIOS, durante a
-inicialização (passos ~58.500 e ~84.292), pelos endereços `0xBFC00434` (sw) e `0xBFC02B68` (4× sb).
-A premissa da 0142 ("o slot muda entre boots") está **refutada**: o slot nunca muda de valor.
-O trampolim SEMPRE chama `BFC06FDC` (`SysInitMemory`), desde o primeiro acionamento.
-A diferença entre o primeiro e o segundo boot está no MOMENTO da chamada, não no alvo.
+**0148** — capturas de execucao versionadas com procedencia (`docs/capturas/`). Um segundo disco
+revelou que o emulador **desenha a tela da Ubi Soft com codigo do proprio Rayman** — caminho que
+o Crash nunca alcanca — e entao trava repetindo `VSync: timeout`, com VRAM byte a byte identica
+de 400 M a 1.500 M passos. Antes disso, a 0147 refutou a premissa da 0142: o slot `$v1+0x18` ja
+contem `BFC06FDC` desde a BIOS e nunca muda (1150 ativacoes do trampolim, um unico `$v1`).
 
 ## Próxima tarefa
 
-**ROADMAP 4.5 — passo 6: determinar por que `SysInitMemory` apaga a cadeia de ExCB no
-segundo boot mas não no primeiro, se o trampolim sempre chama o mesmo endereço.**
+**ROADMAP 10.73 — por que o Rayman fica preso em `VSync: timeout`.**
 
-Hipóteses a testar:
-  - (a) No primeiro boot, `SysInitMemory` é chamada ANTES de os handlers do jogo estarem
-    enfileirados em `A000E000h+2000h` — portanto não há nada para apagar.
-  - (b) No segundo boot, a chamada acontece DEPOIS de o jogo enfileirar seus handlers,
-    e a reinicialização da região os destrói.
+Reproduzir: `psx-cli --bios bios/SCPH1001.BIN --disc "../roms/extraido/Rayman (USA) DADOS.cue"
+--max-steps 400000000 --dump-vram /tmp/ray.raw`. O `.cue` e reduzido, so a track 01 de dados:
+o original tem 51 tracks e o `parse_cue` guarda um unico `bin_path` (divida fechada por registro
+na 0148, conserto ainda aberto).
 
-Como medir: cruzar o timestamp de cada chamada a `SysInitMemory` (já instrumentado pela 0142)
-com o timestamp de cada `SysEnqIntRP` do jogo (já instrumentado pela 0141). Se a primeira
-chamada de `SysInitMemory` acontecer antes do primeiro `SysEnqIntRP`, vale (a). Medir com
-disco Crash, janela de 0 a 400 M passos.
+`VSync` **nao e funcao do kernel** — nao esta em nenhuma tabela A/B/C nem em
+`13-kernel-bios.md`. E da LIBGPU, linkada estaticamente pelo jogo: a mensagem vem do codigo do
+proprio Rayman e o timeout e um contador dele.
 
-Invariantes relevantes: 25, 27, 31.
+Hipoteses, TODAS por confirmar: (a) contador de VBlank num handler que o jogo instala e que
+depende da IRQ0 chegar; (b) root counter de VBlank ligado a `timers.rs`; (c) `I_MASK` sem o
+bit 0 no momento certo, entao a IRQ0 e levantada mas nunca entregue. **Medir qual, antes de
+consertar.**
+
+Ja existe VBlank: `irq.rs`, `gpu.rs`, `timers.rs` e 9 testes em `gpu_vblank_irq.rs`. O defeito
+nao e ausencia — e entrega, temporizacao ou mascara. Instrumentos: `bus.irq().raise_count(bit)`,
+`cpu.irq_handler_entries`, `bus.irq().read_mask()`, `bus.irq().mask_write_count`.
+
+O ROADMAP 4.5 (Crash) segue aberto e nao foi abandonado: a pergunta dele mudou para "o que
+`BFC06FDC` FAZ em funcao do estado da maquina", ja que o slot e constante.
+
+Invariantes relevantes: 25, 27.
 
 ## Repositório
 

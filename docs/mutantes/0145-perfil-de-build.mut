@@ -1,0 +1,86 @@
+# Manifesto de mutação da iteração 0145 — perfil-de-build
+formato: 1
+iteracao: 0145
+item: 10.67
+alvo: Cargo.toml
+teste: perfil_de_build
+
+mutante: m1
+rotulo: perfil dev volta a opt-level 0, o estado que custava 528 s no testevent_descritor
+@@DE
+[profile.dev]
+opt-level = 1
+@@PARA
+[profile.dev]
+opt-level = 0
+@@FIM
+
+mutante: m2
+rotulo: perfil test volta a opt-level 0, binario de teste sem otimizacao
+@@DE
+[profile.test]
+opt-level = 1
+@@PARA
+[profile.test]
+opt-level = 0
+@@FIM
+
+mutante: m3
+rotulo: dev compra velocidade desligando debug-assertions
+@@DE
+[profile.dev]
+opt-level = 1
+debug-assertions = true
+@@PARA
+[profile.dev]
+opt-level = 1
+debug-assertions = false
+@@FIM
+
+mutante: m4
+rotulo: dev sem overflow-checks esconde estouro de inteiro do R3000A
+@@DE
+[profile.dev]
+opt-level = 1
+debug-assertions = true
+overflow-checks = true
+@@PARA
+[profile.dev]
+opt-level = 1
+debug-assertions = true
+overflow-checks = false
+@@FIM
+
+mutante: m5
+rotulo: test sem debug-assertions, mesma compra de velocidade pelo outro perfil
+@@DE
+[profile.test]
+opt-level = 1
+debug-assertions = true
+@@PARA
+[profile.test]
+opt-level = 1
+debug-assertions = false
+@@FIM
+
+controle: c1
+rotulo: c1 — codegen-units no perfil dev; muda o build, nenhum teste afirma o valor
+@@DE
+[profile.dev]
+opt-level = 1
+@@PARA
+[profile.dev]
+codegen-units = 256
+opt-level = 1
+@@FIM
+
+controle: c2
+rotulo: c2 — compilacao incremental no perfil test; nenhum teste afirma a chave
+@@DE
+[profile.test]
+opt-level = 1
+@@PARA
+[profile.test]
+incremental = true
+opt-level = 1
+@@FIM

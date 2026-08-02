@@ -1,0 +1,10 @@
+# gerado por bateria MANUAL (invariante 29): alvo fora de crates/psx-core/, mutantes.ps1:366 pula
+# commit: b5bd1af227adf3f7a16ab2d4f35113acfe659458
+# rodado_em: 2026-08-01T21:03:50-03:00
+m1,mutante,morreu,morreu,0.2,perfil_dev_otimiza
+m2,mutante,morreu,morreu,0.2,perfil_test_otimiza
+m3,mutante,morreu,morreu,0.1,otimizacao_preserva_debug_assertions
+m4,mutante,morreu,morreu,0.2,otimizacao_preserva_overflow_checks
+m5,mutante,morreu,morreu,1.8,otimizacao_preserva_debug_assertions
+c1,controle,sobreviveu,sobreviveu,1.8,
+c2,controle,sobreviveu,sobreviveu,0.2,

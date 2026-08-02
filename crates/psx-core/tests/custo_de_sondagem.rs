@@ -61,4 +61,12 @@ fn laco_usa_a_constante_como_guarda() {
          do laco. Constante declarada e nao usada deixa os outros dois testes verdes enquanto a \
          sondagem continua rodando a cada passo"
     );
+    assert!(
+        f.contains("if !deve_sondar(_step) {"),
+        "{ALVO} deve decidir a sondagem por `deve_sondar(_step)`. A decisao mora numa fn pura de \
+         proposito: `deve_sondar` e testavel SEM BIOS e SEM disco, entao a bateria de mutacao a \
+         alcanca na CI. Guarda escrita direto no laco so teria como oraculo o teste caro, que a \
+         CI PULA por falta dos arquivos — e mutante que sobrevive por falta de oraculo mede o \
+         ambiente, nao o codigo"
+    );
 }

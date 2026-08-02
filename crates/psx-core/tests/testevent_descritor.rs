@@ -64,6 +64,10 @@ fn ler_tabela_evcb(bus: &Bus) -> Option<(u32, u32)> {
 
 const PASSOS_ENTRE_SONDAGENS: usize = 10_000;
 
+fn deve_sondar(passo: usize) -> bool {
+    passo % PASSOS_ENTRE_SONDAGENS == 0
+}
+
 fn descritor_para_indice(descritor: u32) -> u32 {
     descritor.wrapping_sub(0xF100_0000)
 }
@@ -101,7 +105,7 @@ fn evcb_descritor_mapeia_para_spec_correto() {
     for _step in 1..=max_steps {
         cpu.step(&mut bus);
 
-        if _step % PASSOS_ENTRE_SONDAGENS != 0 {
+        if !deve_sondar(_step) {
             continue;
         }
 
@@ -195,6 +199,15 @@ fn evcb_descritor_mapeia_para_spec_correto() {
          O kernel nao montou a tabela de eventos esperada.",
         max_steps / 1_000_000
     );
+}
+
+#[test]
+fn deve_sondar_so_nos_multiplos_do_passo() {
+    assert!(deve_sondar(PASSOS_ENTRE_SONDAGENS));
+    assert!(deve_sondar(PASSOS_ENTRE_SONDAGENS * 2));
+    assert!(!deve_sondar(1));
+    assert!(!deve_sondar(PASSOS_ENTRE_SONDAGENS - 1));
+    assert!(!deve_sondar(PASSOS_ENTRE_SONDAGENS + 1));
 }
 
 #[test]

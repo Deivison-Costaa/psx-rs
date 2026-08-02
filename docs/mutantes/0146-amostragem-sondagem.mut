@@ -24,21 +24,21 @@ const PASSOS_ENTRE_SONDAGENS: usize = 1;
 @@FIM
 
 mutante: m3
-rotulo: guarda sempre verdadeira — a varredura NUNCA roda e o teste cega de vez
+rotulo: deve_sondar sempre falso — a varredura NUNCA roda e o teste cega de vez
 teste: testevent_descritor
 @@DE
-        if _step % PASSOS_ENTRE_SONDAGENS != 0 {
+    passo % PASSOS_ENTRE_SONDAGENS == 0
 @@PARA
-        if _step % PASSOS_ENTRE_SONDAGENS < usize::MAX {
+    passo % PASSOS_ENTRE_SONDAGENS == 1
 @@FIM
 
 mutante: m4
-rotulo: indice esperado de spec=20h deixa de ser o medido pela BIOS
+rotulo: deve_sondar sempre verdadeiro — nunca pula, a sondagem a cada passo volta inteira
 teste: testevent_descritor
 @@DE
-                    idx20, 1,
+    passo % PASSOS_ENTRE_SONDAGENS == 0
 @@PARA
-                    idx20, 2,
+    passo < usize::MAX
 @@FIM
 
 mutante: m5

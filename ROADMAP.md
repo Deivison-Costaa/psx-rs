@@ -95,7 +95,7 @@ Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 10.85 Rayman para em `0x801B9574` esperando `[0x801CF2CC] >= 2`; contador fica em 1 (0159)
 - [ ] 10.90 Rayman: `VSync: timeout` 142x no TTY depois do `Execute !` de 164 M (0163)
 - [ ] 10.92 Amidog: 4312 erros em codificacoes de branch `b_0xNN` (bltz/bgez/bltzal/bgezal) (0164)
-- [ ] 10.93 Amidog: ~590 erros de load delay slot encadeado `nop_lX_lY_d` (0164)
+ - [x] 10.93 Amidog: ~590 erros de load delay slot encadeado `nop_lX_lY_d` (iter 0165)
 
 ## M11 — Apresentação (incremental desde o M1)
 - [ ] 11.2 Gráficos de metricas.csv + scoreboard-data

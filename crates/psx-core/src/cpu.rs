@@ -186,7 +186,8 @@ impl Cpu {
         }
 
         if let Some((reg, val)) = self.load_delay.take() {
-            if self.written_gpr != Some(reg) {
+            let replaced_by_load = new_load.is_some_and(|(new_reg, _)| new_reg == reg);
+            if self.written_gpr != Some(reg) && !replaced_by_load {
                 self.set_reg(reg, val);
             }
         }

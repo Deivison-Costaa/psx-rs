@@ -8,7 +8,7 @@ teste: cpu_load_delay_escrita_vence
 mutante: m1
 rotulo: guarda invertida — aplica o load pendente SO quando ha conflito
 @@DE
-            if self.written_gpr != Some(reg) {
+            if self.written_gpr != Some(reg) && !replaced_by_load {
 @@PARA
             if self.written_gpr == Some(reg) {
 @@FIM
@@ -16,7 +16,7 @@ rotulo: guarda invertida — aplica o load pendente SO quando ha conflito
 mutante: m2
 rotulo: guarda removida — load pendente sempre aplica (o defeito original do 4.4h)
 @@DE
-            if self.written_gpr != Some(reg) {
+            if self.written_gpr != Some(reg) && !replaced_by_load {
 @@PARA
             if true {
 @@FIM
@@ -56,7 +56,7 @@ rotulo: None qualificado (cosmetico)
 controle: c2
 rotulo: comparacao da guarda espelhada (cosmetico)
 @@DE
-            if self.written_gpr != Some(reg) {
+            if self.written_gpr != Some(reg) && !replaced_by_load {
 @@PARA
-            if Some(reg) != self.written_gpr {
+            if Some(reg) != self.written_gpr && !replaced_by_load {
 @@FIM

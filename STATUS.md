@@ -7,25 +7,18 @@
 
 ## Última iteração concluída
 
-**0164** — **primeiro placar de hardware do projeto.** A suite Amidog roda local
-(`scripts/fetch-test-exes.ps1`) e reprovava o CPU: `Result: 00000909`, 4.918 linhas de erro. O
-`step()` nao conferia alinhamento no fetch, entao `jr`/`jalr` para endereco desalinhado executava
-o alvo mascarado em vez de levantar `AdEL`. Corrigido: `Result: 00000109`, as 18 linhas de
-`jr/jalr exception error` sumiram. Bateria 6/6 e 3/3; 0055 reexecutada.
+**0165** — **load delay slot encadeado corrigido.** Quando dois loads escreviam o mesmo GPR, o
+primeiro resultado ficava visivel durante a instrucao seguinte. A condicao agora substitui o
+load pendente pelo novo sem commitar o antigo: Amidog `Result: 00000109` e erros
+`nop_.*_d` **588 -> 0**. Bateria 5/5 e 2/2; 0111 reexecutada com 5/5 e 2/2.
 
 ## Próxima tarefa
 
-**ROADMAP 10.93 — load delay slot encadeado: ~590 erros `nop_lX_lY_d` na suite Amidog.**
+**ROADMAP 10.92 — branch encoding: ~4.312 erros de codificacao de branch na suite Amidog.**
 
-Handoff: com o oraculo de hardware na mao, o trabalho agora e medivel a cada passo.
-`./target/release/psx-cli --bios bios/SCPH1001.BIN --exe tests/exes/amidog/cpu/psxtest_cpu.exe
---max-steps 800000000` imprime o relatorio; `Result:` no fim e o placar. **Nao use
-`scripts/scoreboard.ps1` para isso** — ele conta bytes de TTY e joga o texto fora (10.23/10.24).
-Alvo: `nop_lb_lb_d value error @ 0,0,1: got ffffffab wanted 801f000c` e as ~590 variantes
-`nop_<load1>_<load2>_d`: dois loads seguidos no mesmo registrador dao o valor errado. Spec: a secao de load delay de memoria em `docs/reference/02-cpu.md` L251-L260 (ha outra
-homonima em L518, sobre coprocessador — nao e essa). Armadilha: R1 do CLAUDE.md e literal
-sobre isso — leia a secao antes de mexer em `load_delay`/`written_gpr` em `cpu.rs`, a intuicao de
-MIPS nao vale. O item 10.92 (4.312 erros de codificacao de branch) e maior e vem depois.
+Handoff: nao iniciar outro item nesta rodada. Para 10.92, leia a secao de branches da spec
+antes de tocar no decode/execucao de branch em `crates/psx-core/src/cpu.rs`; R1 continua
+literal. O oraculo Amidog permanece disponivel com o comando do runner no historico da rodada.
 
 Invariantes relevantes: nenhum.
 
@@ -43,7 +36,7 @@ Invariantes relevantes: nenhum.
 
 ## Placar de testes
 
-Workspace: **915** testes.
+Workspace: **917** testes.
 
 ## Bloqueios
 

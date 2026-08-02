@@ -37,11 +37,11 @@ fn vetoriza_e_le_i_stat_por_opcodes_reais() {
     assert_eq!(
         bus.read32::<BusRead>(I_STAT),
         0x0000_000C,
-        "I_STAT deve manter CDROM e DMA pendentes; docs/reference/11-interrupts.md § 1F801070h I_STAT - Interrupt status register (L21-L30)"
+        "I_STAT deve manter CDROM e DMA pendentes; docs/reference/11-interrupts.md § 1F801074h I_MASK - Interrupt mask register (R/W) (L27-L39)"
     );
     assert_eq!(
         bus.read32::<BusRead>(SENTINEL),
         0x0000_000C,
-        "opcodes reais devem copiar I_STAT para o sentinela; docs/reference/11-interrupts.md § 1F801070h I_STAT - Interrupt status register (L21-L30)"
+        "opcodes reais devem copiar I_STAT para o sentinela; docs/reference/11-interrupts.md § 1F801074h I_MASK - Interrupt mask register (R/W) (L27-L39)"
     );
 }

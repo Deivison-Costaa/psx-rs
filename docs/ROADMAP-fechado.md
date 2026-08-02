@@ -154,6 +154,7 @@ da escada valer so para o que FALTA. Narrativa de cada item continua em
 - [x] 10.76 Rayman tem `ExcCode=00h` em 1029 hooks; um VBlank chega ao `sw`, que escreve `0x801CF2CC`, nao `0x801DF2CC` (0152)
 - [x] 10.79 Enderecos de leitura e escrita do contador convergem em `0x801CF2CC`; 1 de 1029 hooks tem VBlank pendente (0153)
 - [x] 10.80 `0x00004A1C` e o handler de IRQ0; acka I_STAT antes de consultar a entrega de evento (0154)
+- [x] 10.81 Rayman: os 458 intervalos sem ack são CDROM (bit 2, 173) ou DMA (bit 3, 285) (0155)
 
 ## M11 — Apresentação (incremental desde o M1)
 - [x] 11.1 Relatório consolidado (docs/relatorio.md — atualizado a cada marco) (iter 0096)

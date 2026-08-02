@@ -77,8 +77,8 @@ fn desvio_nao_tomado_ainda_assim_escreve_ra() {
     assert_eq!(ra, 8, "bltzal linka mesmo sem desviar");
 }
 
-// § Opcode/Parameter Encoding (L469-470) de 02-cpu.md: "bltz rs,dest if rs<0" e "bgez
-// rs,dest if rs>=0" — rs==0 e o limite entre as duas familias, coberto no rt canonico e no
+// § jumps and branches (L469-470) de 02-cpu.md: "bltz rs,dest if rs<0" e "bgez rs,dest
+// if rs>=0" — rs==0 e o limite entre as duas familias, coberto no rt canonico e no
 // rt=0x02 (mesma familia por bit0, fora da tabela oficial).
 #[test]
 fn zero_e_o_limite_entre_bltz_e_bgez() {

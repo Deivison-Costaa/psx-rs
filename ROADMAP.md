@@ -91,7 +91,7 @@ Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 10.71 `mutantes.ps1`: duas ramificacoes `teste` no mesmo switch, a de registro sobrescreve o cabecalho (0146)
 - [ ] 10.77 Trabalhador inventa linha de metricas em vez de drenar logs/metrics-pending.csv (0150, 0151)
 - [ ] 10.78 oc-iter.ps1: exit 0 sem commits vira ok, e nao ve `Request too large` do TPM (0151)
-- [ ] 10.83 Rayman: ~89 dos 660 IRQ0 nao produzem entrada de hook (0155)
+- [ ] 10.83 Rayman: ~89 dos 660 IRQ0 sem entrada de hook (0157-A)
 
 ## M11 — Apresentação (incremental desde o M1)
 - [ ] 11.2 Gráficos de metricas.csv + scoreboard-data

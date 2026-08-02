@@ -20,7 +20,11 @@ fn irq0_ntsc_mantem_periodo_de_um_frame_em_ciclos() {
         }
     }
 
-    assert_eq!(subidas.len(), 3, "tres frames devem produzir tres subidas de IRQ0");
+    assert_eq!(
+        subidas.len(),
+        3,
+        "tres frames devem produzir tres subidas de IRQ0"
+    );
     assert_eq!(subidas[1] - subidas[0], 566_187);
     assert_eq!(subidas[2] - subidas[1], 566_187);
 }

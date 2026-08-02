@@ -64,7 +64,6 @@ ocorrencias: 1
 
 mutante: m6
 rotulo: fecha o limite de bgez excluindo rs igual a zero
-teste: cpu_branches
 ocorrencias: 1
 @@DE
             rs_val >= 0
@@ -74,7 +73,6 @@ ocorrencias: 1
 
 mutante: m7
 rotulo: abre o limite de bltz incluindo rs igual a zero
-teste: cpu_branches
 ocorrencias: 1
 @@DE
             rs_val < 0

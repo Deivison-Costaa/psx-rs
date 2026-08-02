@@ -9,7 +9,7 @@ const JOY_CTRL: u32 = 0x1F80_104A;
 const I_STAT: u32 = 0x1F80_1070;
 const CTRL_BIOS: u16 = 0x1003;
 
-// § Controller and Memory Card Signals (L386) de docs/reference/10-controllers-memcards.md:
+// § Address byte (01h) being sent (L386) de docs/reference/10-controllers-memcards.md:
 // o driver do kernel IGNORA pulsos de /ACK nos primeiros 2-3 us (100 ciclos) depois do SCK,
 // e (L385) desiste se o /ACK nao chegar em 100 us — 3386 ciclos a 33,8688 MHz.
 const JANELA_IGNORADA: u32 = 100;

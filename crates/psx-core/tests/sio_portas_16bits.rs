@@ -23,7 +23,7 @@ fn ctrl16(bus: &mut Bus, val: u16) {
     bus.write16::<BusWrite>(JOY_CTRL, val);
 }
 
-// § Controller and Memory Card Signals (L385) de docs/reference/10-controllers-memcards.md:
+// § Address byte (01h) being sent (L385) de docs/reference/10-controllers-memcards.md:
 // o /ACK chega depois do byte e antes dos 100 us de timeout do driver do kernel.
 const ATE_O_ACK: u32 = 3386;
 

@@ -85,7 +85,38 @@ Workspace: **880** → **882** testes (2 novos em `slot_v1_18_bfc06fdc`).
 
 ## Revisão cruzada (orquestrador)
 
-<!-- Preenchido na revisão do PR. -->
+**Aprovado. A refutação da premissa da 0142 se sustenta, e foi verificada de forma
+independente.**
+
+O ponto que merecia ceticismo: `$v1` é carregado em runtime, então "o slot" poderia não ser um
+endereço único — e a sonda da medição fixou `0x6EF8` a partir da PRIMEIRA ocorrência. Se `$v1`
+variasse entre ativações, a conclusão não generalizaria.
+
+Medi por conta própria, com sonda descartável que agrupa por valor de `$v1` ao longo de 400 M
+passos:
+
+```
+=== valores DISTINTOS de $v1 em 400 M passos: 1 ===
+  v1=0x00006EE0  slot[$v1+0x18]=0xBFC06FDC  1150x  (1o no passo 91421)
+```
+
+**Um único `$v1`, 1150 ativações do trampolim, valor constante, nenhuma mudança.** A suspeita
+está refutada e o resultado é mais forte do que o documentado: não é só "não muda entre os dois
+boots", é "não muda em nenhuma das 1150 chamadas".
+
+**Um defeito corrigido na revisão.** O `slot_v1_18_nao_muda_ate_jogo_bootar` tinha caminho de
+passagem vazia: se `0x2DAC` não fosse alcançado num dos pontos, o `else` só imprimia um aviso e
+o teste passava **sem ter afirmado nada**. Trocado por `panic!`. É a mesma classe de defeito da
+0144 (teste que mede a própria ausência de medição), e vale registrar que ela reapareceu.
+
+**Ressalva de ambiente, não desta iteração.** Os dois testes fazem `SKIP` sem BIOS e disco, então
+na CI não afirmam nada — a lição da 0146. Aqui é inerente: a medição precisa do boot real. Não
+bloqueia, mas confirma que o invariante 25 merece um instrumento próprio.
+
+**O que a iteração deliberadamente NÃO responde:** se o slot sempre aponta para `BFC06FDC` e o
+trampolim roda 1150 vezes, por que o jogo progride até 354 M antes de quebrar? A resposta tem de
+estar no que `BFC06FDC` FAZ em função do estado da máquina — e isso é o próximo passo, não uma
+lacuna deste trabalho.
 
 ## Decisões e notas
 

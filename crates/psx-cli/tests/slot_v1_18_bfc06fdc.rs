@@ -119,7 +119,11 @@ fn slot_v1_18_nao_muda_ate_jogo_bootar() {
                 passo, val
             );
         } else {
-            eprintln!("Ponto {}: 0x2DAC nao alcancado ate la", ponto);
+            panic!(
+                "0x2DAC nao foi alcancado ate o passo {ponto}: o teste passaria sem ter \
+                 afirmado nada. Medido pelo orquestrador: o trampolim e ativado 1150 vezes \
+                 em 400 M passos, a primeira no passo 91.421"
+            );
         }
     }
 }

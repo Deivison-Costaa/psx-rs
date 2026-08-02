@@ -9,7 +9,7 @@ Regra imposta por `roadmap_arquivo.rs`.
 
 ## M4 — CDROM
 - [ ] 4.4 Boot de jogo 2D/menu
-- [ ] 4.5 1o frame do jogo: rollback do init do LIBSN; poll orfao do TMR2 (diag 0137)
+- [ ] 4.5 1o frame do jogo: rollback do init do LIBSN; poll orfao do TMR2 (diag 0137, 0141, 0142, 0144, 0147)
 
 ## M5 — GTE
 - [ ] 5.4b NCS/NCT/NCCS/NCCT

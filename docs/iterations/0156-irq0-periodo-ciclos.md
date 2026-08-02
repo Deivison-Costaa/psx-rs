@@ -28,7 +28,35 @@ Workspace: **890 → 891** testes. `cargo fmt --all -- --check`, `cargo clippy -
 
 ## Revisão cruzada (orquestrador)
 
-Pendente, para preenchimento na revisão adversarial do PR.
+**A medição está correta e refuta a suspeita do orquestrador.** Rodei o portão por conta
+própria: 891 testes, verde. Conferi as citações abrindo as faixas: em `docs/reference/03-gpu.md`
+a L1401 é `## GPU Timings` e a L1414 é `#### Vertical Video Timings` — apontam para o corpo.
+
+**A suspeita era minha, e caí exatamente no erro contra o qual avisei no handoff.** Eu estranhei
+"660 subidas de IRQ0 em 166 M passos" e escrevi que a taxa parecia o dobro do esperado. Mas
+tratei passo de instrução como se fosse ciclo — a mesma confusão que o handoff proibia em
+maiúsculas. A medição mostra ~2,24 ciclos por passo, o que explica inteiramente a discrepância
+aparente. A taxa nunca esteve errada; a minha unidade é que estava.
+
+**Resultado negativo, e ele vale.** O período mediano entre subidas de IRQ0 é **566 187
+ciclos**, idêntico a `frame_cycles()`, com mínimo 566 187 e máximo 566 213 — a diferença de 26
+ciclos é a quantização do instante de observação (fim de instrução), não um período diferente.
+Razão medido/esperado: **1,000000**. A temporização de VBlank do emulador está certa, e essa
+hipótese sai da mesa para o problema do Rayman.
+
+Confere por outro caminho: 658 frames × 566 187 ciclos = 372,5 M ciclos, que a 33,87 MHz dão
+11,0 s de tempo emulado — consistente com 658 frames a 60 Hz. Os dois lados da conta fecham.
+
+**O teste permanente é do bom padrão da série.** Aciona o `Bus` real ciclo a ciclo por três
+frames e afirma exatamente três subidas com 566 187 ciclos entre elas. Exercita o scheduler de
+produção e falha se a taxa mudar; não declara constante para afirmá-la de volta.
+
+**Nota de processo:** esta foi a primeira rodada desde a 0152 a completar o protocolo inteiro e
+abrir o PR sozinha. A diferença em relação às três anteriores foi a proibição de caminho
+absoluto — uma tentativa deste mesmo item morreu no passo 11 ao montar
+`.../Área de trabalho/Programação com Agentes/...`, sem o componente `Faculdade/`, caindo fora
+do projeto e disparando o pedido interativo de `external_directory`. Caminho relativo elimina a
+classe inteira de falha, e a rodada seguinte foi até o fim.
 
 ## Decisões e notas
 

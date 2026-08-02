@@ -67,3 +67,20 @@ ocorrencias: 1
 @@PARA
             let replaced_by_load = matches!(new_load, Some((new_reg, _)) if new_reg == reg);
 @@FIM
+
+mutante: m6
+rotulo: cancelar o load pendente descarta tambem o load recem-emitido
+ocorrencias: 1
+@@DE
+        if let Some((reg, val)) = new_load {
+            if reg != 0 {
+                self.load_delay = Some((reg, val));
+            }
+        }
+@@PARA
+        if let Some((reg, _val)) = new_load {
+            if reg != 0 {
+                self.load_delay = None;
+            }
+        }
+@@FIM

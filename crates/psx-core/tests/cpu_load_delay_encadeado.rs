@@ -55,7 +55,7 @@ const LOADS: [LoadKind; 7] = [
     LoadKind::Lwr,
 ];
 
-fn run_chain(first: LoadKind, second: LoadKind) -> u32 {
+fn run_chain(first: LoadKind, second: LoadKind) -> (u32, u32) {
     let mut bus = bus_with_bios_empty();
     bus.write32::<BusRead>(BASE, 0x89AB_BA98);
     bus.write32::<BusRead>(BASE + 4, 0x7654_3210);
@@ -80,7 +80,7 @@ fn run_chain(first: LoadKind, second: LoadKind) -> u32 {
     cpu.step(&mut bus);
     cpu.step(&mut bus);
     cpu.step(&mut bus);
-    cpu.regs[OBSERVER as usize]
+    (cpu.regs[OBSERVER as usize], cpu.regs[DEST as usize])
 }
 
 #[test]
@@ -88,10 +88,21 @@ fn loads_encadeados_mantem_valor_antigo_no_delay_da_segunda_carga() {
     for first in LOADS {
         for second in LOADS {
             assert_eq!(
-                run_chain(first, second),
+                run_chain(first, second).0,
                 INITIAL,
                 "{first:?} seguido de {second:?}: a instrucao seguinte le o valor antigo"
             );
         }
     }
+}
+
+#[test]
+fn a_segunda_carga_encadeada_chega_ao_destino_quando_o_delay_dela_termina() {
+    let (observer, dest) = run_chain(LoadKind::Lw, LoadKind::Lw);
+
+    assert_eq!(observer, INITIAL, "o delay da segunda carga ainda vale");
+    assert_eq!(
+        dest, 0x7654_3210,
+        "cancelar o primeiro load nao pode descartar tambem o segundo"
+    );
 }

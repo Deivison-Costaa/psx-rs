@@ -1,0 +1,12 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: ea113957f5820b4e59dc7b980dbb58c1cc7f6bb3
+# rodado_em: 2026-08-02T20:39:44-03:00
+m1,mutante,morreu,morreu,0.6,varredura_dos_32_valores_de_rt
+m2,mutante,morreu,morreu,0.6,desvio_nao_tomado_ainda_assim_escreve_ra;rs_igual_ra_compara_valor_antigo_antes_do_link;varredura_dos_32_valores_de_rt;zero_e_o_limite_entre_bltz_e_bgez
+m3,mutante,morreu,morreu,0.6,varredura_dos_32_valores_de_rt
+m4,mutante,morreu,morreu,0.6,desvio_nao_tomado_ainda_assim_escreve_ra;rs_igual_ra_compara_valor_antigo_antes_do_link;varredura_dos_32_valores_de_rt
+m5,mutante,morreu,morreu,0.6,desvio_nao_tomado_ainda_assim_escreve_ra;rs_igual_ra_compara_valor_antigo_antes_do_link;varredura_dos_32_valores_de_rt
+m6,mutante,morreu,morreu,0.6,zero_e_o_limite_entre_bltz_e_bgez
+m7,mutante,morreu,morreu,0.6,zero_e_o_limite_entre_bltz_e_bgez
+c1,controle,sobreviveu,sobreviveu,0.6,
+c2,controle,sobreviveu,sobreviveu,0.6,

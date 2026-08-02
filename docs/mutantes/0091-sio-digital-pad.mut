@@ -8,9 +8,9 @@ teste: sio_digital_pad
 mutante: m1
 rotulo: resposta de pad digital sempre 0xFF (ignora pad_connected)
 @@DE
-        } else if self.pad_connected.get() {
+        let present = self.addressed_device_present();
 @@PARA
-        } else if false {
+        let present = false;
 @@FIM
 
 mutante: m2
@@ -58,6 +58,7 @@ rotulo: DTR transicao nao reseta byte_count (desassert de /CS nao reseta contage
 @@DE
         if !self.cs_asserted() && prev_cs {
             self.byte_count.set(0);
+            self.address.set(0);
             self.rx_fifo.borrow_mut().clear();
             let mut s = self.stat.get();
             s &= !0x02;

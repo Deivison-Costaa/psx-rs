@@ -1,0 +1,90 @@
+# Manifesto de mutação da iteração 0159 — sio-ack-periferico
+formato: 1
+iteracao: 0159
+item: 10.84
+alvo: crates/psx-core/src/sio.rs
+teste: sio_ack_dispositivo
+
+mutante: m1
+rotulo: qualquer endereco passa a ter dispositivo presente, o defeito original em outra forma
+@@DE
+            ADDRESS_CONTROLLER => self.pad_connected.get(),
+            _ => false,
+@@PARA
+            ADDRESS_CONTROLLER => self.pad_connected.get(),
+            _ => true,
+@@FIM
+
+mutante: m2
+rotulo: o slot do controle responde mesmo vazio, ignorando o pad conectado
+@@DE
+            ADDRESS_CONTROLLER => self.pad_connected.get(),
+@@PARA
+            ADDRESS_CONTROLLER => true,
+@@FIM
+
+mutante: m3
+rotulo: o endereco nunca e latchado, entao nenhum dispositivo e reconhecido
+@@DE
+        if count == 0 {
+            self.address.set(val);
+        }
+@@PARA
+        if count == 0 {
+            self.address.set(0);
+        }
+@@FIM
+
+mutante: m4
+rotulo: volta a acender /ACK e IRQ7 mesmo sem periferico enderecado presente
+@@DE
+        if !present {
+            return;
+        }
+@@PARA
+        if false {
+            return;
+        }
+@@FIM
+
+mutante: m5
+rotulo: o controle volta a responder ID e botoes a qualquer endereco, inclusive 81h
+@@DE
+        let response = if count == 0 || !present {
+@@PARA
+        let response = if count == 0 {
+@@FIM
+
+mutante: m6
+rotulo: troca o endereco do controle pelo do memory card na tabela de enderecamento
+@@DE
+const ADDRESS_CONTROLLER: u8 = 0x01;
+@@PARA
+const ADDRESS_CONTROLLER: u8 = 0x81;
+@@FIM
+
+controle: c1
+rotulo: empurrar a resposta depois de contar o byte nao muda o resultado observavel
+@@DE
+        self.rx_fifo.borrow_mut().push(response);
+        self.byte_count.set(count + 1);
+@@PARA
+        self.byte_count.set(count + 1);
+        self.rx_fifo.borrow_mut().push(response);
+@@FIM
+
+controle: c2
+rotulo: escrever o bit 7 do STAT por deslocamento e o mesmo valor da constante hexadecimal
+@@DE
+        s |= 0x80;
+@@PARA
+        s |= 1 << 7;
+@@FIM
+
+controle: c3
+rotulo: inverter a ordem das duas condicoes da resposta ociosa preserva o resultado
+@@DE
+        let response = if count == 0 || !present {
+@@PARA
+        let response = if !present || count == 0 {
+@@FIM

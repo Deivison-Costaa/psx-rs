@@ -60,8 +60,8 @@ rotulo: renomeia variavel local button_state para _bs em set_buttons
 controle: c2
 rotulo: extrai button_state em variavel antes do match
 @@DE
-        let response = if count == 0 {
+        let response = if count == 0 || !present {
 @@PARA
         let bs = self.button_state.get();
-        let response = if count == 0 {
+        let response = if count == 0 || !present {
 @@FIM

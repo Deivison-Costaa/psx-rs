@@ -1,6 +1,6 @@
 # gerado por scripts/mutantes.ps1 — NAO editar a mao
-# commit: 54e5d0c1e71851561cdb29552437bd43337449b5
-# rodado_em: 2026-08-02T16:49:08-03:00
+# commit: 0fcfce1a708d0b7731173518c5d49a6df4d84095
+# rodado_em: 2026-08-02T17:07:05-03:00
 m1,mutante,morreu,morreu,0.5,botoes_pressionados_aparecem_na_resposta_42h
 m2,mutante,morreu,morreu,0.5,botoes_pressionados_aparecem_na_resposta_42h
 m3,mutante,morreu,morreu,0.5,botoes_pressionados_aparecem_na_resposta_42h

@@ -104,10 +104,16 @@ fn ctrl_bit4_ack_limpa_stat_bit9() {
 
     sio.write_ctrl(0x0002 | (1 << 12));
     sio.write_tx(0x01);
+    sio.deliver_ack();
     let _ = sio.read_rx();
     sio.write_tx(0x42);
+    sio.deliver_ack();
 
     assert!(sio.read_stat() & 0x02 != 0);
+    assert!(
+        sio.read_stat() & (1 << 9) != 0,
+        "pre-condicao: o /ACK entregue acende STAT.9, senao o ack de CTRL.4 nao mede nada"
+    );
 
     sio.write_ctrl(0x0002 | (1 << 12) | (1 << 4));
     assert!(

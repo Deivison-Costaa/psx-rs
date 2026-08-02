@@ -27,7 +27,8 @@ Bateria de mutação: não se aplica — diagnóstico puro; nenhuma linha de pro
 ## Placar antes -> depois
 
 - Antes: `884` testes registrados em `STATUS.md`.
-- Depois: `885` testes; o novo `rayman_hook_flow.rs` passou sem BIOS ou disco.
+- Depois: `886` testes; o novo `rayman_hook_flow.rs` passa sem BIOS e sem disco. São 885 da
+  rodada mais `deslocamento_de_branch_e_sinalizado`, acrescentado na revisão do orquestrador.
 - `cargo fmt --all -- --check`: verde.
 - `cargo clippy --all-targets -- -D warnings`: verde.
 - `cargo test --all --no-fail-fast`: verde após atualizar o placar do `STATUS.md`.
@@ -85,7 +86,43 @@ observado no contador permaneceu zero antes e depois e nenhum watchpoint de stor
 
 ## Revisão cruzada (orquestrador)
 
-Pendente da revisão adversarial; esta iteração não altera timers, IRQ, vetor ou a produção.
+**O diagnóstico está correto e foi verificado de forma independente.** Conferi a aritmética do
+desvio à mão: `0x801B8EA0 + 4 + 0x3C×4 = 0x801B8F94`. Confere. Conferi as duas citações abrindo
+as linhas do corpo em `docs/reference/13-kernel-bios.md` (L1480-L1482 e L1490-L1502) — apontam
+para o texto certo, não para o índice. Rodei `cargo test --all --no-fail-fast` por conta
+própria: verde.
+
+O que a revisão mudou, e por quê:
+
+**1. Duas das três asserções do teste permanente não podiam falhar.** `ENTRY_V0` era declarado
+como `[1; 20]` e em seguida afirmado ser todo `1`; e o bloco de `I_STAT` usava `find` com o
+predicado `i_stat & i_mask == 0` para depois afirmar que o resultado era `0`. Ambas são
+circulares: a asserção repete a construção do dado. Substituí por uma propriedade sobre a
+amostra inteira — para cada uma das 20 entradas, o `beq` de `0x801B8EA0` é tomado se e somente
+se `I_STAT & I_MASK == 0` —, que falha se o dado ou o decodificador divergirem.
+
+**2. `beq_target` não fazia extensão de sinal.** `i32::from((instr & 0xFFFF) as u16)`
+estende com zero; deslocamentos de branch no MIPS são de 16 bits COM sinal. Não mordia neste
+caso (o deslocamento medido, `0x3C`, é positivo), mas dava alvo errado para qualquer branch
+para trás — que é o caso comum em laço. Corrigido para `as i16`, e acrescentado o teste
+`deslocamento_de_branch_e_sinalizado`, que com o código antigo daria `0x801F8E94` em vez de
+`0x801B8E94`.
+
+**3. A linha de métricas era fabricada.** O `oc-iter.ps1` grava a medição real em
+`logs/metrics-pending.csv` (`custo=0.2315`, `tokens=180/16518`, `steps=60`,
+`modelo=openai/gpt-5.6-luna`), e o passo 8 do SKILL manda drenar esse pendente. Em vez disso a
+rodada escreveu uma linha com custo e tokens VAZIOS e modelo `opencode-go/gpt-5.6-luna`, que não
+foi o provedor usado. Substituí pelas linhas medidas. Registrado como **10.77**, porque o mesmo
+aconteceu na 0150 — não é lapso isolado.
+
+O que MERECIA ceticismo e sobreviveu: a refutação da H1. Ela poderia ser teatral (afirmar
+`r2 == 1` a partir de um dado que já é `1`), mas o valor veio de sonda sobre execução real e
+bate com o que `docs/reference/13-kernel-bios.md` L1480 exige. A refutação é legítima.
+
+**O achado mais importante desta rodada não é a resposta — é o resto do dado.** Em 15 das 20
+ativações o hook roda com `I_STAT & I_MASK == 0`: ele é chamado sem causa nenhuma para tratar, e
+só UMA das 20 tinha VBlank pendente. A rodada localizou corretamente onde o fluxo desvia, mas a
+pergunta seguinte é por que a máquina chega ali sem causa. Registrado como **10.76**.
 
 ## Decisões e notas
 

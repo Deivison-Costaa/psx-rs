@@ -1,5 +1,7 @@
 use std::cell::{Cell, RefCell};
 
+const ADDRESS_CONTROLLER: u8 = 0x01;
+
 #[derive(Debug)]
 pub struct Sio {
     tx_data: Cell<u8>,
@@ -9,6 +11,7 @@ pub struct Sio {
     ctrl: Cell<u16>,
     baud: Cell<u16>,
     byte_count: Cell<u8>,
+    address: Cell<u8>,
     pad_connected: Cell<bool>,
     button_state: Cell<u16>,
     irq7_pending: Cell<bool>,
@@ -24,6 +27,7 @@ impl Sio {
             ctrl: Cell::new(0x0000),
             baud: Cell::new(0x0000),
             byte_count: Cell::new(0),
+            address: Cell::new(0),
             pad_connected: Cell::new(false),
             button_state: Cell::new(0xFFFF),
             irq7_pending: Cell::new(false),
@@ -78,13 +82,25 @@ impl Sio {
         byte
     }
 
+    fn addressed_device_present(&self) -> bool {
+        match self.address.get() {
+            ADDRESS_CONTROLLER => self.pad_connected.get(),
+            _ => false,
+        }
+    }
+
     fn send_byte(&self, val: u8) {
         self.tx_data.set(val);
 
         let count = self.byte_count.get();
-        let response = if count == 0 {
+        if count == 0 {
+            self.address.set(val);
+        }
+
+        let present = self.addressed_device_present();
+        let response = if count == 0 || !present {
             0xFF
-        } else if self.pad_connected.get() {
+        } else {
             match count {
                 1 => 0x41,
                 2 => 0x5A,
@@ -92,15 +108,17 @@ impl Sio {
                 4 => (self.button_state.get() & 0xFF) as u8,
                 _ => 0xFF,
             }
-        } else {
-            0xFF
         };
 
         self.rx_fifo.borrow_mut().push(response);
+        self.byte_count.set(count + 1);
+        if !present {
+            return;
+        }
+
         let mut s = self.stat.get();
         s |= 0x80;
         self.stat.set(s);
-        self.byte_count.set(count + 1);
 
         if self.dsr_irq_enabled() {
             let mut s = self.stat.get();
@@ -116,6 +134,7 @@ impl Sio {
 
         if !self.cs_asserted() && prev_cs {
             self.byte_count.set(0);
+            self.address.set(0);
             self.rx_fifo.borrow_mut().clear();
             let mut s = self.stat.get();
             s &= !0x02;
@@ -138,6 +157,7 @@ impl Sio {
             self.tx_data.set(0);
             self.rx_fifo.borrow_mut().clear();
             self.byte_count.set(0);
+            self.address.set(0);
             self.stat.set(0x0000_0005);
             self.irq7_pending.set(false);
         }

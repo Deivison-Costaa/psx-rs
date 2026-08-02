@@ -14,7 +14,9 @@ const JOY_BAUD: u32 = 0x1F80_104E;
 const CTRL_BIOS: u16 = 0x1003;
 
 fn bus() -> Bus {
-    asm::bus_with_bios_empty()
+    let mut bus = asm::bus_with_bios_empty();
+    bus.sio_mut().connect_digital_pad(true);
+    bus
 }
 
 fn ctrl16(bus: &mut Bus, val: u16) {

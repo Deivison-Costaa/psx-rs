@@ -92,6 +92,7 @@ Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 10.77 Trabalhador inventa linha de metricas em vez de drenar logs/metrics-pending.csv (0150, 0151)
 - [ ] 10.78 oc-iter.ps1: exit 0 sem commits vira ok, e nao ve `Request too large` do TPM (0151)
 - [ ] 10.83 Rayman: ~89/660 IRQ0 sem hook; cadeia `0x74A8` (iter 0158)
+- [ ] 10.85 Rayman para em `0x801B9574` esperando `[0x801CF2CC] >= 2`; contador fica em 1 (0159)
 
 ## M11 — Apresentação (incremental desde o M1)
 - [ ] 11.2 Gráficos de metricas.csv + scoreboard-data

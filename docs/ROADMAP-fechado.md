@@ -160,6 +160,7 @@ da escada valer so para o que FALTA. Narrativa de cada item continua em
 - [x] 10.86 /ACK do SIO0 chegava em 0 ciclos, o que a spec proibe emular; agora vem do scheduler (iter 0160)
 - [x] 10.87 O auto-ack de IRQ0 do Pad/Card e do BIOS: o jogo desliga e `StartPAD2` religa (iter 0161)
 - [x] 10.88 Premissa refutada: os descritores esperados eram de CDROM, nao de memory card (iter 0162)
+- [x] 10.89 Premissa refutada: o 2o `KERNEL SETUP` e do BOOTSTRAP LOADER, boot normal (iter 0163)
 
 ## M11 — Apresentação (incremental desde o M1)
 - [x] 11.1 Relatório consolidado (docs/relatorio.md — atualizado a cada marco) (iter 0096)

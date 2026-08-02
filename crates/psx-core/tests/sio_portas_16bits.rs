@@ -23,6 +23,10 @@ fn ctrl16(bus: &mut Bus, val: u16) {
     bus.write16::<BusWrite>(JOY_CTRL, val);
 }
 
+// § Controller and Memory Card Signals (L385) de docs/reference/10-controllers-memcards.md:
+// o /ACK chega depois do byte e antes dos 100 us de timeout do driver do kernel.
+const ATE_O_ACK: u32 = 3386;
+
 fn stat16(bus: &Bus) -> u16 {
     bus.read16::<BusRead>(JOY_STAT)
 }
@@ -63,6 +67,7 @@ fn read16_de_joy_stat_traz_o_bit9_de_interrupcao_do_byte_alto() {
 
     ctrl16(&mut bus, CTRL_BIOS);
     bus.write8::<BusWrite>(JOY_DATA, 0x01);
+    bus.tick_timers(ATE_O_ACK);
 
     assert_ne!(
         stat16(&bus) & 0x0200,
@@ -121,6 +126,7 @@ fn ack_por_write16_limpa_o_bit9_sem_soltar_o_cs() {
     let mut bus = bus();
     ctrl16(&mut bus, CTRL_BIOS);
     bus.write8::<BusWrite>(JOY_DATA, 0x01);
+    bus.tick_timers(ATE_O_ACK);
     assert_ne!(stat16(&bus) & 0x0200, 0, "pre-condicao: IRQ pedida");
 
     // JOY_CTRL.bit4 = Acknowledge; o driver escreve 1013h, mantendo TXEN/DTR/DSR-IRQ.

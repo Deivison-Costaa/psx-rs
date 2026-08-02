@@ -15,6 +15,8 @@ pub struct Sio {
     pad_connected: Cell<bool>,
     button_state: Cell<u16>,
     irq7_pending: Cell<bool>,
+    ack_scheduled: Cell<bool>,
+    ack_requested: Cell<bool>,
 }
 
 impl Sio {
@@ -31,6 +33,8 @@ impl Sio {
             pad_connected: Cell::new(false),
             button_state: Cell::new(0xFFFF),
             irq7_pending: Cell::new(false),
+            ack_scheduled: Cell::new(false),
+            ack_requested: Cell::new(false),
         }
     }
 
@@ -112,9 +116,23 @@ impl Sio {
 
         self.rx_fifo.borrow_mut().push(response);
         self.byte_count.set(count + 1);
-        if !present {
+        if present {
+            self.ack_requested.set(true);
+            self.ack_scheduled.set(true);
+        }
+    }
+
+    pub fn take_ack_request(&self) -> bool {
+        let pedido = self.ack_requested.get();
+        self.ack_requested.set(false);
+        pedido
+    }
+
+    pub fn deliver_ack(&self) {
+        if !self.ack_scheduled.get() {
             return;
         }
+        self.ack_scheduled.set(false);
 
         let mut s = self.stat.get();
         s |= 0x80;
@@ -135,6 +153,8 @@ impl Sio {
         if !self.cs_asserted() && prev_cs {
             self.byte_count.set(0);
             self.address.set(0);
+            self.ack_scheduled.set(false);
+            self.ack_requested.set(false);
             self.rx_fifo.borrow_mut().clear();
             let mut s = self.stat.get();
             s &= !0x02;
@@ -158,6 +178,8 @@ impl Sio {
             self.rx_fifo.borrow_mut().clear();
             self.byte_count.set(0);
             self.address.set(0);
+            self.ack_scheduled.set(false);
+            self.ack_requested.set(false);
             self.stat.set(0x0000_0005);
             self.irq7_pending.set(false);
         }

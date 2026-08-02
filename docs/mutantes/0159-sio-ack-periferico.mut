@@ -38,13 +38,11 @@ rotulo: o endereco nunca e latchado, entao nenhum dispositivo e reconhecido
 mutante: m4
 rotulo: volta a acender /ACK e IRQ7 mesmo sem periferico enderecado presente
 @@DE
-        if !present {
-            return;
-        }
+        if present {
+            self.ack_requested.set(true);
 @@PARA
-        if false {
-            return;
-        }
+        if true {
+            self.ack_requested.set(true);
 @@FIM
 
 mutante: m5

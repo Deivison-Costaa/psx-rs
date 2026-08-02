@@ -117,11 +117,17 @@ fn soltar_o_cs_cancela_o_ack_ainda_nao_entregue() {
 
     bus.write8::<BusWrite>(JOY_DATA, 0x01);
     bus.write16::<BusWrite>(JOY_CTRL, 0x0000);
+    bus.write16::<BusWrite>(JOY_CTRL, CTRL_BIOS);
     bus.tick_timers(TIMEOUT_DO_KERNEL);
 
     assert_eq!(
         stat(&bus) & 0x0200,
         0,
-        "com /CS solto a transferencia acabou; o pulso pendente nao pode chegar depois"
+        "com /CS solto a transferencia acabou; o pulso pendente nao pode chegar na seguinte"
+    );
+    assert_eq!(
+        istat_bit7(&bus),
+        0,
+        "reassertar /CS nao entrega o /ACK de um byte que ficou na transferencia anterior"
     );
 }

@@ -152,6 +152,7 @@ da escada valer so para o que FALTA. Narrativa de cada item continua em
 - [x] 10.74 Rayman instala o VSync por `B(19h) HookEntryInt`, nao por OpenEvent/SetRCnt/vetor (0150)
 - [x] 10.75 Rayman desvia em `0x801B8EA0` quando `I_STAT & I_MASK == 0`, antes do caminho de `0x801B8C40` (0151)
 - [x] 10.76 Rayman tem `ExcCode=00h` em 1029 hooks; um VBlank chega ao `sw`, que escreve `0x801CF2CC`, nao `0x801DF2CC` (0152)
+- [x] 10.79 Enderecos de leitura e escrita do contador convergem em `0x801CF2CC`; 1 de 1029 hooks tem VBlank pendente (0153)
 
 ## M11 — Apresentação (incremental desde o M1)
 - [x] 11.1 Relatório consolidado (docs/relatorio.md — atualizado a cada marco) (iter 0096)

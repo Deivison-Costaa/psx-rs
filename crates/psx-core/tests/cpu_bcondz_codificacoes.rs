@@ -77,6 +77,21 @@ fn desvio_nao_tomado_ainda_assim_escreve_ra() {
     assert_eq!(ra, 8, "bltzal linka mesmo sem desviar");
 }
 
+// § Opcode/Parameter Encoding (L469-470) de 02-cpu.md: "bltz rs,dest if rs<0" e "bgez
+// rs,dest if rs>=0" — rs==0 e o limite entre as duas familias, coberto no rt canonico e no
+// rt=0x02 (mesma familia por bit0, fora da tabela oficial).
+#[test]
+fn zero_e_o_limite_entre_bltz_e_bgez() {
+    let (pc_bltz, _) = passo_bcondz(0x00, 0, 5);
+    assert_eq!(pc_bltz, FALLTHROUGH, "bltz com rs=0 NAO desvia (0 nao e < 0)");
+
+    let (pc_bgez, _) = passo_bcondz(0x01, 0, 5);
+    assert_eq!(pc_bgez, ALVO, "bgez com rs=0 desvia (0 e >= 0)");
+
+    let (pc_par, _) = passo_bcondz(0x02, 0, 5);
+    assert_eq!(pc_par, FALLTHROUGH, "rt=02h (bit0=0) com rs=0 tambem NAO desvia");
+}
+
 #[test]
 fn rs_igual_ra_compara_valor_antigo_antes_do_link() {
     for (rt, espera_desvio) in [(0x10u32, true), (0x11u32, false)] {

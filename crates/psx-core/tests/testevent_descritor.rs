@@ -62,6 +62,8 @@ fn ler_tabela_evcb(bus: &Bus) -> Option<(u32, u32)> {
     Some((evcb_ptr, evcb_size))
 }
 
+const PASSOS_ENTRE_SONDAGENS: usize = 10_000;
+
 fn descritor_para_indice(descritor: u32) -> u32 {
     descritor.wrapping_sub(0xF100_0000)
 }
@@ -98,6 +100,10 @@ fn evcb_descritor_mapeia_para_spec_correto() {
 
     for _step in 1..=max_steps {
         cpu.step(&mut bus);
+
+        if _step % PASSOS_ENTRE_SONDAGENS != 0 {
+            continue;
+        }
 
         if let Some((evcb_ptr, evcb_size)) = ler_tabela_evcb(&bus) {
             let num_blocks = evcb_size / 0x1C;

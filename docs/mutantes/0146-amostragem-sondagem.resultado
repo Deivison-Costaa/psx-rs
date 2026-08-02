@@ -1,0 +1,10 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: 3c7fc16bfb06174e24254fe6d52c1df810d4ed40
+# rodado_em: 2026-08-01T21:23:25-03:00
+m1,mutante,morreu,morreu,0.3,sondagem_nao_pode_cegar_o_teste
+m2,mutante,morreu,morreu,0.3,sondagem_nao_roda_a_cada_passo
+m3,mutante,morreu,sobreviveu,0.2,
+m4,mutante,morreu,sobreviveu,0.2,
+m5,mutante,morreu,sobreviveu,0.2,
+c1,controle,sobreviveu,sobreviveu,0.2,
+c2,controle,sobreviveu,sobreviveu,0.2,

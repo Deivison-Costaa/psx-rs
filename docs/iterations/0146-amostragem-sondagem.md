@@ -16,8 +16,8 @@ sondas descartáveis sobre o próprio laço.
 |---|---|---|---|---|
 | 1 | desenho do conserto | Que o certo era **guarda de janela** (`if (85_000_000..=92_000_000).contains(&step)`), copiando o idioma que o `evento_consumo_shell.rs:127` já usa, porque amostrar arriscaria pular a janela | A condicao "spec=20h e spec=8000h ambos prontos" **persiste**: observada estavel de 87,0 M a 87,9 M, isto e por >= 900 k passos. Com essa persistencia, amostragem simples da o mesmo ganho **e e mais robusta** — a guarda de janela cravaria 85 M..90 M como lei a partir de UMA execucao | Sonda descartavel que, em vez de sair ao achar, continuou ate 88 M imprimindo o estado a cada 100 k |
 | 2 | alvo da bateria | Que os mutantes atacariam "o mapeamento de descritor de evento" em `crates/psx-core/src/` | `descritor_para_indice` e helper **local do arquivo de teste**, nao codigo de producao. O teste nao cobre funcao isolada: afirma que o kernel EMULADO monta a EvCB com spec=20h no indice 1 e spec=8000h no indice 4 | Busca por `fn descritor_para_indice` em `crates/psx-core/src/` nao retornou nada |
-| 4 | oraculo x ambiente | Que uma bateria verde na minha maquina estava provada. Os mutantes m3 e m4 originais so eram matados pelo teste caro, que precisa da BIOS e do disco | A CI reprovou com **3/5**: m3 e m4 sobreviveram em **0,3 s**, contra 11-12 s locais. O tempo denuncia — na CI o teste caro nao roda, faz `SKIP` por falta dos arquivos, que sao material com copyright e **nunca** vao estar la. Mutante que sobrevive por falta de oraculo mede o AMBIENTE, nao o codigo | CI do PR #163, job `mutantes`. Reproduzido localmente movendo `bios/` para fora do repositorio |
 | 3 | formato do manifesto | Que declarar `teste:` no cabecalho e sobrescreve-lo em alguns registros funcionaria | `scripts/mutantes.ps1` tem **duas** ramificacoes `"teste"` no mesmo `switch`, e o `switch` do PowerShell executa TODAS as que casam: um `teste:` de registro sobrescreve tambem o do CABECALHO, para todos os registros seguintes. Placar saiu 2/5 com m3, m4 e m5 "sobrevivendo" por estarem sendo rodados contra o teste errado | O placar 2/5 nao batia com a analise; a linha de cabecalho impressa pelo script dizia `teste: custo_de_sondagem` quando o manifesto declarava `testevent_descritor`. Registrado como divida **10.71** |
+| 4 | oraculo x ambiente | Que uma bateria verde na minha maquina estava provada. Os mutantes m3 e m4 originais so eram matados pelo teste caro, que precisa da BIOS e do disco | A CI reprovou com **3/5**: m3 e m4 sobreviveram em **0,3 s**, contra 11-12 s locais. O tempo denuncia — na CI o teste caro nao roda, faz `SKIP` por falta dos arquivos, que sao material com copyright e **nunca** vao estar la. Mutante que sobrevive por falta de oraculo mede o AMBIENTE, nao o codigo | CI do PR #163, job `mutantes`. Reproduzido localmente movendo `bios/` para fora do repositorio |
 
 ## Medição
 
@@ -96,7 +96,7 @@ o custo de antes da iteracao, reproduzido de proposito. Nao e argumento, e medic
 
 ## Placar antes → depois
 
-Workspace: **876** → **879** testes (3 novos em `custo_de_sondagem`).
+Workspace: **876** → **880** testes (3 em `custo_de_sondagem`, 1 em `deve_sondar_so_nos_multiplos_do_passo`).
 
 ## Revisão cruzada (orquestrador)
 

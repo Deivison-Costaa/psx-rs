@@ -7,26 +7,28 @@
 
 ## Última iteração concluída
 
-**0162** — **correcao de registro**: os descritores `F1000001h`/`F1000004h` que o jogo consulta
-eram eventos de **CDROM** (`F0000003h` spec `0020h` e `8000h`) quando a espera comecou, nao de
-memory card. Quem troca o dono dos slots e um `SysInitMemory` novo no passo 154.897.433, chamado
-da ROM (`$ra=0xBFC06F4C`). Teste `rayman_evcb_descritores.rs`. O item 10.88, que nasceu da minha
-inferencia errada em 0161, foi fechado como premissa refutada.
+**0163** — o TTY do BIOS resolveu a leitura: o segundo `KERNEL SETUP!` e do
+`BOOTSTRAP LOADER` lendo o `SYSTEM.CNF`, **boot normal**. O jogo so comeca em
+`Execute !` no passo 164.000.000 (`T_ADDR(80125000) T_SIZE(000aa800)`) e ja em 167.000.000
+imprime `VSync: timeout`, 142 vezes. **Experimento:** forcando `ChangeClearPAD(0)` nas duas
+religadas do kernel depois do `Execute !`, o contador `[0x801CF2CC]` vai de **1 para 145** e os
+142 timeouts viram **0**. O corpo do `StartPAD2` na RAM bate byte a byte com a ROM (offset
+`0x14680`), entao nao e corrupcao nossa. Itens 10.88 e 10.89 fechados como premissa refutada.
 
 ## Próxima tarefa
 
-**ROADMAP 10.89 — por que a ROM chama `SysInitMemory` de novo no passo 154.897.433, no meio da
-execucao do jogo, apagando todos os EvCB que o jogo tinha registrado.**
+**ROADMAP 10.90 — por que o jogo chama `ChangeClearPAD(0)` ANTES do `StartPAD2`, que o desfaz.**
 
-Handoff: medido em 0162. `C(08h) SysInitMemory` roda com `$ra = 0xBFC06F4C` (ROM), e
-§ C(08h) - SysInitMemory(addr,size) (L2553) de `docs/reference/13-kernel-bios.md` diz que ela
-desaloca os handles de `B(00h)` — onde moram os EvCB. Logo depois a ROM reabre os de CDROM a partir
-de `0xBFC071C8`. Antes disso houve outra reinicializacao parcial em 148.245.675 (I_MASK vai a 0 e
-volta) com reaberturas de `0xBFC071C8`. Alvo: identificar QUAL caminho da ROM chega em
-`0xBFC06F4C` — se e o segundo estagio legitimo do boot (o jogo pedindo recarga) ou repeticao
-indevida do boot, ja apelidada de "boot duplo" na 0142. Armadilha: `SysInitMemory` roda 2 vezes
-no total; a primeira (121.085, `$ra=0xBFC06914`) e o boot normal. Metrica da propria rodada nunca
-deve ser fabricada.
+Handoff: o experimento de 0163 provou o elo final — com o auto-ack desligado depois do
+`Execute !`, o contador de VSync anda (1 → 145) e os 142 `VSync: timeout` somem. O codigo do
+`StartPAD2` que religa e ROM autentica (RAM `0x4B80..0x4C10` == ROM offset `0x14680`), entao o
+defeito **nao** esta na cadeia de excecao nem no BIOS que executamos. Restam duas pontas, as duas
+mediveis: (a) o fluxo real do jogo chamaria `ChangeClearPAD(0)` de novo depois do `StartPAD2`, e
+nao chega la por uma divergencia nossa anterior — tracar o que o jogo faz entre `0x801A7958`
+(retorno do StartPad) e a primeira espera de VSync; (b) o handler de pad de prioridade 2 alcanca
+o ack aqui em condicoes em que no hardware nao alcancaria — comparar quantas transferencias de
+pad ele completa por IRQ. Armadilha: **nada antes do passo 164.000.000 e do jogo**. Metrica da
+propria rodada nunca deve ser fabricada.
 
 Invariantes relevantes: nenhum.
 
@@ -44,7 +46,7 @@ Invariantes relevantes: nenhum.
 
 ## Placar de testes
 
-Workspace: **907** testes.
+Workspace: **909** testes.
 
 ## Bloqueios
 
@@ -61,6 +63,10 @@ Workspace: **907** testes.
   somente bit 2 (173 CDROM) ou bit 3 (285 DMA); não há defeito de VBlank a corrigir nesta rodada.
 - **10.85 (0159)**: o laço final do Rayman é `0x801B9574`, esperando `[0x801CF2CC] >= 2`. A espera
   do memory card NÃO é o bloqueio: termina sozinha em 166.321.383 com `F4000001h,0100h`.
+- **Janela util do Rayman: depois do passo 164.000.000** (`Execute !`). Antes disso e boot do
+  BIOS + BOOTSTRAP LOADER; `0x8003xxxx`/`0x8005xxxx` sao do carregador. O executavel do jogo ocupa
+  `0x80125000..0x801CF800`.
+- **10.89 fechado como premissa refutada (0163)**: o 2o `KERNEL SETUP` e do bootstrap.
 - **10.88 fechado como premissa refutada (0162)**: os descritores que o jogo consulta eram de
   CDROM no momento da espera. Não procurar defeito no caminho de card por causa dessa espera.
 - **10.87 fechado sem correção (0161)**: o auto-ack de IRQ0 no handler de Pad/Card é do BIOS, e

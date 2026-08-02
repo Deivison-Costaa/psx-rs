@@ -24,9 +24,10 @@ fn pad_digital_responde_5a41_ffff_ao_comando_42h() {
     assert_eq!(sio.read_ctrl() & 0x0002, 0x0002);
 
     sio.write_tx(0x01);
+    sio.deliver_ack();
     assert!(
         sio.read_stat() & 0x80 != 0,
-        "STAT.7 (DSR) deve ser 1 apos envio de byte"
+        "STAT.7 (DSR) deve ser 1 quando o /ACK do periferico chega"
     );
     let _ = sio.read_rx();
 
@@ -103,10 +104,16 @@ fn ctrl_bit4_ack_limpa_stat_bit9() {
 
     sio.write_ctrl(0x0002 | (1 << 12));
     sio.write_tx(0x01);
+    sio.deliver_ack();
     let _ = sio.read_rx();
     sio.write_tx(0x42);
+    sio.deliver_ack();
 
     assert!(sio.read_stat() & 0x02 != 0);
+    assert!(
+        sio.read_stat() & (1 << 9) != 0,
+        "pre-condicao: o /ACK entregue acende STAT.9, senao o ack de CTRL.4 nao mede nada"
+    );
 
     sio.write_ctrl(0x0002 | (1 << 12) | (1 << 4));
     assert!(

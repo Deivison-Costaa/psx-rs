@@ -59,6 +59,8 @@ rotulo: DTR transicao nao reseta byte_count (desassert de /CS nao reseta contage
         if !self.cs_asserted() && prev_cs {
             self.byte_count.set(0);
             self.address.set(0);
+            self.ack_scheduled.set(false);
+            self.ack_requested.set(false);
             self.rx_fifo.borrow_mut().clear();
             let mut s = self.stat.get();
             s &= !0x02;

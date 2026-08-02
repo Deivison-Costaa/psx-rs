@@ -1,0 +1,12 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: 20123c4c140580cedf9387a3b34f18f690622e6d
+# rodado_em: 2026-08-02T17:05:50-03:00
+m1,mutante,morreu,morreu,0.6,ack_nao_chega_dentro_da_janela_ignorada_pelo_kernel
+m2,mutante,morreu,morreu,0.6,ack_nao_chega_dentro_da_janela_ignorada_pelo_kernel
+m3,mutante,morreu,morreu,0.6,ack_chega_antes_do_timeout_do_kernel;dois_bytes_geram_dois_acks
+m4,mutante,morreu,morreu,0.6,ack_chega_antes_do_timeout_do_kernel;dois_bytes_geram_dois_acks
+m5,mutante,morreu,morreu,0.6,soltar_o_cs_cancela_o_ack_ainda_nao_entregue
+m6,mutante,morreu,morreu,0.5,ack_chega_antes_do_timeout_do_kernel;dois_bytes_geram_dois_acks
+c1,controle,sobreviveu,sobreviveu,0.5,
+c2,controle,sobreviveu,sobreviveu,0.6,
+c3,controle,sobreviveu,sobreviveu,0.6,

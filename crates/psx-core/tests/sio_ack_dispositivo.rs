@@ -19,6 +19,7 @@ fn sem_periferico_o_endereco_01h_nao_produz_ack() {
     let sio = porta(false);
 
     sio.write_tx(ENDERECO_CONTROLE);
+    sio.deliver_ack();
 
     assert!(
         !sio.take_irq7(),
@@ -42,6 +43,7 @@ fn pad_conectado_responde_ao_endereco_01h() {
     let sio = porta(true);
 
     sio.write_tx(ENDERECO_CONTROLE);
+    sio.deliver_ack();
 
     assert!(sio.take_irq7(), "o controle enderecado puxa /ACK");
     assert_eq!(
@@ -56,6 +58,7 @@ fn endereco_81h_nao_produz_ack_sem_memory_card() {
     let sio = porta(true);
 
     sio.write_tx(ENDERECO_MEMORY_CARD);
+    sio.deliver_ack();
 
     assert!(
         !sio.take_irq7(),
@@ -68,6 +71,7 @@ fn endereco_81h_nao_produz_ack_sem_memory_card() {
     );
 
     sio.write_tx(0x52);
+    sio.deliver_ack();
 
     assert!(
         !sio.take_irq7(),
@@ -81,6 +85,7 @@ fn endereco_desconhecido_nao_produz_ack() {
     let sio = porta(true);
 
     sio.write_tx(ENDERECO_YAROZE);
+    sio.deliver_ack();
 
     assert!(
         !sio.take_irq7(),
@@ -94,12 +99,14 @@ fn soltar_o_cs_relatcha_o_endereco_da_transferencia_seguinte() {
     let sio = porta(true);
 
     sio.write_tx(ENDERECO_MEMORY_CARD);
+    sio.deliver_ack();
     assert!(!sio.take_irq7());
     let _ = sio.read_rx();
 
     sio.write_ctrl(0x0000);
     sio.write_ctrl(CTRL_BIOS);
     sio.write_tx(ENDERECO_CONTROLE);
+    sio.deliver_ack();
 
     assert!(
         sio.take_irq7(),

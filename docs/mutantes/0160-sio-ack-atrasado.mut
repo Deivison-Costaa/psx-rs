@@ -1,0 +1,98 @@
+# Manifesto de mutação da iteração 0160 — sio-ack-atrasado
+formato: 1
+iteracao: 0160
+item: 10.86
+alvo: crates/psx-core/src/bus.rs
+teste: sio_ack_atrasado
+
+mutante: m1
+rotulo: /ACK volta a chegar no mesmo ciclo do byte, o estado que a spec proibe emular
+@@DE
+const SIO_ACK_DELAY_CYCLES: u64 = 338;
+@@PARA
+const SIO_ACK_DELAY_CYCLES: u64 = 0;
+@@FIM
+
+mutante: m2
+rotulo: pulso cai dentro dos 100 ciclos que o driver do kernel ignora
+@@DE
+const SIO_ACK_DELAY_CYCLES: u64 = 338;
+@@PARA
+const SIO_ACK_DELAY_CYCLES: u64 = 100;
+@@FIM
+
+mutante: m3
+rotulo: pulso chega depois dos 100 us em que o driver do kernel ja desistiu
+@@DE
+const SIO_ACK_DELAY_CYCLES: u64 = 338;
+@@PARA
+const SIO_ACK_DELAY_CYCLES: u64 = 4000;
+@@FIM
+
+mutante: m4
+rotulo: escrita byte a byte em JOY_TX_DATA deixa de agendar o pulso de /ACK
+@@DE
+                self.sio.write_byte(phys + offset, val);
+                self.schedule_sio_ack();
+@@PARA
+                self.sio.write_byte(phys + offset, val);
+@@FIM
+
+mutante: m5
+rotulo: o pulso pendente sobrevive ao fim da transferencia e chega na seguinte
+arquivo: crates/psx-core/src/sio.rs
+@@DE
+        if !self.ack_scheduled.get() {
+            return;
+        }
+@@PARA
+        if false {
+            return;
+        }
+@@FIM
+
+mutante: m6
+rotulo: nenhum byte pede /ACK, entao o agendamento nunca acontece
+arquivo: crates/psx-core/src/sio.rs
+@@DE
+            self.ack_requested.set(true);
+            self.ack_scheduled.set(true);
+@@PARA
+            self.ack_requested.set(false);
+            self.ack_scheduled.set(true);
+@@FIM
+
+controle: c1
+rotulo: outro atraso dentro da janela valida da spec preserva todas as afirmacoes
+@@DE
+const SIO_ACK_DELAY_CYCLES: u64 = 338;
+@@PARA
+const SIO_ACK_DELAY_CYCLES: u64 = 300;
+@@FIM
+
+controle: c2
+rotulo: trocar a ordem dos dois sinalizadores do pedido nao muda nada observavel
+arquivo: crates/psx-core/src/sio.rs
+@@DE
+            self.ack_requested.set(true);
+            self.ack_scheduled.set(true);
+@@PARA
+            self.ack_scheduled.set(true);
+            self.ack_requested.set(true);
+@@FIM
+
+controle: c3
+rotulo: usar o servico de IRQ do barramento em vez da forma expandida e o mesmo codigo
+@@DE
+                SIO_ACK => {
+                    self.sio.deliver_ack();
+                    if self.sio.take_irq7() {
+                        self.irq.raise(7);
+                    }
+                }
+@@PARA
+                SIO_ACK => {
+                    self.sio.deliver_ack();
+                    self.service_sio_irq();
+                }
+@@FIM

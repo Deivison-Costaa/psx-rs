@@ -157,6 +157,7 @@ da escada valer so para o que FALTA. Narrativa de cada item continua em
 - [x] 10.81 Rayman: os 458 intervalos sem ack são CDROM (bit 2, 173) ou DMA (bit 3, 285) (0155)
 - [x] 10.82 Rayman: periodo IRQ0 mediano de 566187 ciclos, igual ao frame NTSC; taxa correta, sem defeito (iter 0156)
 - [x] 10.84 SIO0 pedia IRQ7 sem periferico; /ACK agora so do dispositivo enderecado (iter 0159)
+- [x] 10.86 /ACK do SIO0 chegava em 0 ciclos, o que a spec proibe emular; agora vem do scheduler (iter 0160)
 
 ## M11 — Apresentação (incremental desde o M1)
 - [x] 11.1 Relatório consolidado (docs/relatorio.md — atualizado a cada marco) (iter 0096)

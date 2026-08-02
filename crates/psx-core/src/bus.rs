@@ -112,6 +112,10 @@ const VBLANK_ENTER: u32 = 0;
 const VBLANK_EXIT: u32 = 1;
 const CDROM_RESPONSE: u32 = 2;
 const CDROM_SECOND: u32 = 3;
+const SIO_ACK: u32 = 4;
+
+// § Controller and Memory Card Signals (L386) de docs/reference/10-controllers-memcards.md.
+const SIO_ACK_DELAY_CYCLES: u64 = 338;
 
 #[derive(Debug)]
 pub struct Bus {
@@ -224,6 +228,16 @@ impl Bus {
         }
     }
 
+    fn schedule_sio_ack(&mut self) {
+        if self.sio.take_ack_request() {
+            self.scheduler.cancel(EventId(SIO_ACK));
+            self.scheduler.schedule(
+                ScheduleKey::new(self.total_cycles + SIO_ACK_DELAY_CYCLES),
+                EventId(SIO_ACK),
+            );
+        }
+    }
+
     fn service_dma_irq(&mut self) {
         if self.dma.take_irq3_edge() {
             self.irq.raise(3);
@@ -288,6 +302,12 @@ impl Bus {
                         ScheduleKey::new(self.total_cycles + frame),
                         EventId(VBLANK_EXIT),
                     );
+                }
+                SIO_ACK => {
+                    self.sio.deliver_ack();
+                    if self.sio.take_irq7() {
+                        self.irq.raise(7);
+                    }
                 }
                 CDROM_RESPONSE => {
                     if self.cdrom.deliver_first() {
@@ -490,6 +510,7 @@ impl Bus {
             | 0x1F80_1130..=0x1F80_1FFF => true,
             0x1F80_1040 => {
                 self.sio.write_data(val);
+                self.schedule_sio_ack();
                 self.service_sio_irq();
                 true
             }
@@ -587,6 +608,7 @@ impl Bus {
             }
             0x1F80_1040 | 0x1F80_1044..=0x1F80_104F => {
                 self.sio.write_byte(phys + offset, val);
+                self.schedule_sio_ack();
                 self.service_sio_irq();
                 true
             }

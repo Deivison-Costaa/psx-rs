@@ -53,9 +53,9 @@ Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 10.28 Tabela por registro nos docs vs `.resultado` — 0071 errou 3/9, 0038 inflou 2 creditos
 - [ ] 10.29 `dma_dpcr_gate.rs:141` usa `assert_ne!` como unica assercao numa correcao de defeito
 - [ ] 10.30 Habilitar canal no DPCR nao dispara transferencia pendente (so na escrita de CHCR)
-- [ ] 10.25 `unwrap_or(\"\")` sobre caminho nos meta-testes — transformou falha de `strip_prefix` em silencio (10.12)
+- [ ] 10.25 `unwrap_or` de caminho nos meta-testes vira silencio quando `strip_prefix` falha (10.12)
 - [ ] 10.13 GP0(24h) e modulacao, nao raw texture; bit 24 nao lido (03-gpu.md L264/L1610); nao causa o 2.2e (0110)
-- [ ] 10.14 U/V e gouraud reinterpolados sobre span recortado pela drawing area (`docs/reference/03-gpu.md` L452-454)
+- [ ] 10.14 U/V e gouraud reinterpolados sobre span recortado pela drawing area (03-gpu.md L452-454)
 - [ ] 10.17 `mutantes.ps1` recusa arvore suja — permitir sujeira restrita a `docs/mutantes/*.mut`
 - [ ] 10.24 Job `scoreboard` da CI sai VERDE medindo zero — sem BIOS rotula 51 suites `sem-bios` (iter 0072)
 - [ ] 10.26 Nenhum dos 9 testes de `ci_scoreboard.rs` afirma que o job mede algo
@@ -64,9 +64,9 @@ Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 10.18 Nada torna `arquivada:` caro — 0052 e 0059 descartaram 17 registros (12 ainda casavam)
 - [ ] 10.33 `mutantes.ps1` so roda `cargo test -p psx-core` (linha 290) — outros crates precisam de bateria manual
 - [ ] 10.34 Nenhum meta-teste reprova `#[test]` sem assercao — T10 da 0080 era eprintln! e passou
-- [ ] 10.35 `mutantes.ps1` grava nome qualificado e `mutation_battery.rs` procura fn literal — nunca casam em modulo
+- [ ] 10.35 `mutantes.ps1` grava nome qualificado e `mutation_battery` busca fn literal: nunca casam
 - [ ] 10.40 `mutantes.ps1` so casa ancora em arquivo LF; em CRLF diz 'encontrada 0 vez(es)'
-- [ ] 10.42 Linhas tremulas: framebuffer capturado sem sincronizar com vblank; 2o suspeito page flip do GP1(05h) (30/07)
+- [ ] 10.42 Linhas tremulas: captura sem sincronizar com vblank; 2o suspeito page flip GP1(05h) (30/07)
 - [ ] 10.42 Manifesto trata `#` como comentario dentro de `@@DE`/`@@PARA` — alvo `.md` nao ancora em cabecalho
 - [ ] 10.43 Todo texto do TTY sai duplicado (2 linhas 'System ROM' na main e depois do 0103)
 - [ ] 10.44 Manifesto com alvo em documento vivo (STATUS.md) envelhece na iteracao seguinte, sempre
@@ -81,18 +81,19 @@ Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 10.56 Result FIFO do comando anterior continua legivel na janela da primeira resposta (0121)
 - [ ] 10.55 Atraso da primeira resposta ignora o motor: spec da `Nop (when stopped) 0x5CF4` (0121)
 - [ ] 10.53 Comando executa mesmo com INT pendente; spec exige esperar o ack (06-cdrom.md L1984) (0121)
-- [ ] 10.47 Lacos de espera da BIOS (`0x80059DA4`/`0x80059D54`) saem por timeout: 0x8000 giros < frame de ~230 k passos (0114)
+- [ ] 10.47 Espera da BIOS (`0x80059DA4`/`0x80059D54`) sai por timeout: 0x8000 giros < frame ~230 k (0114)
 - [ ] 10.58 mutantes.ps1 so roda psx-core; alvo por crate e revalidar 0078/0079 (invariante 29) (0125)
 - [ ] 10.66 Meta-teste nao re-executa bateria antiga: .resultado verde pode mentir (0143 achou o m4 do 0098 assim)
-- [ ] 10.63 `-ContinueBranch` diz "reprovado na revisao" mesmo apos travamento; o trabalhador copia isso pro doc (0140)
+- [ ] 10.63 `-ContinueBranch` diz "reprovado na revisao" apos travamento e o trabalhador copia pro doc (0140)
 - [ ] 10.65 Revisor via opencode isolado em /tmp nao le o repo e nao verifica citacao; precisa de acesso r/o (0141)
 - [ ] 10.64 `evcb_descritor_mapeia_para_spec_correto` sozinho custa 447 s dos 449 s da suite sob nextest (0140)
-- [ ] 10.68 `cdrom_evento_kernel` queima 150 M passos sem saida antecipada em 2 testes; o alvo aparece antes de 100 M (0144)
+- [ ] 10.68 `cdrom_evento_kernel`: 150 M passos sem saida antecipada em 2 testes; alvo antes de 100 M (0144)
 - [ ] 10.71 `mutantes.ps1`: duas ramificacoes `teste` no mesmo switch, a de registro sobrescreve o cabecalho (0146)
 - [ ] 10.77 Trabalhador inventa linha de metricas em vez de drenar logs/metrics-pending.csv (0150, 0151)
 - [ ] 10.78 oc-iter.ps1: exit 0 sem commits vira ok, e nao ve `Request too large` do TPM (0151)
 - [ ] 10.83 Rayman: ~89/660 IRQ0 sem hook; cadeia `0x74A8` (iter 0158)
 - [ ] 10.85 Rayman para em `0x801B9574` esperando `[0x801CF2CC] >= 2`; contador fica em 1 (0159)
+- [ ] 10.87 Prio 2 do BIOS acka VBlank antes do hook do jogo; hook so conta bit0 pendente (0160)
 
 ## M11 — Apresentação (incremental desde o M1)
 - [ ] 11.2 Gráficos de metricas.csv + scoreboard-data

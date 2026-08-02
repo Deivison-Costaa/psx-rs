@@ -1,0 +1,69 @@
+# Manifesto de mutacao da iteracao 0165 — load delay encadeado
+formato: 1
+iteracao: 0165
+item: 10.93
+alvo: crates/psx-core/src/cpu.rs
+teste: cpu_load_delay_encadeado
+
+mutante: m1
+rotulo: desativa a deteccao do load que substitui o pendente
+ocorrencias: 1
+@@DE
+            let replaced_by_load = new_load.is_some_and(|(new_reg, _)| new_reg == reg);
+@@PARA
+            let replaced_by_load = false;
+@@FIM
+
+mutante: m2
+rotulo: inverte a comparacao do registrador carregado
+ocorrencias: 1
+@@DE
+            let replaced_by_load = new_load.is_some_and(|(new_reg, _)| new_reg == reg);
+@@PARA
+            let replaced_by_load = new_load.is_some_and(|(new_reg, _)| new_reg != reg);
+@@FIM
+
+mutante: m3
+rotulo: remove a protecao contra commit do load substituido
+ocorrencias: 1
+@@DE
+            if self.written_gpr != Some(reg) && !replaced_by_load {
+@@PARA
+            if self.written_gpr != Some(reg) {
+@@FIM
+
+mutante: m4
+rotulo: permite commit somente quando ha substituicao
+ocorrencias: 1
+@@DE
+            if self.written_gpr != Some(reg) && !replaced_by_load {
+@@PARA
+            if self.written_gpr != Some(reg) && replaced_by_load {
+@@FIM
+
+mutante: m5
+rotulo: troca a conjuncao do filtro de commit por disjuncao
+ocorrencias: 1
+@@DE
+            if self.written_gpr != Some(reg) && !replaced_by_load {
+@@PARA
+            if self.written_gpr != Some(reg) || !replaced_by_load {
+@@FIM
+
+controle: c1
+rotulo: calcula o mesmo predicado usando map_or
+ocorrencias: 1
+@@DE
+            let replaced_by_load = new_load.is_some_and(|(new_reg, _)| new_reg == reg);
+@@PARA
+            let replaced_by_load = new_load.map_or(false, |(new_reg, _)| new_reg == reg);
+@@FIM
+
+controle: c2
+rotulo: calcula o mesmo predicado usando matches
+ocorrencias: 1
+@@DE
+            let replaced_by_load = new_load.is_some_and(|(new_reg, _)| new_reg == reg);
+@@PARA
+            let replaced_by_load = matches!(new_load, Some((new_reg, _)) if new_reg == reg);
+@@FIM

@@ -55,7 +55,7 @@ Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 10.30 Habilitar canal no DPCR nao dispara transferencia pendente (so na escrita de CHCR)
 - [ ] 10.25 `unwrap_or(\"\")` sobre caminho nos meta-testes — transformou falha de `strip_prefix` em silencio (10.12)
 - [ ] 10.13 GP0(24h) e modulacao, nao raw texture; bit 24 nao lido (03-gpu.md L264/L1610); nao causa o 2.2e (0110)
-- [ ] 10.14 U/V e cor gouraud sao reinterpolados sobre span recortado pela drawing area (`docs/reference/03-gpu.md` L452-454)
+- [ ] 10.14 U/V e gouraud reinterpolados sobre span recortado pela drawing area (`docs/reference/03-gpu.md` L452-454)
 - [ ] 10.17 `mutantes.ps1` recusa arvore suja — permitir sujeira restrita a `docs/mutantes/*.mut`
 - [ ] 10.24 Job `scoreboard` da CI sai VERDE medindo zero — sem BIOS rotula 51 suites `sem-bios` (iter 0072)
 - [ ] 10.26 Nenhum dos 9 testes de `ci_scoreboard.rs` afirma que o job mede algo
@@ -74,8 +74,8 @@ Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 10.46 `justificativa:` do equivalente nao aceita continuacao de linha em NENHUM dos dois parsers
 - [ ] 10.52 `lhu`/`lbu` no modo do timer nao limpa bits 11/12 (byte usa `peek32`); 32 bits limpa (0118)
 - [ ] 10.51 GPU em `region_read_byte`: `(phys & 3) + offset` sem mascara, desalinhado estoura em debug (0118)
-- [ ] 10.50 `GP0(C0h)` sem transferencia pendente devolve zero, e dreno alem da janela le zeros (visto na 0117)
-- [ ] 10.49 Bit 15 do `DICR` (bus error) e gravavel mas nada o levanta: transferencia fora da RAM e ignorada (visto na 0116)
+- [ ] 10.50 `GP0(C0h)` sem transferencia devolve zero; dreno alem da janela le zeros (0117)
+- [ ] 10.49 Bit 15 do `DICR` (bus error) e gravavel mas nada o levanta; transferencia fora da RAM e ignorada (0116)
 - [ ] 10.48 `sw` em `1F801044h..1F80104Fh` cai no sumidouro de `region_write32`: JOY_MODE/CTRL engolidos (0115)
 - [ ] 10.57 Regiao do GetID fixada em SCEA; ler o setor de licenca do `.bin` (0122)
 - [ ] 10.56 Result FIFO do comando anterior continua legivel na janela da primeira resposta (0121)
@@ -91,7 +91,8 @@ Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 10.71 `mutantes.ps1`: duas ramificacoes `teste` no mesmo switch, a de registro sobrescreve o cabecalho (0146)
 - [ ] 10.77 Trabalhador inventa linha de metricas em vez de drenar logs/metrics-pending.csv (0150, 0151)
 - [ ] 10.78 oc-iter.ps1: exit 0 sem commits vira ok, e nao ve `Request too large` do TPM (0151)
-- [ ] 10.81 Rayman: explicar os 458 intervalos entre IRQ0 e hook sem escrita observada em I_STAT (0154)
+- [ ] 10.82 Medir periodo em CICLOS entre subidas de IRQ0 e comparar com frame NTSC (0155)
+- [ ] 10.83 Rayman: ~89 dos 660 IRQ0 nao produzem entrada de hook (0155)
 
 ## M11 — Apresentação (incremental desde o M1)
 - [ ] 11.2 Gráficos de metricas.csv + scoreboard-data

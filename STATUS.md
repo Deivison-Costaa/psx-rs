@@ -7,15 +7,14 @@
 
 ## Última iteração concluída
 
-**0154** — `0xBFC00448` copia `0xAD190000` para `0xA0004A1C` antes de `C(00h)`; o handler
-acka `I_STAT` em `0x4A1C` antes de ler `0x74BC`, e o hook lê `I_STAT` diretamente. Teste:
-`rayman_vblank_ack.rs`.
+**0155** — os 458 intervalos sem ack são 173 CDROM (bit 2) e 285 DMA (bit 3); o único
+VBlank sem ack está no intervalo inicial fora do balanço. Teste: `rayman_irq_classification.rs`.
 
 ## Próxima tarefa
 
 **ROADMAP 10.77 — drenar métricas reais do runner.**
 
-Handoff: 10.80 está em `docs/iterations/0154-rayman-vblank-ack.md`; para 10.77, alvo
+Handoff: 10.81 está em `docs/iterations/0155-rayman-irq-classification.md`; para 10.77, alvo
 `logs/metrics-pending.csv` → `docs/metricas.csv` e o fluxo de `scripts/oc-iter.ps1`; armadilha:
 nunca fabricar linha, duplicar `(ts,iter)` ou confundir o modelo do runner com o agente trabalhador.
 
@@ -35,7 +34,7 @@ Invariantes relevantes: nenhum.
 
 ## Placar de testes
 
-Workspace: **889** testes.
+Workspace: **890** testes.
 
 ## Bloqueios
 
@@ -48,7 +47,8 @@ Workspace: **889** testes.
   produção sem revisão adversarial.
 - **10.80 concluído como diagnóstico**: `0xBFC00448` instala `0x4A1C` antes de `C(00h)`;
   `0x4A1C` limpa IRQ0 antes da consulta de entrega, e o hook observa `I_STAT` diretamente.
-  A diferença com hardware real e os 458 intervalos sem ack ficaram no item 10.81.
+- **10.81 concluído como diagnóstico**: nos 458 intervalos sem ack do balanço, `I_STAT` tinha
+  somente bit 2 (173 CDROM) ou bit 3 (285 DMA); não há defeito de VBlank a corrigir nesta rodada.
 - **Premissa refutada:** o slot `$v1+0x18` não muda entre boots (0147). O defeito não está
   no valor do slot mas no encaixe temporal entre `SysInitMemory` e o enfileiramento dos
   handlers do jogo.

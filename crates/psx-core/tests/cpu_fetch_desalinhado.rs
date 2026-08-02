@@ -1,6 +1,6 @@
 mod support;
 
-use psx_core::bus::{Bus, BusRead, BusWrite};
+use psx_core::bus::{BusRead, BusWrite};
 use psx_core::cpu::Cpu;
 use support::asm;
 

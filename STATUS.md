@@ -7,18 +7,17 @@
 
 ## Última iteração concluída
 
-**0153** — o `lw 0x8C42F2CC` usa `$2=0x801D0000` e lê `0x801CF2CC`, o mesmo endereço do
-`sw` que gravou `1`; 1 de 1029 hooks tinha VBlank pendente. O vetor nunca ocorreu sem algum
-pending e `0x00004A1C` limpou bit 0 em 570 intervalos antes do hook. Teste: `rayman_vsync_address.rs`.
+**0154** — `0xBFC00448` copia `0xAD190000` para `0xA0004A1C` antes de `C(00h)`; o handler
+acka `I_STAT` em `0x4A1C` antes de ler `0x74BC`, e o hook lê `I_STAT` diretamente. Teste:
+`rayman_vblank_ack.rs`.
 
 ## Próxima tarefa
 
 **ROADMAP 10.77 — drenar métricas reais do runner.**
 
-Handoff: 10.79 está em `docs/iterations/0153-rayman-vsync.md`; não altere timers, IRQ, vetor
-ou imediatos do CPU por intuição. Para 10.77, alvo `logs/metrics-pending.csv` →
-`docs/metricas.csv` e o fluxo de `scripts/oc-iter.ps1`; armadilha: nunca fabricar linha,
-duplicar campos vazios ou confundir o modelo do runner com o agente trabalhador.
+Handoff: 10.80 está em `docs/iterations/0154-rayman-vblank-ack.md`; para 10.77, alvo
+`logs/metrics-pending.csv` → `docs/metricas.csv` e o fluxo de `scripts/oc-iter.ps1`; armadilha:
+nunca fabricar linha, duplicar `(ts,iter)` ou confundir o modelo do runner com o agente trabalhador.
 
 Invariantes relevantes: nenhum.
 
@@ -36,7 +35,7 @@ Invariantes relevantes: nenhum.
 
 ## Placar de testes
 
-Workspace: **888** testes.
+Workspace: **889** testes.
 
 ## Bloqueios
 
@@ -47,6 +46,9 @@ Workspace: **888** testes.
 - **10.79 concluído como diagnóstico**: `CAUSE.ExcCode=00h` em 1029 hooks, VBlank pendente em
   1; leitura e escrita convergem em `0x801CF2CC`. Não transformar essa medição em correção de
   produção sem revisão adversarial.
+- **10.80 concluído como diagnóstico**: `0xBFC00448` instala `0x4A1C` antes de `C(00h)`;
+  `0x4A1C` limpa IRQ0 antes da consulta de entrega, e o hook observa `I_STAT` diretamente.
+  A diferença com hardware real e os 458 intervalos sem ack ficaram no item 10.81.
 - **Premissa refutada:** o slot `$v1+0x18` não muda entre boots (0147). O defeito não está
   no valor do slot mas no encaixe temporal entre `SysInitMemory` e o enfileiramento dos
   handlers do jogo.

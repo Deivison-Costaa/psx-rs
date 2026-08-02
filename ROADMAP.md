@@ -54,7 +54,7 @@ Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 10.29 `dma_dpcr_gate.rs:141` usa `assert_ne!` como unica assercao numa correcao de defeito
 - [ ] 10.30 Habilitar canal no DPCR nao dispara transferencia pendente (so na escrita de CHCR)
 - [ ] 10.25 `unwrap_or(\"\")` sobre caminho nos meta-testes — transformou falha de `strip_prefix` em silencio (10.12)
-- [ ] 10.13 GP0(24h) e modulacao, nao raw texture — bit 24 nao e lido (`docs/reference/03-gpu.md` L264/L1610); nao e causa do 2.2e (iter 0110)
+- [ ] 10.13 GP0(24h) e modulacao, nao raw texture; bit 24 nao lido (03-gpu.md L264/L1610); nao causa o 2.2e (0110)
 - [ ] 10.14 U/V e cor gouraud sao reinterpolados sobre span recortado pela drawing area (`docs/reference/03-gpu.md` L452-454)
 - [ ] 10.17 `mutantes.ps1` recusa arvore suja — permitir sujeira restrita a `docs/mutantes/*.mut`
 - [ ] 10.24 Job `scoreboard` da CI sai VERDE medindo zero — sem BIOS rotula 51 suites `sem-bios` (iter 0072)
@@ -83,12 +83,14 @@ Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 10.53 Comando executa mesmo com INT pendente; spec exige esperar o ack (06-cdrom.md L1984) (0121)
 - [ ] 10.47 Lacos de espera da BIOS (`0x80059DA4`/`0x80059D54`): orcamento 0x8000 giros, frame ~230 k passos, saem por timeout (0114)
 - [ ] 10.58 mutantes.ps1 so roda psx-core; alvo por crate e revalidar 0078/0079 (invariante 29) (0125)
-- [ ] 10.66 Nenhum meta-teste re-executa bateria: .resultado verde pode mentir apos mudanca de constante (0143 achou m4 do 0098 assim)
-- [ ] 10.63 Envoltorio do `-ContinueBranch` afirma "reprovado na revisao" mesmo apos morte por travamento; trabalhador grava isso no doc (0140)
+- [ ] 10.66 Meta-teste nao re-executa bateria antiga: .resultado verde pode mentir (0143 achou o m4 do 0098 assim)
+- [ ] 10.63 `-ContinueBranch` diz "reprovado na revisao" mesmo apos travamento; o trabalhador copia isso pro doc (0140)
 - [ ] 10.65 Revisor via opencode isolado em /tmp nao le o repo e nao verifica citacao; precisa de acesso r/o (0141)
 - [ ] 10.64 `evcb_descritor_mapeia_para_spec_correto` sozinho custa 447 s dos 449 s da suite sob nextest (0140)
 - [ ] 10.68 `cdrom_evento_kernel` queima 150 M passos sem saida antecipada em 2 testes; o alvo aparece antes de 100 M (0144)
 - [ ] 10.71 `mutantes.ps1` tem duas ramificacoes `teste` no mesmo switch: `teste:` de registro sobrescreve o do cabecalho (0146)
+- [ ] 10.72 `parse_cue` guarda um unico `bin_path`: cue multi-file (Rayman, 51 tracks) fica com a ultima track, que e audio
+- [ ] 10.73 Rayman desenha a tela da Ubi Soft e depois so emite `VSync: timeout`: VBlank nao chega como o jogo espera
 
 ## M11 — Apresentação (incremental desde o M1)
 - [ ] 11.2 Gráficos de metricas.csv + scoreboard-data

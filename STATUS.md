@@ -7,36 +7,32 @@
 
 ## Última iteração concluída
 
-**0148** — capturas de execucao versionadas com procedencia (`docs/capturas/`). Um segundo disco
-revelou que o emulador **desenha a tela da Ubi Soft com codigo do proprio Rayman** — caminho que
-o Crash nunca alcanca — e entao trava repetindo `VSync: timeout`, com VRAM byte a byte identica
-de 400 M a 1.500 M passos. Antes disso, a 0147 refutou a premissa da 0142: o slot `$v1+0x18` ja
-contem `BFC06FDC` desde a BIOS e nunca muda (1150 ativacoes do trampolim, um unico `$v1`).
+**0149** — diagnostico do `VSync: timeout` do Rayman. Das tres hipoteses do handoff, **(a) esta
+CONFIRMADA** e (b) e (c) refutadas: a IRQ0 e levantada (660x), a CPU vetoriza para `0x80000080`
+(1470x) e o `I_MASK` tem o bit 0 ligado (0x000D) — mas o contador do jogo em `0x801DF2CC`
+permanece **zero**. O defeito esta DEPOIS do vetor: a cadeia de dispatch da BIOS nao alcanca o
+handler do jogo. A ExCB tem 1 entrada com `class=0x00006DA8` (invalido) e a EvCB nao tem nenhuma
+entrada `F0000001` (callback de VBlank).
 
 ## Próxima tarefa
 
-**ROADMAP 10.73 — por que o Rayman fica preso em `VSync: timeout`.**
+**Rastrear COMO o jogo instala seu handler de VBlank.**
 
-Reproduzir: `psx-cli --bios bios/SCPH1001.BIN --disc "../roms/extraido/Rayman (USA) DADOS.cue"
---max-steps 400000000 --dump-vram /tmp/ray.raw`. O `.cue` e reduzido, so a track 01 de dados:
-o original tem 51 tracks e o `parse_cue` guarda um unico `bin_path` (divida fechada por registro
-na 0148, conserto ainda aberto).
+O spin do `VSync()` da LIBGPU esta em `0x801B958C` (`bne $v0, $v1, loop`, timeout de 0xFFFF
+iteracoes) e le o contador global `0x801DF2CC` (`lui $2, 0x801D; lw $2, 0xF2CC($2)` em
+`0x801B95AC`). Esse contador nunca sai de zero.
 
-`VSync` **nao e funcao do kernel** — nao esta em nenhuma tabela A/B/C nem em
-`13-kernel-bios.md`. E da LIBGPU, linkada estaticamente pelo jogo: a mensagem vem do codigo do
-proprio Rayman e o timeout e um contador dele.
+Descobrir por qual via o jogo registra o incremento: `VSyncCallback()` (que usa `F0000001`),
+`SetRCnt`, ou substituicao direta do vetor. Sondar a INSTALACAO durante a inicializacao, nao o
+momento do timeout.
 
-Hipoteses, TODAS por confirmar: (a) contador de VBlank num handler que o jogo instala e que
-depende da IRQ0 chegar; (b) root counter de VBlank ligado a `timers.rs`; (c) `I_MASK` sem o
-bit 0 no momento certo, entao a IRQ0 e levantada mas nunca entregue. **Medir qual, antes de
-consertar.**
+**NAO ha ligacao provada com o ROADMAP 4.5.** A hipotese de raiz compartilhada foi levantada e
+**refutada na revisao**: a ExCB dos dois discos e byte a byte identica aos 200 M passos, bem
+formada segundo a spec (4 blocos de ptr+zero), e nenhum dos dois tem entrada `F0000001` na EvCB.
+Nao herde isso como fato — foi assim que a premissa errada da 0142 sobreviveu ate a 0147.
 
-Ja existe VBlank: `irq.rs`, `gpu.rs`, `timers.rs` e 9 testes em `gpu_vblank_irq.rs`. O defeito
-nao e ausencia — e entrega, temporizacao ou mascara. Instrumentos: `bus.irq().raise_count(bit)`,
-`cpu.irq_handler_entries`, `bus.irq().read_mask()`, `bus.irq().mask_write_count`.
-
-O ROADMAP 4.5 (Crash) segue aberto e nao foi abandonado: a pergunta dele mudou para "o que
-`BFC06FDC` FAZ em funcao do estado da maquina", ja que o slot e constante.
+Armadilhas: (a) sondas sao descartaveis, reverter antes de commitar; (b) reconstruir release
+antes de medir; (c) o `.cue` do Rayman e o reduzido, so track 01.
 
 Invariantes relevantes: 25, 27.
 
@@ -54,7 +50,7 @@ Invariantes relevantes: 25, 27.
 
 ## Placar de testes
 
-Workspace: **882** testes.
+Workspace: **883** testes.
 
 ## Bloqueios
 

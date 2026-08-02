@@ -53,6 +53,51 @@ impl Cpu {
         self.exception_badvaddr = bad_vaddr;
     }
 
+    fn enter_exception(
+        &mut self,
+        exc_code: u8,
+        bad_vaddr: Option<u32>,
+        instr_pc: u32,
+        in_delay_slot: bool,
+        was_taken: bool,
+    ) {
+        let sr = self.cop0[12];
+        let ie_ku_shifted = ((sr & 0x3) << 2) | ((sr & 0xC) << 2);
+        self.cop0[12] = (sr & !0x3F) | ie_ku_shifted;
+
+        let mut cause = (exc_code as u32) << 2;
+        if in_delay_slot {
+            cause |= 1 << 31;
+            if was_taken {
+                cause |= 1 << 30;
+            }
+        }
+        self.cop0[13] = (self.cop0[13] & !0xC000_007C) | cause;
+
+        if in_delay_slot {
+            self.cop0[14] = instr_pc.wrapping_sub(4);
+        } else {
+            self.cop0[14] = instr_pc;
+        }
+
+        if let Some(vaddr) = bad_vaddr {
+            self.cop0[8] = vaddr;
+        }
+
+        self.pc = if exc_code == 0x09 {
+            0x8000_0040
+        } else {
+            0x8000_0080
+        };
+
+        self.branch_target = None;
+        self.delay_slot_pending = false;
+        self.branch_taken = false;
+        if let Some((reg, val)) = self.load_delay.take() {
+            self.set_reg(reg, val);
+        }
+    }
+
     pub fn step(&mut self, bus: &mut Bus) {
         self.cop0[13] = if bus.irq().pending() {
             self.cop0[13] | (1 << 10)
@@ -86,6 +131,10 @@ impl Cpu {
         }
 
         let instr_pc = self.pc;
+        if instr_pc & 3 != 0 {
+            self.enter_exception(0x04, Some(instr_pc), instr_pc, false, false);
+            return;
+        }
         let instr = bus.read32::<BusRead>(instr_pc);
 
         let phys = instr_pc & 0x1FFF_FFFF;
@@ -132,40 +181,7 @@ impl Cpu {
 
         if let Some(exc_code) = self.pending_exception.take() {
             let bad_vaddr = self.exception_badvaddr.take();
-
-            let sr = self.cop0[12];
-            let ie_ku_shifted = ((sr & 0x3) << 2) | ((sr & 0xC) << 2);
-            self.cop0[12] = (sr & !0x3F) | ie_ku_shifted;
-
-            let mut cause = (exc_code as u32) << 2;
-            if in_delay_slot {
-                cause |= 1 << 31;
-                if was_taken {
-                    cause |= 1 << 30;
-                }
-            }
-            self.cop0[13] = (self.cop0[13] & !0xC000_007C) | cause;
-
-            if in_delay_slot {
-                self.cop0[14] = instr_pc.wrapping_sub(4);
-            } else {
-                self.cop0[14] = instr_pc;
-            }
-
-            if let Some(vaddr) = bad_vaddr {
-                self.cop0[8] = vaddr;
-            }
-
-            self.pc = if exc_code == 0x09 {
-                0x8000_0040
-            } else {
-                0x8000_0080
-            };
-
-            self.branch_target = None;
-            if let Some((reg, val)) = self.load_delay.take() {
-                self.set_reg(reg, val);
-            }
+            self.enter_exception(exc_code, bad_vaddr, instr_pc, in_delay_slot, was_taken);
             return;
         }
 

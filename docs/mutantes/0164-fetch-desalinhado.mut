@@ -1,0 +1,119 @@
+# Manifesto de mutação da iteração 0164 — fetch-desalinhado
+formato: 1
+iteracao: 0164
+item: 10.91
+alvo: crates/psx-core/src/cpu.rs
+teste: cpu_fetch_desalinhado
+
+mutante: m1
+rotulo: volta a executar o alvo desalinhado, o estado que o Amidog reprovava
+@@DE
+        if instr_pc & 3 != 0 {
+            self.enter_exception(0x04, Some(instr_pc), instr_pc, false, false);
+            return;
+        }
+@@PARA
+        if false {
+            self.enter_exception(0x04, Some(instr_pc), instr_pc, false, false);
+            return;
+        }
+@@FIM
+
+mutante: m2
+rotulo: levanta AdES em vez de AdEL, exatamente o codigo errado que o teste de hardware pegou
+@@DE
+            self.enter_exception(0x04, Some(instr_pc), instr_pc, false, false);
+@@PARA
+            self.enter_exception(0x05, Some(instr_pc), instr_pc, false, false);
+@@FIM
+
+mutante: m3
+rotulo: nao preenche BadVaddr no erro de endereco de fetch
+@@DE
+        if instr_pc & 3 != 0 {
+            self.enter_exception(0x04, Some(instr_pc), instr_pc, false, false);
+@@PARA
+        if instr_pc & 3 != 0 {
+            self.enter_exception(0x04, None, instr_pc, false, false);
+@@FIM
+
+mutante: m4
+rotulo: marca o fetch que falha como delay slot, e EPC recua quatro bytes
+@@DE
+            self.enter_exception(0x04, Some(instr_pc), instr_pc, false, false);
+            return;
+        }
+        let instr = bus.read32::<BusRead>(instr_pc);
+@@PARA
+            self.enter_exception(0x04, Some(instr_pc), instr_pc, true, false);
+            return;
+        }
+        let instr = bus.read32::<BusRead>(instr_pc);
+@@FIM
+
+mutante: m5
+rotulo: so o bit 1 do endereco reprova, entao alvo terminado em 1h passa batido
+@@DE
+        if instr_pc & 3 != 0 {
+@@PARA
+        if instr_pc & 2 != 0 {
+@@FIM
+
+mutante: m6
+rotulo: o desvio de excecao do fetch cai no vetor de breakpoint
+@@DE
+        self.pc = if exc_code == 0x09 {
+            0x8000_0040
+        } else {
+            0x8000_0080
+        };
+@@PARA
+        self.pc = if exc_code == 0x04 {
+            0x8000_0040
+        } else {
+            0x8000_0080
+        };
+@@FIM
+
+controle: c1
+rotulo: testar o alinhamento pelo resto da divisao e a mesma condicao
+@@DE
+        if instr_pc & 3 != 0 {
+@@PARA
+        if instr_pc % 4 != 0 {
+@@FIM
+
+controle: c2
+rotulo: nomear o endereco defeituoso antes de passar nao muda comportamento
+@@DE
+            self.enter_exception(0x04, Some(instr_pc), instr_pc, false, false);
+            return;
+        }
+        let instr = bus.read32::<BusRead>(instr_pc);
+@@PARA
+            let defeituoso = instr_pc;
+            self.enter_exception(0x04, Some(defeituoso), defeituoso, false, false);
+            return;
+        }
+        let instr = bus.read32::<BusRead>(instr_pc);
+@@FIM
+
+controle: c3
+rotulo: limpar o alvo de desvio depois dos sinalizadores preserva a entrada na excecao
+@@DE
+        self.branch_target = None;
+        self.delay_slot_pending = false;
+        self.branch_taken = false;
+        if let Some((reg, val)) = self.load_delay.take() {
+            self.set_reg(reg, val);
+        }
+    }
+@@PARA
+        self.delay_slot_pending = false;
+        self.branch_taken = false;
+        self.branch_target = None;
+        if let Some((reg, val)) = self.load_delay.take() {
+            self.set_reg(reg, val);
+        }
+    }
+@@FIM

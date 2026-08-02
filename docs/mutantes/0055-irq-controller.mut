@@ -53,9 +53,11 @@ controle: K1
 rotulo: adicionar comentario nao altera comportamento
 @@DE
         let sr = self.cop0[12];
+        if (sr & 0x1) != 0 && (sr & (1 << 10)) != 0 && (self.cop0[13] & (1 << 10)) != 0 {
 @@PARA
         // Status Register para verificacao de interrupcao
         let sr = self.cop0[12];
+        if (sr & 0x1) != 0 && (sr & (1 << 10)) != 0 && (self.cop0[13] & (1 << 10)) != 0 {
 @@FIM
 
 controle: K2

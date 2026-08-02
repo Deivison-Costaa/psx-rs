@@ -1,0 +1,12 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: f20fd7fc2ce070b458f94d2f62acff426d535c39
+# rodado_em: 2026-08-02T18:45:24-03:00
+m1,mutante,morreu,morreu,0.6,jalr_grava_o_retorno_antes_de_falhar;jalr_para_endereco_desalinhado_levanta_adel;jr_para_endereco_desalinhado_levanta_adel;o_endereco_do_fetch_vai_para_badvaddr_e_epc;o_fetch_que_falha_nao_esta_em_delay_slot
+m2,mutante,morreu,morreu,0.6,jalr_para_endereco_desalinhado_levanta_adel;jr_para_endereco_desalinhado_levanta_adel
+m3,mutante,morreu,morreu,0.6,o_endereco_do_fetch_vai_para_badvaddr_e_epc
+m4,mutante,morreu,morreu,0.6,o_endereco_do_fetch_vai_para_badvaddr_e_epc;o_fetch_que_falha_nao_esta_em_delay_slot
+m5,mutante,morreu,morreu,0.6,jr_para_endereco_desalinhado_levanta_adel;o_fetch_que_falha_nao_esta_em_delay_slot
+m6,mutante,morreu,morreu,0.6,jalr_grava_o_retorno_antes_de_falhar;jalr_para_endereco_desalinhado_levanta_adel;jr_para_endereco_desalinhado_levanta_adel;o_fetch_que_falha_nao_esta_em_delay_slot
+c1,controle,sobreviveu,sobreviveu,0.6,
+c2,controle,sobreviveu,sobreviveu,0.6,
+c3,controle,sobreviveu,sobreviveu,0.6,

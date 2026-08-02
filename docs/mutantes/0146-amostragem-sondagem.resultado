@@ -1,10 +1,10 @@
 # gerado por scripts/mutantes.ps1 — NAO editar a mao
-# commit: 4fc667202a6f00350880dada764d84bd62e35cbf
-# rodado_em: 2026-08-01T21:37:45-03:00
+# commit: c047844fa9eeaf410b0c4b785b2060b9c912ebcd
+# rodado_em: 2026-08-01T21:38:14-03:00
 m1,mutante,morreu,morreu,0.3,sondagem_nao_pode_cegar_o_teste
 m2,mutante,morreu,morreu,0.2,sondagem_nao_roda_a_cada_passo
-m3,mutante,morreu,morreu,0.5,deve_sondar_so_nos_multiplos_do_passo
-m4,mutante,morreu,morreu,0.6,deve_sondar_so_nos_multiplos_do_passo
-m5,mutante,morreu,morreu,0.6,descritor_decode_index_correto
-c1,controle,sobreviveu,sobreviveu,0.6,
-c2,controle,sobreviveu,sobreviveu,0.6,
+m3,mutante,morreu,morreu,13.7,deve_sondar_so_nos_multiplos_do_passo
+m4,mutante,morreu,morreu,106.1,deve_sondar_so_nos_multiplos_do_passo
+m5,mutante,morreu,morreu,13,descritor_decode_index_correto;evcb_descritor_mapeia_para_spec_correto
+c1,controle,sobreviveu,sobreviveu,12.4,
+c2,controle,sobreviveu,sobreviveu,12.8,

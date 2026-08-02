@@ -1,0 +1,10 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: 8a2c38d9472112857cbd7e50265a6dd94c6da5c2
+# rodado_em: 2026-08-02T19:14:41-03:00
+m1,mutante,morreu,morreu,0.6,loads_encadeados_mantem_valor_antigo_no_delay_da_segunda_carga
+m2,mutante,morreu,morreu,0.6,loads_encadeados_mantem_valor_antigo_no_delay_da_segunda_carga
+m3,mutante,morreu,morreu,0.6,loads_encadeados_mantem_valor_antigo_no_delay_da_segunda_carga
+m4,mutante,morreu,morreu,0.6,loads_encadeados_mantem_valor_antigo_no_delay_da_segunda_carga
+m5,mutante,morreu,morreu,0.6,loads_encadeados_mantem_valor_antigo_no_delay_da_segunda_carga
+c1,controle,sobreviveu,sobreviveu,0.6,
+c2,controle,sobreviveu,sobreviveu,0.6,

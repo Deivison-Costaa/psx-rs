@@ -89,9 +89,9 @@ Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 10.64 `evcb_descritor_mapeia_para_spec_correto` sozinho custa 447 s dos 449 s da suite sob nextest (0140)
 - [ ] 10.68 `cdrom_evento_kernel` queima 150 M passos sem saida antecipada em 2 testes; o alvo aparece antes de 100 M (0144)
 - [ ] 10.71 `mutantes.ps1`: duas ramificacoes `teste` no mesmo switch, a de registro sobrescreve o cabecalho (0146)
-- [ ] 10.76 Hook do Rayman roda 15 de 20 vezes com I_STAT&I_MASK=0: quem limpa o bit antes dele? (0151)
 - [ ] 10.77 Trabalhador inventa linha de metricas em vez de drenar logs/metrics-pending.csv (0150, 0151)
 - [ ] 10.78 oc-iter.ps1: exit 0 sem commits vira ok, e nao ve `Request too large` do TPM (0151)
+- [ ] 10.79 So 1 de 1029 hooks do Rayman tem VBlank pendente; o spin le `0x801CF2CC`? (0152)
 
 ## M11 — Apresentação (incremental desde o M1)
 - [ ] 11.2 Gráficos de metricas.csv + scoreboard-data

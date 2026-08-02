@@ -7,21 +7,20 @@
 
 ## Última iteração concluída
 
-**0151** — as 20 primeiras entradas do hook `0x801B8E60` têm `r2=1`; `I_MASK` mantém o bit 0,
-mas `I_STAT` varia. Quando `I_STAT & I_MASK == 0`, o `beq` em `0x801B8EA0` toma o ramo para
-`0x801B8F94`; a hipótese do `r2` errado foi refutada e a do ack prematuro de `I_STAT` foi
-confirmada. O teste permanente é `rayman_hook_flow.rs`; nenhuma produção foi alterada.
+**0152** — as 1029 entradas do hook `0x801B8E60` têm `CAUSE.ExcCode=00h`; só 1 tinha VBlank
+pendente. A ativação 0 chega a `0x801B8C40` e executa `0x801B8C50`, mas o endereço efetivo
+do `sw 0xAC22F2CC` é `0x801CF2CC`, não `0x801DF2CC`. Teste permanente: `rayman_hook_cause.rs`.
 
 ## Próxima tarefa
 
-**ROADMAP 4.4 — Boot de jogo 2D/menu.**
+**ROADMAP 10.77 — drenar métricas reais do runner.**
 
-Handoff: o 10.75 confirmou que o caminho do Rayman depende de `I_STAT`, não de `r2`; consulte
-`docs/iterations/0151-hook-flow.md` e não altere timers, IRQ ou vetor por intuição. O contador
-agregado de hooks inclui o hook do kernel em `0x8005A1D8`; desambiguar sempre por `hook[0]`.
-O próximo alvo de produção deve ser escolhido pelo orquestrador após a revisão deste diagnóstico.
+Handoff: 10.76 está em `docs/iterations/0152-rayman-cause.md`; não altere timers, IRQ, vetor
+ou imediatos do CPU por intuição. Para 10.77, alvo `logs/metrics-pending.csv` →
+`docs/metricas.csv` e o fluxo de `scripts/oc-iter.ps1`; armadilha: nunca fabricar linha,
+duplicar campos vazios ou confundir o modelo do runner com o agente trabalhador.
 
-Invariantes relevantes: 25, 27.
+Invariantes relevantes: nenhum.
 
 ## Repositório
 
@@ -37,7 +36,7 @@ Invariantes relevantes: 25, 27.
 
 ## Placar de testes
 
-Workspace: **886** testes.
+Workspace: **887** testes.
 
 ## Bloqueios
 
@@ -45,6 +44,9 @@ Workspace: **886** testes.
   seguinte medida no Rayman foi o caminho hook -> incremento. Imagens de disco ficam fora do
   repositorio, em `.../Programacao com agentes/roms/extraido/`.
   **Nunca commitar imagem de disco.**
+- **10.76 concluído como diagnóstico**: `CAUSE.ExcCode=00h` em 1029 hooks, VBlank pendente em
+  1; o `sw` de `0x801B8C50` grava `0x801CF2CC` sob a semântica de imediato com sinal. Não
+  transformar essa medição em correção de produção sem revisão adversarial.
 - **Premissa refutada:** o slot `$v1+0x18` não muda entre boots (0147). O defeito não está
   no valor do slot mas no encaixe temporal entre `SysInitMemory` e o enfileiramento dos
   handlers do jogo.

@@ -7,39 +7,29 @@
 
 ## Última iteração concluída
 
-**0146** — a sondagem da tabela EvCB em `testevent_descritor` rodava a cada passo da CPU (~66
-leituras de barramento contra 1-2 do `cpu.step`), e o evento so aparece no passo 86.988.128:
-eram 87 M de varreduras sem nada para achar. Passa a amostrar a cada 10 k passos, teto
-justificado por medicao (a condicao persiste >= 900 k passos). Teste: 100 s -> 12,7 s.
+**0147** — rastreou quem escreve `BFC06FDC` em `mem[$v1+0x18]`. Resposta: o BIOS, durante a
+inicialização (passos ~58.500 e ~84.292), pelos endereços `0xBFC00434` (sw) e `0xBFC02B68` (4× sb).
+A premissa da 0142 ("o slot muda entre boots") está **refutada**: o slot nunca muda de valor.
+O trampolim SEMPRE chama `BFC06FDC` (`SysInitMemory`), desde o primeiro acionamento.
+A diferença entre o primeiro e o segundo boot está no MOMENTO da chamada, não no alvo.
 
 ## Próxima tarefa
 
-**ROADMAP 4.5 — rastrear quem escreve `BFC06FDC` em `mem[$v1+0x18]` entre o primeiro e o
-segundo boot.**
+**ROADMAP 4.5 — passo 6: determinar por que `SysInitMemory` apaga a cadeia de ExCB no
+segundo boot mas não no primeiro, se o trampolim sempre chama o mesmo endereço.**
 
-Ja provado: (i) o trampolim `0x2C94..0x2DB8` carrega `$t0` de `mem[$v1+0x18]` e faz
-`jalr $ra, $t0`; (ii) no primeiro boot o slot aponta para funcoes normais do kernel; (iii) aos
-354 M contem `BFC06FDC`, que leva ao `SysInitMemory`, que reinicializa `A000E000h`+`2000h` —
-onde mora o array de ExCB.
+Hipóteses a testar:
+  - (a) No primeiro boot, `SysInitMemory` é chamada ANTES de os handlers do jogo estarem
+    enfileirados em `A000E000h+2000h` — portanto não há nada para apagar.
+  - (b) No segundo boot, a chamada acontece DEPOIS de o jogo enfileirar seus handlers,
+    e a reinicialização da região os destrói.
 
-Medir: sonda de escrita (`sw`) com endereco-alvo `$v1+0x18` pos-primeiro-boot, registrando PC e
-valor escrito.
+Como medir: cruzar o timestamp de cada chamada a `SysInitMemory` (já instrumentado pela 0142)
+com o timestamp de cada `SysEnqIntRP` do jogo (já instrumentado pela 0141). Se a primeira
+chamada de `SysInitMemory` acontecer antes do primeiro `SysEnqIntRP`, vale (a). Medir com
+disco Crash, janela de 0 a 400 M passos.
 
-Armadilhas: (a) `$v1` e carregado antes do trampolim, entao o endereco-alvo depende do valor em
-runtime — ler `$v1` no STEP em `0x2DAC` e usar o valor dinamico; (b) reconstruir release antes
-de medir; (c) sondas sao descartaveis, reverter antes de commitar.
-
-Invariantes relevantes: 25, 27, 30, 31.
-
-**Meta em vigor (ordem do usuario, 31/07):** emendar as iteracoes ate o M4 fechar, sem parar entre
-PRs. Pronto = **menu navegavel no `psx-desktop`**. Parada: 5 iteracoes fechadas sem o jogo bootar,
-ou falha 3x no mesmo passo. Risco anotado: o unico disco disponivel e o Crash Bandicoot, que e 3D —
-5.4b/5.4c/5.4d e 5.5 (GTE) estao abertos e podem entrar na conta.
-
-**Referencia externa (30/07):** captura canonica do DuckStation em
-`psx-estado/referencias/tela-de-boot-duckstation.png`; fundo (180,180,180) e cores do losango
-CONFIRMADOS iguais aos nossos; sem "®" na tela real. Diferenca visual restante no logo: costuras
-de gouraud no losango (candidato 10.14).
+Invariantes relevantes: 25, 27, 31.
 
 ## Repositório
 
@@ -55,7 +45,7 @@ de gouraud no losango (candidato 10.14).
 
 ## Placar de testes
 
-Workspace: **880** testes.
+Workspace: **882** testes.
 
 ## Bloqueios
 
@@ -63,3 +53,6 @@ Workspace: **880** testes.
   seguinte medida no Crash é VSync/IRQ0 pós-kernel. Imagens de disco ficam fora do
   repositório, em `.../Programacao com agentes/roms/extraido/`.
   **Nunca commitar imagem de disco.**
+- **Premissa refutada:** o slot `$v1+0x18` não muda entre boots (0147). O defeito não está
+  no valor do slot mas no encaixe temporal entre `SysInitMemory` e o enfileiramento dos
+  handlers do jogo.

@@ -89,7 +89,6 @@ Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 10.64 `evcb_descritor_mapeia_para_spec_correto` sozinho custa 447 s dos 449 s da suite sob nextest (0140)
 - [ ] 10.68 `cdrom_evento_kernel` queima 150 M passos sem saida antecipada em 2 testes; o alvo aparece antes de 100 M (0144)
 - [ ] 10.71 `mutantes.ps1` tem duas ramificacoes `teste` no mesmo switch: `teste:` de registro sobrescreve o do cabecalho (0146)
-- [ ] 10.72 `parse_cue` guarda um unico `bin_path`: cue multi-file (Rayman, 51 tracks) fica com a ultima track, que e audio
 - [ ] 10.73 Rayman desenha a tela da Ubi Soft e depois so emite `VSync: timeout`: VBlank nao chega como o jogo espera
 
 ## M11 — Apresentação (incremental desde o M1)

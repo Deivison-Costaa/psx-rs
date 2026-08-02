@@ -1,10 +1,10 @@
 # gerado por scripts/mutantes.ps1 — NAO editar a mao
-# commit: e93b28b58c7ac2027ba8fd8d5a8f0823151c14d2
-# rodado_em: 2026-07-30T17:33:52-03:00
-m1,mutante,morreu,morreu,0.8,interrupcao_nao_dispara_sem_sr_iec
-m2,mutante,morreu,morreu,0.8,interrupcao_nao_dispara_sem_sr_im_bit10
-m3,mutante,morreu,morreu,0.8,cause_bit10_reflete_irq_pendente;interrupcao_dispara_excecao_int;interrupcao_nao_executa_instrucao_corrente
-m4,mutante,morreu,morreu,0.8,interrupcao_dispara_excecao_int;interrupcao_nao_executa_instrucao_corrente
-m5,mutante,morreu,morreu,0.8,interrupcao_dispara_excecao_int;interrupcao_nao_executa_instrucao_corrente
-K1,controle,sobreviveu,sobreviveu,0.8,
-K2,controle,sobreviveu,sobreviveu,0.8,
+# commit: 143057e43d684b0932bc80c71ac936fba7fb98db
+# rodado_em: 2026-08-02T18:45:40-03:00
+m1,mutante,morreu,morreu,0.6,interrupcao_nao_dispara_sem_sr_iec
+m2,mutante,morreu,morreu,0.6,interrupcao_nao_dispara_sem_sr_im_bit10
+m3,mutante,morreu,morreu,0.6,cause_bit10_reflete_irq_pendente;interrupcao_dispara_excecao_int;interrupcao_nao_executa_instrucao_corrente
+m4,mutante,morreu,morreu,0.6,interrupcao_dispara_excecao_int;interrupcao_nao_executa_instrucao_corrente
+m5,mutante,morreu,morreu,0.6,interrupcao_dispara_excecao_int;interrupcao_nao_executa_instrucao_corrente
+K1,controle,sobreviveu,sobreviveu,0.6,
+K2,controle,sobreviveu,sobreviveu,0.6,

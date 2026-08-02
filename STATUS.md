@@ -7,27 +7,25 @@
 
 ## Última iteração concluída
 
-**0158** — a ativacao 0 percorre sete handlers e nao visita `0x4A1C`; a ativacao 3
-visita `0x4A4C -> 0x49BC -> 0x4A1C`. Teste `rayman_exception_chain.rs`. Revisao cruzada leu
-o `ExCB` em `[0x100]` e **refutou** que o enfileiramento de `0x74A8` seja do jogo (`$ra` em
-RAM do kernel, `0x4BC8`) — quem insere e o proprio BIOS.
+**0159** — `send_byte` acendia `JOY_STAT.9` e pedia IRQ7 em toda transferencia, sem periferico
+algum. Agora o primeiro byte e latchado como endereco (`01h` controle, `81h` card) e so o
+dispositivo presente puxa /ACK. Bateria 6/6 e 3/3; 0091 e 0092 reexecutadas por ancora
+envelhecida. Efeito no boot do Rayman: **nulo**, medido.
 
 ## Próxima tarefa
 
-**ROADMAP 10.83 — por que o elemento de prioridade 1 que responde a VBlank executa e nao
-reconhece IRQ0.**
+**ROADMAP 10.85 — qual desvio dentro do hook `0x801B8E60` separa a ativacao que incrementa
+`[0x801CF2CC]` das que nao incrementam.**
 
-Handoff: a revisao de 0158 mostrou que a cadeia de prioridade 1 tem quatro elementos
-(`0x6D88`→`0x6D78`→`0x6D68`→`0x6D58`) e que o primeiro (`first=0x18BC`, `second=0x19C8`) roda
-o handler `0x19C8` **na ativacao 0**, com `I_STAT.bit0` ainda pendente no hook; quem acka e o
-caminho de prioridade 2 (`0x4A1C`, `0xFFFFFFFE`, medido em 0157). Alvo: tracar as instrucoes de
-`0x19C8` na ativacao 0 — cada load/store, e o valor lido — ate a saida, e dizer qual leitura o
-faz nao reconhecer. Spec: `docs/reference/13-kernel-bios.md` § Priority Chains (L1484-L1502),
-§ Exception Control Blocks ExCB (L2885) do mesmo arquivo, e
-§ Interrupt Acknowledge (L52-L55) de `docs/reference/11-interrupts.md`.
-Armadilha: `0x18BC` roda em toda ativacao, `0x19C8` so quando
-o bit 0 esta setado — nao confundir verificador com handler. Metrica da propria rodada nunca
-deve ser fabricada.
+Handoff: 0159 achou o consumidor. O jogo passa 19.400.685 dos ultimos 20 M passos em
+`0x801B9500..0x801B95FF`, num laco com contador de timeout que so sai quando
+`[0x801CF2CC] >= 2`; o contador esta parado em **1**. 0157 mediu que a ativacao 0 do hook viu
+`I_STAT.bit0=1` e incrementou, e a ativacao 3 viu o bit ja limpo e nao incrementou — desde que o
+elemento de prioridade 2 do BIOS acka VBlank antes do hook (0158). Alvo: tracar o corpo do hook
+`0x801B8E60` nas duas ativacoes e achar o primeiro desvio divergente ate `0x801B8C50`.
+Spec: § B(19h) - HookEntryInt(addr) (L1467-L1482) de `docs/reference/13-kernel-bios.md`.
+Armadilha: o hook roda >1000 vezes; comparar ativacao 0 com uma posterior, nao duas posteriores.
+Metrica da propria rodada nunca deve ser fabricada.
 
 Invariantes relevantes: nenhum.
 
@@ -45,7 +43,7 @@ Invariantes relevantes: nenhum.
 
 ## Placar de testes
 
-Workspace: **893** testes.
+Workspace: **899** testes.
 
 ## Bloqueios
 
@@ -60,6 +58,9 @@ Workspace: **893** testes.
   `0x4A1C` limpa IRQ0 antes da consulta de entrega, e o hook observa `I_STAT` diretamente.
 - **10.81 concluído como diagnóstico**: nos 458 intervalos sem ack do balanço, `I_STAT` tinha
   somente bit 2 (173 CDROM) ou bit 3 (285 DMA); não há defeito de VBlank a corrigir nesta rodada.
+- **10.85 (0159)**: o laço final do Rayman é `0x801B9574`, esperando `[0x801CF2CC] >= 2`. A espera
+  do memory card NÃO é o bloqueio: ela termina sozinha em 166.321.383 com `F4000001h,0100h`
+  (*card err busy*). Correção de /ACK do SIO0 é da spec, mas não mexeu no boot.
 - **10.83 diagnóstico (0158, já revisado)**: a ativação 0 não visita `0x4A1C`; a posterior visita
   depois do nó `0x74A8` de prioridade 2, inserido pelo BIOS (não pelo jogo). A caminhada da
   ativação 0 chega ao fim (prioridade 3, `0x2458`) — `0x4A1C` estava fora das cadeias, não pulado.

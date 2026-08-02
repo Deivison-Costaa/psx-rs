@@ -83,13 +83,19 @@ fn desvio_nao_tomado_ainda_assim_escreve_ra() {
 #[test]
 fn zero_e_o_limite_entre_bltz_e_bgez() {
     let (pc_bltz, _) = passo_bcondz(0x00, 0, 5);
-    assert_eq!(pc_bltz, FALLTHROUGH, "bltz com rs=0 NAO desvia (0 nao e < 0)");
+    assert_eq!(
+        pc_bltz, FALLTHROUGH,
+        "bltz com rs=0 NAO desvia (0 nao e < 0)"
+    );
 
     let (pc_bgez, _) = passo_bcondz(0x01, 0, 5);
     assert_eq!(pc_bgez, ALVO, "bgez com rs=0 desvia (0 e >= 0)");
 
     let (pc_par, _) = passo_bcondz(0x02, 0, 5);
-    assert_eq!(pc_par, FALLTHROUGH, "rt=02h (bit0=0) com rs=0 tambem NAO desvia");
+    assert_eq!(
+        pc_par, FALLTHROUGH,
+        "rt=02h (bit0=0) com rs=0 tambem NAO desvia"
+    );
 }
 
 #[test]

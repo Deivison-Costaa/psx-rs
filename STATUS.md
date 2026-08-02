@@ -7,8 +7,9 @@
 
 ## Última iteração concluída
 
-**0155** — os 458 intervalos sem ack são 173 CDROM (bit 2) e 285 DMA (bit 3); o único
-VBlank sem ack está no intervalo inicial fora do balanço. Teste: `rayman_irq_classification.rs`.
+**0156** — IRQ0 sobe a cada 566187 ciclos no Rayman: mediana 566187, mínimo 566187,
+máximo 566213, razão 1.000000 contra o frame NTSC; 10.82 fecha sem defeito de taxa.
+Teste: `irq0_periodo_ntsc.rs`.
 
 ## Próxima tarefa
 
@@ -34,7 +35,7 @@ Invariantes relevantes: nenhum.
 
 ## Placar de testes
 
-Workspace: **890** testes.
+Workspace: **891** testes.
 
 ## Bloqueios
 

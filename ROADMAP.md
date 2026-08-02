@@ -87,6 +87,7 @@ Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 10.63 Envoltorio do `-ContinueBranch` afirma "reprovado na revisao" mesmo apos morte por travamento; trabalhador grava isso no doc (0140)
 - [ ] 10.65 Revisor via opencode isolado em /tmp nao le o repo e nao verifica citacao; precisa de acesso r/o (0141)
 - [ ] 10.64 `evcb_descritor_mapeia_para_spec_correto` sozinho custa 447 s dos 449 s da suite sob nextest (0140)
+- [ ] 10.68 `cdrom_evento_kernel` queima 150 M passos sem saida antecipada em 2 testes; o alvo aparece antes de 100 M (0144)
 
 ## M11 — Apresentação (incremental desde o M1)
 - [ ] 11.2 Gráficos de metricas.csv + scoreboard-data

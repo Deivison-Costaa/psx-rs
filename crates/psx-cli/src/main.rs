@@ -74,7 +74,8 @@ fn run(
             let _rt = ((instr >> 16) & 0x1F) as usize;
             eprintln!(
                 "trace pc=0x{:08X} step={} instr=0x{:08X} \
-                 regs: a0($4)=0x{:08X} a1($5)=0x{:08X} t1($9)=0x{:08X} s1($17)=0x{:08X} v0($2)=0x{:08X} t4($12)=0x{:08X} t5($13)=0x{:08X}",
+                 regs: a0($4)=0x{:08X} a1($5)=0x{:08X} t1($9)=0x{:08X} s1($17)=0x{:08X} \
+                 v0($2)=0x{:08X} t4($12)=0x{:08X} t5($13)=0x{:08X} ra($31)=0x{:08X}",
                 cpu.pc,
                 steps,
                 instr,
@@ -85,6 +86,7 @@ fn run(
                 cpu.regs[2],
                 cpu.regs[12],
                 cpu.regs[13],
+                cpu.regs[31],
             );
             eprintln!(
                 "     mem[t1*4]=0x{:08X} mem[s1*4]=0x{:08X}",

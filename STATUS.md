@@ -7,29 +7,31 @@
 
 ## Última iteração concluída
 
-**0143** — Trabalhador DESTRAVADO. `$TravamentoMin` 5→25 min e o teste
-`janela_de_travamento_e_menor_que_a_parede_da_rodada` ganhou piso `MINUTOS_DO_PORTAO = 15`: o
-portao do passo 7 leva 842 s desde que BIOS/disco chegaram (0139) e o trabalhador fica calado
-durante ele, entao 5 min lia silencio legitimo como provedor mudo (matou as 2 rodadas da 0140).
-**Achado grave de processo:** ao pedir a linha de base, medi que o `.resultado` da 0098 MENTIA —
-`m4` registrado como morto SOBREVIVE, porque ele troca a janela por 45 e a parede subiu de 45 para
-75 depois que a bateria rodou. Nenhum meta-teste re-executa bateria; placar verde sobrevive a
-mudanca de constante (item novo 10.66). 0098 reparada e regenerada: 6/6+2/2.
+**0144** — `0x2DB8` nao e funcao de kernel: e delay slot de `jalr $ra, $t0` em `0x2DB4`,
+parte de um trampolim (`0x2C94..0x2DB8`) chamado do kernel `0x80004120`. Nenhuma tabela
+A/B/C aponta para `0x2DB8`. O trampolim carrega `$t0 = mem[$v1+0x18]` e chama
+indiretamente; aos 354 M, esse slot contem `BFC06FDC`. O que mudou nao foi quem chama o
+trampolim, mas **o conteudo do slot de ponteiro**.
 
 ## Próxima tarefa
 
-**ROADMAP 4.5 — passo 4: identificar a funcao do kernel em `0x2DB8` e quem a chama.**
-**AGORA PODE IR PARA O TRABALHADOR** (10.62 fechada na 0143; rodar `pwsh scripts/oc-iter.ps1`).
-Ja provado: (i) `SysInitMemory` de `BFC06F4C` (ciclo 354.241.830) apaga o array de ExCB, que vive
-em `A000E004`, dentro da regiao `A000E000h`+`2000h` que a spec manda ele reinicializar; (ii) a
-entrada no BIOS e um `jal` LEGITIMO de `0x2DB8` para `BFC06FDC` (`ra=0x2DBC`, `cause=0`) — a
-leitura "desvio espurio nosso" esta DESCARTADA por medicao.
-Falta: que funcao mora em `0x2DB8` e quem a chama. Medir: (a) sonda de `jal` com alvo `0x2DB8`,
-registrando `$ra` do chamador — se vier de `0x800xxxxx` e o jogo; (b) conferir se alguma entrada
-das tabelas A0/B0/C0 cai em `0x2DB8`. `A(9Ch) SetConf` ja foi sondado e NAO dispara.
-NAO implementar goldens de ciclo: divida 10.45 aberta, mas nao explica este sintoma.
-Armadilhas: (a) sondas descartaveis, reverter antes de commitar; (b) rebuild release antes de
-medir; (c) o EXE do Crash REALOCA codigo — disasm so da RAM em runtime.
+**ROADMAP 4.5 — passo 5: rastrear quem escreve `BFC06FDC` em `mem[$v1+0x18]` entre o
+primeiro e o segundo boot.**
+
+Ja provado: (i) o trampolim `0x2C94..0x2DB8` carrega `$t0` de `mem[$v1+0x18]` e faz
+`jalr $ra, $t0`; (ii) no primeiro boot, `$v1+0x18` aponta para funcoes normais do kernel;
+(iii) no segundo boot (aos 354 M), o mesmo slot contem `BFC06FDC`, que leva ao
+`SysInitMemory`.
+
+Falta: **o que escreve** `BFC06FDC` nesse slot entre as duas execucoes. Medir: (a) sonda de
+escrita (`sw`) com endereco-alvo `$v1+0x18` pos-primeiro-boot, registrando PC e valor
+escrito; (b) [opcional] sonda de leitura (`lw`) no mesmo slot para ver quando o valor muda.
+
+Armadilhas: (a) `$v1` e carregado antes do trampolim — o endereco-alvo da sonda de escrita
+depende do valor de `$v1` em runtime; para sondar, ler `$v1` no STEP em `0x2DAC` (onde o
+`lw $t0, 0x18($v1)` ocorre) e usar esse valor dinamico; (b) reconstruir release antes de
+medir; (c) as sondas sao descartaveis, reverter antes de commitar.
+
 Invariantes relevantes: 25, 27, 30, 31.
 
 **Meta em vigor (ordem do usuario, 31/07):** emendar as iteracoes ate o M4 fechar, sem parar entre
@@ -56,7 +58,7 @@ de gouraud no losango (candidato 10.14).
 
 ## Placar de testes
 
-Workspace: **870** testes.
+Workspace: **872** testes.
 
 ## Bloqueios
 

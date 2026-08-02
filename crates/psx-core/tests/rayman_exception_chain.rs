@@ -2,7 +2,6 @@ use psx_core::bus::{Bios, Bus, BusRead, Ram};
 use psx_core::cpu::Cpu;
 
 const I_STAT: u32 = 0x1F80_1070;
-const VECTOR: u32 = 0x8000_0080;
 const VBLANK_HANDLER: u32 = 0x0000_4A1C;
 const GAME_HOOK: u32 = 0x801B_8E60;
 

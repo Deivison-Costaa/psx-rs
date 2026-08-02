@@ -26,10 +26,10 @@ Descobrir por qual via o jogo registra o incremento: `VSyncCallback()` (que usa 
 `SetRCnt`, ou substituicao direta do vetor. Sondar a INSTALACAO durante a inicializacao, nao o
 momento do timeout.
 
-**Ligacao com o ROADMAP 4.5, a conferir:** a ExCB com `class=0x00006DA8` e o mesmo tipo de falha
-que trava o Crash, onde o `SysInitMemory` de `BFC06F4C` apaga o array de ExCB em
-`A000E000h`+`2000h`. Se a raiz for a mesma cadeia de dispatch, um conserto fecha os dois. Vale
-medir antes de assumir.
+**NAO ha ligacao provada com o ROADMAP 4.5.** A hipotese de raiz compartilhada foi levantada e
+**refutada na revisao**: a ExCB dos dois discos e byte a byte identica aos 200 M passos, bem
+formada segundo a spec (4 blocos de ptr+zero), e nenhum dos dois tem entrada `F0000001` na EvCB.
+Nao herde isso como fato — foi assim que a premissa errada da 0142 sobreviveu ate a 0147.
 
 Armadilhas: (a) sondas sao descartaveis, reverter antes de commitar; (b) reconstruir release
 antes de medir; (c) o `.cue` do Rayman e o reduzido, so track 01.
@@ -50,7 +50,7 @@ Invariantes relevantes: 25, 27.
 
 ## Placar de testes
 
-Workspace: **882** testes.
+Workspace: **883** testes.
 
 ## Bloqueios
 

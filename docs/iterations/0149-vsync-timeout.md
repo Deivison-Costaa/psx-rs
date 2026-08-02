@@ -1,4 +1,4 @@
-# 0148 — vsync-timeout
+# 0149 — vsync-timeout
 
 - **Data:** 2026-08-01
 - **Item do roadmap:** 10.73
@@ -22,12 +22,11 @@
 
 ## Bateria de mutacao
 
-Diagnostico puro — nenhum codigo de producao foi alterado. Mutacao nao se aplica.
-**Linha formal de dispensa:** iteracao exclusivamente de diagnostico; 0 mutantes gerados, 0/0 mortos, 0/0 controles verdes, 0 equivalente.
+Bateria de mutação: não se aplica — diagnóstico puro, nenhuma linha de código de produção foi alterada; a iteração só acrescenta um teste de medição.
 
 ## Placar antes → depois
 
-882 testes antes, 883 depois (+1: `diagnostico_vsync_timeout_rayman`).
+Workspace: **882** → **883** testes (+1: `diagnostico_vsync_timeout_rayman`).
 
 ## Diagnostico
 
@@ -67,11 +66,14 @@ O handler vinculado a IRQ0 **e levantado** (660x), a CPU **vetoriza** para `0x80
 (1470x), e `I_MASK` tem o bit 0 habilitado. Portanto o defeito nao esta na sinalizacao
 do VBlank nem na entrega da IRQ ate o vetor `0x80000080`.
 
-O defeito esta **depois** do vetor: a cadeia de dispatch da BIOS (A/B-handler, ExCB/EvCB)
-nao alcanca o handler do jogo que incrementa `0x801DF2CC`. A cadeia ExCB tem 1 entrada
-com class=0x00006DA8 (nao e um class valido de evento), e a cadeia EvCB nao contem
-nenhuma entrada com class F0000001 (VBlank callback). O jogo nunca registrou um
-callback de VBlank via `OpenEvent`/`EnableEvent`, ou o registro falhou.
+O defeito esta **depois** do vetor: a cadeia de dispatch da BIOS nao alcanca o handler do
+jogo que incrementa `0x801DF2CC`. A cadeia EvCB nao contem nenhuma entrada com class
+`F0000001` (IRQ0 VBLANK, `13-kernel-bios.md` L1663). O jogo nunca registrou um callback
+de VBlank via `OpenEvent`/`EnableEvent`, ou o registro falhou.
+
+> **Correcao da revisao:** a versao original deste paragrafo afirmava que "a cadeia ExCB tem
+> 1 entrada com class=0x00006DA8 (nao e um class valido de evento)". Isso esta **errado** e
+> foi removido — ver "Revisao cruzada".
 
 ### Proximo passo
 
@@ -87,3 +89,51 @@ A proxima iteracao deve rastrear a instalacao do handler durante a inicializacao
   de callback de IRQ0, que falha no dispatch.
 - O teste e de integracao pesada (~73 s em release, ~200M passos), mas necessario para
   medir o estado real do jogo no ponto do timeout. Sem BIOS/disco, faz skip limpo.
+
+## Revisão cruzada (orquestrador)
+
+**Diagnóstico aprovado no essencial, com uma correção de mecanismo.**
+
+Reproduzi as medições do teste, com os mesmos números:
+`timeout=true irq0=660 handlers=1470 mask=0x000D tmr1_sync=false counter=0x00000000`.
+O julgamento das três hipóteses se sustenta: (a) confirmada, (b) e (c) refutadas.
+
+**A afirmação sobre a ExCB estava errada e foi corrigida.** O doc dizia que a cadeia tinha "1
+entrada com class=0x00006DA8 (não é um class válido de evento)". A spec é explícita
+(`13-kernel-bios.md` L2883, § Exception Control Blocks):
+
+```
+#### Exception Control Blocks (ExCB) (4 blocks of 8 bytes each)
+  00h 4   ptr to first element of exception chain
+  04h 4   not used (zero)
+```
+
+**Entrada de ExCB não tem campo `class`** — `class` é da EvCB. Medindo a ExCB real
+(`ptr=0xA000E004 size=0x20`):
+
+```
+ExCB[0]=0x00006DA8  ExCB[1]=0x00000000
+ExCB[2]=0x00006D88  ExCB[3]=0x00000000
+ExCB[4]=0x000074A8  ExCB[5]=0x00000000
+ExCB[6]=0x00006D98  ExCB[7]=0x00000000
+```
+
+São **4 blocos perfeitamente bem formados**: ponteiro válido em RAM de código do kernel, seguido
+do zero que a spec manda. A ExCB está saudável. O erro era de leitura, não de medição — mas
+mandaria a próxima iteração caçar corrupção onde não há.
+
+**A hipótese de raiz compartilhada com o 4.5 também não se sustenta.** Eu levantei, ao ler o
+diagnóstico, que a ExCB "com lixo" poderia ser o mesmo defeito que trava o Crash. Medi a ExCB dos
+**dois discos** aos 200 M passos: são **byte a byte idênticas**, e nenhum dos dois tem entrada
+`F0000001` na EvCB. Ou seja, esse estado é o normal da BIOS, não corrupção específica de jogo, e
+não liga os dois defeitos. Registro para que a hipótese não seja herdada como fato — foi
+exatamente assim que a premissa errada da 0142 sobreviveu até a 0147.
+
+**O que fica de pé, e é bastante:** o `VSync()` da LIBGPU faz spin em `0x801B958C` lendo
+`0x801DF2CC`, que nunca sai de zero, apesar de 660 IRQ0 e 1470 vetorizações com `I_MASK` bit 0
+ligado. A pergunta certa para a próxima iteração é **como o jogo instala o incremento**, não onde
+está a corrupção.
+
+**Ressalva menor:** as citações de spec da tabela não trazem número de linha, então o
+`spec_citations.rs` não consegue validá-las mecanicamente — passou por omissão, não por acerto.
+As seções citadas existem; conferi à mão.

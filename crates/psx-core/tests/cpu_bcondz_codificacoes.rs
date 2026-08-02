@@ -39,7 +39,11 @@ fn varredura_dos_32_valores_de_rt() {
         let (pc, ra) = passo_bcondz(rt, NEGATIVO, 5);
         assert_eq!(
             pc,
-            if desvia_com_negativo { ALVO } else { FALLTHROUGH },
+            if desvia_com_negativo {
+                ALVO
+            } else {
+                FALLTHROUGH
+            },
             "rt={rt:#04x} rs<0: pc"
         );
         assert_eq!(
@@ -51,7 +55,11 @@ fn varredura_dos_32_valores_de_rt() {
         let (pc, ra) = passo_bcondz(rt, POSITIVO, 5);
         assert_eq!(
             pc,
-            if desvia_com_positivo { ALVO } else { FALLTHROUGH },
+            if desvia_com_positivo {
+                ALVO
+            } else {
+                FALLTHROUGH
+            },
             "rt={rt:#04x} rs>=0: pc"
         );
         assert_eq!(

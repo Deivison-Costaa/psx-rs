@@ -7,19 +7,27 @@
 
 ## Última iteração concluída
 
-**0157** — ativacao 0 do hook preserva VBlank: `0x2710` escreve `0xFFFFFFFF` e
-`0x4A1C` nao executa; na ativacao posterior `0x4A1C` acka antes do hook. Teste:
-`rayman_hook_activation.rs`. 10.83-A medida; B fica no proximo handoff.
+**0158** — a ativacao 0 percorre sete handlers e nao visita `0x4A1C`; a ativacao 3
+visita `0x4A4C -> 0x49BC -> 0x4A1C`. Teste `rayman_exception_chain.rs`. Revisao cruzada leu
+o `ExCB` em `[0x100]` e **refutou** que o enfileiramento de `0x74A8` seja do jogo (`$ra` em
+RAM do kernel, `0x4BC8`) — quem insere e o proprio BIOS.
 
 ## Próxima tarefa
 
-**ROADMAP 10.83 — medir B sem misturar as janelas do primeiro spin e do 1029o hook.**
+**ROADMAP 10.83 — por que o elemento de prioridade 1 que responde a VBlank executa e nao
+reconhece IRQ0.**
 
-Handoff: A em `docs/iterations/0157-rayman-hook-activation.md`; spec em
-`docs/reference/13-kernel-bios.md` § B(19h) - HookEntryInt (L1476-L1483) e § Priority Chains
-(L1494-L1502); alvo: sonda/teste que pareie cada subida IRQ0 com vetor, hook ou
-`ReturnFromException`; armadilha: o primeiro spin tem 13 hooks, nao 1029, e metrica de
-runner nunca deve ser fabricada.
+Handoff: a revisao de 0158 mostrou que a cadeia de prioridade 1 tem quatro elementos
+(`0x6D88`→`0x6D78`→`0x6D68`→`0x6D58`) e que o primeiro (`first=0x18BC`, `second=0x19C8`) roda
+o handler `0x19C8` **na ativacao 0**, com `I_STAT.bit0` ainda pendente no hook; quem acka e o
+caminho de prioridade 2 (`0x4A1C`, `0xFFFFFFFE`, medido em 0157). Alvo: tracar as instrucoes de
+`0x19C8` na ativacao 0 — cada load/store, e o valor lido — ate a saida, e dizer qual leitura o
+faz nao reconhecer. Spec: `docs/reference/13-kernel-bios.md` § Priority Chains (L1484-L1502),
+§ Exception Control Blocks ExCB (L2885) do mesmo arquivo, e
+§ Interrupt Acknowledge (L52-L55) de `docs/reference/11-interrupts.md`.
+Armadilha: `0x18BC` roda em toda ativacao, `0x19C8` so quando
+o bit 0 esta setado — nao confundir verificador com handler. Metrica da propria rodada nunca
+deve ser fabricada.
 
 Invariantes relevantes: nenhum.
 
@@ -37,7 +45,7 @@ Invariantes relevantes: nenhum.
 
 ## Placar de testes
 
-Workspace: **892** testes.
+Workspace: **893** testes.
 
 ## Bloqueios
 
@@ -52,8 +60,9 @@ Workspace: **892** testes.
   `0x4A1C` limpa IRQ0 antes da consulta de entrega, e o hook observa `I_STAT` diretamente.
 - **10.81 concluído como diagnóstico**: nos 458 intervalos sem ack do balanço, `I_STAT` tinha
   somente bit 2 (173 CDROM) ou bit 3 (285 DMA); não há defeito de VBlank a corrigir nesta rodada.
-- **10.83 parcial (0157-A)**: a ativação 0 chega ao hook antes de `0x4A1C`; a posterior executa
-  `0x4A1C` antes do hook. A parte B exige uma janela única, ainda não fechada.
+- **10.83 diagnóstico (0158, já revisado)**: a ativação 0 não visita `0x4A1C`; a posterior visita
+  depois do nó `0x74A8` de prioridade 2, inserido pelo BIOS (não pelo jogo). A caminhada da
+  ativação 0 chega ao fim (prioridade 3, `0x2458`) — `0x4A1C` estava fora das cadeias, não pulado.
 - **Premissa refutada:** o slot `$v1+0x18` não muda entre boots (0147). O defeito não está
   no valor do slot mas no encaixe temporal entre `SysInitMemory` e o enfileiramento dos
   handlers do jogo.

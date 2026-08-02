@@ -66,8 +66,14 @@ fn run_chain(first: LoadKind, second: LoadKind) -> u32 {
     cpu.regs[DEST as usize] = INITIAL;
 
     bus.write32::<BusRead>(0, nop());
-    bus.write32::<BusRead>(4, encode_i_type(first.opcode(), DEST, 8, first.offset(false)));
-    bus.write32::<BusRead>(8, encode_i_type(second.opcode(), DEST, 8, second.offset(true)));
+    bus.write32::<BusRead>(
+        4,
+        encode_i_type(first.opcode(), DEST, 8, first.offset(false)),
+    );
+    bus.write32::<BusRead>(
+        8,
+        encode_i_type(second.opcode(), DEST, 8, second.offset(true)),
+    );
     bus.write32::<BusRead>(12, encode_special(0x21, OBSERVER, DEST, 0));
 
     cpu.step(&mut bus);

@@ -7,32 +7,28 @@
 
 ## Última iteração concluída
 
-**0149** — diagnostico do `VSync: timeout` do Rayman. Das tres hipoteses do handoff, **(a) esta
-CONFIRMADA** e (b) e (c) refutadas: a IRQ0 e levantada (660x), a CPU vetoriza para `0x80000080`
-(1470x) e o `I_MASK` tem o bit 0 ligado (0x000D) — mas o contador do jogo em `0x801DF2CC`
-permanece **zero**. O defeito esta DEPOIS do vetor: a cadeia de dispatch da BIOS nao alcanca o
-handler do jogo. A ExCB tem 1 entrada com `class=0x00006DA8` (invalido) e a EvCB nao tem nenhuma
-entrada `F0000001` (callback de VBlank).
+**0150** — rastreamento da instalacao do VSync do Rayman. O jogo nao chama `OpenEvent` com
+`F0000001`, nao habilita Timer1 com sync de VBlank e nao escreve o vetor `0x80000080`. Em vez
+disso, chama `B(19h) HookEntryInt` em 164,111,334, instalando contexto em `0x801D0F78` cujo
+PC e `0x801B8E60`; o hook roda centenas de vezes. O codigo que grava o contador existe em
+`0x801B8C50` (`sw ...,0xF2CC`), mas nao e alcancado antes do spin.
 
 ## Próxima tarefa
 
-**Rastrear COMO o jogo instala seu handler de VBlank.**
+**ROADMAP 10.75 — por que o hook `0x801B8E60` nao alcanca o incremento em `0x801B8C50`.**
 
-O spin do `VSync()` da LIBGPU esta em `0x801B958C` (`bne $v0, $v1, loop`, timeout de 0xFFFF
-iteracoes) e le o contador global `0x801DF2CC` (`lui $2, 0x801D; lw $2, 0xF2CC($2)` em
-`0x801B95AC`). Esse contador nunca sai de zero.
+Medido na 0150: o Rayman instala o hook por `B(19h) HookEntryInt` no passo 164.111.334
+(`a0=0x801D0F78`, `hook[0]=0x801B8E60`), e o hook **roda 1029 vezes** antes do spin. O codigo do
+incremento existe (`0x801B8C40` le `0x801DF2CC`; `0x801B8C50` e `sw ...,0xF2CC` = `0xAC22F2CC`),
+mas nao e alcancado. O contador recebe um unico store, de valor ZERO, em 163.969.223 vindo de
+`0x801ABCF0` — e a inicializacao.
 
-Descobrir por qual via o jogo registra o incremento: `VSyncCallback()` (que usa `F0000001`),
-`SetRCnt`, ou substituicao direta do vetor. Sondar a INSTALACAO durante a inicializacao, nao o
-momento do timeout.
+Medir: seguir calls/branches de `0x801B8E60` ate `0x801B8C40`, ou provar que o incremento depende
+de uma chamada que o hook deveria fazer e nao faz. **Nao alterar timers, IRQ nem vetor por
+intuicao** — as tres hipoteses do handoff anterior ja foram refutadas por medicao.
 
-**NAO ha ligacao provada com o ROADMAP 4.5.** A hipotese de raiz compartilhada foi levantada e
-**refutada na revisao**: a ExCB dos dois discos e byte a byte identica aos 200 M passos, bem
-formada segundo a spec (4 blocos de ptr+zero), e nenhum dos dois tem entrada `F0000001` na EvCB.
-Nao herde isso como fato — foi assim que a premissa errada da 0142 sobreviveu ate a 0147.
-
-Armadilhas: (a) sondas sao descartaveis, reverter antes de commitar; (b) reconstruir release
-antes de medir; (c) o `.cue` do Rayman e o reduzido, so track 01.
+Cuidado: existem DOIS `B(19h)`. O do passo 19.258.130 (`hook[0]=0x8005A1D8`) e do kernel; o do
+jogo e o de 164.111.334. Nao confundir.
 
 Invariantes relevantes: 25, 27.
 
@@ -50,13 +46,13 @@ Invariantes relevantes: 25, 27.
 
 ## Placar de testes
 
-Workspace: **883** testes.
+Workspace: **884** testes.
 
 ## Bloqueios
 
-- **4.4 Boot de jogo**: o motor 4.4ad agora avança setores sequencialmente; a fronteira
-  seguinte medida no Crash é VSync/IRQ0 pós-kernel. Imagens de disco ficam fora do
-  repositório, em `.../Programacao com agentes/roms/extraido/`.
+- **4.4 Boot de jogo**: o motor 4.4ad agora avanca setores sequencialmente; a fronteira
+  seguinte medida no Rayman e o caminho hook -> incremento. Imagens de disco ficam fora do
+  repositorio, em `.../Programacao com agentes/roms/extraido/`.
   **Nunca commitar imagem de disco.**
 - **Premissa refutada:** o slot `$v1+0x18` não muda entre boots (0147). O defeito não está
   no valor do slot mas no encaixe temporal entre `SysInitMemory` e o enfileiramento dos

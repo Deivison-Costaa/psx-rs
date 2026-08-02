@@ -61,7 +61,11 @@ fn endereco_81h_nao_produz_ack_sem_memory_card() {
         !sio.take_irq7(),
         "0x81 endereca o memory card; o controle nao responde por ele"
     );
-    assert_eq!(sio.read_rx(), 0xFF, "slot de card vazio deixa a linha ociosa");
+    assert_eq!(
+        sio.read_rx(),
+        0xFF,
+        "slot de card vazio deixa a linha ociosa"
+    );
 
     sio.write_tx(0x52);
 

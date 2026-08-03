@@ -194,3 +194,8 @@ da escada valer so para o que FALTA. Narrativa de cada item continua em
 - [x] 5.4b NCS/NCT/NCCS/NCCT (0185)
 - [x] 5.4c NCDS/NCDT/CC/CDP (0185)
 - [x] 5.4d DCPL/DPCS/DPCT/INTPL (0185)
+
+## Fechados na iteração 0186
+- [x] 4.4ae Crash Bandicoot joga N. Sanity Beach: menu, load e nivel (0186)
+- [x] 0185.2 `GPU timeout` do Crash: teto artificial de 4096 nos cortava a lista encadeada do DMA2 (0186)
+- [x] 0186.1 SIO trocava os dois bytes de switches: `swlo` (bit0-7, onde mora Start) vem primeiro (0186)

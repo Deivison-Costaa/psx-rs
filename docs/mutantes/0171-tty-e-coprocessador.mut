@@ -1,0 +1,101 @@
+# Manifesto de mutacao da iteracao 0171 — tty duplicado e coprocessador usavel
+formato: 1
+iteracao: 0171
+item: 10.97
+alvo: crates/psx-core/src/cpu.rs
+teste: cpu_coprocessador_usavel
+
+mutante: m1
+rotulo: volta a emitir TTY de alto nivel sempre, duplicando cada linha com kernel real
+teste: cpu_tty_sem_duplicar
+ocorrencias: 1
+@@DE
+            let stubbed = bus.read32::<BusRead>(phys) == Self::JR_RA;
+@@PARA
+            let stubbed = true;
+@@FIM
+
+mutante: m2
+rotulo: nunca emite TTY de alto nivel, nem no ambiente stubado
+teste: cpu_tty_sem_duplicar
+ocorrencias: 1
+@@DE
+            let stubbed = bus.read32::<BusRead>(phys) == Self::JR_RA;
+@@PARA
+            let stubbed = false;
+@@FIM
+
+mutante: m3
+rotulo: qualquer coprocessador vira sempre usavel, e o 0Bh nunca sai
+teste: cpu_coprocessador_usavel
+ocorrencias: 1
+@@DE
+        if sr & (1 << (28 + unit)) != 0 {
+            return true;
+        }
+@@PARA
+        if sr & (1 << (28 + unit)) == 0 {
+            return true;
+        }
+@@FIM
+
+mutante: m4
+rotulo: o bit CU consultado erra a unidade, e CU2 passa a valer para o cop1
+teste: cpu_coprocessador_usavel
+ocorrencias: 1
+@@DE
+        if sr & (1 << (28 + unit)) != 0 {
+@@PARA
+        if sr & (1 << (29 + unit)) != 0 {
+@@FIM
+
+mutante: m5
+rotulo: a isencao de modo kernel passa a valer tambem para lwc0/swc0
+teste: cpu_coprocessador_usavel
+ocorrencias: 1
+@@DE
+        unit == 0 && is_cop_op && sr & (1 << 1) == 0
+@@PARA
+        unit == 0 && sr & (1 << 1) == 0
+@@FIM
+
+mutante: m6
+rotulo: modo usuario deixa de importar e cop0 fica usavel sempre
+teste: cpu_coprocessador_usavel
+ocorrencias: 1
+@@DE
+        unit == 0 && is_cop_op && sr & (1 << 1) == 0
+@@PARA
+        unit == 0 && is_cop_op
+@@FIM
+
+mutante: m7
+rotulo: load/store de coprocessador passa a ser tratado como opcode de cop
+teste: cpu_coprocessador_usavel
+ocorrencias: 1
+@@DE
+                if !self.cop_usable(unit, primary & 0x20 == 0) {
+@@PARA
+                if !self.cop_usable(unit, true) {
+@@FIM
+
+controle: c1
+rotulo: comparacao espelhada do vetor stubado (cosmetico)
+teste: cpu_tty_sem_duplicar
+ocorrencias: 1
+@@DE
+            let stubbed = bus.read32::<BusRead>(phys) == Self::JR_RA;
+@@PARA
+            let stubbed = Self::JR_RA == bus.read32::<BusRead>(phys);
+@@FIM
+
+controle: c2
+rotulo: nomear o SR antes de testar o bit nao muda comportamento
+teste: cpu_coprocessador_usavel
+ocorrencias: 1
+@@DE
+        unit == 0 && is_cop_op && sr & (1 << 1) == 0
+@@PARA
+        let em_kernel = sr & (1 << 1) == 0;
+        unit == 0 && is_cop_op && em_kernel
+@@FIM

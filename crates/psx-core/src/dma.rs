@@ -175,10 +175,44 @@ impl Dma {
         }
         let sync_mode = (self.chcr[2] >> 9) & 3;
         match sync_mode {
+            0 => self.execute_burst(ram, gpu),
             1 => self.execute_block(ram, gpu),
             2 => self.execute_linked_list(ram, gpu),
             _ => {}
         }
+    }
+
+    fn execute_burst(&mut self, ram: &mut [u8], gpu: &mut Gpu) {
+        let bc = self.bcr[2] & 0xFFFF;
+        let count = if bc == 0 { 0x1_0000 } else { bc as usize };
+        let step: i32 = if self.chcr[2] & 2 != 0 { -4 } else { 4 };
+        let para_dispositivo = (self.chcr[2] & 1) != 0;
+        let mut addr = self.madr[2] & 0x00FF_FFFC;
+
+        for _ in 0..count {
+            let offset = (addr & 0x1F_FF_FF) as usize;
+            if offset + 4 <= ram.len() {
+                if para_dispositivo {
+                    let word = u32::from_le_bytes([
+                        ram[offset],
+                        ram[offset + 1],
+                        ram[offset + 2],
+                        ram[offset + 3],
+                    ]);
+                    gpu.write32(0, word);
+                } else {
+                    let word = gpu.read32(0);
+                    ram[offset..offset + 4].copy_from_slice(&word.to_le_bytes());
+                }
+            }
+            addr = if step < 0 {
+                addr.wrapping_sub(4)
+            } else {
+                addr.wrapping_add(4)
+            };
+        }
+        self.chcr[2] &= !(1 << 24);
+        self.signal_completion(2);
     }
 
     fn execute_block(&mut self, ram: &mut [u8], gpu: &mut Gpu) {
@@ -229,6 +263,7 @@ impl Dma {
     fn execute_linked_list(&mut self, ram: &mut [u8], gpu: &mut Gpu) {
         let mut addr = self.madr[2] & 0x00FF_FFFC;
         let mut node_count = 0;
+        let mut alcancou_fim = false;
 
         loop {
             node_count += 1;
@@ -237,6 +272,7 @@ impl Dma {
             }
             let offset = (addr & 0x1F_FF_FF) as usize;
             if offset + 4 > ram.len() {
+                alcancou_fim = true;
                 break;
             }
             let header = u32::from_le_bytes([
@@ -265,13 +301,16 @@ impl Dma {
 
             if next_addr == 0x00FF_FFFF || (next_addr & 0x0080_0000) != 0 {
                 self.madr[2] = (self.madr[2] & !0x00FF_FFFF) | next_addr;
+                alcancou_fim = true;
                 break;
             }
 
             addr = next_addr & 0x00FF_FFFC;
         }
-        self.chcr[2] &= !(1 << 24);
-        self.signal_completion(2);
+        if alcancou_fim {
+            self.chcr[2] &= !(1 << 24);
+            self.signal_completion(2);
+        }
     }
 
     // § D#_BCR (docs/reference/04-dma.md L36-58): formato depende do SyncMode

@@ -1,0 +1,92 @@
+# Manifesto de mutacao da iteracao 0173 — oraculo do lote DMA
+formato: 1
+iteracao: 0173
+item: 10.101
+alvo: crates/psx-core/src/dma.rs
+teste: dma_chain_looping
+
+mutante: m1
+rotulo: cadeia auto-referente passa a completar e sinalizar irq (bit inicial invertido)
+teste: dma_chain_looping
+ocorrencias: 1
+@@DE
+        let mut alcancou_fim = false;
+@@PARA
+        let mut alcancou_fim = true;
+@@FIM
+
+mutante: m2
+rotulo: guarda de conclusao vira incondicional, cadeia que nunca termina completa mesmo assim
+teste: dma_chain_looping
+ocorrencias: 1
+@@DE
+        if alcancou_fim {
+@@PARA
+        if true {
+@@FIM
+
+mutante: m3
+rotulo: SyncMode=0 volta a nao fazer nada, canal 2 trava para sempre de novo
+teste: dma_burst_sync0
+ocorrencias: 1
+@@DE
+            0 => self.execute_burst(ram, gpu),
+@@PARA
+            0 => {}
+@@FIM
+
+mutante: m4
+rotulo: contagem de palavras do burst ignora o BCR e nunca transfere nada
+teste: dma_burst_sync0
+ocorrencias: 1
+@@DE
+        let bc = self.bcr[2] & 0xFFFF;
+        let count = if bc == 0 { 0x1_0000 } else { bc as usize };
+        let step: i32 = if self.chcr[2] & 2 != 0 { -4 } else { 4 };
+        let para_dispositivo = (self.chcr[2] & 1) != 0;
+        let mut addr = self.madr[2] & 0x00FF_FFFC;
+@@PARA
+        let bc = self.bcr[2] & 0xFFFF;
+        let count = if bc == 0 { 0x1_0000 } else { 0 };
+        let step: i32 = if self.chcr[2] & 2 != 0 { -4 } else { 4 };
+        let para_dispositivo = (self.chcr[2] & 1) != 0;
+        let mut addr = self.madr[2] & 0x00FF_FFFC;
+@@FIM
+
+mutante: m5
+rotulo: direcao do burst invertida, RAM->dispositivo vira dispositivo->RAM
+teste: dma_burst_sync0
+ocorrencias: 1
+@@DE
+        let bc = self.bcr[2] & 0xFFFF;
+        let count = if bc == 0 { 0x1_0000 } else { bc as usize };
+        let step: i32 = if self.chcr[2] & 2 != 0 { -4 } else { 4 };
+        let para_dispositivo = (self.chcr[2] & 1) != 0;
+        let mut addr = self.madr[2] & 0x00FF_FFFC;
+@@PARA
+        let bc = self.bcr[2] & 0xFFFF;
+        let count = if bc == 0 { 0x1_0000 } else { bc as usize };
+        let step: i32 = if self.chcr[2] & 2 != 0 { -4 } else { 4 };
+        let para_dispositivo = (self.chcr[2] & 1) == 0;
+        let mut addr = self.madr[2] & 0x00FF_FFFC;
+@@FIM
+
+controle: c1
+rotulo: anotacao de tipo explicita no bit de conclusao e cosmetica
+teste: dma_chain_looping
+ocorrencias: 1
+@@DE
+        let mut alcancou_fim = false;
+@@PARA
+        let mut alcancou_fim: bool = false;
+@@FIM
+
+controle: c2
+rotulo: envolver a chamada do burst num bloco e cosmetico, mesmo valor de retorno
+teste: dma_burst_sync0
+ocorrencias: 1
+@@DE
+            0 => self.execute_burst(ram, gpu),
+@@PARA
+            0 => { self.execute_burst(ram, gpu) },
+@@FIM

@@ -395,18 +395,7 @@ impl Bus {
             0x1F80_1060 => Some(self.mem_ctrl.read32(phys)),
             0x1F80_1070 => Some(self.irq.read_stat()),
             0x1F80_1074 => Some(self.irq.read_mask()),
-            0x1F80_1080..=0x1F80_10EC => {
-                let offset = phys - 0x1F80_1080;
-                let ch = (offset / 0x10) as usize;
-                match offset % 0x10 {
-                    0x0 => Some(self.dma.read_madr(ch)),
-                    0x4 => Some(self.dma.read_bcr(ch)),
-                    0x8 => Some(self.dma.read_chcr(ch)),
-                    _ => Some(0),
-                }
-            }
-            0x1F80_10F0 => Some(self.dma.read_dpcr()),
-            0x1F80_10F4 => Some(self.dma.read_dicr()),
+            0x1F80_1080..=0x1F80_10EC | 0x1F80_10F0 | 0x1F80_10F4 => self.dma_register_value(phys),
             0xFFFE_0130 => Some(self.bcc.0),
             0x1F80_1100..=0x1F80_112F => Some(self.timers.read32(phys)),
             0x1F80_1810 | 0x1F80_1814 => Some(self.gpu.read32(phys - 0x1F80_1810)),
@@ -579,6 +568,12 @@ impl Bus {
                 let base = phys & !1;
                 let val = self.spu.read16(base);
                 let byte_index = ((phys & 1) + offset) & 1;
+                Some(((val >> (byte_index * 8)) & 0xFF) as u8)
+            }
+            0x1F80_1080..=0x1F80_10EC | 0x1F80_10F0 | 0x1F80_10F4 => {
+                let base = phys & !3;
+                let val = self.dma_register_value(base).unwrap_or(0);
+                let byte_index = (phys & 3) + offset;
                 Some(((val >> (byte_index * 8)) & 0xFF) as u8)
             }
             0x1F80_1024..=0x1F80_103F | 0x1F80_1041..=0x1F80_1043 | 0x1F80_1064..=0x1F80_1FFF => {
@@ -773,6 +768,52 @@ impl Bus {
         self.ram.data[idx + 1] = bytes[1];
     }
 
+    /// § Caution - 8/16-bit writes to certain IO registers (L309) de docs/reference/02-cpu.md:
+    /// o registrador de DMA nao decodifica os byte-enables do barramento, entao um `sb`/`sh`
+    /// carrega os 32 bits inteiros de `rt` como se fosse um `sw` alinhado.
+    fn e_registrador_dma_de_32_bits(phys: u32) -> bool {
+        matches!(phys, 0x1F80_1080..=0x1F80_10EC | 0x1F80_10F0 | 0x1F80_10F4)
+    }
+
+    /// Mesma decodificacao de endereco de `region_read32` para o banco de DMA, reaproveitada
+    /// por `region_read_byte` — leitura de byte/halfword tem de refletir o registrador de
+    /// verdade, nao um zero fixo.
+    fn dma_register_value(&self, phys: u32) -> Option<u32> {
+        match phys {
+            0x1F80_1080..=0x1F80_10EC => {
+                let offset = phys - 0x1F80_1080;
+                let ch = (offset / 0x10) as usize;
+                match offset % 0x10 {
+                    0x0 => Some(self.dma.read_madr(ch)),
+                    0x4 => Some(self.dma.read_bcr(ch)),
+                    0x8 => Some(self.dma.read_chcr(ch)),
+                    _ => Some(0),
+                }
+            }
+            0x1F80_10F0 => Some(self.dma.read_dpcr()),
+            0x1F80_10F4 => Some(self.dma.read_dicr()),
+            _ => None,
+        }
+    }
+
+    pub fn write8_gpr_completo<Op: MemoryOp>(&mut self, addr: u32, gpr: u32) {
+        let phys = Self::to_physical(addr);
+        if Self::e_registrador_dma_de_32_bits(phys) {
+            self.write32::<Op>(addr & !0x3, gpr);
+            return;
+        }
+        self.write8::<Op>(addr, gpr as u8);
+    }
+
+    pub fn write16_gpr_completo<Op: MemoryOp>(&mut self, addr: u32, gpr: u32) {
+        let phys = Self::to_physical(addr);
+        if Self::e_registrador_dma_de_32_bits(phys) {
+            self.write32::<Op>(addr & !0x3, gpr);
+            return;
+        }
+        self.write16::<Op>(addr, gpr as u16);
+    }
+
     pub fn load_cycles(addr: u32) -> u32 {
         match Self::to_physical(addr) {
             0x1F80_0000..=0x1F80_03FF => 1,
@@ -780,6 +821,22 @@ impl Bus {
             0x1FC0_0000..=0x1FC7_FFFF => 27,
             _ => 7,
         }
+    }
+
+    /// § Scratchpad (L114, L137-140) de docs/reference/01-memory-map.md: "the scratchpad is
+    /// NOT executable... a bus error will still occur". A spec local e omissa sobre QUAIS
+    /// blocos de I/O tambem faltam ao buscar instrucao — so cita "Unused Memory Regions"
+    /// genericamente (§ Memory Exceptions, L156-160). O gabarito de hardware real
+    /// (ps1-tests/cpu/code-in-io/psx.log) e o oraculo aqui: testCodeInInterrupts e
+    /// testCodeInMDEC lancam (06h), mas testCodeInDMA0/DMAControl/SPU NAO lancam — medido
+    /// por instrumentacao na 0172, nao adivinhado. So os dois blocos comprovados entram.
+    pub fn fetch_causa_bus_error(addr: u32) -> bool {
+        matches!(
+            Self::to_physical(addr),
+            0x1F80_0000..=0x1F80_03FF          // Scratchpad
+            | 0x1F80_1070..=0x1F80_1077        // Interrupt Control (I_STAT/I_MASK)
+            | 0x1F80_1820..=0x1F80_1827        // MDEC Registers
+        )
     }
 
     fn to_physical(addr: u32) -> u32 {

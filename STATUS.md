@@ -7,26 +7,30 @@
 
 ## Última iteração concluída
 
-**0166** — **BcondZ: os 32 valores de `rt` decodificados contra o oraculo Amidog.** A tabela
-local so cobre 4 encodings; o `_ => return` fazia 28 valores de `rt` virarem no-op. Medido: a
-condicao usa so o bit0 de `rt` (par=bltz, impar=bgez) e o link ($ra=pc+8) so ocorre em
-`rt`=10h/11h exatos — nao em qualquer `rt` com bit4 ligado. Amidog `Result: 00000109 ->
-00000101`, erros `b_0xNN` **4312 -> 0**. Bateria 7/7 e 2/2.
+**0167** — **diagnostico: a CPU limpa NAO destrava o Rayman.** Comparei o mesmo disco nos
+commits `0768725` (Amidog 4.918 erros) e `a21d500` (0 erros): `VSync: timeout` 142 em 200 M e
+522 em 600 M **nos dois**, e o histograma de PC de 590-600 M bate amostra a amostra. O laco
+atual nao e o de 10.85: e `0x8019FA1C` esperando `[0x801CEEBC]` != 0 (item 10.94).
 
 ## Próxima tarefa
 
-**ROADMAP 10.71 — `mutantes.ps1`: duas clausulas `"teste"` no mesmo switch do PowerShell sem
-`break` (linhas ~191 e ~213); a de registro vaza para o cabecalho e passa a valer tambem para
-registros sem override.** Reconfirmado na 0166 ao tentar usar `teste:` por registro no
-manifesto de 10.92 (contornado ali sem tocar no script). Fix esperado: `break` apos cada
-`case`, ou reestruturar em `if/elseif`; adicionar um manifesto de regressao que exercite
-override + default no mesmo arquivo.
+**ROADMAP 10.23 — dar veredito automatico as suites que ja tem gabarito no disco.** Tarefa
+escrita em `logs/orquestrador/task-10.23-tty.txt`. Existem **21 arquivos `psx.log`** em
+`tests/exes/ps1-tests/**` que sao o TTY do HARDWARE REAL, ao lado de cada EXE, e nunca foram
+comparados; `scripts/scoreboard.ps1` conta bytes e joga o texto fora (10.24). Comece pelo
+diff de texto; a parte de VRAM (13 `vram.png` + o binario `diffvram`) e a rodada seguinte,
+descrita em `task-10.23-vram.txt`.
 
-Nota (nao e handoff, e leitura): Amidog CPU `Result` ainda nao e `00000000` — restam bits
-0x001 e 0x100 sem NENHUMA linha `error @` visivel no TTY; nao investigado, pode exigir
-decodificar o bitmask fora do texto. Load delay (10.93) e branch (10.92) — as duas causas
-que mantinham Rayman fora de foco — estao fechadas; a premissa de bloqueio de Rayman pode
-ter mudado, mas isso NAO foi reverificado nesta rodada.
+Por que esta e a proxima e nao o jogo: a 0167 mostrou que corrigir *funcao* da CPU nao moveu o
+Rayman, e a 0104 ja tinha medido que `VSync: timeout` estoura por **orcamento de ciclos** do
+laco de espera, nao por evento nao entregue. O suspeito agora e *tempo*, e e isso que
+`timers/psx.log` e `cpu/access-time/psx.log` medem. Regua antes de conserto.
+
+Notas (nao sao handoff): (a) Amidog CPU `Result` nao e `00000000` — restam bits 0x001 e 0x100
+sem nenhuma linha `error @` no TTY; o readme do Amidog nao documenta o codigo, e os dois bits
+estavam ligados tambem nas medicoes de 4.918 erros, entao provavelmente nao sao falha — nao
+escrever "CPU passa limpa" antes de decodificar. (b) 10.71 (`mutantes.ps1`, duas clausulas
+`teste` no mesmo switch) foi reconfirmado na 0166 e continua aberto.
 
 Invariantes relevantes: nenhum.
 
@@ -64,10 +68,10 @@ Workspace: **921** testes.
 - **Oraculo de hardware disponivel (0164)**: 51 EXEs em `tests/exes/` (gitignored). Amidog CPU
   em `Result: 00000101` (0166; era `00000109`). Depurar o CPU contra ele custa menos que
   inferir de jogo.
-- **Rayman parou de ser a frente principal (0164)**: a cadeia esta mapeada mas depende de um
-  auto-ack que o BIOS religa por projeto. As duas causas de CPU citadas em 0164 (branch e
-  load delay) fecharam em 10.92/10.93 (0165/0166) — reavaliar se o sintoma do jogo volta a
-  ser o lugar certo antes de retomar Rayman.
+- **Rayman: a CPU nao era a causa (0167, medido)**: com o Amidog em 0 erros o jogo se comporta
+  identico ao de antes das tres correcoes. A cadeia de auto-ack de 0158-0163 descreve a parada
+  de ~166 M; em 590-600 M o jogo ja esta noutro laco (10.94). Nao retomar Rayman por inferencia:
+  a proxima medida util e de tempo, nao de funcao.
 - **Janela util do Rayman: depois do passo 164.000.000** (`Execute !`). Antes disso e boot do
   BIOS + BOOTSTRAP LOADER; `0x8003xxxx`/`0x8005xxxx` sao do carregador. O executavel do jogo ocupa
   `0x80125000..0x801CF800`.

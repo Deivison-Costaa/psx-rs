@@ -1,0 +1,171 @@
+# Manifesto de mutacao da iteracao 0184 — MDEC colorido, swizzle do DMA1 e atraso do /ACK
+formato: 1
+iteracao: 0184
+item: 0184.1
+alvo: crates/psx-core/src/mdec.rs
+teste: mdec_colorido
+
+mutante: m1
+teste: mdec_colorido
+rotulo: bloco nao termina em k==63 e engole a primeira meia-palavra do bloco seguinte
+ocorrencias: 1
+@@DE
+            if k == 63 {
+                break;
+            }
+            n = match data.get(pos) {
+@@PARA
+            n = match data.get(pos) {
+@@FIM
+
+mutante: m2
+teste: mdec_colorido
+rotulo: Cr e Cb trocados: R e B do yuv_to_rgb saem invertidos
+ocorrencias: 1
+@@DE
+                let (cr, cb) = (self.cr[c], self.cb[c]);
+@@PARA
+                let (cr, cb) = (self.cb[c], self.cr[c]);
+@@FIM
+
+mutante: m3
+teste: mdec_colorido
+rotulo: quadrante do macrobloco ignora a coluna: Y2 e Y4 caem por cima de Y1 e Y3
+ocorrencias: 1
+@@DE
+                self.yuv_to_rgb(
+                    spatial,
+                    (quadrante as i32 & 1) * 8,
+                    (quadrante as i32 >> 1) * 8,
+                );
+@@PARA
+                self.yuv_to_rgb(spatial, 0, (quadrante as i32 >> 1) * 8);
+@@FIM
+
+mutante: m4
+teste: mdec_colorido
+rotulo: subamostragem de croma indexa 1:1 em vez de 2x2
+ocorrencias: 1
+@@DE
+                let c = (((x + xx) / 2) + ((y + yy) / 2) * 8) as usize;
+@@PARA
+                let c = ((x + xx) + (y + yy) * 8) as usize;
+@@FIM
+
+mutante: m5
+teste: mdec_colorido
+rotulo: reducao para 5 bits volta a truncar em vez de arredondar
+ocorrencias: 1
+@@DE
+        (((v as u32) + 4) >> 3).min(31)
+@@PARA
+        ((v as u32) >> 3).min(31)
+@@FIM
+
+mutante: m6
+rotulo: reducao para 4 bits volta a truncar em vez de arredondar
+teste: mdec_macroblock_decode
+ocorrencias: 1
+@@DE
+        ((v as u16 + 8) >> 4).min(15) as u8
+@@PARA
+        ((v as u16) >> 4).min(15) as u8
+@@FIM
+
+mutante: m7
+teste: mdec_colorido
+rotulo: tabela de quantizacao de cor nunca e gravada, Cr e Cb usam a de luminancia
+ocorrencias: 1
+@@DE
+        if self.color_depth >= 2 && self.block_index < 2 {
+            &self.iq_uv
+        } else {
+            &self.iq_y
+        }
+@@PARA
+        &self.iq_y
+@@FIM
+
+mutante: m8
+teste: mdec_colorido
+rotulo: DMA1 le pela ordem do registrador e nao costura os quatro blocos 8x8
+arquivo: crates/psx-core/src/dma.rs
+ocorrencias: 1
+@@DE
+            let word = mdec.read32_dma();
+@@PARA
+            let word = mdec.read32(0);
+@@FIM
+
+mutante: m9
+teste: mdec_colorido
+rotulo: DMA1 leva macrobloco pela metade em vez de so os inteiros
+arquivo: crates/psx-core/src/dma.rs
+ocorrencias: 1
+@@DE
+            Some(n) if n > 0 => (mdec.output_len() / n) * n,
+@@PARA
+            Some(n) if n > 0 => mdec.output_len(),
+@@FIM
+
+mutante: m10
+rotulo: alimentar o MDEC pela CPU nao retoma o DMA1 ja armado
+arquivo: crates/psx-core/src/bus.rs
+teste: mdec_registers_dma
+ocorrencias: 1
+@@DE
+                                self.dma.try_execute_dma0(&self.ram.data, &mut self.mdec);
+                                self.dma.try_execute_dma1(&mut self.ram.data, &self.mdec);
+@@PARA
+                                self.dma.try_execute_dma0(&self.ram.data, &mut self.mdec);
+@@FIM
+
+mutante: m11
+rotulo: /ACK volta a ignorar o tempo do byte e chega no meio da transmissao
+arquivo: crates/psx-core/src/bus.rs
+teste: sio_ack_atrasado
+ocorrencias: 1
+@@DE
+                    self.total_cycles + self.sio.transfer_cycles() + SIO_ACK_DELAY_CYCLES,
+@@PARA
+                    self.total_cycles + SIO_ACK_DELAY_CYCLES,
+@@FIM
+
+mutante: m12
+rotulo: fator de baud MUL16/MUL64 ignorado, todo byte leva o mesmo tempo
+arquivo: crates/psx-core/src/sio.rs
+teste: sio_ack_atrasado
+ocorrencias: 1
+@@DE
+        let fator: u64 = match self.mode.get() & 0x3 {
+            2 => 16,
+            3 => 64,
+            _ => 1,
+        };
+@@PARA
+        let fator: u64 = 1;
+@@FIM
+
+controle: c1
+teste: mdec_colorido
+rotulo: nomear o luma antes de somar o croma nao muda o pixel
+ocorrencias: 1
+@@DE
+                let luma = y_blk[(x + y * 8) as usize];
+                let r = Self::satura8(luma + (1.402 * cr as f64).floor() as i32);
+@@PARA
+                let luma: i32 = y_blk[(x + y * 8) as usize];
+                let r: u8 = Self::satura8(luma + (1.402 * cr as f64).floor() as i32);
+@@FIM
+
+controle: c2
+teste: mdec_colorido
+rotulo: comparacao espelhada da profundidade colorida (cosmetico)
+ocorrencias: 1
+@@DE
+        if self.color_depth >= 2 {
+            self.push_color_block(&spatial);
+@@PARA
+        if self.color_depth > 1 {
+            self.push_color_block(&spatial);
+@@FIM

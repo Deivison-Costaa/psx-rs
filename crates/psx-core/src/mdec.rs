@@ -1,4 +1,4 @@
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 
 // § zagzig[0..63] (reversed zigzag) (L341-343) de docs/reference/09-mdec.md, pre-calculado
 // a partir de zigzag[0..63] (L320-329) por "zagzig[zigzag[i]]=i" para nao precisar de
@@ -18,7 +18,7 @@ enum Command {
 }
 
 /// Decodificador de macroblocos (MDEC): regs 1F801820h/1F801824h, tabelas de
-/// quantizacao/escala e o caminho de decodificacao monocromatico (4/8 bit).
+/// quantizacao/escala e os caminhos monocromatico (4/8 bit) e colorido (24/15 bit).
 /// § MDEC I/O Ports e MDEC Commands (L61-168) de docs/reference/09-mdec.md.
 #[derive(Debug)]
 pub struct Mdec {
@@ -33,8 +33,16 @@ pub struct Mdec {
     param_bytes: Vec<u8>,
     param_bytes_needed: usize,
     iq_y: [u8; 64],
+    iq_uv: [u8; 64],
     scale_table: [i32; 64],
     output: RefCell<Vec<u32>>,
+    pending: Vec<u16>,
+    words_left: usize,
+    block_index: usize,
+    cr: [i32; 64],
+    cb: [i32; 64],
+    current_block: u8,
+    dma_pos: Cell<usize>,
 }
 
 impl Mdec {
@@ -51,8 +59,16 @@ impl Mdec {
             param_bytes: Vec::new(),
             param_bytes_needed: 0,
             iq_y: [0; 64],
+            iq_uv: [0; 64],
             scale_table: [0; 64],
             output: RefCell::new(Vec::new()),
+            pending: Vec::new(),
+            words_left: 0,
+            block_index: 0,
+            cr: [0; 64],
+            cb: [0; 64],
+            current_block: 4,
+            dma_pos: Cell::new(0),
         }
     }
 
@@ -85,6 +101,55 @@ impl Mdec {
         }
     }
 
+    /// Bytes por pixel na saida, ou `None` no caminho monocromatico (que nao tem macrobloco).
+    fn bytes_por_pixel(&self) -> Option<usize> {
+        match self.color_depth {
+            2 => Some(3),
+            3 => Some(2),
+            _ => None,
+        }
+    }
+
+    /// Palavras de um macrobloco 16x16 na profundidade atual (128 em 15bpp, 192 em 24bpp).
+    pub fn palavras_por_macrobloco(&self) -> Option<usize> {
+        self.bytes_por_pixel().map(|b| 256 * b / 4)
+    }
+
+    /// Leitura pelo DMA1. § MDEC Data/Response Register (L74-78) de docs/reference/09-mdec.md:
+    /// o registrador entrega quatro bitmaps 8x8 em fila e "usually, the data is received via
+    /// DMA1, which is doing the re-ordering automatically" — isto e, o DMA1 costura os quatro
+    /// blocos no macrobloco 16x16 de § Colored Macroblocks (L376-388).
+    pub fn read32_dma(&self) -> u32 {
+        let Some(bpp) = self.bytes_por_pixel() else {
+            return self.pop_output();
+        };
+        let out = self.output.borrow();
+        let pos = self.dma_pos.get();
+        let mut palavra = [0u8; 4];
+        for (k, destino) in palavra.iter_mut().enumerate() {
+            let i = pos * 4 + k;
+            let (pixel, canal) = (i / bpp, i % bpp);
+            let (x, y) = (pixel % 16, pixel / 16);
+            let quad = usize::from(x >= 8) + 2 * usize::from(y >= 8);
+            let fonte = (quad * 64 + (y % 8) * 8 + (x % 8)) * bpp + canal;
+            *destino = out
+                .get(fonte / 4)
+                .map(|w| (w >> (8 * (fonte % 4))) as u8)
+                .unwrap_or(0);
+        }
+        drop(out);
+        let total = 256 * bpp / 4;
+        if pos + 1 >= total {
+            let mut out = self.output.borrow_mut();
+            let n = total.min(out.len());
+            out.drain(..n);
+            self.dma_pos.set(0);
+        } else {
+            self.dma_pos.set(pos + 1);
+        }
+        u32::from_le_bytes(palavra)
+    }
+
     // § 1F801824h.Write - MDEC1 Control/Reset (L101-112) de docs/reference/09-mdec.md.
     fn write_control(&mut self, val: u32) {
         if val & (1 << 31) != 0 {
@@ -100,6 +165,11 @@ impl Mdec {
         self.param_bytes.clear();
         self.param_bytes_needed = 0;
         self.output.borrow_mut().clear();
+        self.pending.clear();
+        self.words_left = 0;
+        self.block_index = 0;
+        self.current_block = 4;
+        self.dma_pos.set(0);
     }
 
     // § 1F801824h.Read - MDEC1 Status (L80-99) de docs/reference/09-mdec.md.
@@ -124,11 +194,14 @@ impl Mdec {
         if self.output_bit15 {
             s |= 1 << 23;
         }
-        s |= 4 << 16; // Current Block: so o caminho monocromatico (Y) roda nesta iteracao.
-        let remaining_words = self
-            .param_bytes_needed
-            .saturating_sub(self.param_bytes.len())
-            / 4;
+        s |= (self.current_block as u32 & 0x7) << 16;
+        let remaining_words = if self.command == Command::Decode {
+            self.words_left
+        } else {
+            self.param_bytes_needed
+                .saturating_sub(self.param_bytes.len())
+                / 4
+        };
         if self.busy && remaining_words > 0 {
             s |= (remaining_words as u32 - 1) & 0xFFFF;
         } else {
@@ -140,6 +213,8 @@ impl Mdec {
     fn write_data(&mut self, val: u32) {
         if !self.busy {
             self.dispatch_command(val);
+        } else if self.command == Command::Decode {
+            self.feed_decode(val);
         } else {
             self.param_bytes.extend_from_slice(&val.to_le_bytes());
             if self.param_bytes.len() >= self.param_bytes_needed {
@@ -159,6 +234,10 @@ impl Mdec {
                 self.output_bit15 = word & (1 << 25) != 0;
                 let words = (word & 0xFFFF) as usize;
                 self.param_bytes_needed = words * 4;
+                self.words_left = words;
+                self.pending.clear();
+                self.block_index = 0;
+                self.current_block = 4;
                 if words == 0 {
                     self.command = Command::None;
                     self.busy = false;
@@ -187,12 +266,12 @@ impl Mdec {
 
     fn finish_command(&mut self) {
         match self.command {
-            Command::Decode => self.run_decode(),
+            Command::Decode => {}
             Command::QuantTable => {
-                // A tabela de cor (Cb/Cr, os 64 bytes seguintes quando quant_color)
-                // e recebida e descartada: so o caminho monocromatico (iq_y) roda
-                // nesta iteracao (ver run_decode).
                 self.iq_y.copy_from_slice(&self.param_bytes[0..64]);
+                if self.quant_color {
+                    self.iq_uv.copy_from_slice(&self.param_bytes[64..128]);
+                }
             }
             Command::ScaleTable => {
                 for i in 0..64 {
@@ -208,44 +287,141 @@ impl Mdec {
         self.param_bytes.clear();
     }
 
-    // § MDEC(1) monocromatico: decode_monochrome_macroblock (L182-185) repetido
-    // enquanto sobrarem meias-palavras no comando (L138-139: "usually all
-    // macroblocks... sent at once"). Cor (24/15bpp, yuv_to_rgb) fica para uma
-    // proxima iteracao: nenhuma suite deste lote exercita esse caminho (R5).
-    fn run_decode(&mut self) {
-        if self.color_depth != 0 && self.color_depth != 1 {
-            return;
-        }
-        let halfwords: Vec<u16> = self
-            .param_bytes
-            .chunks_exact(2)
-            .map(|c| u16::from_le_bytes([c[0], c[1]]))
-            .collect();
-        let mut pos = 0usize;
-        let mut out = self.output.borrow_mut();
-        loop {
-            let start = pos;
-            let block = match Self::rl_decode_block(&halfwords, &mut pos, &self.iq_y) {
-                Some(b) => b,
-                None => break,
-            };
-            if pos == start {
-                break;
+    // O MDEC decodifica enquanto os dados chegam, nao no fim do comando: o gabarito de
+    // mdec/step-by-step-log ja mostra a fifo de saida cheia com 32 das 256 palavras
+    // entregues. Cada bloco 8x8 sai assim que suas meias-palavras fecham.
+    fn feed_decode(&mut self, word: u32) {
+        self.pending.push(word as u16);
+        self.pending.push((word >> 16) as u16);
+        self.words_left = self.words_left.saturating_sub(1);
+        while self.try_one_block(false) {}
+        if self.words_left == 0 {
+            // § Run-Length compressed Blocks (L464-466): o EOB e dispensavel se o bloco ja
+            // esta definido ate blk[63]. So o caminho monocromatico chega ao fim do comando
+            // com bloco em aberto (mdec/4bit e mdec/8bit, iter 0174); em cor, macrobloco
+            // incompleto nao sai — e o que o console faz nas 256 palavras do gabarito.
+            if self.color_depth < 2 {
+                self.try_one_block(true);
             }
-            let spatial = Self::idct_core(&block, &self.scale_table);
-            // § MDEC(1) bit26 "Data Output Signed" (L133): 0=unsigned, 1=signed.
-            // y_to_mono espera o inverso (L293: "if unsigned then Y=Y xor 80h").
-            Self::push_mono_block(&spatial, self.color_depth, !self.output_signed, &mut out);
-            if pos >= halfwords.len() {
-                break;
-            }
+            self.busy = false;
+            self.command = Command::None;
+            self.pending.clear();
         }
     }
 
-    fn next_halfword(data: &[u16], pos: &mut usize) -> Option<u16> {
-        let w = *data.get(*pos)?;
-        *pos += 1;
-        Some(w)
+    fn quant_do_bloco(&self) -> &[u8; 64] {
+        if self.color_depth >= 2 && self.block_index < 2 {
+            &self.iq_uv
+        } else {
+            &self.iq_y
+        }
+    }
+
+    fn try_one_block(&mut self, truncar: bool) -> bool {
+        let Some((block, usados)) =
+            Self::rl_decode_block(&self.pending, self.quant_do_bloco(), truncar)
+        else {
+            return false;
+        };
+        self.pending.drain(..usados);
+        let spatial = Self::idct_core(&block, &self.scale_table);
+        if self.color_depth >= 2 {
+            self.push_color_block(&spatial);
+        } else {
+            self.current_block = 4;
+            let mut out = self.output.borrow_mut();
+            // § MDEC(1) bit26 "Data Output Signed" (L133): 0=unsigned, 1=signed.
+            // y_to_mono espera o inverso (L293: "if unsigned then Y=Y xor 80h").
+            Self::push_mono_block(&spatial, self.color_depth, !self.output_signed, &mut out);
+        }
+        true
+    }
+
+    // § decode_colored_macroblock (L172-180): Cr, Cb e quatro Y; cada Y vira um quadrante
+    // 8x8 do macrobloco 16x16 via yuv_to_rgb.
+    fn push_color_block(&mut self, spatial: &[i32; 64]) {
+        match self.block_index {
+            0 => {
+                self.cr = *spatial;
+                self.current_block = 4;
+            }
+            1 => {
+                self.cb = *spatial;
+                self.current_block = 5;
+            }
+            _ => {
+                let quadrante = self.block_index - 2;
+                self.current_block = quadrante as u8;
+                self.yuv_to_rgb(
+                    spatial,
+                    (quadrante as i32 & 1) * 8,
+                    (quadrante as i32 >> 1) * 8,
+                );
+            }
+        }
+        self.block_index = (self.block_index + 1) % 6;
+    }
+
+    // § yuv_to_rgb(xx,yy) (L269-283) de docs/reference/09-mdec.md. A spec (L284-285) diz que a
+    // resolucao de ponto fixo exata do hardware e desconhecida; os coeficientes abaixo foram
+    // fixados contra o gabarito palavra a palavra de mdec/step-by-step-log (R1).
+    fn yuv_to_rgb(&self, y_blk: &[i32; 64], xx: i32, yy: i32) {
+        let unsigned = !self.output_signed;
+        let mut out = self.output.borrow_mut();
+        let mut bytes24: Vec<u8> = Vec::new();
+        for y in 0..8i32 {
+            for x in 0..8i32 {
+                let c = (((x + xx) / 2) + ((y + yy) / 2) * 8) as usize;
+                let (cr, cb) = (self.cr[c], self.cb[c]);
+                let luma = y_blk[(x + y * 8) as usize];
+                let r = Self::satura8(luma + (1.402 * cr as f64).floor() as i32);
+                let gg = Self::satura8(
+                    luma + ((-0.3437 * cb as f64) + (-0.7143 * cr as f64)).floor() as i32,
+                );
+                let b = Self::satura8(luma + (1.772 * cb as f64).floor() as i32);
+                let (r, gg, b) = if unsigned {
+                    ((r ^ 0x80), (gg ^ 0x80), (b ^ 0x80))
+                } else {
+                    (r, gg, b)
+                };
+                if self.color_depth == 2 {
+                    bytes24.extend_from_slice(&[r, gg, b]);
+                } else {
+                    let mut px = Self::para5(r) | (Self::para5(gg) << 5) | (Self::para5(b) << 10);
+                    if self.output_bit15 {
+                        px |= 1 << 15;
+                    }
+                    if (x + y * 8) % 2 == 0 {
+                        out.push(px);
+                    } else {
+                        let ultimo = out.len() - 1;
+                        out[ultimo] |= px << 16;
+                    }
+                }
+            }
+        }
+        for chunk in bytes24.chunks(4) {
+            let mut w = [0u8; 4];
+            w[..chunk.len()].copy_from_slice(chunk);
+            out.push(u32::from_le_bytes(w));
+        }
+    }
+
+    fn satura8(v: i32) -> u8 {
+        v.clamp(-128, 127) as i8 as u8
+    }
+
+    // A reducao de 8 para 5 bits do modo 15bpp arredonda para o mais proximo, nao trunca: com
+    // `>>3` puro, 774 de 3072 canais do gabarito de mdec/step-by-step-log saem exatamente um
+    // passo abaixo do console, e nenhum acima.
+    fn para5(v: u8) -> u32 {
+        (((v as u32) + 4) >> 3).min(31)
+    }
+
+    // Mesmo arredondamento na reducao para 4 bits: com `>>4` puro, 16 dos 32 bytes do
+    // gabarito de mdec/4bit saem um passo abaixo; com arredondamento, 2.
+    fn para4(v: u8) -> u8 {
+        ((v as u16 + 8) >> 4).min(15) as u8
     }
 
     fn signed10(n: u16) -> i32 {
@@ -253,15 +429,20 @@ impl Mdec {
         if v & 0x200 != 0 { v - 0x400 } else { v }
     }
 
-    // § rl_decode_block(blk,src,qt) (L187-206) de docs/reference/09-mdec.md. Quando
-    // os dados do comando se esgotam antes do fim natural do bloco (k>63), o bloco
-    // termina com o que ja foi gravado — spec L464-466: EOB e dispensavel se o
-    // bloco ja estiver definido ate blk[63], caso deste lote (0174).
-    fn rl_decode_block(data: &[u16], pos: &mut usize, qt: &[u8; 64]) -> Option<[i32; 64]> {
+    // § rl_decode_block(blk,src,qt) (L187-206) de docs/reference/09-mdec.md. Devolve o bloco
+    // e quantas meias-palavras consumiu, ou `None` quando os dados acabam no meio: nesse caso
+    // nada e consumido e o bloco espera o resto do fluxo. Com `truncar`, fecha com o que ja
+    // foi gravado (fim de comando no caminho monocromatico).
+    fn rl_decode_block(data: &[u16], qt: &[u8; 64], truncar: bool) -> Option<([i32; 64], usize)> {
         let mut blk = [0i32; 64];
-        let mut n = Self::next_halfword(data, pos)?;
-        while n == 0xFE00 {
-            n = Self::next_halfword(data, pos)?;
+        let mut pos = 0usize;
+        let mut n;
+        loop {
+            n = *data.get(pos)?;
+            pos += 1;
+            if n != 0xFE00 {
+                break;
+            }
         }
         let q_scale = ((n >> 10) & 0x3F) as i32;
         let mut val = Self::signed10(n) * qt[0] as i32;
@@ -276,9 +457,15 @@ impl Mdec {
             } else {
                 blk[k] = val;
             }
-            n = match Self::next_halfword(data, pos) {
-                Some(w) => w,
-                None => return Some(blk),
+            if k == 63 {
+                break;
+            }
+            n = match data.get(pos) {
+                Some(&w) => {
+                    pos += 1;
+                    w
+                }
+                None => return if truncar { Some((blk, pos)) } else { None },
             };
             let skip = ((n >> 10) & 0x3F) as usize;
             k += skip + 1;
@@ -286,9 +473,9 @@ impl Mdec {
                 break;
             }
             let qk = qt[k] as i32;
-            val = (Self::signed10(n) * qk * q_scale + 4) / 8;
+            val = (Self::signed10(n) * qk * q_scale + 4) >> 3;
         }
-        Some(blk)
+        Some((blk, pos))
     }
 
     // § real_idct_core(blk) (L241-267) de docs/reference/09-mdec.md. A propria spec
@@ -304,7 +491,7 @@ impl Mdec {
                     for z in 0..8 {
                         sum += src[y + z * 8] as i64 * (scale[x + z * 8] as i64 / 8);
                     }
-                    dst[x + y * 8] = ((sum + 0xFFF) / 0x2000) as i32;
+                    dst[x + y * 8] = ((sum + 0xFFF) >> 13) as i32;
                 }
             }
             src = dst;
@@ -337,7 +524,7 @@ impl Mdec {
         let bytes: Vec<u8> = if depth == 0 {
             pixels
                 .chunks(2)
-                .map(|c| (c[0] >> 4) | ((c[1] >> 4) << 4))
+                .map(|c| Self::para4(c[0]) | (Self::para4(c[1]) << 4))
                 .collect()
         } else {
             pixels

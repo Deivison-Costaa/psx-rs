@@ -116,7 +116,11 @@ const CDROM_RESPONSE: u32 = 2;
 const CDROM_SECOND: u32 = 3;
 const SIO_ACK: u32 = 4;
 
-// § Controller and Memory Card Signals (L386) de docs/reference/10-controllers-memcards.md.
+// Atraso do /ACK depois do ULTIMO pulso de SCK. § Address byte (01h) being sent (L379-386) de
+// docs/reference/10-controllers-memcards.md: o driver do kernel ignora pulsos nos primeiros
+// 2-3 us (100 ciclos) e desiste em 100 us. O tempo do byte em si vem do baud (Sio::transfer_cycles):
+// entregar o /ACK antes disso faz o kernel apaga-lo na limpeza de IRQ7 que ele so faz depois de
+// mandar o byte (§ Emulation Note, L316-320).
 const SIO_ACK_DELAY_CYCLES: u64 = 338;
 
 #[derive(Debug)]
@@ -242,7 +246,9 @@ impl Bus {
         if self.sio.take_ack_request() {
             self.scheduler.cancel(EventId(SIO_ACK));
             self.scheduler.schedule(
-                ScheduleKey::new(self.total_cycles + SIO_ACK_DELAY_CYCLES),
+                ScheduleKey::new(
+                    self.total_cycles + self.sio.transfer_cycles() + SIO_ACK_DELAY_CYCLES,
+                ),
                 EventId(SIO_ACK),
             );
         }
@@ -459,7 +465,10 @@ impl Bus {
                     0x8 => {
                         self.dma.write_chcr(ch, val);
                         match ch {
-                            0 => self.dma.try_execute_dma0(&self.ram.data, &mut self.mdec),
+                            0 => {
+                                self.dma.try_execute_dma0(&self.ram.data, &mut self.mdec);
+                                self.dma.try_execute_dma1(&mut self.ram.data, &self.mdec);
+                            }
                             1 => self.dma.try_execute_dma1(&mut self.ram.data, &self.mdec),
                             2 => self.dma.try_execute_dma2(&mut self.ram.data, &mut self.gpu),
                             3 => self.dma.try_execute_dma3(&mut self.ram.data, &self.cdrom),
@@ -496,6 +505,10 @@ impl Bus {
             }
             0x1F80_1820 | 0x1F80_1824 => {
                 self.mdec.write32(phys - 0x1F80_1820, val);
+                // Um DMA1 ja armado espera saida do MDEC: alimentar o MDEC pela CPU tem de
+                // retomar o canal, como o DREQ faria no console.
+                self.dma.try_execute_dma1(&mut self.ram.data, &self.mdec);
+                self.service_dma_irq();
                 true
             }
             0x1F80_1800..=0x1F80_1803 => {

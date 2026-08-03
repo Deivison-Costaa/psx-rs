@@ -377,11 +377,17 @@ impl Dma {
             return;
         }
         let requested = self.total_words(1);
-        let available = mdec.output_len().min(requested);
+        // Em cor o DMA1 costura quatro blocos 8x8 num macrobloco 16x16: so pode levar
+        // macroblocos inteiros, senao o reordenamento sai pela metade.
+        let disponivel = match mdec.palavras_por_macrobloco() {
+            Some(n) if n > 0 => (mdec.output_len() / n) * n,
+            _ => mdec.output_len(),
+        };
+        let available = disponivel.min(requested);
         let step: i32 = if self.chcr[1] & 2 != 0 { -4 } else { 4 };
         let mut addr = self.madr[1] & 0x00FF_FFFC;
         for _ in 0..available {
-            let word = mdec.read32(0);
+            let word = mdec.read32_dma();
             let offset = (addr & 0x1F_FFFF) as usize;
             if offset + 4 <= ram.len() {
                 let bytes_lidas = word.to_le_bytes();

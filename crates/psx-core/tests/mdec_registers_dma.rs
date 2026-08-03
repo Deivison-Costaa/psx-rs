@@ -13,6 +13,7 @@ const D1_MADR: u32 = 0x1F80_1090;
 const D1_BCR: u32 = 0x1F80_1094;
 const D1_CHCR: u32 = 0x1F80_1098;
 const DPCR: u32 = 0x1F80_10F0;
+const DICR: u32 = 0x1F80_10F4;
 
 // § Commonly used DMA Control Register values (docs/reference/04-dma.md L159-168).
 const CHCR_MDEC_IN: u32 = 0x0100_0201;
@@ -166,5 +167,56 @@ fn mdec_dma1_pede_mais_que_o_decodificado_mantem_canal_em_andamento() {
         bus.mdec().output_len(),
         0,
         "as 8 palavras disponiveis foram consumidas"
+    );
+}
+
+// O Rayman arma o DMA1 ANTES de mandar os dados pelo DMA0: no console os dois canais correm
+// juntos, servidos por DREQ. Num motor sincrono o canal armado nao pode desistir — tem de
+// retomar quando o MDEC passa a ter saida, senao a IRQ3 de fim de canal nunca chega e o jogo
+// fica esperando para sempre (§ DMA, docs/reference/09-mdec.md L114-124).
+#[test]
+fn mdec_dma1_armado_antes_dos_dados_completa_quando_o_dma0_alimenta_o_mdec() {
+    let mut bus = bus_com_mdec();
+    bus.write32::<BusRead>(MDEC_CMD, (1 << 29) | 1);
+    bus.write32::<BusRead>(DPCR, 0x0765_4321 | (1 << 3) | (1 << 7));
+    // § DICR (docs/reference/04-dma.md): bit23 habilita o mestre, bit16+n o canal n.
+    bus.write32::<BusRead>(DICR, (1 << 23) | (1 << 17));
+
+    let dst: u32 = 0x0000_2000;
+    bus.write32::<BusRead>(D1_MADR, dst);
+    bus.write32::<BusRead>(D1_BCR, 0x0001_0008);
+    bus.write32::<BusRead>(D1_CHCR, CHCR_MDEC_OUT);
+    assert_eq!(
+        bus.read32::<BusRead>(D1_CHCR) & (1 << 24),
+        1 << 24,
+        "nada foi decodificado ainda: o canal fica armado"
+    );
+
+    let src: u32 = 0x0000_1000;
+    write_ram32(&mut bus, src, 0x0000_FE00);
+    bus.write32::<BusRead>(D0_MADR, src);
+    bus.write32::<BusRead>(D0_BCR, 0x0001_0001);
+    bus.write32::<BusRead>(D0_CHCR, CHCR_MDEC_IN);
+
+    assert_eq!(
+        bus.read32::<BusRead>(D1_CHCR) & (1 << 24),
+        0,
+        "o canal armado tem de retomar quando o MDEC produz saida"
+    );
+    assert_eq!(bus.mdec().output_len(), 0, "as 8 palavras foram drenadas");
+    assert_ne!(
+        bus.read32::<BusRead>(dst),
+        0,
+        "o bloco decodificado tem de chegar na RAM de destino"
+    );
+    assert_eq!(
+        bus.read32::<BusRead>(DICR) & (1 << 25),
+        1 << 25,
+        "bit24+1 do DICR marca o fim do canal 1"
+    );
+    assert_eq!(
+        bus.read32::<BusRead>(0x1F80_1070) & (1 << 3),
+        1 << 3,
+        "e a IRQ3 sobe: e ela que chama o callback de volta"
     );
 }

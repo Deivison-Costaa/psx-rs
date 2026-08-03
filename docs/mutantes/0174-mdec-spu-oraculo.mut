@@ -20,9 +20,9 @@ rotulo: troca a ordem dos nibbles no empacotamento de 4 bits
 teste: mdec_macroblock_decode
 ocorrencias: 1
 @@DE
-                .map(|c| (c[0] >> 4) | ((c[1] >> 4) << 4))
+                .map(|c| Self::para4(c[0]) | (Self::para4(c[1]) << 4))
 @@PARA
-                .map(|c| (c[1] >> 4) | ((c[0] >> 4) << 4))
+                .map(|c| Self::para4(c[1]) | (Self::para4(c[0]) << 4))
 @@FIM
 
 mutante: m3
@@ -70,13 +70,14 @@ ocorrencias: 1
 @@FIM
 
 controle: c1
-rotulo: Current Block do status do MDEC muda de 4 para 5, nenhum teste le esse campo
+rotulo: nomear o Current Block antes de deslocar nao muda o status (ancora renovada na 0184)
 teste: mdec_registers_dma
 ocorrencias: 1
 @@DE
-        s |= 4 << 16; // Current Block: so o caminho monocromatico (Y) roda nesta iteracao.
+        s |= (self.current_block as u32 & 0x7) << 16;
 @@PARA
-        s |= 5 << 16; // Current Block: so o caminho monocromatico (Y) roda nesta iteracao.
+        let bloco = self.current_block as u32 & 0x7;
+        s |= bloco << 16;
 @@FIM
 
 controle: c2

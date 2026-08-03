@@ -42,10 +42,10 @@ Regra imposta por `roadmap_arquivo.rs`.
 ## M10 — Precisão e compatibilidade
 - [ ] 10.1 Timings finos (ps1-tests de timing)
 - [ ] 10.2 Passe de compatibilidade (bugs viram itens 10.x)
-- [ ] 10.4 CAUSE.CE nao preenchido no Coprocessor Unusable (`docs/reference/02-cpu.md` L681)
+- [ ] 10.4 CAUSE.CE nao preenchido no Coprocessor Unusable (02-cpu.md L681)
 - [ ] 10.5 Amidog psxtest_cpu para apos "args: 0" — causa nao investigada (iter 0032)
 - [ ] 10.6 GP0(80h) VRAM->VRAM blit (hoje consumido e ignorado)
-- [ ] 10.7 Mask GP0(E6h) em CPU->VRAM e VRAM->VRAM (`docs/reference/03-gpu.md` L590-592)
+- [ ] 10.7 Mask GP0(E6h) em CPU->VRAM e VRAM->VRAM (`docs/reference/03-gpu.md` L590)
 - [ ] 10.8 SWL/SWR fazem read-modify-write e leem portas de I/O de leitura destrutiva
 - [ ] 10.10 Drawing Area GP0(E3h/E4h) e Offset GP0(E5h) sem suite que os meça
 - [ ] 10.11 Textura e Texpage de retângulos (hoje UV consumido e ignorado)
@@ -68,7 +68,7 @@ Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 10.42 Linhas tremulas: captura sem sync com vblank; 2o suspeito GP1(05h) (30/07)
 - [ ] 10.42b Manifesto trata `#` como comentario em `@@DE`/`@@PARA` (alvo `.md`)
 - [ ] 10.44 Manifesto com alvo em documento vivo (STATUS.md) envelhece sempre
-- [ ] 10.45 Load shadow sobrepoe as instrucoes seguintes (`docs/reference/02-cpu.md` L281-296)
+- [ ] 10.45 Load shadow sobrepoe as instrucoes seguintes (`docs/reference/02-cpu.md` L281)
 - [ ] 10.46 `justificativa:` do equivalente nao aceita continuacao de linha (2 parsers)
 - [ ] 10.52 `lhu`/`lbu` no modo do timer nao limpa bits 11/12; 32 bits limpa (0118)
 - [ ] 10.51 GPU em `region_read_byte`: `(phys & 3) + offset` sem mascara estoura em debug (0118)
@@ -96,13 +96,12 @@ Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 10.94 Rayman: laco `0x8019FA1C`; cadeia mapeada na 0178, para em `[0x801F51D8]`
 - [ ] 10.110 AutoPause: INT4 no fim da trilha arma o modo 4/5 do Rayman (06-cdrom.md L1267-1275) (0178)
 - [ ] 10.111 `.cue` multi-trilha do Rayman trava em `boot file` (0178)
-- [ ] 10.100 cpu/cop: `testCop0InvalidOpcode` — cop0cmd invalido nao-TLB nao lanca 0Ah (0171)
 =======
 - [ ] 10.94 Rayman em 590-600 M: laco `0x8019FA1C` espera `[0x801CEEBC]` != 0 (0167)
 >>>>>>> main
 - [ ] 10.101 SPU/DMA4 ausente bloqueia dma/dpcr (13/15) (0173)
 - [ ] 10.102 DMA sincrono: ticks medidos ao redor leem overhead do poll (0173)
-- [ ] 10.103 GetlocL/GetlocP sao stub; disc-swap exige tray fisico scriptavel (06-cdrom.md L1052/1073) (0175)
+- [ ] 10.103 GetlocL/GetlocP sao stub; disc-swap exige tray scriptavel (06-cdrom.md L1052) (0175)
 - [ ] 10.107 `CLAUDE.md` lista `perf`/`ci` mas o commit-lint so aceita 6 tipos (0177)
 - [ ] 10.108 Oraculo roda cdrom sem `--disc`; com disco: GetStat sem bit1, GetlocL nao falha (0175)
 - [ ] 10.109 SyncMode=0 com chopping: MADR e BC parados (04-dma.md L48-51/L80-81) (0173)

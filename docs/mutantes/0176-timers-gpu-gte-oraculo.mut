@@ -1,0 +1,116 @@
+# Manifesto de mutacao da iteracao 0176 — timers, gpu e gte: oraculo do lote E
+formato: 1
+iteracao: 0176
+item: 5.6
+alvo: crates/psx-core/src/gte.rs
+teste: gte_registros_dados
+
+mutante: m1
+rotulo: VZ0/VZ1/VZ2/IR0-3 param de sign-extender na leitura (passthrough puro)
+teste: gte_registros_dados
+ocorrencias: 1
+@@DE
+fn sext16(val: u32) -> u32 {
+    (val as i16 as i32) as u32
+}
+@@PARA
+fn sext16(val: u32) -> u32 {
+    val
+}
+@@FIM
+
+mutante: m2
+rotulo: OTZ e SZ0-3 param de mascarar para 16 bits na leitura
+teste: gte_registros_dados
+ocorrencias: 1
+@@DE
+            7 | 16 | 17 | 18 | 19 => self.regs[rd] & 0xFFFF,
+@@PARA
+            7 | 16 | 17 | 18 | 19 => self.regs[rd],
+@@FIM
+
+mutante: m3
+rotulo: escrita em SXYP deixa de empurrar o valor novo para SXY2
+teste: gte_registros_dados
+ocorrencias: 1
+@@DE
+                self.regs[14] = val;
+@@PARA
+                self.regs[14] = self.regs[13];
+@@FIM
+
+mutante: m4
+rotulo: IRGB decompoe o canal vermelho multiplicando por 40h em vez de 80h
+teste: gte_registros_dados
+ocorrencias: 1
+@@DE
+                self.regs[9] = (masked & 0x1F) * 0x80;
+@@PARA
+                self.regs[9] = (masked & 0x1F) * 0x40;
+@@FIM
+
+mutante: m5
+rotulo: LZCR sempre devolve zero para LZCS positivo
+teste: gte_registros_dados
+ocorrencias: 1
+@@DE
+        val.leading_zeros()
+@@PARA
+        0
+@@FIM
+
+mutante: m6
+rotulo: H (cop2r58) para de sign-extender na leitura via CFC2
+teste: gte_registros_dados
+ocorrencias: 1
+@@DE
+    matches!(rd, 4 | 12 | 20 | 26 | 27 | 29 | 30)
+@@PARA
+    matches!(rd, 4 | 12 | 20 | 27 | 29 | 30)
+@@FIM
+
+mutante: m7
+rotulo: FLAG.22 do RTPS volta a usar a faixa armazenada em vez da faixa fixa de lm=0
+arquivo: crates/psx-core/src/gte.rs
+teste: gte_rtps_ir3_flag_lm
+ocorrencias: 1
+@@DE
+    let flag_bit22 = flag_check > lm0_max || flag_check < lm0_min;
+@@PARA
+    let flag_bit22 = mac3 > lm0_max || mac3 < lm0_min;
+@@FIM
+
+mutante: m8
+rotulo: bus para de propagar a resolucao real da GPU para os timers a cada tick
+arquivo: crates/psx-core/src/bus.rs
+teste: timers_gpu_timing_wiring
+ocorrencias: 1
+@@DE
+        self.timers.update_gpu_timing(
+            self.gpu.cycles_per_pix(),
+            self.gpu.video_cycles_per_scanline(),
+        );
+@@PARA
+        self.timers.update_gpu_timing(10, 3413);
+@@FIM
+
+controle: c1
+rotulo: comparacao espelhada do overflow de MAC0 (cosmetico)
+teste: gte_registros_dados
+ocorrencias: 1
+@@DE
+    if mac0 > i32::MAX as i64 {
+@@PARA
+    if i32::MAX as i64 < mac0 {
+@@FIM
+
+controle: c2
+rotulo: nomear a condicao de sinal antes do if nao muda o resultado de LZCR
+teste: gte_registros_dados
+ocorrencias: 1
+@@DE
+    if (val as i32) < 0 {
+@@PARA
+    let negativo = (val as i32) < 0;
+    if negativo {
+@@FIM

@@ -557,6 +557,12 @@ impl Bus {
                 let byte_index = ((phys & 3) + offset) & 3;
                 Some(((val >> (byte_index * 8)) & 0xFF) as u8)
             }
+            0x1F80_1080..=0x1F80_10EC | 0x1F80_10F0 | 0x1F80_10F4 => {
+                let base = phys & !3;
+                let val = self.dma_register_value(base).unwrap_or(0);
+                let byte_index = (phys & 3) + offset;
+                Some(((val >> (byte_index * 8)) & 0xFF) as u8)
+            }
             0x1F80_1024..=0x1F80_103F | 0x1F80_1041..=0x1F80_1043 | 0x1F80_1064..=0x1F80_1FFF => {
                 Some(0)
             }
@@ -737,6 +743,27 @@ impl Bus {
     /// carrega os 32 bits inteiros de `rt` como se fosse um `sw` alinhado.
     fn e_registrador_dma_de_32_bits(phys: u32) -> bool {
         matches!(phys, 0x1F80_1080..=0x1F80_10EC | 0x1F80_10F0 | 0x1F80_10F4)
+    }
+
+    /// Mesma decodificacao de endereco de `region_read32` para o banco de DMA, reaproveitada
+    /// por `region_read_byte` — leitura de byte/halfword tem de refletir o registrador de
+    /// verdade, nao um zero fixo.
+    fn dma_register_value(&self, phys: u32) -> Option<u32> {
+        match phys {
+            0x1F80_1080..=0x1F80_10EC => {
+                let offset = phys - 0x1F80_1080;
+                let ch = (offset / 0x10) as usize;
+                match offset % 0x10 {
+                    0x0 => Some(self.dma.read_madr(ch)),
+                    0x4 => Some(self.dma.read_bcr(ch)),
+                    0x8 => Some(self.dma.read_chcr(ch)),
+                    _ => Some(0),
+                }
+            }
+            0x1F80_10F0 => Some(self.dma.read_dpcr()),
+            0x1F80_10F4 => Some(self.dma.read_dicr()),
+            _ => None,
+        }
     }
 
     pub fn write8_gpr_completo<Op: MemoryOp>(&mut self, addr: u32, gpr: u32) {

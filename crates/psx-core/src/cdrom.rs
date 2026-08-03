@@ -276,11 +276,9 @@ impl Cdrom {
                     self.result_push(self.stat_byte() | 0x01);
                     self.result_push(0x10);
                     self.intsts.set(5);
-                } else if !self.disc_inserted.get() {
-                    self.result_push(self.stat_byte() | 0x01);
-                    self.result_push(0x80);
-                    self.intsts.set(5);
                 } else {
+                    // 06-cdrom.md L787-797: Setloc so guarda o alvo do seek, sem
+                    // checar disco — quem checa e o SeekL/ReadN que de fato buscam.
                     self.seek_min.set(mm);
                     self.seek_sec.set(ss);
                     self.seek_sect.set(ff);

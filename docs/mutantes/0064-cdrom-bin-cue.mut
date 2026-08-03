@@ -52,9 +52,9 @@ rotulo: read_data_sector extrai do offset 0 em vez de 0x10 — dados errados
 mutante: m6
 rotulo: bin_path vazio — ignora FILE
 @@DE
-                    bin_path = rest[1..quote_end].to_string();
+                    arquivo_atual = rest[1..quote_end].to_string();
 @@PARA
-                    bin_path = String::new();
+                    arquivo_atual = String::new();
 @@FIM
 
 mutante: m7

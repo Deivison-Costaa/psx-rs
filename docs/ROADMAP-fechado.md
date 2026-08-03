@@ -174,6 +174,8 @@ da escada valer so para o que FALTA. Narrativa de cada item continua em
 - [x] 10.98 oraculo-tty: alinhamento e prefixo uniforme (iter 0171)
 - [x] 10.99 cpu/cop: Coprocessor Unusable pelo bit CU do SR, 19/19 -> 1/19 (iter 0171)
 - [x] 10.105 CI: 188 s de link contra 14 s de execucao; debuginfo desligado no workflow (iter 0177)
+- [x] 10.110 AutoPause: INT4 no fim da trilha; `[0x801CEEBC]` finalmente vira 1 (iter 0180)
+- [x] 10.111 `.cue` com um arquivo por trilha: concatena e resolve LBA absoluto (iter 0180)
 - [x] 10.106 spec_citations varria `.claude/worktrees/`: 295 erros de outra arvore (iter 0177)
 - [x] 10.3 Bus error (06h) ao buscar instrucao no scratchpad/I_STAT/MDEC (iter 0172)
 - [x] 10.100 cpu/cop: `testCop0InvalidOpcode` — so TLBxx lanca reservado, resto e no-op (iter 0172)

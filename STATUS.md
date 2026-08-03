@@ -7,35 +7,30 @@
 
 ## Última iteração concluída
 
-**0176** — **lote E do oráculo de TTY: timers+GPU+GTE (R4 dobrado)**. Achada a causa única do
-`gte/test-all` (997/999→17/19): `read_data`/`write_data` não tinham os formatos por registrador
-da spec (sign-extend VZ/IR, máscara U16 OTZ/SZ, push de SXYP, IRGB/ORGB, LZCR, bug de H) — o
-programa aborta os 1100 testes de opcode assim que o 1º teste de registro falha. RTPS ganhou 4
-correções (FLAG.22 de IR3 sempre em faixa lm=0, overflow de MAC0/MAC1-3, SAR em vez de divisão
-truncada): 71/1150 opcodes passam (era ~1). `timers`: GPU nunca propagava resolução real pros
-timers (corrigido; não moveu o placar — HBLANK nunca é agendado de verdade, achado e não
-corrigido). `gpu/bandwidth` e `timer-dump` seguem sem correção (10.104/10.105). Bateria 8/8,
-controles 2/2.
+**0180** — **o laço do Rayman quebrou.** `[0x801CEEBC]` foi de `0` para **`1`** e o jogo saiu de
+`0x8019FA1C`, onde estava desde a 0167. Três mudanças: (a) `.cue` com um arquivo por trilha —
+`parse_cue` guardava um `bin_path` só e sobrava o **último**, então a trilha de dados era lida do
+arquivo da trilha 6 e o boot morria em `boot file`; (b) TOC absoluto — o `INDEX 01` de um rip por
+trilha é relativo ao próprio arquivo, e sem somar os anteriores a fronteira entre trilhas some;
+(c) **AutoPause** — o jogo manda `Setmode=07h` (medido), e o INT4 no fim da trilha é o que arma o
+modo que escreve a flag. Bateria 6/6, controles 2/2; âncora da 0064 reparada e reexecutada 7/7.
 
 ## Próxima tarefa
 
-**Lotes B-E do oráculo seguem** (DMA, MDEC+SPU, CD-ROM, timers+GPU+GTE —
-`logs/orquestrador/task-lote-oraculo.txt`). Pendências do lote A: ROADMAP 10.108 (SPU sem
-estado) e o resto de `cpu/io-access-bitwidth` (I_MASK ecoa bruto sem mascarar, SIO/JOY largura,
-timers com bits "open bus" no read de 32, `Dma::write_dicr` deixa passar o bit 6 — grava
-0x340078 em vez de 0x340038, visível só depois do eco de largura).
+**ROADMAP 10.94 (nova parada do Rayman) e 10.90 (VSync).** O jogo agora carrega
+`cdrom:SLUS-000.05;1`, imprime `Execute !` e o `PS-X Control PAD Driver Ver 3.0`, e para em
+`0x80132BF0`: `while (*(u8*)$s0 == 0) {}`, logo depois que `0x80133F40` retorna. Continuam **296**
+`VSync: timeout` — o 10.90 nunca foi tocado e e o proximo obstaculo provavel.
 
-**Placar do oráculo em `a221b78`, com os cinco lotes e a 0178 integrados: 3 idênticas, 18
-diferem.** `gpu/gp0-e1` 0/12, `gpu/mask-bit` 0/7 e `cpu/cop` **0/19** batem byte a byte com
-hardware real. Maiores quedas da noite: `gte/test-all` 1048/1050 → **15/17**, `cpu/cop` 19/19 →
-0/19, `cpu/code-in-io` 7/10 → 4/10, `dma/chopping` 131/132 → 130/132.
+**Rodar sempre com o `.cue` MULTI-TRILHA** (`Rayman (USA).cue`): o `DADOS` nao tem trilha de audio
+e o autopause nao dispara nele.
 
-`K/M` no CSV é **K linhas divergentes de M**. `timers` tem jitter real no gabarito e nunca dá
-`identico`. Medição isolada pode divergir do CSV sob disputa de CPU — `chain-looping` deu 9/11
-no CSV e 4/11 isolado e determinístico (0173).
+Pendencias do lote A: 10.112 (SPU sem estado) e o resto de `cpu/io-access-bitwidth` (I_MASK ecoa
+bruto, SIO/JOY largura, `Dma::write_dicr` deixa passar o bit 6). Lotes do oraculo: tarefa-modelo
+em `logs/orquestrador/task-lote-oraculo.txt`.
 
-**Antes de medir CD-ROM, monte disco:** o oráculo roda as suítes sem `--disc` e as contagens
-delas medem a falta de mídia, não a nossa fidelidade (10.108).
+`K/M` no CSV e **K linhas divergentes de M**. `timers` tem jitter real e nunca dara `identico`.
+**Antes de medir CD-ROM, monte disco** (10.108).
 
 Invariantes relevantes: nenhuma.
 
@@ -53,7 +48,7 @@ Invariantes relevantes: nenhuma.
 
 ## Placar de testes
 
-Workspace: **1010** testes.
+Workspace: **1019** testes.
 - **NUNCA rodar `cargo test` nem a bateria de mutação junto com o oráculo**: a disputa de CPU faz
   o `Start-Process` ler stdout antes do flush e reportar `sem-saida` falso. Derrubou 16/21 numa
   medição da 0170; rodada limpa deu 21/21.

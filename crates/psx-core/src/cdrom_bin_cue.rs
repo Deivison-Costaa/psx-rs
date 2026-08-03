@@ -10,6 +10,8 @@ pub enum TrackType {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TrackInfo {
     pub number: u8,
+    pub file: String,
+    pub start_lba: u32,
     pub track_type: TrackType,
     pub index01_mm: u8,
     pub index01_ss: u8,
@@ -23,6 +25,10 @@ pub struct TrackInfo {
 }
 
 impl TrackInfo {
+    pub fn index01_em_quadros(&self) -> u32 {
+        self.index01_mm as u32 * 60 * 75 + self.index01_ss as u32 * 75 + self.index01_ff as u32
+    }
+
     pub fn bin_offset(&self) -> u32 {
         let total_frames =
             self.index01_mm as u32 * 60 * 75 + self.index01_ss as u32 * 75 + self.index01_ff as u32;
@@ -37,6 +43,43 @@ pub struct DiscLayout {
 }
 
 impl DiscLayout {
+    // Imagem rasgada trilha a trilha tem um arquivo por trilha, cada um comecando no proprio
+    // LBA 0. Concatenar na ordem das trilhas reconstroi a imagem indexavel por LBA absoluto,
+    // que e o que `read_sector_from_disc` espera.
+    // Num `.cue` de arquivo unico o INDEX 01 ja e o LBA. Num rip por trilha ele e relativo ao
+    // proprio arquivo, e o absoluto so aparece somando os tamanhos dos anteriores — que o
+    // parser nao pode medir sem I/O (R3). Quem le os arquivos passa os tamanhos aqui.
+    pub fn atribui_lbas_absolutos(&mut self, setores_por_arquivo: &[u32]) {
+        let arquivos = self.arquivos_em_ordem();
+        let mut base: Vec<(String, u32)> = Vec::new();
+        let mut acumulado = 0u32;
+        for (i, nome) in arquivos.iter().enumerate() {
+            base.push((nome.clone(), acumulado));
+            acumulado = acumulado.saturating_add(setores_por_arquivo.get(i).copied().unwrap_or(0));
+        }
+        for t in &mut self.tracks {
+            let deslocamento = base
+                .iter()
+                .find(|(nome, _)| *nome == t.file)
+                .map(|(_, o)| *o)
+                .unwrap_or(0);
+            t.start_lba = deslocamento + t.index01_em_quadros();
+        }
+    }
+
+    pub fn arquivos_em_ordem(&self) -> Vec<String> {
+        let mut fora = Vec::new();
+        for t in &self.tracks {
+            if !t.file.is_empty() && !fora.contains(&t.file) {
+                fora.push(t.file.clone());
+            }
+        }
+        if fora.is_empty() && !self.bin_path.is_empty() {
+            fora.push(self.bin_path.clone());
+        }
+        fora
+    }
+
     pub fn read_data_sector(&self, bin_data: &[u8], sector_index: u32) -> Vec<u8> {
         let offset = sector_index as usize * 2352;
         let start = offset + 0x10;
@@ -69,6 +112,7 @@ fn parse_track_type(s: &str) -> Option<TrackType> {
 
 pub fn parse_cue(cue_text: &str) -> DiscLayout {
     let mut bin_path = String::new();
+    let mut arquivo_atual = String::new();
     let mut tracks: Vec<TrackInfo> = Vec::new();
     let mut current_track: Option<TrackInfo> = None;
 
@@ -84,7 +128,10 @@ pub fn parse_cue(cue_text: &str) -> DiscLayout {
             let rest = &trimmed[5..].trim();
             if let Some(quote_end) = rest.rfind('"') {
                 if rest.starts_with('"') && quote_end > 0 {
-                    bin_path = rest[1..quote_end].to_string();
+                    arquivo_atual = rest[1..quote_end].to_string();
+                    if bin_path.is_empty() {
+                        bin_path = arquivo_atual.clone();
+                    }
                 }
             }
             continue;
@@ -101,6 +148,8 @@ pub fn parse_cue(cue_text: &str) -> DiscLayout {
                     if let Some(tt) = parse_track_type(parts[1]) {
                         current_track = Some(TrackInfo {
                             number: num,
+                            file: arquivo_atual.clone(),
+                            start_lba: 0,
                             track_type: tt,
                             index01_mm: 0,
                             index01_ss: 0,

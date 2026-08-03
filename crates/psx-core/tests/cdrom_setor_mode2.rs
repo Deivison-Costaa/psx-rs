@@ -58,6 +58,8 @@ fn layout() -> DiscLayout {
         bin_path: "test.bin".to_string(),
         tracks: vec![TrackInfo {
             number: 1,
+            file: "test.bin".to_string(),
+            start_lba: 150,
             track_type: TrackType::Mode1_2048,
             index01_mm: 0,
             index01_ss: 2,

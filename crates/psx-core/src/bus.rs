@@ -385,18 +385,7 @@ impl Bus {
             0x1F80_1060 => Some(self.mem_ctrl.read32(phys)),
             0x1F80_1070 => Some(self.irq.read_stat()),
             0x1F80_1074 => Some(self.irq.read_mask()),
-            0x1F80_1080..=0x1F80_10EC => {
-                let offset = phys - 0x1F80_1080;
-                let ch = (offset / 0x10) as usize;
-                match offset % 0x10 {
-                    0x0 => Some(self.dma.read_madr(ch)),
-                    0x4 => Some(self.dma.read_bcr(ch)),
-                    0x8 => Some(self.dma.read_chcr(ch)),
-                    _ => Some(0),
-                }
-            }
-            0x1F80_10F0 => Some(self.dma.read_dpcr()),
-            0x1F80_10F4 => Some(self.dma.read_dicr()),
+            0x1F80_1080..=0x1F80_10EC | 0x1F80_10F0 | 0x1F80_10F4 => self.dma_register_value(phys),
             0xFFFE_0130 => Some(self.bcc.0),
             0x1F80_1100..=0x1F80_112F => Some(self.timers.read32(phys)),
             0x1F80_1810 | 0x1F80_1814 => Some(self.gpu.read32(phys - 0x1F80_1810)),

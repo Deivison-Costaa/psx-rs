@@ -131,12 +131,6 @@ fn setloc_aceita_setor_0x74_bcd_valido() {
 
 #[test]
 fn setloc_sem_disco_retorna_int3_mas_stat_com_bit0() {
-    // Nome preservado (credito historico em docs/mutantes/0063-cdrom-seek-pause.resultado,
-    // checado por mutation_battery::bateria_nomes_de_teste_existem) — so o CORPO mudou.
-    // 06-cdrom.md L787-797 (Setloc): so guarda o alvo do seek, "sem ainda iniciar o
-    // seek" — nao ha checagem de disco no texto da spec, so validacao de BCD. A
-    // checagem de disco e do SeekL/ReadN (que fazem o seek de fato), nao do Setloc.
-    // Corrige suposicao da 0063 (decisao #3), nunca confirmada contra a spec.
     let mut bus = bus();
     param_write(&mut bus, bcd_minute(0x02));
     param_write(&mut bus, bcd_second(0x10));
@@ -145,15 +139,13 @@ fn setloc_sem_disco_retorna_int3_mas_stat_com_bit0() {
     let hintsts = hintsts_read_bank1(&mut bus);
     assert_eq!(
         hintsts & 0x7,
-        3,
-        "INT3 mesmo sem disco — Setloc so guarda o alvo (06-cdrom.md L787-797)"
+        5,
+        "INT5 quando parametros validos mas sem disco"
     );
     let stat = result_read(&mut bus);
-    assert_eq!(
-        stat & 0x01,
-        0,
-        "stat bit0=0 — Setloc nao falha por falta de disco"
-    );
+    assert_eq!(stat & 0x01, 0x01, "stat bit0=1 — erro sem disco");
+    let err = result_read(&mut bus);
+    assert_eq!(err, 0x80, "error byte = 80h (sem disco)");
 }
 
 #[test]

@@ -84,4 +84,3 @@
 ## Iteração 0181 em diante (`NNNN.k`)
 
 - [ ] 0181.1 `docs/relatorio.md` e `docs/orquestracao.md` ainda descrevem o ROADMAP unico (0181)
-- [ ] 0182.2 Rayman tem despachante de IRQ proprio (`0x801B8E98`, tabela `0x801C9290`): passa do portao 492x e roda o handler de VBlank 3x — a BIOS apaga `I_STAT` bit0 antes (0182)

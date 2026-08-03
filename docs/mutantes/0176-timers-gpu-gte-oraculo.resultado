@@ -1,0 +1,13 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: 90fe99b9652c874b4f69cf7966ba048209665720
+# rodado_em: 2026-08-03T04:03:33-03:00
+m1,mutante,morreu,morreu,0.6,h_sign_extende_na_leitura_bug_documentado;ir0_sign_extende_na_leitura;ir1_sign_extende_na_leitura_direta;vz0_sign_extende_na_leitura
+m2,mutante,morreu,morreu,0.6,otz_mascara_16_bits_sem_sinal_na_leitura;sz3_mascara_16_bits_sem_sinal_na_leitura
+m3,mutante,morreu,morreu,0.6,sxyp_escrita_empurra_fifo_sxy
+m4,mutante,morreu,morreu,0.6,irgb_escrita_decompoe_em_ir1_ir2_ir3
+m5,mutante,morreu,morreu,0.5,lzcr_conta_zeros_a_esquerda_de_lzcs_positivo
+m6,mutante,morreu,morreu,0.6,h_sign_extende_na_leitura_bug_documentado
+m7,mutante,morreu,morreu,0.6,flag22_usa_sar12_mesmo_com_sf_zero_apesar_do_mac3_bruto_estourar
+m8,mutante,morreu,morreu,0.7,tick_timers_le_a_resolucao_real_da_gpu_em_vez_do_default
+c1,controle,sobreviveu,sobreviveu,0.7,
+c2,controle,sobreviveu,sobreviveu,0.5,

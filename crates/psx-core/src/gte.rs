@@ -15,11 +15,45 @@ impl Gte {
     }
 
     pub fn read_data(&self, rd: usize) -> u32 {
-        self.regs[rd]
+        match rd {
+            1 | 3 | 5 | 8 | 9 | 10 | 11 => sext16(self.regs[rd]),
+            7 | 16 | 17 | 18 | 19 => self.regs[rd] & 0xFFFF,
+            15 => self.regs[14],
+            28 | 29 => self.irgb_orgb(),
+            31 => leading_count(self.regs[30]),
+            _ => self.regs[rd],
+        }
     }
 
     pub fn write_data(&mut self, rd: usize, val: u32) {
-        self.regs[rd] = val;
+        match rd {
+            15 => {
+                self.regs[12] = self.regs[13];
+                self.regs[13] = self.regs[14];
+                self.regs[14] = val;
+                self.regs[15] = val;
+            }
+            28 => {
+                self.regs[28] = val;
+                let masked = val & 0x7FFF;
+                self.regs[9] = (masked & 0x1F) * 0x80;
+                self.regs[10] = ((masked >> 5) & 0x1F) * 0x80;
+                self.regs[11] = ((masked >> 10) & 0x1F) * 0x80;
+            }
+            _ => self.regs[rd] = val,
+        }
+    }
+
+    fn irgb_orgb(&self) -> u32 {
+        let channel = |reg: usize| -> u32 {
+            let ir = sext16(self.regs[reg]) as i32;
+            if ir < 0 {
+                0
+            } else {
+                ((ir >> 7) as u32).min(0x1F)
+            }
+        };
+        channel(9) | (channel(10) << 5) | (channel(11) << 10)
     }
 
     pub fn read_control(&self, rd: usize) -> u32 {
@@ -30,7 +64,7 @@ impl Gte {
             let error_flag = flag_error_bit(raw);
             raw | error_flag
         } else if is_standalone_s16_control(rd) {
-            (val as i16 as i32) as u32
+            sext16(val)
         } else {
             val
         }
@@ -170,9 +204,9 @@ impl Gte {
         self.regs[26] = mac2 as u32;
         self.regs[27] = mac3 as u32;
 
-        let ir1_clamped = saturate_ir(mac1, 1, 24, &mut flag, false);
-        let ir2_clamped = saturate_ir(mac2, 1, 23, &mut flag, false);
-        let ir3_clamped = saturate_ir(mac3, 1, 22, &mut flag, false);
+        let ir1_clamped = saturate_ir(mac1, 1, 24, &mut flag);
+        let ir2_clamped = saturate_ir(mac2, 1, 23, &mut flag);
+        let ir3_clamped = saturate_ir(mac3, 1, 22, &mut flag);
 
         self.regs[9] = ir1_clamped as u32;
         self.regs[10] = ir2_clamped as u32;
@@ -200,9 +234,9 @@ impl Gte {
         self.regs[26] = mac2 as u32;
         self.regs[27] = mac3 as u32;
 
-        let ir1_clamped = saturate_ir(mac1, lm, 24, &mut flag, false);
-        let ir2_clamped = saturate_ir(mac2, lm, 23, &mut flag, false);
-        let ir3_clamped = saturate_ir(mac3, lm, 22, &mut flag, false);
+        let ir1_clamped = saturate_ir(mac1, lm, 24, &mut flag);
+        let ir2_clamped = saturate_ir(mac2, lm, 23, &mut flag);
+        let ir3_clamped = saturate_ir(mac3, lm, 22, &mut flag);
 
         self.regs[9] = ir1_clamped as u32;
         self.regs[10] = ir2_clamped as u32;
@@ -311,6 +345,10 @@ impl Gte {
                 + (m33 as i64) * (vz as i64);
         }
 
+        check_mac_43bit_overflow(raw1, 30, 27, &mut flag);
+        check_mac_43bit_overflow(raw2, 29, 26, &mut flag);
+        check_mac_43bit_overflow(raw3, 28, 25, &mut flag);
+
         let shift = sf * 12;
         let mac1 = (raw1 >> shift) as i32;
         let mac2 = (raw2 >> shift) as i32;
@@ -320,9 +358,9 @@ impl Gte {
         self.regs[26] = mac2 as u32;
         self.regs[27] = mac3 as u32;
 
-        let ir1 = saturate_ir(mac1 as i64, lm, 24, &mut flag, false);
-        let ir2 = saturate_ir(mac2 as i64, lm, 23, &mut flag, false);
-        let ir3 = saturate_ir(mac3 as i64, lm, 22, &mut flag, false);
+        let ir1 = saturate_ir(mac1 as i64, lm, 24, &mut flag);
+        let ir2 = saturate_ir(mac2 as i64, lm, 23, &mut flag);
+        let ir3 = saturate_ir(mac3 as i64, lm, 22, &mut flag);
 
         self.regs[9] = ir1 as u32;
         self.regs[10] = ir2 as u32;
@@ -365,6 +403,10 @@ impl Gte {
             + (rt32 as i64) * (vy as i64)
             + (rt33 as i64) * (vz as i64);
 
+        check_mac_43bit_overflow(raw1, 30, 27, &mut flag);
+        check_mac_43bit_overflow(raw2, 29, 26, &mut flag);
+        check_mac_43bit_overflow(raw3, 28, 25, &mut flag);
+
         let shift = sf * 12;
         let mac1 = (raw1 >> shift) as i32;
         let mac2 = (raw2 >> shift) as i32;
@@ -374,9 +416,14 @@ impl Gte {
         self.regs[26] = mac2 as u32;
         self.regs[27] = mac3 as u32;
 
-        let ir1 = saturate_ir(mac1 as i64, lm, 24, &mut flag, false);
-        let ir2 = saturate_ir(mac2 as i64, lm, 23, &mut flag, false);
-        let ir3 = saturate_ir(mac3 as i64, lm, 22, &mut flag, true);
+        let ir1 = saturate_ir(mac1 as i64, lm, 24, &mut flag);
+        let ir2 = saturate_ir(mac2 as i64, lm, 23, &mut flag);
+        // § COP2 0180001h - RTPS (L509-511): mesmo com sf=0 (sem deslocamento no
+        // MAC3 guardado), a flag usa sempre "MAC3 SAR 12" para decidir se estourou.
+        let (ir3, ir3_flag22) = saturate_ir3_rtps(mac3 as i64, raw3 >> 12, lm);
+        if ir3_flag22 {
+            flag |= 1 << 22;
+        }
 
         self.regs[9] = ir1 as u32;
         self.regs[10] = ir2 as u32;
@@ -407,7 +454,8 @@ impl Gte {
         let n = gte_divide(h, sz3, &mut flag);
 
         let mac0_1 = n as i64 * ir1 as i64 + ofx as i64;
-        let sx2 = (mac0_1 / 0x10000) as i32;
+        check_mac0_overflow(mac0_1, &mut flag);
+        let sx2 = (mac0_1 >> 16) as i32;
         let sx2_clamped = if sx2 > 0x3FF {
             flag |= 1 << 14;
             0x3FF
@@ -419,7 +467,8 @@ impl Gte {
         };
 
         let mac0_2 = n as i64 * ir2 as i64 + ofy as i64;
-        let sy2 = (mac0_2 / 0x10000) as i32;
+        check_mac0_overflow(mac0_2, &mut flag);
+        let sy2 = (mac0_2 >> 16) as i32;
         let sy2_clamped = if sy2 > 0x3FF {
             flag |= 1 << 13;
             0x3FF
@@ -431,7 +480,8 @@ impl Gte {
         };
 
         let mac0_3 = n as i64 * dqa as i64 + dqb as i64;
-        let ir0 = (mac0_3 / 0x1000) as i32;
+        check_mac0_overflow(mac0_3, &mut flag);
+        let ir0 = (mac0_3 >> 12) as i32;
         let ir0_clamped = if ir0 > 0x1000 {
             flag |= 1 << 12;
             0x1000
@@ -454,7 +504,19 @@ impl Gte {
 }
 
 fn is_standalone_s16_control(rd: usize) -> bool {
-    matches!(rd, 4 | 12 | 20 | 27 | 29 | 30)
+    matches!(rd, 4 | 12 | 20 | 26 | 27 | 29 | 30)
+}
+
+fn sext16(val: u32) -> u32 {
+    (val as i16 as i32) as u32
+}
+
+fn leading_count(val: u32) -> u32 {
+    if (val as i32) < 0 {
+        (!val).leading_zeros()
+    } else {
+        val.leading_zeros()
+    }
 }
 
 fn flag_error_bit(flag: u32) -> u32 {
@@ -464,13 +526,16 @@ fn flag_error_bit(flag: u32) -> u32 {
     if or_result != 0 { 1u32 << 31 } else { 0 }
 }
 
-fn saturate_ir(val: i64, lm: u32, flag_bit: u32, flag: &mut u32, force_lm0: bool) -> i32 {
-    let use_lm0 = force_lm0 || lm == 0;
-    let (min_val, max_val) = if use_lm0 {
+fn lm_range(lm: u32) -> (i64, i64) {
+    if lm == 0 {
         (-0x8000i64, 0x7FFFi64)
     } else {
         (0i64, 0x7FFFi64)
-    };
+    }
+}
+
+fn saturate_ir(val: i64, lm: u32, flag_bit: u32, flag: &mut u32) -> i32 {
+    let (min_val, max_val) = lm_range(lm);
     if val > max_val {
         *flag |= 1 << flag_bit;
         max_val as i32
@@ -480,6 +545,40 @@ fn saturate_ir(val: i64, lm: u32, flag_bit: u32, flag: &mut u32, force_lm0: bool
     } else {
         val as i32
     }
+}
+
+// § COP2 0180001h - RTPS (L507-511) de docs/reference/07-gte.md: para RTPS/RTPT,
+// o FLAG.22 de IR3 e sempre decidido pela faixa de lm=0 (-8000h..+7FFFh), mas o
+// valor ARMAZENADO em IR3 e recortado pela faixa do bit lm real — as duas coisas
+// divergem quando MAC3 cabe na faixa de lm=0 mas nao na de lm=1.
+// § cop2r63 - FLAG (L351-356): bits 25-30 acusam MAC1/MAC2/MAC3 fora da faixa do
+// acumulador interno de 44 bits (43 bits de magnitude + sinal), antes do SAR sf*12.
+fn check_mac_43bit_overflow(raw: i64, pos_bit: u32, neg_bit: u32, flag: &mut u32) {
+    const MAX43: i64 = (1i64 << 43) - 1;
+    const MIN43: i64 = -(1i64 << 43);
+    if raw > MAX43 {
+        *flag |= 1 << pos_bit;
+    } else if raw < MIN43 {
+        *flag |= 1 << neg_bit;
+    }
+}
+
+// § cop2r63 - FLAG (L365-366): bits 15/16 acusam MAC0 fora da faixa de 32 bits
+// com sinal, antes de MAC0 ser recortado para SX2/SY2/IR0.
+fn check_mac0_overflow(mac0: i64, flag: &mut u32) {
+    if mac0 > i32::MAX as i64 {
+        *flag |= 1 << 16;
+    } else if mac0 < i32::MIN as i64 {
+        *flag |= 1 << 15;
+    }
+}
+
+fn saturate_ir3_rtps(mac3: i64, flag_check: i64, lm: u32) -> (i32, bool) {
+    let (lm0_min, lm0_max) = lm_range(0);
+    let flag_bit22 = flag_check > lm0_max || flag_check < lm0_min;
+    let (min_val, max_val) = lm_range(lm);
+    let clamped = mac3.clamp(min_val, max_val) as i32;
+    (clamped, flag_bit22)
 }
 
 static UNR_TABLE: [u8; 257] = [

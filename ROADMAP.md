@@ -28,7 +28,7 @@ Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 7.4 Reverb + noise + CD-DA/XA
 
 ## M8 — MDEC
-- [ ] 8.2 Macroblocos: mono (RLE+IDCT+y_to_mono) feito (iter 0174); falta cor (yuv_to_rgb, 15/24bpp)
+- [ ] 8.2 Macroblocos: mono feito (0174); falta cor (yuv_to_rgb, 15/24bpp)
 
 ## M9 — App desktop
 - [ ] 9.1 Biblioteca: scan BIN/CUE, título/serial/região, lista
@@ -75,11 +75,11 @@ Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 10.49 Bit 15 do `DICR` gravavel mas nada o levanta; DMA fora da RAM ignorada (0116)
 - [ ] 10.48 `sw` em `1F801044h..104Fh` cai no sumidouro de `region_write32` (0115)
 - [ ] 10.57 Regiao do GetID fixada em SCEA; ler o setor de licenca do `.bin` (0122)
-- [ ] 10.56 Result FIFO do comando anterior continua legivel na janela da primeira resposta (0121)
-- [ ] 10.55 Atraso da primeira resposta ignora o motor: spec da `Nop (when stopped) 0x5CF4` (0121)
-- [ ] 10.53 Comando executa mesmo com INT pendente; spec exige esperar o ack (06-cdrom.md L1984) (0121)
+- [ ] 10.56 Result FIFO anterior legivel na janela da primeira resposta (0121)
+- [ ] 10.55 Atraso da 1a resposta ignora o motor: `Nop (when stopped) 0x5CF4` (0121)
+- [ ] 10.53 Comando executa com INT pendente; spec exige o ack (06-cdrom.md L1984) (0121)
 - [ ] 10.47 Espera da BIOS por timeout: 0x8000 giros < ~230 k (0114)
-- [ ] 10.58 mutantes.ps1 so roda psx-core; alvo por crate e revalidar 0078/0079 (invariante 29) (0125)
+- [ ] 10.58 mutantes.ps1 so roda psx-core; alvo por crate (invariante 29) (0125)
 - [ ] 10.66 Meta-teste nao reexecuta bateria antiga: `.resultado` mente (0143)
 - [ ] 10.63 `-ContinueBranch` diz "reprovado na revisao" apos travamento (0140)
 - [ ] 10.65 Revisor isolado em /tmp nao le o repo nem confere citacao (0141)
@@ -94,16 +94,18 @@ Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 10.94 Rayman: laco `0x8019FA1C`; cadeia mapeada na 0178, para em `[0x801F51D8]`
 - [ ] 10.101 SPU/DMA4 ausente bloqueia dma/dpcr (13/15) (0173)
 - [ ] 10.102 DMA sincrono: ticks medidos ao redor leem overhead do poll (0173)
-- [ ] 10.103 GetlocL/GetlocP sao stub; disc-swap exige tray scriptavel (06-cdrom.md L1052) (0175)
+- [ ] 10.103 GetlocL/GetlocP stub; disc-swap exige tray scriptavel (06-cdrom.md L1052) (0175)
 - [ ] 10.107 `CLAUDE.md` lista `perf`/`ci` mas o commit-lint so aceita 6 tipos (0177)
-- [ ] 10.108 Oraculo roda cdrom sem `--disc`; com disco: GetStat sem bit1, GetlocL nao falha (0175)
-- [ ] 10.109 SyncMode=0 com chopping: MADR e BC parados (04-dma.md L48-51/L80-81) (0173)
-- [ ] 10.110 AutoPause: INT4 no fim da trilha arma o modo 4/5 do Rayman (06-cdrom.md L1267) (0178)
+- [ ] 10.108 Oraculo roda cdrom sem `--disc`; com disco: GetStat sem bit1 (0175)
+- [ ] 10.109 SyncMode=0 com chopping: MADR e BC parados (04-dma.md L48) (0173)
+- [ ] 10.110 AutoPause: INT4 no fim da trilha arma o modo 4/5 (06-cdrom.md L1267) (0178)
 - [ ] 10.111 `.cue` multi-trilha do Rayman trava em `boot file` (0178)
 - [ ] 10.112 SPU sem estado: fetch em `0x1F801C00` vira NOP infinito (0172)
-- [ ] 10.115 Provas do Rayman fixam passo absoluto: melhoria legitima desloca e reprova (0174)
-- [ ] 10.113 step-by-step-log (1524/1665): 1a divergencia e endereco de build; falta yuv2rgb (0174)
-- [ ] 10.114 DMA sem custo por ciclo: SPU testDMA*Timing exigem poll antes de completar (0174)
+- [ ] 10.113 step-by-step-log (1524/1665): divergencia de endereco; falta yuv2rgb (0174)
+- [ ] 10.114 DMA sem custo por ciclo: SPU testDMA*Timing exigem poll (0174)
+- [ ] 10.115 Provas do Rayman fixam passo absoluto: melhoria legitima reprova (0174)
+- [ ] 10.116 gpu/bandwidth sem timing de desenho; spec omissa (03-gpu.md L1107)
+- [ ] 10.117 timers: hblank nunca agendado; System Clock diverge ~13-70x (0176)
 
 ## M11 — Apresentação (incremental desde o M1)
 - [ ] 11.2 Gráficos de metricas.csv + scoreboard-data

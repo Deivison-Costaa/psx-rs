@@ -7,15 +7,15 @@
 
 ## Última iteração concluída
 
-**0174** — **8.1 (MDEC) e SPU RAM+DMA4, lote C do oráculo (R4 dobrado a pedido do usuário)**.
-MDEC: regs 1F801820h/24h, tabelas de quant/escala, `MDEC(1)` mono (RLE+IDCT+y_to_mono, ver doc
-da iteração). SPU: RAM 512 KiB, escrita manual e DMA4. Achados: **DMA SyncMode0 usa um campo
-único (BC), não BS*BA** — confundir os dois fazia o SPU pedir 65536x mais palavras; e **DMA1 do
-MDEC não pode pedir mais palavras do que o MDEC decodificou** (mdec/4bit/8bit do ps1-tests fazem
-isso por BS*BA mal dimensionado) — canal fica "em andamento" em vez de completar. K/M (diff):
-mdec/4bit 11/19→9/19, spu/memory-transfer 9/11→7/11; mdec/8bit sem mudança de linha (bytes mais
-próximos do gabarito, mas a IDCT documentada admite imprecisão vs. hardware real — ver doc).
-Bateria 6/6, controles 2/2.
+**0176** — **lote E do oráculo de TTY: timers+GPU+GTE (R4 dobrado)**. Achada a causa única do
+`gte/test-all` (997/999→17/19): `read_data`/`write_data` não tinham os formatos por registrador
+da spec (sign-extend VZ/IR, máscara U16 OTZ/SZ, push de SXYP, IRGB/ORGB, LZCR, bug de H) — o
+programa aborta os 1100 testes de opcode assim que o 1º teste de registro falha. RTPS ganhou 4
+correções (FLAG.22 de IR3 sempre em faixa lm=0, overflow de MAC0/MAC1-3, SAR em vez de divisão
+truncada): 71/1150 opcodes passam (era ~1). `timers`: GPU nunca propagava resolução real pros
+timers (corrigido; não moveu o placar — HBLANK nunca é agendado de verdade, achado e não
+corrigido). `gpu/bandwidth` e `timer-dump` seguem sem correção (10.104/10.105). Bateria 8/8,
+controles 2/2.
 
 ## Próxima tarefa
 
@@ -48,14 +48,7 @@ Invariantes relevantes: nenhuma.
 
 ## Placar de testes
 
-Workspace: **994** testes.
-
-## Bloqueios
-
-- **Suites de cdrom precisam de `--disc` (0175)**: os gabaritos foram gravados com disco na
-  bandeja (`GetStat -> 0x02`). Sem mídia, a contagem mede a ausência dela (10.108).
-- **Primeira paridade com hardware real (0171)**: `gpu/gp0-e1` (0/12) e `gpu/mask-bit` (0/7)
-  batem byte a byte com o gabarito do ps1-tests. `cpu/cop` fechou 0/19 na 0172.
+Workspace: **1010** testes.
 - **NUNCA rodar `cargo test` nem a bateria de mutação junto com o oráculo**: a disputa de CPU faz
   o `Start-Process` ler stdout antes do flush e reportar `sem-saida` falso. Derrubou 16/21 numa
   medição da 0170; rodada limpa deu 21/21.
@@ -76,9 +69,8 @@ Workspace: **994** testes.
   olhava para o lado errado desta parte.
 - **Janela util do Rayman: depois do passo 164.000.000** (`Execute !`); o executavel ocupa
   `0x80125000..0x801CF800`.
-- **10.89 fechado como premissa refutada (0163)**: o 2o `KERNEL SETUP` e do bootstrap.
-- **10.88 fechado como premissa refutada (0162)**: os descritores que o jogo consulta eram de
-  CDROM no momento da espera. Não procurar defeito no caminho de card por causa dessa espera.
+- **10.88/10.89 fechados como premissa refutada (0162/0163)**: os descritores no momento da
+  espera eram de CDROM (não card); o 2o `KERNEL SETUP` e do bootstrap.
 - **10.87 fechado sem correção (0161)**: o auto-ack de IRQ0 no handler de Pad/Card é do BIOS, e
   quem religa depois do `ChangeClearPAD(0)` do jogo é o próprio `StartPAD2`. Não procurar defeito aí.
 - **Duas correções de SIO0 (0159, 0160) são da spec e NÃO mexeram no boot** — o histograma de PC

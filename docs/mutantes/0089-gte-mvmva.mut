@@ -4,6 +4,7 @@ iteracao: 0089
 item: 5.4a
 alvo: crates/psx-core/src/gte.rs
 teste: gte_mvmva
+arquivada: mvmva ganhou check_mac_43bit_overflow na iter 0176 — ancora do m5 nao corresponde mais
 
 mutante: m1
 rotulo: MVMVA ignora mx (sempre usa matriz RT)

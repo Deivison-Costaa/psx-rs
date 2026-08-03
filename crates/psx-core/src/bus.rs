@@ -294,6 +294,11 @@ impl Bus {
     pub fn tick_timers(&mut self, cycles: u32) {
         self.total_cycles += cycles as u64;
 
+        self.timers.update_gpu_timing(
+            self.gpu.cycles_per_pix(),
+            self.gpu.video_cycles_per_scanline(),
+        );
+
         let frame = self.gpu.frame_cycles();
         while let Some(EventId(id)) = self.scheduler.advance_to(self.total_cycles) {
             match id {

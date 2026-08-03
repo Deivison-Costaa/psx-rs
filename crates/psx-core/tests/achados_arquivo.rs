@@ -79,7 +79,10 @@ fn achado_nao_aparece_tambem_no_arquivo_de_fechados() {
         .filter_map(id_do_item)
         .map(|(id, _)| id)
         .collect();
-    let ambos: Vec<&String> = abertos.iter().filter(|id| arquivados.contains(id)).collect();
+    let ambos: Vec<&String> = abertos
+        .iter()
+        .filter(|id| arquivados.contains(id))
+        .collect();
     assert!(
         ambos.is_empty(),
         "achado em dois arquivos ao mesmo tempo: duas fontes de verdade divergem na primeira \

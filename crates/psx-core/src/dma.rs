@@ -260,14 +260,21 @@ impl Dma {
         self.signal_completion(2);
     }
 
+    // O teto de nos NAO e escolha de projeto: cada no comeca num endereco alinhado
+    // a palavra e o proximo endereco sai inteiro do header, entao uma cadeia com
+    // mais nos do que ha palavras na RAM repetiu algum endereco (casa dos pombos) e
+    // portanto tem ciclo. Ciclo nunca completa em hardware (dma/chain-looping).
+    // Um teto menor que esse corta cadeia legitima: a do Crash tem >4096 nos e o
+    // jogo respondia `GPU timeout` em laco (achado 0185.2).
     fn execute_linked_list(&mut self, ram: &mut [u8], gpu: &mut Gpu) {
         let mut addr = self.madr[2] & 0x00FF_FFFC;
         let mut node_count = 0;
         let mut alcancou_fim = false;
+        let teto_de_nos = ram.len() / 4;
 
         loop {
             node_count += 1;
-            if node_count > 4096 {
+            if node_count > teto_de_nos {
                 break;
             }
             let offset = (addr & 0x1F_FF_FF) as usize;

@@ -190,3 +190,7 @@ da escada valer so para o que FALTA. Narrativa de cada item continua em
 - [x] 4.4 Boot de jogo 2D/menu: Rayman entra no primeiro nivel (0184)
 - [x] 8.2 Macroblocos coloridos 15/24bpp com yuv_to_rgb (0184)
 
+## Fechados na iteração 0185
+- [x] 5.4b NCS/NCT/NCCS/NCCT (0185)
+- [x] 5.4c NCDS/NCDT/CC/CDP (0185)
+- [x] 5.4d DCPL/DPCS/DPCT/INTPL (0185)

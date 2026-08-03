@@ -14,10 +14,7 @@ Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 4.5 1o frame: rollback do init do LIBSN; poll orfao do TMR2 (diag 0137-0147)
 
 ## M5 — GTE
-- [ ] 5.4b NCS/NCT/NCCS/NCCT
-- [ ] 5.4c NCDS/NCDT/CC/CDP
-- [ ] 5.4d DCPL/DPCS/DPCT/INTPL
-- [ ] 5.5 Flags de saturação/overflow completos
+- [ ] 5.5 Flags de saturação/overflow completos (por parcela, nao no total — ver 0185.1)
 - [ ] 5.6 Amidog psxtest_gte no scoreboard → jogo 3D jogável
 
 ## M6 — SIO: controle e memory card

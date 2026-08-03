@@ -211,12 +211,14 @@ fn caminhada_da_cadeia_muda_antes_do_quarto_hook() {
 
     let inicial = &activations[0];
     let posterior = &activations[3];
-    assert_eq!(inicial.vector_step, 164_109_946);
-    assert_eq!(inicial.hook_step, 164_110_776);
+    // Os quatro passos abaixo andaram +15.801 na 0185 (comandos de cor do GTE deixaram de ser
+    // no-op e o Rayman os emite). Deslocamento uniforme, mesma sequencia — achado 10.115.
+    assert_eq!(inicial.vector_step, 164_125_747);
+    assert_eq!(inicial.hook_step, 164_126_577);
     assert_eq!(inicial.vector_stat & 1, 1);
     assert_eq!(inicial.hook_stat & 1, 1);
-    assert_eq!(posterior.vector_step, 164_152_300);
-    assert_eq!(posterior.hook_step, 164_156_402);
+    assert_eq!(posterior.vector_step, 164_168_101);
+    assert_eq!(posterior.hook_step, 164_172_203);
     assert_eq!(posterior.vector_stat & 1, 1);
     assert_eq!(posterior.hook_stat & 1, 0);
 

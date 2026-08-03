@@ -101,7 +101,7 @@ ocorrencias: 1
 @@DE
     if mac0 > i32::MAX as i64 {
 @@PARA
-    if i32::MAX as i64 < mac0 {
+    if (i32::MAX as i64) < mac0 {
 @@FIM
 
 controle: c2

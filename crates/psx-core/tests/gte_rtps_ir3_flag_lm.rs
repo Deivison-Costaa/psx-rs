@@ -101,6 +101,33 @@ fn ir3_fora_da_faixa_lm0_liga_flag22_mesmo_com_lm1() {
     );
 }
 
+// § COP2 0180001h - RTPS (L509-511): "Quando sf=0, FLAG.22 so liga se 'MAC3 SAR 12'
+// exceder a faixa" — ou seja, a decisao usa SEMPRE o deslocamento de 12 bits, mesmo
+// que o MAC3 armazenado (sf=0, sem deslocamento) tenha uma escala bem maior. Este
+// teste e o unico que separa de fato "flag_check" (sempre SAR 12) de "mac3" bruto:
+// com sf=1 (como nos dois testes acima) os dois sempre coincidem.
+#[test]
+fn flag22_usa_sar12_mesmo_com_sf_zero_apesar_do_mac3_bruto_estourar() {
+    let mut bus = bus_with_bios_empty();
+    let mut cpu = Cpu::new();
+    cpu.set_sr(1 << 30);
+    let a = 0x0000u32;
+
+    // sf=0: MAC3 armazenado = TRZ*1000h = 100*1000h = 409600 (estoura -8000h..+7FFFh
+    // por si so), mas "MAC3 SAR 12" = TRZ = 100, que cabe folgado na faixa de lm=0.
+    ctc2_r8(&mut cpu, &mut bus, a, 7, 100u32); // cop2r39 (cnt7) = TRZ
+    escreve_e_executa(&mut cpu, &mut bus, a, cop2_cmd(0x01, false, true));
+    escreve_e_executa(&mut cpu, &mut bus, a, nop());
+
+    le_cfc2(&mut cpu, &mut bus, 0x0000, 11, 31);
+
+    assert_eq!(
+        cpu.regs[11] & (1 << 22),
+        0,
+        "FLAG.22 usa 'MAC3 SAR 12'=100 (dentro da faixa), nao o MAC3 bruto=409600"
+    );
+}
+
 #[test]
 fn ir3_fora_da_faixa_lm0_com_lm0_satura_em_8000h() {
     let mut bus = bus_with_bios_empty();

@@ -1,14 +1,18 @@
-use psx_core::cdrom_xa::{self, CDDA_FRAMES, RAW_SECTOR_BYTES, XaState};
+use psx_core::cdrom_xa::{self, CDDA_FRAMES, OUTPUT_HZ, RAW_SECTOR_BYTES, XaState};
 
-/// Monta um setor de 2352 bytes com um unico bloco de dados util (blk=0) preenchido
-/// com o mesmo byte de nibbles, e o par de shift/filtro pedido.
+/// Monta um setor de 2352 bytes com os 18 grupos preenchidos pelo mesmo byte de
+/// nibbles e o mesmo par de shift/filtro no bloco 0.
 fn setor(par_baixo: u8, par_alto: u8, byte_de_nibbles: u8) -> Vec<u8> {
     let mut s = vec![0u8; RAW_SECTOR_BYTES];
-    let base = 12 + 4 + 8;
-    s[base + 4] = par_baixo;
-    s[base + 5] = par_alto;
-    for j in 0..28 {
-        s[base + 16 + j * 4] = byte_de_nibbles;
+    for grupo in 0..18 {
+        let base = 12 + 4 + 8 + grupo * 128;
+        for blk in 0..4 {
+            s[base + 4 + blk * 2] = par_baixo;
+            s[base + 5 + blk * 2] = par_alto;
+            for j in 0..28 {
+                s[base + 16 + blk + j * 4] = byte_de_nibbles;
+            }
+        }
     }
     s
 }
@@ -70,7 +74,11 @@ fn xa_mono_poe_os_dois_nibbles_em_sequencia_no_mesmo_canal() {
     let s = setor(0x08, 0x00, 0x37);
     let mut estado = XaState::default();
     let quadros = cdrom_xa::decode_sector(&s, false, &mut estado);
-    assert_eq!(quadros.len(), 18 * 4 * 56, "mono da 2x28 amostras por bloco");
+    assert_eq!(
+        quadros.len(),
+        18 * 4 * 56,
+        "mono da 2x28 amostras por bloco"
+    );
     assert_eq!(quadros[0], (112, 112), "mono duplica o canal");
     assert_eq!(quadros[28], (12288, 12288));
 }
@@ -104,4 +112,37 @@ fn xa_carrega_o_historico_de_um_bloco_para_o_seguinte() {
         seguintes[0].0, primeiro,
         "com historico diferente de zero a primeira amostra do setor seguinte muda"
     );
+}
+
+#[test]
+fn reamostragem_de_37800_para_44100_estica_sete_por_seis() {
+    let entrada: Vec<(i16, i16)> = (0..6).map(|i| (i as i16, -(i as i16))).collect();
+    let saida = cdrom_xa::resample_to_44100(&entrada, 37800);
+    assert_eq!(
+        saida.len(),
+        7,
+        "6 quadros a 37800 Hz duram 7 quadros a 44100"
+    );
+    assert_eq!(saida[0], (0, 0));
+    assert_eq!(saida[6], (5, -5));
+    assert_eq!(
+        cdrom_xa::resample_to_44100(&entrada, OUTPUT_HZ),
+        entrada,
+        "na taxa de saida nao ha reamostragem"
+    );
+}
+
+#[test]
+fn subcabecalho_diz_taxa_estereo_e_se_o_setor_e_de_audio() {
+    assert_eq!(cdrom_xa::xa_sample_rate(0x00), 37800);
+    assert_eq!(cdrom_xa::xa_sample_rate(0x04), 18900);
+    assert!(cdrom_xa::xa_is_stereo(0x01));
+    assert!(!cdrom_xa::xa_is_stereo(0x00));
+
+    let mut cru = vec![0u8; RAW_SECTOR_BYTES];
+    assert!(!cdrom_xa::is_xa_audio_sector(&cru), "modo 1 nao e audio XA");
+    cru[0x0F] = 0x02;
+    assert!(!cdrom_xa::is_xa_audio_sector(&cru), "submode sem o bit2");
+    cru[0x12] = 0x04;
+    assert!(cdrom_xa::is_xa_audio_sector(&cru));
 }

@@ -21,7 +21,7 @@ const V_IIR: u32 = REV + 0x02 * 2;
 const V_LIN: u32 = REV + 0x1E * 2;
 const M_LSAME: u32 = REV + 0x0A * 2;
 const M_LAPF2: u32 = REV + 0x1C * 2;
-const D_APF2: u32 = REV + 0x01 * 2;
+const D_APF2: u32 = REV + 2;
 
 /// Area de reverb em F000h (byte 78000h), com espaco de 8000h bytes.
 const BASE_EM_OITAVOS: u16 = 0xF000;
@@ -179,15 +179,22 @@ fn ruido_avanca_como_lfsr_de_paridade() {
 
 #[test]
 fn passo_do_ruido_vem_dos_bits_9_8_do_spucnt() {
-    let mut spu = Spu::new();
-    // Passo 3 -> subtrai 7 por ciclo, mas a recarga de shift 0Eh e 8: dois ciclos por passo.
-    spu.write16(CNT, 0xC000 | (0x0E << 10) | (3 << 8));
-    spu.tick();
-    assert_eq!(spu.noise_level(), 1);
-    spu.tick();
-    assert_eq!(spu.noise_level(), 1, "o temporizador ainda nao voltou a zerar");
-    spu.tick();
-    assert_eq!(spu.noise_level(), 3);
+    // Shift 0Dh recarrega com 16: o passo (4 ou 7) decide de quantos em quantos ciclos
+    // o LFSR anda. E a unica coisa que os bits 9-8 controlam.
+    let mut lento = Spu::new();
+    lento.write16(CNT, 0xC000 | (0x0D << 10));
+    let mut rapido = Spu::new();
+    rapido.write16(CNT, 0xC000 | (0x0D << 10) | (3 << 8));
+    let colhe = |spu: &mut Spu| -> Vec<i16> {
+        (0..10)
+            .map(|_| {
+                spu.tick();
+                spu.noise_level()
+            })
+            .collect()
+    };
+    assert_eq!(colhe(&mut lento), vec![1, 1, 1, 1, 3, 3, 3, 3, 7, 7]);
+    assert_eq!(colhe(&mut rapido), vec![1, 1, 3, 3, 7, 7, 15, 15, 15, 31]);
 }
 
 #[test]
@@ -234,7 +241,10 @@ fn eon_manda_a_saida_da_voz_para_o_reverb() {
         medidas.push(spu.ram_peek16(BASE_EM_BYTES + 0x106));
     }
     assert_eq!(medidas[0], 0, "sem EON a voz nao alimenta o reverb");
-    assert_ne!(medidas[1], 0, "§ 1F801D98h (L924): EON manda a voz ao reverb");
+    assert_ne!(
+        medidas[1], 0,
+        "§ 1F801D98h (L924): EON manda a voz ao reverb"
+    );
 }
 
 #[test]

@@ -1,7 +1,5 @@
-// Tabela de interpolacao gaussiana de 512 entradas, transcrita de
-// § 4-Point Gaussian Interpolation (L324) de docs/reference/08-spu.md. As quatro entradas
-// usadas por indice somam 7F7Fh..7F81h — a soma nao chega a 8000h, e por isso a
-// interpolacao nunca estoura.
+// § 4-Point Gaussian Interpolation (L324) de docs/reference/08-spu.md; as quatro
+// entradas de um indice somam 7F7Fh..7F81h, nunca 8000h.
 pub const TABLE: [i32; 512] = [
     -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1,
     1, 2, 2, 2, 3, 3, 3, 4, 4, 5, 5, 6, 7, 7, 8, 9, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 21,
@@ -37,8 +35,7 @@ pub const TABLE: [i32; 512] = [
     22885, 22897, 22908, 22918, 22927, 22935, 22942, 22948, 22953, 22957, 22960, 22962, 22963,
 ];
 
-/// out = gauss[0FFh-i]*oldest + gauss[1FFh-i]*older + gauss[100h+i]*old + gauss[i]*new,
-/// cada parcela com SAR 15.
+/// gauss[0FFh-i]*oldest + gauss[1FFh-i]*older + gauss[100h+i]*old + gauss[i]*new, com SAR 15.
 pub fn interpolate(index: usize, oldest: i16, older: i16, old: i16, new: i16) -> i32 {
     let i = index & 0xFF;
     let mut out = (TABLE[0xFF - i] * i32::from(oldest)) >> 15;

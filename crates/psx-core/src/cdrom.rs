@@ -1,6 +1,8 @@
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
+use std::collections::VecDeque;
 
 use crate::cdrom_bin_cue::DiscLayout;
+use crate::cdrom_xa::{self, XaState};
 
 const PAUSE_READING_CYCLES: u64 = 0x021_181C;
 const PAUSE_IDLE_CYCLES: u64 = 0x1DF2;
@@ -47,7 +49,13 @@ pub struct Cdrom {
     second_dirty: Cell<bool>,
     playing: Cell<bool>,
     play_track: Cell<u8>,
+    audio_fifo: RefCell<VecDeque<(i16, i16)>>,
+    xa_state: Cell<XaState>,
 }
+
+/// Quatro setores de CD-DA. Se o jogo le mais rapido do que o SPU consome, o excedente
+/// e descartado em vez de virar vazamento.
+const AUDIO_FIFO_MAX: usize = 4 * cdrom_xa::CDDA_FRAMES;
 
 impl Cdrom {
     pub fn new() -> Self {
@@ -90,6 +98,8 @@ impl Cdrom {
             second_dirty: Cell::new(false),
             playing: Cell::new(false),
             play_track: Cell::new(0),
+            audio_fifo: RefCell::new(VecDeque::new()),
+            xa_state: Cell::new(XaState::default()),
         }
     }
 
@@ -221,6 +231,54 @@ impl Cdrom {
         if self.intsts.get() == 0 && !self.int2_pending.get() && !self.int1_pending.get() {
             self.second_dirty.set(true);
         }
+    }
+
+    /// Um quadro de 44,1 kHz para o SPU. § SPU-ADPCM vs XA-ADPCM (L260) de
+    /// docs/reference/08-spu.md: o XA nao ocupa voz nem RAM do SPU.
+    pub fn take_audio_frame(&self) -> Option<(i16, i16)> {
+        self.audio_fifo.borrow_mut().pop_front()
+    }
+
+    pub fn audio_pending(&self) -> usize {
+        self.audio_fifo.borrow().len()
+    }
+
+    fn enfileira_audio(&self, quadros: Vec<(i16, i16)>) {
+        let mut fifo = self.audio_fifo.borrow_mut();
+        for q in quadros {
+            if fifo.len() >= AUDIO_FIFO_MAX {
+                break;
+            }
+            fifo.push_back(q);
+        }
+    }
+
+    /// Setor cru do disco na posicao corrente de leitura.
+    fn setor_cru(&self, bin: Option<&[u8]>) -> Option<Vec<u8>> {
+        let bin = bin?;
+        let abs = bcd_to_int(self.read_pos_mm.get()) * 60 * 75
+            + bcd_to_int(self.read_pos_ss.get()) * 75
+            + bcd_to_int(self.read_pos_ff.get());
+        let inicio = abs.checked_sub(150)? as usize * cdrom_xa::RAW_SECTOR_BYTES;
+        let fim = inicio + cdrom_xa::RAW_SECTOR_BYTES;
+        (fim <= bin.len()).then(|| bin[inicio..fim].to_vec())
+    }
+
+    fn decodifica_xa(&self, bin: Option<&[u8]>) {
+        let Some(cru) = self.setor_cru(bin) else {
+            return;
+        };
+        if !cdrom_xa::is_xa_audio_sector(&cru) {
+            return;
+        }
+        let coding = cru[0x13];
+        let mut estado = self.xa_state.get();
+        let quadros = cdrom_xa::decode_sector(&cru, cdrom_xa::xa_is_stereo(coding), &mut estado);
+        self.xa_state.set(estado);
+        self.enfileira_audio(cdrom_xa::resample_to_44100(
+            &quadros,
+            cdrom_xa::xa_sample_rate(coding),
+        ));
     }
 
     pub fn take_issued_command(&self) -> Option<u8> {
@@ -656,6 +714,9 @@ impl Cdrom {
                 }
                 self.data_pos.set(0);
                 self.hchpctl.set(0);
+                if self.mode.get() & 0x40 != 0 {
+                    self.decodifica_xa(disc_bin);
+                }
                 advance_read_pos(&self.read_pos_mm, &self.read_pos_ss, &self.read_pos_ff);
             }
             6 => {
@@ -667,6 +728,9 @@ impl Cdrom {
                     if bcd_to_int(self.read_pos_ff.get()) % 10 == 0 {
                         break;
                     }
+                }
+                if let Some(cru) = self.setor_cru(disc_bin) {
+                    self.enfileira_audio(cdrom_xa::cdda_frames(&cru));
                 }
                 let amm = self.read_pos_mm.get();
                 let ass = self.read_pos_ss.get();

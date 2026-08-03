@@ -336,6 +336,8 @@ impl Bus {
                     );
                 }
                 SPU_TICK => {
+                    let (cd_l, cd_r) = self.cdrom.take_audio_frame().unwrap_or((0, 0));
+                    self.spu.set_cd_audio(cd_l, cd_r);
                     self.spu.tick();
                     if self.spu.take_irq9() {
                         self.irq.raise(9);

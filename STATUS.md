@@ -7,13 +7,15 @@
 
 ## Última iteração concluída
 
-**0172** — **Lote A do oráculo (CPU/kernel), R4 dobrado a pedido do usuário**. Fecha
-`cpu/cop` (10.100: só TLBxx lança 0Ah) e o bus error de fetch em scratchpad/I_STAT/MDEC (10.3).
-Em `cpu/io-access-bitwidth` fecha DMA0_ADDR e DPCR (31→25/67): `sb`/`sh` num registrador de DMA
-carregam os 32 bits inteiros do rt, não o byte/halfword — § Caution L309 de `02-cpu.md`. Achado
-novo: fetch em SPU (sem estado) vira passeio de NOP infinito, trava `code-in-io` antes de
-DMA0/DMAControl/SPU (10.108). `cpu/access-time` adiado: é o próprio ROADMAP 10.1 (sem timing
-model), doc do teste diz "no assertions". Bateria 8/8 mortos, 2/2 controles.
+**0178** — **o Rayman parou por `CdlPlay` não existir.** Mapeei a cadeia inteira medindo elo por
+elo: o laço espera `[0x801CEEBC]`, que só um callback escreve; o callback depende de um contador
+`[0x801F7CA8]` montado a partir do **BCD do relatório de posição do CD**; o jogo tem driver de CD
+próprio (portas `0x1F801800..03` direto) e emite `Setmode`+`Setloc`+**`Play(03h)`** — que caía no
+braço genérico de `send_command`. Implementado conforme a spec, com relatório INT1 de 8 bytes a
+cada dez quadros. **O contador saiu de 0 para 0x586F0A e o callback de 0 para 38.011 execuções.**
+O jogo ainda não sai do laço: para um passo adiante, e o próximo elo é o INT4 de AutoPause
+(10.110) — § AutoPause (L1286) de docs/reference/06-cdrom.md diz textualmente "AutoPause is used
+by Rayman". Bateria 7/7, controles 2/2.
 
 ## Próxima tarefa
 
@@ -46,7 +48,7 @@ Invariantes relevantes: nenhuma.
 
 ## Placar de testes
 
-Workspace: **975** testes.
+Workspace: **981** testes.
 
 ## Bloqueios
 
@@ -67,13 +69,12 @@ Workspace: **975** testes.
 - **10.85 (0159)**: o laço final do Rayman é `0x801B9574`, esperando `[0x801CF2CC] >= 2`. A espera
   do memory card NÃO é o bloqueio: termina sozinha em 166.321.383 com `F4000001h,0100h`.
 - **Oraculo de hardware disponivel (0164)**: 51 EXEs em `tests/exes/` (gitignored). Amidog CPU
-  em `Result: 00000101` (0166). Depurar contra ele custa menos que inferir de jogo.
-- **Rayman: a CPU nao era a causa (0167, medido)**: com o Amidog em 0 erros o jogo se comporta
-  identico ao de antes das tres correcoes. A cadeia de auto-ack de 0158-0163 descreve a parada
-  de ~166 M; em 590-600 M o jogo ja esta noutro laco (10.94). Nao retomar Rayman por inferencia:
-  a proxima medida util e de tempo, nao de funcao.
-- **Janela util do Rayman: depois do passo 164.000.000** (`Execute !`). Antes disso e boot do
-  BIOS + BOOTSTRAP LOADER; `0x8003xxxx`/`0x8005xxxx` sao do carregador. O executavel do jogo ocupa
+  em `Result: 00000101` (0166; era `00000109`). Depurar o CPU contra ele custa menos que
+  inferir de jogo.
+- **Rayman: a CPU nao era a causa (0167) e a BIOS tambem nao (0178)**. O jogo tem driver de CD
+  proprio, falando direto com `0x1F801800..03`. Toda investigacao de handler de BIOS (10.79-10.87)
+  olhava para o lado errado desta parte.
+- **Janela util do Rayman: depois do passo 164.000.000** (`Execute !`); o executavel ocupa
   `0x80125000..0x801CF800`.
 - **10.89 fechado como premissa refutada (0163)**: o 2o `KERNEL SETUP` e do bootstrap.
 - **10.88 fechado como premissa refutada (0162)**: os descritores que o jogo consulta eram de

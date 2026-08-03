@@ -45,6 +45,7 @@ pub struct Cdrom {
     read_pos_ff: Cell<u8>,
     mode: Cell<u8>,
     second_dirty: Cell<bool>,
+    playing: Cell<bool>,
 }
 
 impl Cdrom {
@@ -86,6 +87,7 @@ impl Cdrom {
             read_pos_ff: Cell::new(0),
             mode: Cell::new(0),
             second_dirty: Cell::new(false),
+            playing: Cell::new(false),
         }
     }
 
@@ -96,6 +98,9 @@ impl Cdrom {
 
     fn stat_byte(&self) -> u8 {
         let mut s = 0u8;
+        if self.playing.get() {
+            s |= 1 << 7;
+        }
         if self.seeking.get() {
             s |= 1 << 6;
         }
@@ -289,6 +294,30 @@ impl Cdrom {
                 }
                 self.busy.set(false);
             }
+            0x03 => {
+                if !self.disc_inserted.get() {
+                    self.result_push(self.stat_byte() | 0x01);
+                    self.result_push(0x80);
+                    self.intsts.set(5);
+                    self.busy.set(false);
+                } else {
+                    self.playing.set(true);
+                    self.motor_on.set(true);
+                    self.read_pos_mm.set(self.seek_min.get());
+                    self.read_pos_ss.set(self.seek_sec.get());
+                    self.read_pos_ff.set(self.seek_sect.get());
+                    self.result_push(self.stat_byte());
+                    self.intsts.set(3);
+                    if self.mode.get() & 0x04 != 0 {
+                        self.int1_pending.set(true);
+                        self.pending_second.set(6);
+                        self.second_cycles
+                            .set(Self::second_response_cycles_for(0x03));
+                    } else {
+                        self.busy.set(false);
+                    }
+                }
+            }
             0x06 => {
                 if !self.disc_inserted.get() {
                     self.result_push(self.stat_byte() | 0x01);
@@ -323,6 +352,7 @@ impl Cdrom {
                 };
                 self.second_cycles.set(timing);
                 self.motor_on.set(false);
+                self.playing.set(false);
             }
             0x09 => {
                 self.int1_pending.set(false);
@@ -331,6 +361,7 @@ impl Cdrom {
                 self.intsts.set(3);
                 self.int2_pending.set(true);
                 self.read_mode.set(0);
+                self.playing.set(false);
                 self.pending_second.set(4);
                 let timing = if self.reading.get() {
                     PAUSE_READING_CYCLES
@@ -532,6 +563,13 @@ impl Cdrom {
             return;
         }
         self.deliver_second(disc_layout, disc_bin);
+        if pending == 6 && self.playing.get() && self.mode.get() & 0x04 != 0 {
+            self.pending_second.set(6);
+            self.int1_pending.set(true);
+            self.second_cycles
+                .set(Self::second_response_cycles_for(0x03));
+            return;
+        }
         if pending == 5 && self.read_mode.get() != 0 {
             self.pending_second.set(5);
             self.int1_pending.set(true);
@@ -617,9 +655,61 @@ impl Cdrom {
                 self.hchpctl.set(0);
                 advance_read_pos(&self.read_pos_mm, &self.read_pos_ss, &self.read_pos_ff);
             }
+            6 => {
+                self.busy.set(false);
+                self.result_clear();
+                self.intsts.set(1);
+                loop {
+                    advance_read_pos(&self.read_pos_mm, &self.read_pos_ss, &self.read_pos_ff);
+                    if bcd_to_int(self.read_pos_ff.get()) % 10 == 0 {
+                        break;
+                    }
+                }
+                let amm = self.read_pos_mm.get();
+                let ass = self.read_pos_ss.get();
+                let asect = self.read_pos_ff.get();
+                let (track, index, inicio) = self.trilha_em(disc_layout, amm, ass, asect);
+                let absoluto = (bcd_to_int(asect) / 10) % 2 == 0;
+                self.result_push(self.stat_byte());
+                self.result_push(track);
+                self.result_push(index);
+                if absoluto {
+                    self.result_push(amm);
+                    self.result_push(ass);
+                    self.result_push(asect);
+                } else {
+                    let (mm, ss, ff) = subtrai_msf((amm, ass, asect), inicio);
+                    self.result_push(mm);
+                    self.result_push(ss | 0x80);
+                    self.result_push(ff);
+                }
+                self.result_push(0x00);
+                self.result_push(0x00);
+            }
             _ => {}
         }
         self.pending_second.set(0);
+    }
+
+    // § Report (L1246-1256) de docs/reference/06-cdrom.md quer trilha, index e o inicio dela
+    // para o tempo relativo. Sem TOC (disco stub dos testes) vale a unica coisa verdadeira de
+    // qualquer disco: a trilha 1 comeca em 00:02:00, pela convencao MSF/LBA.
+    fn trilha_em(&self, layout: Option<&DiscLayout>, mm: u8, ss: u8, ff: u8) -> (u8, u8, Msf) {
+        let padrao = (1u8, 1u8, (0x00u8, 0x02u8, 0x00u8));
+        let Some(layout) = layout else { return padrao };
+        let agora = msf_para_quadros((mm, ss, ff));
+        let mut achada = padrao;
+        for t in &layout.tracks {
+            let inicio = (
+                int_to_bcd(t.index01_mm as u32),
+                int_to_bcd(t.index01_ss as u32),
+                int_to_bcd(t.index01_ff as u32),
+            );
+            if msf_para_quadros(inicio) <= agora {
+                achada = (t.number, 1, inicio);
+            }
+        }
+        achada
     }
 
     pub fn _hchpctl(&self) -> u8 {
@@ -656,6 +746,21 @@ fn bcd_to_int(b: u8) -> u32 {
 
 fn int_to_bcd(n: u32) -> u8 {
     (((n / 10) << 4) | (n % 10)) as u8
+}
+
+type Msf = (u8, u8, u8);
+
+fn msf_para_quadros((mm, ss, ff): Msf) -> u32 {
+    (bcd_to_int(mm) * 60 + bcd_to_int(ss)) * 75 + bcd_to_int(ff)
+}
+
+fn subtrai_msf(pos: Msf, inicio: Msf) -> Msf {
+    let d = msf_para_quadros(pos).saturating_sub(msf_para_quadros(inicio));
+    (
+        int_to_bcd(d / (60 * 75)),
+        int_to_bcd((d / 75) % 60),
+        int_to_bcd(d % 75),
+    )
 }
 
 fn advance_read_pos(mm: &Cell<u8>, ss: &Cell<u8>, ff: &Cell<u8>) {

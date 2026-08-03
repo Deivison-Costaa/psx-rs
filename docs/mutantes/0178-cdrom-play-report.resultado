@@ -1,0 +1,12 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: 0f6989aaf6e0a27132f146d5ce2c42be03dc2940
+# rodado_em: 2026-08-03T04:02:42-03:00
+m1,mutante,morreu,morreu,0.6,play_sem_disco_devolve_int5_com_erro_80h
+m2,mutante,morreu,morreu,0.6,com_report_o_play_gera_int1_de_oito_bytes;play_com_disco_confirma_com_int3_e_stat_de_play
+m3,mutante,morreu,morreu,0.6,relatorio_alterna_entre_tempo_absoluto_e_relativo_a_trilha
+m4,mutante,morreu,morreu,0.6,relatorio_alterna_entre_tempo_absoluto_e_relativo_a_trilha
+m5,mutante,morreu,morreu,0.6,relatorio_alterna_entre_tempo_absoluto_e_relativo_a_trilha
+m6,mutante,morreu,morreu,0.6,a_posicao_do_relatorio_avanca_entre_interrupcoes;relatorio_alterna_entre_tempo_absoluto_e_relativo_a_trilha
+m7,mutante,morreu,morreu,0.6,sem_o_bit_de_report_o_play_nao_gera_int1
+c1,controle,sobreviveu,sobreviveu,0.6,
+c2,controle,sobreviveu,sobreviveu,0.6,

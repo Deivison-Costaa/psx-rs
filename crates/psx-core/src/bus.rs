@@ -793,6 +793,17 @@ impl Bus {
         }
     }
 
+    /// § Scratchpad (L114, L137-140) de docs/reference/01-memory-map.md: "the scratchpad is
+    /// NOT executable... a bus error will still occur". § Memory Exceptions (L156, L160):
+    /// "Bus Error ------> Unused Memory Regions (including Gaps in I/O Region)" — o bloco de
+    /// 4K de I/O Ports (1F801000h-1F801FFFh) tambem nao e buscavel.
+    pub fn fetch_causa_bus_error(addr: u32) -> bool {
+        matches!(
+            Self::to_physical(addr),
+            0x1F80_0000..=0x1F80_03FF | 0x1F80_1000..=0x1F80_1FFF
+        )
+    }
+
     fn to_physical(addr: u32) -> u32 {
         match addr >> 29 {
             0b010 => addr & 0x1FFF_FFFF, // 0x4000_0000..0x5FFF_FFFF

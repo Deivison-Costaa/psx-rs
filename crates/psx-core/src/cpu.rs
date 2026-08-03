@@ -135,6 +135,10 @@ impl Cpu {
             self.enter_exception(0x04, Some(instr_pc), instr_pc, false, false);
             return;
         }
+        if Bus::fetch_causa_bus_error(instr_pc) {
+            self.enter_exception(0x06, Some(instr_pc), instr_pc, false, false);
+            return;
+        }
         let instr = bus.read32::<BusRead>(instr_pc);
 
         let phys = instr_pc & 0x1FFF_FFFF;

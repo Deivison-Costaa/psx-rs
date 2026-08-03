@@ -94,7 +94,7 @@ Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 10.83 Rayman: ~89/660 IRQ0 sem hook; cadeia `0x74A8` (iter 0158)
 - [ ] 10.85 Rayman para em `0x801B9574` esperando `[0x801CF2CC] >= 2`; contador fica em 1 (0159)
 - [ ] 10.90 Rayman: `VSync: timeout` 142x no TTY depois do `Execute !` de 164 M (0163)
- - [x] 10.93 Amidog: ~590 erros de load delay slot encadeado `nop_lX_lY_d` (iter 0165)
+- [ ] 10.94 Rayman em 590-600 M: laco `0x8019FA1C` espera `[0x801CEEBC]` != 0 (0167)
 
 ## M11 — Apresentação (incremental desde o M1)
 - [ ] 11.2 Gráficos de metricas.csv + scoreboard-data

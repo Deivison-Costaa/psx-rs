@@ -4,8 +4,10 @@ use crate::dma::Dma;
 use crate::gpu::Gpu;
 use crate::gte::Gte;
 use crate::irq::Irq;
+use crate::mdec::Mdec;
 use crate::scheduler::{EventId, ScheduleKey, Scheduler};
 use crate::sio::Sio;
+use crate::spu::Spu;
 use crate::timers::Timers;
 
 const SCRATCHPAD_SIZE: usize = 1024;
@@ -130,6 +132,8 @@ pub struct Bus {
     disc_bin: Option<Vec<u8>>,
     timers: Timers,
     sio: Sio,
+    mdec: Mdec,
+    spu: Spu,
     scratchpad: Scratchpad,
     mem_ctrl: MemCtrl,
     bcc: Bcc,
@@ -184,6 +188,8 @@ impl Bus {
             disc_bin: None,
             timers: Timers::new(),
             sio: Sio::new(),
+            mdec: Mdec::new(),
+            spu: Spu::new(),
             scratchpad: Scratchpad::new(),
             mem_ctrl: MemCtrl::new(),
             bcc: Bcc::new(),
@@ -220,6 +226,10 @@ impl Bus {
 
     pub fn sio_mut(&mut self) -> &mut Sio {
         &mut self.sio
+    }
+
+    pub fn mdec(&self) -> &Mdec {
+        &self.mdec
     }
 
     fn service_sio_irq(&mut self) {
@@ -396,6 +406,7 @@ impl Bus {
                 let b3 = self.cdrom.read8(3) as u32;
                 Some(b0 | (b1 << 8) | (b2 << 16) | (b3 << 24))
             }
+            0x1F80_1820 | 0x1F80_1824 => Some(self.mdec.read32(phys - 0x1F80_1820)),
             0x1F80_1024..=0x1F80_103F
             | 0x1F80_1041..=0x1F80_1043
             | 0x1F80_1045..=0x1F80_105F
@@ -443,8 +454,11 @@ impl Bus {
                     0x8 => {
                         self.dma.write_chcr(ch, val);
                         match ch {
+                            0 => self.dma.try_execute_dma0(&self.ram.data, &mut self.mdec),
+                            1 => self.dma.try_execute_dma1(&mut self.ram.data, &self.mdec),
                             2 => self.dma.try_execute_dma2(&mut self.ram.data, &mut self.gpu),
                             3 => self.dma.try_execute_dma3(&mut self.ram.data, &self.cdrom),
+                            4 => self.dma.try_execute_dma4(&mut self.ram.data, &mut self.spu),
                             6 => self.dma.try_execute_otc(&mut self.ram.data),
                             _ => {}
                         }
@@ -473,6 +487,10 @@ impl Bus {
             }
             0x1F80_1810 | 0x1F80_1814 => {
                 self.gpu.write32(phys - 0x1F80_1810, val);
+                true
+            }
+            0x1F80_1820 | 0x1F80_1824 => {
+                self.mdec.write32(phys - 0x1F80_1820, val);
                 true
             }
             0x1F80_1800..=0x1F80_1803 => {
@@ -546,6 +564,12 @@ impl Bus {
                 let byte_index = ((phys & 3) + offset) & 3;
                 Some(((val >> (byte_index * 8)) & 0xFF) as u8)
             }
+            0x1F80_1DA6..=0x1F80_1DAF => {
+                let base = phys & !1;
+                let val = self.spu.read16(base);
+                let byte_index = ((phys & 1) + offset) & 1;
+                Some(((val >> (byte_index * 8)) & 0xFF) as u8)
+            }
             0x1F80_1080..=0x1F80_10EC | 0x1F80_10F0 | 0x1F80_10F4 => {
                 let base = phys & !3;
                 let val = self.dma_register_value(base).unwrap_or(0);
@@ -596,6 +620,15 @@ impl Bus {
                 let atual = self.timers.peek32(base);
                 let novo = (atual & !(0xFFu32 << shift)) | ((val as u32) << shift);
                 self.timers.write32(base, novo);
+                true
+            }
+            0x1F80_1DA6..=0x1F80_1DAF => {
+                let base = phys & !1;
+                let old = self.spu.read16(base);
+                let byte_index = ((phys & 1) + offset) & 1;
+                let deslocamento = byte_index * 8;
+                let novo = (old & !(0xFFu16 << deslocamento)) | ((val as u16) << deslocamento);
+                self.spu.write16(base, novo);
                 true
             }
             0x1F80_1024..=0x1F80_103F | 0x1F80_1041..=0x1F80_1043 | 0x1F80_1061..=0x1F80_1FFF => {
@@ -669,6 +702,7 @@ impl Bus {
             0x1F80_1072 => return ((self.irq.read_stat() >> 16) & 0xFFFF) as u16,
             0x1F80_1074 => return (self.irq.read_mask() & 0xFFFF) as u16,
             0x1F80_1076 => return ((self.irq.read_mask() >> 16) & 0xFFFF) as u16,
+            0x1F80_1DA6..=0x1F80_1DAF => return self.spu.read16(phys),
             _ => {}
         }
         if let (Some(lo), Some(hi)) = (
@@ -712,6 +746,13 @@ impl Bus {
             }
             0x1F80_1074 | 0x1F80_1076 => {
                 self.irq.write_mask_half(phys - 0x1F80_1074, val);
+                return;
+            }
+            0x1F80_1DA6..=0x1F80_1DAF => {
+                // Rota direta (nao via par de region_write_byte): o registrador
+                // de fifo manual (1F801DA8h) e escrita-apenas e um push por
+                // meia-palavra — compor a partir de dois bytes o duplicaria.
+                self.spu.write16(phys, val);
                 return;
             }
             _ => {}

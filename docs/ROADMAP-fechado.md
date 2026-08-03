@@ -119,6 +119,9 @@ da escada valer so para o que FALTA. Narrativa de cada item continua em
 - [x] 6.1 SIO0 + digital pad (iter 0091)
 - [x] 6.2 Input no psx-desktop (teclado/gamepad) (iter 0092)
 
+## M8 — MDEC
+- [x] 8.1 Regs 1F801820h/24h, tabelas de quant/escala, DMA canais 0/1 (iter 0174)
+
 ## M9 — App desktop
 - [x] 9.0 psx-desktop boota BIOS (--bios CLI, CPU loop, framebuffer) (iter 0090)
 

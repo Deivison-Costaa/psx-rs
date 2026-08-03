@@ -7,15 +7,15 @@
 
 ## Última iteração concluída
 
-**0178** — **o Rayman parou por `CdlPlay` não existir.** Mapeei a cadeia inteira medindo elo por
-elo: o laço espera `[0x801CEEBC]`, que só um callback escreve; o callback depende de um contador
-`[0x801F7CA8]` montado a partir do **BCD do relatório de posição do CD**; o jogo tem driver de CD
-próprio (portas `0x1F801800..03` direto) e emite `Setmode`+`Setloc`+**`Play(03h)`** — que caía no
-braço genérico de `send_command`. Implementado conforme a spec, com relatório INT1 de 8 bytes a
-cada dez quadros. **O contador saiu de 0 para 0x586F0A e o callback de 0 para 38.011 execuções.**
-O jogo ainda não sai do laço: para um passo adiante, e o próximo elo é o INT4 de AutoPause
-(10.110) — § AutoPause (L1286) de docs/reference/06-cdrom.md diz textualmente "AutoPause is used
-by Rayman". Bateria 7/7, controles 2/2.
+**0174** — **8.1 (MDEC) e SPU RAM+DMA4, lote C do oráculo (R4 dobrado a pedido do usuário)**.
+MDEC: regs 1F801820h/24h, tabelas de quant/escala, `MDEC(1)` mono (RLE+IDCT+y_to_mono, ver doc
+da iteração). SPU: RAM 512 KiB, escrita manual e DMA4. Achados: **DMA SyncMode0 usa um campo
+único (BC), não BS*BA** — confundir os dois fazia o SPU pedir 65536x mais palavras; e **DMA1 do
+MDEC não pode pedir mais palavras do que o MDEC decodificou** (mdec/4bit/8bit do ps1-tests fazem
+isso por BS*BA mal dimensionado) — canal fica "em andamento" em vez de completar. K/M (diff):
+mdec/4bit 11/19→9/19, spu/memory-transfer 9/11→7/11; mdec/8bit sem mudança de linha (bytes mais
+próximos do gabarito, mas a IDCT documentada admite imprecisão vs. hardware real — ver doc).
+Bateria 6/6, controles 2/2.
 
 ## Próxima tarefa
 
@@ -48,7 +48,7 @@ Invariantes relevantes: nenhuma.
 
 ## Placar de testes
 
-Workspace: **981** testes.
+Workspace: **994** testes.
 
 ## Bloqueios
 

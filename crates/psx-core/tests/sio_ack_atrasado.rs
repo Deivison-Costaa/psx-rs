@@ -6,6 +6,8 @@ use support::asm;
 const JOY_DATA: u32 = 0x1F80_1040;
 const JOY_STAT: u32 = 0x1F80_1044;
 const JOY_CTRL: u32 = 0x1F80_104A;
+const JOY_MODE: u32 = 0x1F80_1048;
+const JOY_BAUD: u32 = 0x1F80_104E;
 const I_STAT: u32 = 0x1F80_1070;
 const CTRL_BIOS: u16 = 0x1003;
 
@@ -129,5 +131,71 @@ fn soltar_o_cs_cancela_o_ack_ainda_nao_entregue() {
         istat_bit7(&bus),
         0,
         "reassertar /CS nao entrega o /ACK de um byte que ficou na transferencia anterior"
+    );
+}
+
+// § Address byte (01h) being sent (L379-386) de docs/reference/10-controllers-memcards.md: o
+// /ACK vem DEPOIS do ultimo pulso de SCK, e a taxa padrao do kernel e ~250 kHz — 136 ciclos por
+// bit, 1088 pelo byte inteiro. § Emulation Note (L316-320) explica por que isso importa: o
+// kernel manda o byte, espera ~100 ciclos, SO ENTAO limpa a IRQ7 velha, e depois espera a nova.
+// Um /ACK entregue no meio da transmissao e apagado por essa limpeza e o driver conclui que nao
+// ha nada na porta — foi o que segurou o Rayman na tela "PLEASE INSERT ... CONTROLLER".
+const CICLOS_DO_BYTE: u32 = 8 * 136;
+
+fn porta_com_baud_do_kernel() -> Bus {
+    let mut bus = asm::bus_with_bios_empty();
+    bus.sio_mut().connect_digital_pad(true);
+    bus.write16::<BusWrite>(JOY_BAUD, 0x0088);
+    bus.write16::<BusWrite>(JOY_MODE, 0x000D);
+    bus.write16::<BusWrite>(JOY_CTRL, CTRL_BIOS);
+    bus
+}
+
+#[test]
+fn ack_nao_chega_antes_de_o_byte_terminar_de_sair() {
+    let mut bus = porta_com_baud_do_kernel();
+
+    bus.write8::<BusWrite>(JOY_DATA, 0x01);
+    bus.tick_timers(CICLOS_DO_BYTE - 1);
+
+    assert_eq!(
+        stat(&bus) & 0x0200,
+        0,
+        "o /ACK e resposta ao byte inteiro: nao pode chegar antes dos 8 bits sairem"
+    );
+    assert_eq!(istat_bit7(&bus), 0, "nem a IRQ7 correspondente");
+}
+
+#[test]
+fn ack_chega_depois_do_byte_e_dentro_do_timeout() {
+    let mut bus = porta_com_baud_do_kernel();
+
+    bus.write8::<BusWrite>(JOY_DATA, 0x01);
+    bus.tick_timers(CICLOS_DO_BYTE + TIMEOUT_DO_KERNEL);
+
+    assert_ne!(
+        stat(&bus) & 0x0200,
+        0,
+        "depois do ultimo SCK o periferico tem 100 us para responder, e ele responde"
+    );
+    assert_ne!(istat_bit7(&bus), 0);
+}
+
+// Baud mais lento estica a transmissao: o /ACK acompanha, senao ele chegaria no meio do byte.
+#[test]
+fn baud_mais_lento_atrasa_o_ack_na_mesma_proporcao() {
+    let mut bus = asm::bus_with_bios_empty();
+    bus.sio_mut().connect_digital_pad(true);
+    bus.write16::<BusWrite>(JOY_BAUD, 0x0088);
+    bus.write16::<BusWrite>(JOY_MODE, 0x000E); // fator MUL16 nos bits 0-1
+    bus.write16::<BusWrite>(JOY_CTRL, CTRL_BIOS);
+
+    bus.write8::<BusWrite>(JOY_DATA, 0x01);
+    bus.tick_timers(CICLOS_DO_BYTE + TIMEOUT_DO_KERNEL);
+
+    assert_eq!(
+        stat(&bus) & 0x0200,
+        0,
+        "com fator 16 o byte demora 16x mais: o /ACK nao pode ter chegado ainda"
     );
 }

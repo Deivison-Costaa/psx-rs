@@ -73,8 +73,10 @@ function Wait-Checks([string]$pr) {
 }
 
 foreach ($i in 1..$N) {
-    if (-not (Select-String -Path ROADMAP.md -Pattern '^\s*-\s\[ \]' -Quiet)) {
-        Write-Host "[oc-loop] ROADMAP sem itens abertos - fim."
+    $temAberto = (Select-String -Path ROADMAP.md -Pattern '^\s*-\s\[ \]' -Quiet) -or
+                 (Select-String -Path docs/achados.md -Pattern '^\s*-\s\[ \]' -Quiet)
+    if (-not $temAberto) {
+        Write-Host "[oc-loop] ROADMAP e achados sem itens abertos - fim."
         break
     }
     Write-Host "[oc-loop] iteracao $i de $N"
@@ -119,18 +121,23 @@ foreach ($i in 1..$N) {
     # CUIDADO (achado da revisao da 0012): isso confia no titulo do PR, nao na entrega - a
     # 1.3 foi marcada sem os shifts. Conferir completude do item e do revisor, sempre.
     if ($item) {
+        # O item pode morar na escada (ROADMAP.md) ou nos achados (docs/achados.md) desde a
+        # iteracao 0181. Procurar so no primeiro deixava a remediacao silenciosamente inerte
+        # para todo defeito achado por medicao, que e a maioria das rodadas.
         $alvo = "^- \[ \] " + [regex]::Escape($item) + " "
-        $linhas = Get-Content ROADMAP.md
-        $novas = $linhas | ForEach-Object {
-            if ($_ -match $alvo) {
-                ($_ -replace '^- \[ \]', '- [x]') + $(if ($iterN) { " (iter $iterN)" } else { "" })
-            } else { $_ }
-        }
-        if (Compare-Object $linhas $novas) {
-            Set-Content ROADMAP.md $novas
-            git add ROADMAP.md
-            git commit -m "docs(roadmap): marca $item (iter $iterN) - auto-remediacao do loop" | Out-Null
-            Write-Host "[oc-loop] checkbox $item marcado na branch (trabalhador esqueceu)."
+        foreach ($arq in @('ROADMAP.md', 'docs/achados.md')) {
+            $linhas = Get-Content $arq
+            $novas = $linhas | ForEach-Object {
+                if ($_ -match $alvo) {
+                    ($_ -replace '^- \[ \]', '- [x]') + $(if ($iterN) { " (iter $iterN)" } else { "" })
+                } else { $_ }
+            }
+            if (Compare-Object $linhas $novas) {
+                Set-Content $arq $novas
+                git add $arq
+                git commit -m "docs(roadmap): marca $item (iter $iterN) - auto-remediacao do loop" | Out-Null
+                Write-Host "[oc-loop] checkbox $item marcado em $arq (trabalhador esqueceu)."
+            }
         }
     }
 

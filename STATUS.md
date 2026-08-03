@@ -15,11 +15,14 @@ gabarito). Amidog CPU inalterado (`00000101`); `psxtest_gte` continua em `Runnin
 
 ## Próxima tarefa
 
-**ROADMAP 10.23 parte 2 — arreio automático de VRAM** (tarefa pronta em
-`logs/orquestrador/task-10.23-vram.txt`). Com 10.95 fechado, as 21 suítes já produzem execução
-real em vez do `ResetGraph` idêntico, então o arreio passa a medir sinal de verdade em vez de 13
-linhas `difere` da mesma causa. Ver a tabela completa em
-`docs/iterations/0170-sideload-com-kernel.md`.
+**ROADMAP 10.97 + 10.98 — tirar os dois artefatos que escondem os defeitos reais.** Com o kernel
+real montado (0170), o TTY sai **duplicado**: medi `cpu/cop` e das 56 linhas 23 pares sao linhas
+adjacentes identicas. Causa a confirmar: `do_printf` intercepta `A0h/3Fh` e escreve o texto, e a
+BIOS real escreve de novo. O gabarito ainda prefixa `% `, que a comparacao nao tira.
+
+Removendo os dois na mao, `cpu/cop` fica com **18 linhas de cada lado e 7 divergencias reais**,
+todas de excecao de coprocessador (item 10.99): o `difere 52/52` do CSV e 7 defeitos atras de
+dois artefatos. 10.97 (emulador) + 10.98 (arreio) tornam as 21 suites contagens confiaveis.
 
 Invariantes relevantes: nenhuma.
 

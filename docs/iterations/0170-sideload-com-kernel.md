@@ -93,14 +93,53 @@ Resumo: **0 → 0 idêntico** (esperado — o item não promete paridade de hard
 difere**, **0 → 0 sem-saída/timeout**. "Antes" era 21 suítes travadas byte a byte idênticas em
 56 bytes de `ResetGraph:SR=1001` (a assinatura exata do defeito de 10.95). "Depois" as 21
 produzem TTY bem maior (K e M sobem em todas, sinal de execução real acontecendo depois do
-`ResetGraph`) e nenhuma repete a assinatura antiga. `mdec/step-by-step-log` chega a 3178/3180 —
-só 2 das 3180 linhas divergem do gabarito de hardware real, a mais próxima de `identico` da
-bateria. As suítes continuam `difere` porque diferem de hardware real na GPU/MDEC/timers etc. —
+`ResetGraph`) e nenhuma repete a assinatura antiga. `mdec/step-by-step-log` marca 3178/3180 —
+**3178 linhas divergem**, não duas (ver a revisão cruzada: eu li o K/M ao contrário). As suítes continuam `difere` porque diferem de hardware real na GPU/MDEC/timers etc. —
 material das próximas iterações, exatamente como o item previa.
 
 ## Revisão cruzada (orquestrador)
 
-<!-- Preenchido pelo Claude na revisão do PR. -->
+Rodada de trabalhador (`claude-sonnet-5`), revisada antes do merge. **Aprovada na correção,
+corrigida na leitura.**
+
+**O que está certo, e é grande.** As 21 suítes saíram da assinatura de 56 bytes do `ResetGraph`
+e passaram a executar. O total de linhas de TTY comparadas vai de **2.566 para 6.641**, e a
+`gte/test-all` salta de 5 para 1.935 linhas — ela roda a suíte inteira agora. O Amidog CPU
+continua em `Result: 00000101`, sem regressão. A verificação do kernel é por VALOR
+(`[0xA0]=0x3C080000`, `[0x100]=0xA000E004`, `[0x200]=0x00002958`), não por "não é zero", que era
+o que a tarefa pedia.
+
+**Erro de leitura, corrigido acima.** O doc afirmava que `mdec/step-by-step-log` em `3178/3180`
+significava "só 2 linhas divergem". É o oposto: `Get-TtyVeredito` devolve `"$diferentes/$total"`,
+então 3178 linhas divergem. Era a suíte mais distante do gabarito, apresentada como a mais
+próxima. Esse é o tipo de falso progresso que já custou iterações a este projeto, e o número
+estava a uma linha de código de distância.
+
+**Por que K é quase igual a M em todas — e não é culpa do emulador.** Medi `cpu/cop` na mão:
+das 56 linhas do nosso TTY, **23 pares são linhas adjacentes idênticas**. Removendo a duplicação
+e o prefixo `% ` do gabarito, sobram **18 linhas de cada lado e 7 divergências reais**, todas de
+exceção de coprocessador:
+
+| teste | hardware | nós |
+|---|---|---|
+| `testCop0InvalidOpcode` | não lança | **lança** |
+| `testSwc0Enabled` | não lança | **lança** |
+| `testCop1Enabled` | não lança | **lança** |
+| `testCop2Disabled` | **lança** | não lança |
+| `testSwc2Disabled` | **lança** | não lança |
+| `testCop3Enabled` | não lança | **lança** |
+| `testSwc3Enabled` | não lança | **lança** |
+
+Ou seja: o `difere 52/52` do CSV é 7 defeitos de verdade escondidos atrás de dois artefatos de
+apresentação. Abri três itens: **10.97** (TTY duplicado — a interceptação de `A0h/3Fh` em
+`do_printf` escreve o texto e a rotina real da BIOS escreve de novo, agora que o kernel existe),
+**10.98** (o arreio precisa alinhar) e **10.99** (as 7 divergências de coprocessador).
+
+**Conferido também:** o erro de primeira tentativa nº 2 está correto e bem diagnosticado — as 16
+`sem-saída` da primeira rodada eram disputa de CPU com a bateria de mutação, e a rodada limpa que
+eu mesmo acompanhei terminou `0 sem-saída`. A bateria manual está justificada (invariante 29, o
+alvo é `psx-cli` e o `mutantes.ps1` só recompila `psx-core`) e nenhum mutante morreu por
+compilação.
 
 ## Decisões e notas
 

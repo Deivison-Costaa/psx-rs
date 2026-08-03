@@ -7,24 +7,24 @@
 
 ## Última iteração concluída
 
-**0171** — **10.97+10.98+10.99 numa rodada (R4 dobrado a pedido do usuário)**. (a) o hook de TTY
-de alto nível só emite quando o vetor de syscall está stubado com `jr $ra`: com kernel real a
-BIOS já emitia por `putchar` e a saída saía **duplicada** — **todo número de TTY de 0163-0170
-estava inflado em 2x**; o `VSync: timeout` do Rayman é **71**, não 142. (b) o oráculo alinha na
-primeira linha do gabarito presente na nossa saída e devolve `sem-alinhamento` em vez de inventar
-K/M. (c) Coprocessor Unusable é decidido pelo **bit CU do SR**, não pela existência do
-coprocessador. Bateria 7/7, controles 2/2. CI passou a usar `cargo nextest`.
+**0173** — **lote B (DMA), 3 achados (R4 dobrado pelo usuário)**. `chain-looping`: cadeia
+linked-list sem end-marker fica ocupada para sempre, não completa (igual ao hardware).
+`chopping`: canal 2 ignorava SyncMode=0 (Burst) e travava para sempre; `execute_burst` fecha
+isso (131/132→130/132). `otc-test` (15/17): artefato — `.exe` tem 2 subtestes a mais que o
+`psx.log` gravado. `dpcr` (13/15): bloqueado por SPU/DMA4 ausentes (10.101). Ticks/ciclos ao
+redor de DMA não fecham com o gabarito em nenhuma suíte — root cause estrutural no 10.102.
+Bateria 5/5, controles 2/2; 6/6+2/2 do 0057 reconfirmados após reparo de âncora envelhecida.
 
 ## Próxima tarefa
 
-**ROADMAP 10.100 e os lotes do oráculo de TTY.** `scripts/oraculo-tty.ps1` é confiável desde a
-0171 e o placar em `logs/oraculo-tty.csv` é o alvo: fechar divergência por divergência, por
-subsistema. Cinco lotes
-— A CPU/kernel, B DMA, C MDEC+SPU, D CD-ROM, E timers+GPU+GTE. Tarefa-modelo pronta em
-`logs/orquestrador/task-lote-oraculo.txt` (trocar `<<<LOTE>>>`).
+**ROADMAP 10.100 e os lotes C/D/E do oráculo de TTY.** Lote B (DMA) fechado pela 0173. Restam
+C MDEC+SPU, D CD-ROM, E timers+GPU+GTE; tarefa-modelo em
+`logs/orquestrador/task-lote-oraculo.txt` (trocar `<<<LOTE>>>`). 10.101 e 10.102 são achados
+novos do lote B, sem dono ainda.
 
-`K/M` no CSV é **K linhas divergentes de M** — já foi lido ao contrário. `timers` tem jitter
-real de hardware no gabarito e nunca dará `identico` por comparação exata.
+`K/M` no CSV é **K linhas divergentes de M**. `timers` tem jitter real no gabarito e nunca dá
+`identico`. Medição isolada pode divergir do CSV sob disputa de CPU — `chain-looping` deu 9/11
+no CSV e 4/11 isolado e determinístico (0173).
 
 Invariantes relevantes: nenhuma.
 
@@ -42,7 +42,7 @@ Invariantes relevantes: nenhuma.
 
 ## Placar de testes
 
-Workspace: **953** testes.
+Workspace: **956** testes.
 
 ## Bloqueios
 

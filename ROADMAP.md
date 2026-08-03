@@ -96,6 +96,9 @@ Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 10.90 Rayman: 71x `VSync: timeout` apos `Execute !` (0163; era 2x, ver 0171)
 - [ ] 10.94 Rayman em 590-600 M: laco `0x8019FA1C` espera `[0x801CEEBC]` != 0 (0167)
 - [ ] 10.100 cpu/cop: `testCop0InvalidOpcode` — cop0cmd invalido nao-TLB nao lanca 0Ah (0171)
+- [ ] 10.101 SPU/DMA4 ausente bloqueia dma/dpcr (13/15); depende do lote SPU/M7 (0173)
+- [ ] 10.102 DMA e sincrono/instantaneo: ticks/ciclos medidos ao redor (chain-looping,
+      chopping) leem overhead fixo do poll, nao a duracao real da transferencia (0173)
 
 ## M11 — Apresentação (incremental desde o M1)
 - [ ] 11.2 Gráficos de metricas.csv + scoreboard-data

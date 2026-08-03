@@ -46,6 +46,7 @@ pub struct Cdrom {
     mode: Cell<u8>,
     second_dirty: Cell<bool>,
     playing: Cell<bool>,
+    play_track: Cell<u8>,
 }
 
 impl Cdrom {
@@ -88,6 +89,7 @@ impl Cdrom {
             mode: Cell::new(0),
             second_dirty: Cell::new(false),
             playing: Cell::new(false),
+            play_track: Cell::new(0),
         }
     }
 
@@ -303,6 +305,7 @@ impl Cdrom {
                 } else {
                     self.playing.set(true);
                     self.motor_on.set(true);
+                    self.play_track.set(0);
                     self.read_pos_mm.set(self.seek_min.get());
                     self.read_pos_ss.set(self.seek_sec.get());
                     self.read_pos_ff.set(self.seek_sect.get());
@@ -669,6 +672,16 @@ impl Cdrom {
                 let ass = self.read_pos_ss.get();
                 let asect = self.read_pos_ff.get();
                 let (track, index, inicio) = self.trilha_em(disc_layout, amm, ass, asect);
+                if self.play_track.get() == 0 {
+                    self.play_track.set(track);
+                }
+                if self.mode.get() & 0x02 != 0 && track != self.play_track.get() {
+                    self.playing.set(false);
+                    self.result_push(self.stat_byte());
+                    self.intsts.set(4);
+                    self.pending_second.set(0);
+                    return;
+                }
                 let absoluto = (bcd_to_int(asect) / 10) % 2 == 0;
                 self.result_push(self.stat_byte());
                 self.result_push(track);
@@ -697,16 +710,11 @@ impl Cdrom {
     fn trilha_em(&self, layout: Option<&DiscLayout>, mm: u8, ss: u8, ff: u8) -> (u8, u8, Msf) {
         let padrao = (1u8, 1u8, (0x00u8, 0x02u8, 0x00u8));
         let Some(layout) = layout else { return padrao };
-        let agora = msf_para_quadros((mm, ss, ff));
+        let agora_lba = msf_para_quadros((mm, ss, ff)).saturating_sub(150);
         let mut achada = padrao;
         for t in &layout.tracks {
-            let inicio = (
-                int_to_bcd(t.index01_mm as u32),
-                int_to_bcd(t.index01_ss as u32),
-                int_to_bcd(t.index01_ff as u32),
-            );
-            if msf_para_quadros(inicio) <= agora {
-                achada = (t.number, 1, inicio);
+            if t.start_lba <= agora_lba {
+                achada = (t.number, 1, quadros_para_msf(t.start_lba + 150));
             }
         }
         achada
@@ -752,6 +760,14 @@ type Msf = (u8, u8, u8);
 
 fn msf_para_quadros((mm, ss, ff): Msf) -> u32 {
     (bcd_to_int(mm) * 60 + bcd_to_int(ss)) * 75 + bcd_to_int(ff)
+}
+
+fn quadros_para_msf(q: u32) -> Msf {
+    (
+        int_to_bcd(q / (60 * 75)),
+        int_to_bcd((q / 75) % 60),
+        int_to_bcd(q % 75),
+    )
 }
 
 fn subtrai_msf(pos: Msf, inicio: Msf) -> Msf {

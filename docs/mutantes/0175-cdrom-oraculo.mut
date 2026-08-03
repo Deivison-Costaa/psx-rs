@@ -1,0 +1,110 @@
+# Manifesto de mutacao da iteracao 0175 — cdrom-oraculo (lote D)
+formato: 1
+iteracao: 0175
+item: 10.103
+alvo: crates/psx-core/src/cdrom.rs
+teste: cdrom_seek_pause
+
+mutante: m1
+rotulo: reintroduz a checagem de disco removida no Setloc — regressao do fix
+teste: cdrom_seek_pause
+@@DE
+                } else {
+                    // 06-cdrom.md L787-797: Setloc so guarda o alvo do seek, sem
+                    // checar disco — quem checa e o SeekL/ReadN que de fato buscam.
+                    self.seek_min.set(mm);
+@@PARA
+                } else if !self.disc_inserted.get() {
+                    self.result_push(self.stat_byte() | 0x01);
+                    self.result_push(0x80);
+                    self.intsts.set(5);
+                } else {
+                    self.seek_min.set(mm);
+@@FIM
+
+mutante: m2
+rotulo: bcd_ok do Setloc para de validar o setor (ff) — so checa minuto/segundo
+teste: cdrom_seek_pause
+@@DE
+                let bcd_ok = ss < 0x60 && (ss & 0x0F) < 0x0A && ff < 0x75 && (ff & 0x0F) < 0x0A;
+@@PARA
+                let bcd_ok = ss < 0x60 && (ss & 0x0F) < 0x0A;
+@@FIM
+
+mutante: m3
+rotulo: troca a ordem dos bytes de erro do Setloc com BCD invalido
+teste: cdrom_seek_pause
+@@DE
+                if !bcd_ok {
+                    self.result_push(self.stat_byte() | 0x01);
+                    self.result_push(0x10);
+                    self.intsts.set(5);
+@@PARA
+                if !bcd_ok {
+                    self.result_push(0x10);
+                    self.result_push(self.stat_byte() | 0x01);
+                    self.intsts.set(5);
+@@FIM
+
+mutante: m4
+rotulo: Setloc valido dispara INT5 em vez de INT3
+teste: cdrom_seek_pause
+@@DE
+                    self.seek_sect.set(ff);
+                    self.result_push(self.stat_byte());
+                    self.intsts.set(3);
+                }
+                self.busy.set(false);
+@@PARA
+                    self.seek_sect.set(ff);
+                    self.result_push(self.stat_byte());
+                    self.intsts.set(5);
+                }
+                self.busy.set(false);
+@@FIM
+
+mutante: m5
+rotulo: Setloc troca ss/ff ao guardar o alvo do seek — SeekL mira setor errado
+teste: cdrom_setor_mode2
+@@DE
+                    self.seek_sec.set(ss);
+                    self.seek_sect.set(ff);
+@@PARA
+                    self.seek_sec.set(ff);
+                    self.seek_sect.set(ss);
+@@FIM
+
+controle: K1
+rotulo: extrai stat_byte() em variavel local no Setloc valido (equivalente)
+teste: cdrom_seek_pause
+@@DE
+                    self.seek_sect.set(ff);
+                    self.result_push(self.stat_byte());
+                    self.intsts.set(3);
+                }
+                self.busy.set(false);
+            }
+            0x06 => {
+@@PARA
+                    self.seek_sect.set(ff);
+                    let stat = self.stat_byte();
+                    self.result_push(stat);
+                    self.intsts.set(3);
+                }
+                self.busy.set(false);
+            }
+            0x06 => {
+@@FIM
+
+controle: K2
+rotulo: reordena as tres atribuicoes independentes do alvo do seek (equivalente)
+teste: cdrom_seek_pause
+@@DE
+                    self.seek_min.set(mm);
+                    self.seek_sec.set(ss);
+                    self.seek_sect.set(ff);
+@@PARA
+                    self.seek_sect.set(ff);
+                    self.seek_min.set(mm);
+                    self.seek_sec.set(ss);
+@@FIM

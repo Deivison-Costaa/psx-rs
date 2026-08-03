@@ -15,7 +15,11 @@
 | timers | `crates/psx-core/src/timers.rs` | timers 0/1/2 | (vazio — M3) |
 | cdrom | `crates/psx-core/src/cdrom.rs` | controller, comandos, BIN/CUE | (vazio — M4) |
 | sio | `crates/psx-core/src/sio.rs` | pad e memory card | (vazio — M6) |
-| spu | `crates/psx-core/src/spu.rs` | vozes ADPCM, mixer, reverb | (vazio — M7) |
+| spu | `crates/psx-core/src/spu.rs` | registradores, RAM de 512 KiB, transferencia, mixer de 44,1 kHz | `Spu`, `read16`, `write16`, `tick`, `drain_output`, `set_cd_audio` |
+| spu/voice | `crates/psx-core/src/spu/voice.rs` | estado das 24 vozes, pitch, key on/off, ENDX | `Voice`, `Volume`, `Phase`, `step` |
+| spu/adpcm | `crates/psx-core/src/spu/adpcm.rs` | bloco de 16 bytes -> 28 amostras | `decode_block`, `Flags` |
+| spu/envelope | `crates/psx-core/src/spu/envelope.rs` | envoltoria de ADSR e de sweep | `Envelope`, `Rate` |
+| spu/gauss | `crates/psx-core/src/spu/gauss.rs` | tabela de 512 entradas e interpolacao de 4 pontos | `TABLE`, `interpolate` |
 | mdec | `crates/psx-core/src/mdec.rs` | decodificador de macroblocos | (vazio — M8) |
 | psx-cli | `crates/psx-cli/src/main.rs` | runner headless, sideload de EXE, TTY, scoreboard | stub |
 | psx-desktop | `crates/psx-desktop/src/main.rs` | app egui: biblioteca, emulação, saves, controles, config | stub |

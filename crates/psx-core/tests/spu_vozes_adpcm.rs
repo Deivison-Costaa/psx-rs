@@ -1,5 +1,5 @@
-use psx_core::spu::adpcm::{self, BLOCK_SAMPLES, Flags};
 use psx_core::spu::Spu;
+use psx_core::spu::adpcm::{self, BLOCK_SAMPLES, Flags};
 
 const V0: u32 = 0x1F80_1C00;
 const KON_LO: u32 = 0x1F80_1D88;
@@ -127,7 +127,9 @@ fn key_on_copia_o_start_address_e_zera_a_envoltoria() {
         "§ 1F801D88h (L599): key on inicializa o volume ADSR em zero"
     );
     spu.write16(V0 + 4, 0x1000);
-    spu.tick();
+    for _ in 0..4 {
+        spu.tick();
+    }
     assert_ne!(
         spu.voice_out(0),
         0,
@@ -229,16 +231,26 @@ fn key_off_leva_a_voz_para_release() {
     spu.write16(V0 + 8, 0x0000);
     spu.write16(V0 + 0x0A, 0x0000);
     spu.write16(KON_LO, 1);
-    for _ in 0..4 {
+    for _ in 0..3 {
         spu.tick();
     }
-    assert!(spu.read16(CURRENT_ADSR) > 0x4000, "ataque tem de subir");
+    assert_eq!(
+        spu.read16(CURRENT_ADSR),
+        0x7FFF,
+        "ataque linear com shift 0 satura em tres ciclos"
+    );
     spu.write16(KOFF_LO, 1);
     spu.tick();
     assert_eq!(
         spu.read16(CURRENT_ADSR),
+        0x3FFF,
+        "release linear tira 4000h por ciclo"
+    );
+    spu.tick();
+    assert_eq!(
+        spu.read16(CURRENT_ADSR),
         0,
-        "release linear com shift 0 zera o nivel em um passo"
+        "e para em zero, sem passar para negativo"
     );
 }
 

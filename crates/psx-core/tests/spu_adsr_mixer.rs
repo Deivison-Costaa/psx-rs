@@ -40,7 +40,9 @@ fn carrega(spu: &mut Spu, endereco_em_oitavos: u16, bytes: &[u8]) {
 
 /// Voz tocando um bloco de amostras constantes, com envoltoria travada no teto.
 fn voz_constante(spu: &mut Spu, base: u32, oitavos: u16, nibble: u8, pitch: u16, bit: u32) {
-    carrega(spu, oitavos, &bloco(0x00, 0b100, nibble));
+    // Flags 111b: loop-start marca o repeat no proprio bloco e End+Repeat volta para
+    // ele, entao o tom e constante e o ENDX acende no fim de cada volta.
+    carrega(spu, oitavos, &bloco(0x00, 0b111, nibble));
     spu.write16(base + 6, oitavos);
     spu.write16(base + 4, pitch);
     spu.write16(base + 8, ADSR_LO_TRAVA_NO_TETO);
@@ -133,10 +135,19 @@ fn envoltoria_ataque_exponencial_desacelera_acima_de_6000h() {
         vec![28161, 31745, 32767],
         "com shift < 10 o passo e dividido por 4 acima de 6000h"
     );
+    let exp_inc_shift2 = Rate {
+        shift: 2,
+        ..exp_inc
+    };
     assert_eq!(
-        envoltoria(0x6000, exp_inc, 1),
-        vec![24576 + 14336],
-        "em 6000h exato ainda vale o passo cheio"
+        envoltoria(0x6000, exp_inc_shift2, 1),
+        vec![0x6000 + 3584],
+        "em 6000h exato a condicao e level > 6000h, entao vale o passo cheio"
+    );
+    assert_eq!(
+        envoltoria(0x6001, exp_inc_shift2, 1),
+        vec![0x6001 + 896],
+        "um degrau acima o passo cai a um quarto"
     );
 }
 
@@ -249,25 +260,38 @@ fn spucnt_com_bit14_zerado_silencia_a_saida() {
     for _ in 0..8 {
         saida = spu.tick();
     }
-    assert_eq!(saida, (0, 0), "§ 1F801DAAh (L659): bit14 em zero e Mute SPU");
-    assert_ne!(spu.voice_out(0), 0, "a voz continua rodando por baixo do mudo");
+    assert_eq!(
+        saida,
+        (0, 0),
+        "§ 1F801DAAh (L659): bit14 em zero e Mute SPU"
+    );
+    assert_ne!(
+        spu.voice_out(0),
+        0,
+        "a voz continua rodando por baixo do mudo"
+    );
 }
 
 #[test]
 fn pmon_usa_a_amplitude_da_voz_anterior_como_fator_de_passo() {
     let mut spu = Spu::new();
-    voz_constante(&mut spu, V0, 0x200, 8, 0x1000, 0);
+    voz_constante(&mut spu, V0, 0x200, 0xC, 0x1000, 0);
     voz_constante(&mut spu, V1, 0x300, 7, 0x1000, 1);
     spu.write16(PMON_LO, 0b10);
     for _ in 0..28 {
         spu.tick();
     }
     assert_eq!(
+        spu.read16(ENDX_LO) & 0b1,
+        0b1,
+        "a voz 0 nao e modulada e fecha o bloco em 28 ciclos"
+    );
+    assert_eq!(
         spu.read16(ENDX_LO) & 0b10,
         0,
-        "voz 0 em -8000h da fator ~0,13: a voz 1 anda oito vezes mais devagar"
+        "Factor = VxOUTX(0)+8000h: com a voz 0 em -4000h o passo da voz 1 cai pela metade"
     );
-    for _ in 0..400 {
+    for _ in 0..72 {
         spu.tick();
     }
     assert_eq!(spu.read16(ENDX_LO) & 0b10, 0b10);

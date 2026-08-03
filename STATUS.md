@@ -7,18 +7,17 @@
 
 ## Última iteração concluída
 
-**0181** — **o ROADMAP foi separado em escada e achados.** Ele fazia dois trabalhos: a escada
-(M4-M11, o que construir) ocupava 1000 bytes e o backlog de defeitos (M10) ocupava 5188 de 6812.
-Com oito ramos paralelos numa noite isso cobrou quatro renumerações manuais (dois lotes
-escolheram `10.108`, dois escolheram `10.102`) e cinco estouros de teto, cada um pago comprimindo
-linhas de itens alheios. Agora: `docs/achados.md` com teto proprio de 24 KB, numeracao **`NNNN.k`
-pela iteracao que achou** (colisao impossivel por construcao), append no fim da secao, e cinco
-guardas novos — cada um verificado violando a propriedade de proposito, nao so por passar.
-`ROADMAP.md` caiu para 1778 bytes e o teto dele apertou para 3000.
+**0182** — **o diagnóstico do VSync lia RAM intocada.** `vsync_timeout_diag` checava o contador
+de VBlank do jogo em `0x801DF2CC`, que cai **fora** do executável (`0x80125000..0x801CF800`), e
+com a suíte verde afirmava que "o handler nunca incrementou o contador" e que "a cadeia ExCB/EvCB
+nao contem entrada para F0000001". As duas sao falsas: o contador certo e `0x801CF2CC` (um digito
+de diferenca, o mesmo que o achado 10.85 ja citava) e vale **1469** em 700 M passos; `F0000001` e
+entregue **1723** vezes. O que sobra, medido, e defasagem: no primeiro `VSync: timeout` o contador
+esta em **1** com 660 IRQ0 e 1470 handlers (achado 0182.2).
 
 ## Próxima tarefa
 
-**ROADMAP 10.94 (nova parada do Rayman) e 10.90 (VSync).** O jogo agora carrega
+**Achado 0182.2 (defasagem do contador de VBlank) e 10.94 (nova parada do Rayman).** O jogo agora carrega
 `cdrom:SLUS-000.05;1`, imprime `Execute !` e o `PS-X Control PAD Driver Ver 3.0`, e para em
 `0x80132BF0`: `while (*(u8*)$s0 == 0) {}`, logo depois que `0x80133F40` retorna. Continuam **296**
 `VSync: timeout` — o 10.90 nunca foi tocado e e o proximo obstaculo provavel.

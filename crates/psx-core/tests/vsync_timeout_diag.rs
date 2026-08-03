@@ -438,7 +438,8 @@ fn diagnostico_vsync_timeout_rayman() {
     let mask = bus.irq().read_mask();
     let tmr1_mode = bus.read32::<BusRead>(0x1F80_1114);
     let tmr1_sync = (tmr1_mode & 1) != 0;
-    let counter = bus.read32::<BusRead>(0x801D_F2CC);
+    // 0x801CF2CC, nao 0x801DF2CC: o antigo caia fora do executavel (0182.1).
+    let counter = bus.read32::<BusRead>(0x801C_F2CC);
 
     eprintln!("=== Diagnostico VSync timeout Rayman ===");
     eprintln!(
@@ -478,15 +479,18 @@ fn diagnostico_vsync_timeout_rayman() {
          mode=0x{tmr1_mode:08X}. O jogo nao usa RCnt1+VBlank — hipotese (b) refutada."
     );
 
-    // Hipotese (a): contador de VBlank incrementado por handler via IRQ0
-    assert_eq!(
-        counter, 0,
-        "Contador de VBlank do jogo em 0x801DF2CC deve ser 0 (nunca incrementado). \
-         counter=0x{counter:08X}. A hipotese (a) esta confirmada: \
-         IRQ0 e levantada ({irq0_total}x), a CPU entra no handler ({handler_total}x), \
-         I_MASK tem bit0 habilitado, mas o handler do jogo nunca incrementou o contador. \
-         O defeito esta na cadeia de dispatch do handler: a BIOS vetoriza para 0x80000080 \
-         mas o handler registrado pelo jogo (que incrementa 0x801DF2CC) nao e alcancado. \
-         A cadeia ExCB/EvCB nao contem entrada para classe F0000001 (VBlank callback)."
+    // Hipotese (a) REFUTADA na 0182: o contador anda, e anda junto com o handler.
+    assert!(
+        counter > 0,
+        "o contador de VBlank do jogo em 0x801CF2CC tem de andar: IRQ0 sobe {irq0_total}x e a \
+         CPU entra no handler {handler_total}x. counter=0x{counter:08X}. Se parou em zero, a \
+         cadeia de dispatch regrediu de verdade — o que a versao anterior deste teste afirmava \
+         lendo 0x801DF2CC, endereco fora do executavel do jogo."
+    );
+    assert!(
+        (counter as u64) < irq0_total,
+        "o contador ({counter}) passou o numero de VBlanks ({irq0_total}) — se isso acontecer, \
+         ou o defeito 0182.2 foi corrigido (atualize este teste e o achado) ou ha incremento \
+         em duplicidade."
     );
 }

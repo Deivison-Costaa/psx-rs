@@ -21,9 +21,16 @@ fn secao<'a>(texto: &'a str, titulo: &str) -> Option<&'a str> {
     })
 }
 
+// Desde a 0181 o item pode morar na escada (`ROADMAP.md`) ou nos achados (`docs/achados.md`),
+// e a prosa natural do handoff passou a ser "Achado 0182.2". Exigir so o prefixo "ROADMAP "
+// obrigaria a escrever "ROADMAP 0182.2" para um item que nao esta no roadmap.
 fn ids_citados(texto: &str) -> Vec<String> {
     let mut saida = Vec::new();
-    for pedaco in texto.split("ROADMAP ").skip(1) {
+    let pedacos = texto
+        .split("ROADMAP ")
+        .skip(1)
+        .chain(texto.split("Achado ").skip(1));
+    for pedaco in pedacos {
         let id: String = pedaco
             .chars()
             .take_while(|c| c.is_ascii_digit() || *c == '.' || c.is_ascii_lowercase())

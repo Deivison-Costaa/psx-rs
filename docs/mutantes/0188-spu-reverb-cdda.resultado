@@ -1,14 +1,14 @@
 # gerado por scripts/mutantes.ps1 — NAO editar a mao
-# commit: 7eb447636c148e898e3fe8b98ee28aa643145ae1
-# rodado_em: 2026-08-03T20:46:07-03:00
-m1,mutante,morreu,morreu,0.5,apf2_com_volume_zero_devolve_o_que_esta_no_buffer_vezes_vlout;reflexao_do_mesmo_lado_grava_lin_vezes_viir_no_buffer
-m2,mutante,morreu,sobreviveu,0.5,
-m3,mutante,morreu,sobreviveu,0.5,
+# commit: 7c3a6d05978296908d99f7fdfbf2c9c8b52103e8
+# rodado_em: 2026-08-03T20:47:07-03:00
+m1,mutante,morreu,morreu,0.5,apf2_com_volume_zero_devolve_o_que_esta_no_buffer_vezes_vlout;endereco_de_reverb_enrola_dentro_da_area_e_nao_no_topo_da_ram;reflexao_do_mesmo_lado_grava_lin_vezes_viir_no_buffer;reverb_roda_a_metade_da_taxa_do_mixer
+m2,mutante,morreu,morreu,0.5,endereco_de_reverb_enrola_dentro_da_area_e_nao_no_topo_da_ram
+m3,mutante,morreu,morreu,0.5,reflexao_soma_de_volta_a_amostra_de_duas_meias_palavras_antes
 m4,mutante,morreu,morreu,0.5,reflexao_do_mesmo_lado_grava_lin_vezes_viir_no_buffer
-m5,mutante,morreu,morreu,0.5,apf2_com_volume_zero_devolve_o_que_esta_no_buffer_vezes_vlout
-m6,mutante,morreu,morreu,0.5,bit7_do_spucnt_corta_a_escrita_no_buffer_mas_nao_a_leitura
+m5,mutante,morreu,morreu,0.5,apf2_com_volume_zero_devolve_o_que_esta_no_buffer_vezes_vlout;reverb_roda_a_metade_da_taxa_do_mixer
+m6,mutante,morreu,morreu,0.5,bit7_do_spucnt_corta_a_escrita_no_buffer_mas_nao_a_leitura;endereco_de_reverb_enrola_dentro_da_area_e_nao_no_topo_da_ram
 m7,mutante,morreu,morreu,0.5,endereco_corrente_anda_de_duas_em_duas_e_da_a_volta_no_topo
-m8,mutante,morreu,sobreviveu,0.6,
+m8,mutante,morreu,morreu,0.6,reverb_roda_a_metade_da_taxa_do_mixer
 m9,mutante,morreu,morreu,0.6,non_troca_a_amostra_da_voz_pelo_ruido;passo_do_ruido_vem_dos_bits_9_8_do_spucnt;ruido_avanca_como_lfsr_de_paridade
 m10,mutante,morreu,morreu,0.6,passo_do_ruido_vem_dos_bits_9_8_do_spucnt
 m11,mutante,morreu,morreu,0.6,eon_manda_a_saida_da_voz_para_o_reverb

@@ -391,7 +391,7 @@ impl Spu {
         self.output.len()
     }
 
-    // § SPU Noise Generator (L640) de docs/reference/08-spu.md.
+    // § SPU Noise Generator (L633) de docs/reference/08-spu.md.
     fn step_noise(&mut self) {
         let shift = u32::from((self.cnt >> 10) & 0x0F);
         let passo = 4 + i32::from((self.cnt >> 8) & 0x3);

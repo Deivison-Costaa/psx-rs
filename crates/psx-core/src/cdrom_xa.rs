@@ -92,7 +92,7 @@ pub fn cdda_frames(raw: &[u8]) -> Vec<(i16, i16)> {
 
 pub const OUTPUT_HZ: u32 = 44100;
 
-/// § 25-point Zigzag Interpolation (L1128) de docs/reference/15-cdrom-format.md; aqui e
+/// § 25-point Zigzag Interpolation (L991) de docs/reference/15-cdrom-format.md; aqui e
 /// vizinho mais proximo: a taxa fica certa, o filtro nao.
 pub fn resample_to_44100(frames: &[(i16, i16)], source_hz: u32) -> Vec<(i16, i16)> {
     if source_hz == 0 || source_hz == OUTPUT_HZ || frames.is_empty() {

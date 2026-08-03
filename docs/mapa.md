@@ -19,7 +19,9 @@
 | spu/voice | `crates/psx-core/src/spu/voice.rs` | estado das 24 vozes, pitch, key on/off, ENDX | `Voice`, `Volume`, `Phase`, `step` |
 | spu/adpcm | `crates/psx-core/src/spu/adpcm.rs` | bloco de 16 bytes -> 28 amostras | `decode_block`, `Flags` |
 | spu/envelope | `crates/psx-core/src/spu/envelope.rs` | envoltoria de ADSR e de sweep | `Envelope`, `Rate` |
+| spu/reverb | `crates/psx-core/src/spu/reverb.rs` | 32 registradores, formula de reverb a 22,05 kHz | `Reverb`, `run`, `advance`, `set_mbase` |
 | spu/gauss | `crates/psx-core/src/spu/gauss.rs` | tabela de 512 entradas e interpolacao de 4 pontos | `TABLE`, `interpolate` |
+| cdrom_xa | `crates/psx-core/src/cdrom_xa.rs` | XA-ADPCM, quadros de CD-DA e reamostragem para 44,1 kHz | `decode_sector`, `decode_28_nibbles`, `cdda_frames`, `resample_to_44100` |
 | mdec | `crates/psx-core/src/mdec.rs` | decodificador de macroblocos | (vazio — M8) |
 | psx-cli | `crates/psx-cli/src/main.rs` | runner headless, sideload de EXE, TTY, scoreboard | stub |
 | psx-desktop | `crates/psx-desktop/src/main.rs` | app egui: biblioteca, emulação, saves, controles, config | stub |

@@ -102,6 +102,19 @@ fn store_de_cop0_nao_lanca_com_cu0_ligado() {
     );
 }
 
+// A isencao de modo kernel vale para `cop0`, nao para `lwc0`/`swc0`: e essa assimetria que
+// concilia a prosa do psx-spx com o gabarito. Sem esta assercao, apagar o `is_cop_op` do
+// predicado passa despercebido.
+#[test]
+fn load_e_store_de_cop0_lancam_sem_cu0_mesmo_em_modo_kernel() {
+    for opcode in [swc(0), lwc(0)] {
+        assert!(
+            lancou(opcode, 0),
+            "modo kernel nao isenta load/store de cop0: sem CU0 tem de lancar 0Bh"
+        );
+    }
+}
+
 // § cop0r16-r31 - Garbage (L892) de docs/reference/02-cpu.md: em modo usuario com cop0
 // desabilitado (SR.bit1=1 e SR.bit28=0) o acesso a cop0 lanca 0Bh.
 #[test]

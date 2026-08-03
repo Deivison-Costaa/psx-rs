@@ -8,9 +8,9 @@
 ## Última iteração concluída
 
 **0175** — **Lote D (CD-ROM); terminou SEM mudança de produção.** A rodada removeu o
-INT5(stat,80h) do Setloc sem disco, alegando que § Setloc (L787-798) não menciona disco. A
-revisão reverteu: § Error Codes (L1020) do mesmo arquivo lista `02h` **em primeiro lugar** entre
-os comandos que devolvem 80h com disco ausente. O que a medição achou de verdade: as suítes de
+INT5(stat,80h) do Setloc sem disco porque a seção do Setloc não menciona disco. A revisão
+reverteu: § Error Codes (L1020) de docs/reference/06-cdrom.md lista `02h` **em primeiro lugar**
+entre os comandos que devolvem 80h com disco ausente. O que a medição achou de verdade: as suítes de
 CD-ROM do ps1-tests foram gravadas **com disco na bandeja** (`GetStat -> 0x02`, `GetlocP
 succeeded - track 01`), e nosso arreio as roda sem `--disc`. Montando um disco aparecem três
 divergências reais — `GetStat` sem o bit de motor, `GetlocL` passando onde deve falhar, e

@@ -1,0 +1,11 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: e1d75c5058e4b288ae28ed2e224fef08f3997f81
+# rodado_em: 2026-08-03T08:28:15-03:00
+m1,mutante,morreu,morreu,0.6,arquivos_saem_na_ordem_das_trilhas_e_sem_repetir;cada_trilha_lembra_o_arquivo_de_onde_veio;cue_de_arquivo_unico_repete_o_mesmo_arquivo_em_todas_as_trilhas;lba_absoluto_soma_os_arquivos_anteriores
+m2,mutante,morreu,morreu,0.6,bin_path_aponta_para_o_primeiro_arquivo
+m3,mutante,morreu,morreu,0.6,arquivos_saem_na_ordem_das_trilhas_e_sem_repetir
+m4,mutante,morreu,morreu,0.6,lba_absoluto_soma_os_arquivos_anteriores
+m5,mutante,morreu,morreu,0.6,lba_absoluto_soma_os_arquivos_anteriores
+m6,mutante,morreu,morreu,0.6,cue_de_arquivo_unico_mantem_o_lba_do_index
+c1,controle,sobreviveu,sobreviveu,0.6,
+c2,controle,sobreviveu,sobreviveu,0.6,

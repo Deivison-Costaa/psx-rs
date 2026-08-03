@@ -1,0 +1,81 @@
+# Manifesto de mutacao da iteracao 0180 — cue por trilha, LBA absoluto e autopause
+formato: 1
+iteracao: 0180
+item: 10.110
+alvo: crates/psx-core/src/cdrom_bin_cue.rs
+teste: cdrom_cue_multiarquivo
+
+mutante: m1
+rotulo: toda trilha volta a apontar para o primeiro arquivo
+ocorrencias: 1
+@@DE
+                            file: arquivo_atual.clone(),
+@@PARA
+                            file: String::new(),
+@@FIM
+
+mutante: m2
+rotulo: bin_path passa a ser o ULTIMO arquivo de novo — o defeito original do Rayman
+ocorrencias: 1
+@@DE
+                    if bin_path.is_empty() {
+                        bin_path = arquivo_atual.clone();
+                    }
+@@PARA
+                    bin_path = arquivo_atual.clone();
+@@FIM
+
+mutante: m3
+rotulo: a lista de arquivos deixa de descartar repetido e duplica a imagem
+ocorrencias: 1
+@@DE
+            if !t.file.is_empty() && !fora.contains(&t.file) {
+@@PARA
+            if !t.file.is_empty() {
+@@FIM
+
+mutante: m4
+rotulo: o LBA absoluto esquece o deslocamento dos arquivos anteriores
+ocorrencias: 1
+@@DE
+            t.start_lba = deslocamento + t.index01_em_quadros();
+@@PARA
+            t.start_lba = t.index01_em_quadros();
+@@FIM
+
+mutante: m5
+rotulo: o acumulado nao anda, e toda trilha comeca no mesmo lugar
+ocorrencias: 1
+@@DE
+            acumulado = acumulado.saturating_add(setores_por_arquivo.get(i).copied().unwrap_or(0));
+@@PARA
+            acumulado = acumulado.saturating_add(0);
+@@FIM
+
+mutante: m6
+rotulo: o INDEX 01 deixa de contar os minutos
+ocorrencias: 1
+@@DE
+        self.index01_mm as u32 * 60 * 75 + self.index01_ss as u32 * 75 + self.index01_ff as u32
+@@PARA
+        self.index01_ss as u32 * 75 + self.index01_ff as u32
+@@FIM
+
+controle: c1
+rotulo: nomear o acumulado antes de somar nao muda comportamento
+ocorrencias: 1
+@@DE
+            acumulado = acumulado.saturating_add(setores_por_arquivo.get(i).copied().unwrap_or(0));
+@@PARA
+            let tamanho = setores_por_arquivo.get(i).copied().unwrap_or(0);
+            acumulado = acumulado.saturating_add(tamanho);
+@@FIM
+
+controle: c2
+rotulo: ordem espelhada da soma do LBA (cosmetico)
+ocorrencias: 1
+@@DE
+            t.start_lba = deslocamento + t.index01_em_quadros();
+@@PARA
+            t.start_lba = t.index01_em_quadros() + deslocamento;
+@@FIM

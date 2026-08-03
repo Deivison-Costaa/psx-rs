@@ -893,10 +893,11 @@ impl Cpu {
                         self.cop0[12] = (sr & !0xF) | iec_kuc | (iep_kup << 2);
                         None
                     }
-                    _ => {
+                    0x01 | 0x02 | 0x06 | 0x08 => {
                         self.raise_exception(0x0A, None);
                         None
                     }
+                    _ => None,
                 }
             }
             _ => None,

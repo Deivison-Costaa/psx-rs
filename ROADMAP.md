@@ -42,7 +42,6 @@ Regra imposta por `roadmap_arquivo.rs`.
 ## M10 — Precisão e compatibilidade
 - [ ] 10.1 Timings finos (ps1-tests de timing)
 - [ ] 10.2 Passe de compatibilidade (bugs viram itens 10.x)
-- [ ] 10.3 Bus error ao executar codigo do scratchpad (exposto por ps1-tests/cpu/code-in-io)
 - [ ] 10.4 CAUSE.CE nao preenchido nas excecoes de Coprocessor Unusable (`docs/reference/02-cpu.md` L681)
 - [ ] 10.5 Amidog psxtest_cpu para apos "args: 0" — causa nao investigada (iter 0032)
 - [ ] 10.6 GP0(80h) VRAM->VRAM blit (hoje consumido e ignorado)
@@ -95,8 +94,8 @@ Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 10.85 Rayman: laco `0x801B9574` espera `[0x801CF2CC]>=2` (0159)
 - [ ] 10.90 Rayman: 71x `VSync: timeout` apos `Execute !` (0163; era 2x, ver 0171)
 - [ ] 10.94 Rayman em 590-600 M: laco `0x8019FA1C` espera `[0x801CEEBC]` != 0 (0167)
-- [ ] 10.100 cpu/cop: `testCop0InvalidOpcode` — cop0cmd invalido nao-TLB nao lanca 0Ah (0171)
 - [ ] 10.107 `CLAUDE.md` lista `perf`/`ci` mas o commit-lint so aceita 6 tipos (0177)
+- [ ] 10.108 SPU/EXPANSION2 sem estado: fetch em SPU (0x1F801C00) vira NOP infinito, `code-in-io` nao completa (0172)
 
 ## M11 — Apresentação (incremental desde o M1)
 - [ ] 11.2 Gráficos de metricas.csv + scoreboard-data

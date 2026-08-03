@@ -7,21 +7,21 @@
 
 ## Última iteração concluída
 
-**0171** — **10.97+10.98+10.99 numa rodada (R4 dobrado a pedido do usuário)**. (a) o hook de TTY
-de alto nível só emite quando o vetor de syscall está stubado com `jr $ra`: com kernel real a
-BIOS já emitia por `putchar` e a saída saía **duplicada** — **todo número de TTY de 0163-0170
-estava inflado em 2x**; o `VSync: timeout` do Rayman é **71**, não 142. (b) o oráculo alinha na
-primeira linha do gabarito presente na nossa saída e devolve `sem-alinhamento` em vez de inventar
-K/M. (c) Coprocessor Unusable é decidido pelo **bit CU do SR**, não pela existência do
-coprocessador. Bateria 7/7, controles 2/2. CI passou a usar `cargo nextest`.
+**0172** — **Lote A do oráculo (CPU/kernel), R4 dobrado a pedido do usuário**. Fecha
+`cpu/cop` (10.100: só TLBxx lança 0Ah) e o bus error de fetch em scratchpad/I_STAT/MDEC (10.3).
+Em `cpu/io-access-bitwidth` fecha DMA0_ADDR e DPCR (31→25/67): `sb`/`sh` num registrador de DMA
+carregam os 32 bits inteiros do rt, não o byte/halfword — § Caution L309 de `02-cpu.md`. Achado
+novo: fetch em SPU (sem estado) vira passeio de NOP infinito, trava `code-in-io` antes de
+DMA0/DMAControl/SPU (10.108). `cpu/access-time` adiado: é o próprio ROADMAP 10.1 (sem timing
+model), doc do teste diz "no assertions". Bateria 8/8 mortos, 2/2 controles.
 
 ## Próxima tarefa
 
-**ROADMAP 10.100 e os lotes do oráculo de TTY.** `scripts/oraculo-tty.ps1` é confiável desde a
-0171 e o placar em `logs/oraculo-tty.csv` é o alvo: fechar divergência por divergência, por
-subsistema. Cinco lotes
-— A CPU/kernel, B DMA, C MDEC+SPU, D CD-ROM, E timers+GPU+GTE. Tarefa-modelo pronta em
-`logs/orquestrador/task-lote-oraculo.txt` (trocar `<<<LOTE>>>`).
+**Lotes B-E do oráculo seguem** (DMA, MDEC+SPU, CD-ROM, timers+GPU+GTE —
+`logs/orquestrador/task-lote-oraculo.txt`). Pendências do lote A: ROADMAP 10.108 (SPU sem
+estado) e o resto de `cpu/io-access-bitwidth` (I_MASK ecoa bruto sem mascarar, SIO/JOY largura,
+timers com bits "open bus" no read de 32, `Dma::write_dicr` deixa passar o bit 6 — grava
+0x340078 em vez de 0x340038, visível só depois do eco de largura).
 
 `K/M` no CSV é **K linhas divergentes de M** — já foi lido ao contrário. `timers` tem jitter
 real de hardware no gabarito e nunca dará `identico` por comparação exata.
@@ -42,13 +42,12 @@ Invariantes relevantes: nenhuma.
 
 ## Placar de testes
 
-Workspace: **955** testes.
+Workspace: **972** testes.
 
 ## Bloqueios
 
 - **Primeira paridade com hardware real (0171)**: `gpu/gp0-e1` (0/12) e `gpu/mask-bit` (0/7)
-  batem byte a byte com o gabarito do ps1-tests. Placar do oráculo: **2 identico, 19 difere**.
-  `cpu/cop` caiu de 19/19 para 1/19 — sobra `testCop0InvalidOpcode` (item 10.100).
+  batem byte a byte com o gabarito do ps1-tests. `cpu/cop` fechou 0/19 na 0172.
 - **NUNCA rodar `cargo test` nem a bateria de mutação junto com o oráculo**: a disputa de CPU faz
   o `Start-Process` ler stdout antes do flush e reportar `sem-saida` falso. Derrubou 16/21 numa
   medição da 0170; rodada limpa deu 21/21.

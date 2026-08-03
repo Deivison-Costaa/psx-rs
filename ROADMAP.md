@@ -42,7 +42,6 @@ Regra imposta por `roadmap_arquivo.rs`.
 ## M10 — Precisão e compatibilidade
 - [ ] 10.1 Timings finos (ps1-tests de timing)
 - [ ] 10.2 Passe de compatibilidade (bugs viram itens 10.x)
-- [ ] 10.3 Bus error ao executar codigo do scratchpad (ps1-tests/cpu/code-in-io)
 - [ ] 10.4 CAUSE.CE nao preenchido no Coprocessor Unusable (`docs/reference/02-cpu.md` L681)
 - [ ] 10.5 Amidog psxtest_cpu para apos "args: 0" — causa nao investigada (iter 0032)
 - [ ] 10.6 GP0(80h) VRAM->VRAM blit (hoje consumido e ignorado)
@@ -94,13 +93,13 @@ Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 10.85 Rayman: laco `0x801B9574` espera `[0x801CF2CC]>=2` (0159)
 - [ ] 10.90 Rayman: 71x `VSync: timeout` apos `Execute !` (0163; era 2x, ver 0171)
 - [ ] 10.94 Rayman em 590-600 M: laco `0x8019FA1C` espera `[0x801CEEBC]` != 0 (0167)
-- [ ] 10.100 cpu/cop: `testCop0InvalidOpcode` — cop0cmd invalido nao-TLB nao lanca 0Ah (0171)
-- [ ] 10.101 SPU/DMA4 ausente bloqueia dma/dpcr (13/15); depende do lote SPU/M7 (0173)
-- [ ] 10.102 DMA sincrono: ticks/ciclos medidos ao redor (chain-looping, chopping) leem overhead do poll (0173)
+- [ ] 10.101 SPU/DMA4 ausente bloqueia dma/dpcr (13/15) (0173)
+- [ ] 10.102 DMA sincrono: ticks medidos ao redor leem overhead do poll (0173)
 - [ ] 10.103 GetlocL/GetlocP sao stub; disc-swap exige tray fisico scriptavel (06-cdrom.md L1052/1073) (0175)
 - [ ] 10.107 `CLAUDE.md` lista `perf`/`ci` mas o commit-lint so aceita 6 tipos (0177)
-- [ ] 10.108 Oraculo roda cdrom sem `--disc`; com disco: GetStat sem bit1, GetlocL nao falha, Setloc falha (0175)
-- [ ] 10.109 SyncMode=0 com chopping: MADR nao atualiza e BC nao decrementa (04-dma.md L48-51/L80-81) (0173)
+- [ ] 10.108 Oraculo roda cdrom sem `--disc`; com disco: GetStat sem bit1, GetlocL nao falha (0175)
+- [ ] 10.109 SyncMode=0 com chopping: MADR e BC parados (04-dma.md L48-51/L80-81) (0173)
+- [ ] 10.112 SPU sem estado: fetch em `0x1F801C00` vira NOP infinito (0172)
 
 ## M11 — Apresentação (incremental desde o M1)
 - [ ] 11.2 Gráficos de metricas.csv + scoreboard-data

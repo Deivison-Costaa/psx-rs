@@ -1,0 +1,13 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: 7d3eb417b63f81e5f3e629fb5cf97826dd6a7e6b
+# rodado_em: 2026-08-03T03:51:36-03:00
+m1,mutante,morreu,morreu,0.6,tlb_ops_continuam_lancando_reservado
+m2,mutante,morreu,morreu,0.6,tlb_ops_continuam_lancando_reservado
+m3,mutante,morreu,morreu,0.6,sr_rfe_move_campos_ie_ku_corretamente
+m4,mutante,morreu,morreu,0.6,sb_em_dpcr_usa_valor_cheio_do_registrador;sh_em_dpcr_usa_valor_cheio_do_registrador
+m5,mutante,morreu,morreu,0.6,sb_em_dpcr_usa_valor_cheio_do_registrador;sb_em_madr_usa_valor_cheio_do_registrador;sh_em_dpcr_usa_valor_cheio_do_registrador;sh_em_madr_usa_valor_cheio_do_registrador
+m6,mutante,morreu,morreu,0.6,lhu_em_dpcr_reflete_o_valor_armazenado;sb_em_dpcr_usa_valor_cheio_do_registrador;sh_em_dpcr_usa_valor_cheio_do_registrador
+m7,mutante,morreu,morreu,0.6,jr_para_interrupt_control_levanta_bus_error_de_instrucao;jr_para_mdec_levanta_bus_error_de_instrucao;jr_para_scratchpad_levanta_bus_error_de_instrucao
+m8,mutante,morreu,morreu,0.7,jr_para_mdec_levanta_bus_error_de_instrucao
+c1,controle,sobreviveu,sobreviveu,0.6,
+c2,controle,sobreviveu,sobreviveu,0.6,

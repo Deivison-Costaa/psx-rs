@@ -40,15 +40,15 @@ rotulo: nao preenche BadVaddr no erro de endereco de fetch
 mutante: m4
 rotulo: marca o fetch que falha como delay slot, e EPC recua quatro bytes
 @@DE
+        if instr_pc & 3 != 0 {
             self.enter_exception(0x04, Some(instr_pc), instr_pc, false, false);
             return;
         }
-        let instr = bus.read32::<BusRead>(instr_pc);
 @@PARA
+        if instr_pc & 3 != 0 {
             self.enter_exception(0x04, Some(instr_pc), instr_pc, true, false);
             return;
         }
-        let instr = bus.read32::<BusRead>(instr_pc);
 @@FIM
 
 mutante: m5
@@ -89,13 +89,11 @@ rotulo: nomear o endereco defeituoso antes de passar nao muda comportamento
             self.enter_exception(0x04, Some(instr_pc), instr_pc, false, false);
             return;
         }
-        let instr = bus.read32::<BusRead>(instr_pc);
 @@PARA
             let defeituoso = instr_pc;
             self.enter_exception(0x04, Some(defeituoso), defeituoso, false, false);
             return;
         }
-        let instr = bus.read32::<BusRead>(instr_pc);
 @@FIM
 
 controle: c3

@@ -183,3 +183,10 @@ da escada valer so para o que FALTA. Narrativa de cada item continua em
 
 ## M11 — Apresentação (incremental desde o M1)
 - [x] 11.1 Relatório consolidado (docs/relatorio.md — atualizado a cada marco) (iter 0096)
+
+## Achados fechados na iteração 0184
+- [x] 10.94 Rayman: laco `0x80132BF0` — era o callback do DMA1 (MDECout) que nunca voltava (0184)
+- [x] 0183.2 byte0 de `[0x801CF5F4]`: escrito por `0x80132A30`, fim da cadeia de faixas do MDEC (0184)
+- [x] 4.4 Boot de jogo 2D/menu: Rayman entra no primeiro nivel (0184)
+- [x] 8.2 Macroblocos coloridos 15/24bpp com yuv_to_rgb (0184)
+

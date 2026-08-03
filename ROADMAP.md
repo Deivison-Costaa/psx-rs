@@ -10,7 +10,7 @@ iteração que o achou (`NNNN.k`). A escada é o que construir; os achados são 
 Regra imposta por `roadmap_arquivo.rs`.
 
 ## M4 — CDROM
-- [ ] 4.4 Boot de jogo 2D/menu
+- [ ] 4.4b Crash Bandicoot: chegar ao primeiro nivel (o Rayman chegou na 0184)
 - [ ] 4.5 1o frame: rollback do init do LIBSN; poll orfao do TMR2 (diag 0137-0147)
 
 ## M5 — GTE
@@ -28,9 +28,6 @@ Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 7.2 Pitch/ADSR/volume + mixer
 - [ ] 7.3 Saída cpal + ring buffer
 - [ ] 7.4 Reverb + noise + CD-DA/XA
-
-## M8 — MDEC
-- [ ] 8.2 Macroblocos: mono feito (0174); falta cor (yuv_to_rgb, 15/24bpp)
 
 ## M9 — App desktop
 - [ ] 9.1 Biblioteca: scan BIN/CUE, título/serial/região, lista

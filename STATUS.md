@@ -7,30 +7,33 @@
 
 ## Última iteração concluída
 
-**0183** — **`--watch-mem`: quem escreveu neste endereço, e de que instrução.** Na 0182 gastei
-horas desmontando RAM a mao; a comparacao antes/depois de cada passo deu a mesma resposta em dois
-minutos. Virou flag do `psx-cli`, generica — serve para qualquer jogo e para as suites do oraculo.
-**Quatro dos seis mutantes sobreviveram na primeira bateria**: reportar sempre, nao atualizar o
-valor lembrado, culpar o PC seguinte, baseline zero. Instrumento que mente fecha a pergunta com
-resposta errada, entao as quatro lacunas viraram assercoes (ruido limitado, ROM nao reporta nada,
-o PC culpado tem de conter um `store`). 6/6 e 2/2 depois. Bateria rodada a mao: o script recusa
-alvo fora do `psx-core` (10.58).
+**0184** — **O Rayman roda.** Ele carrega, toca a intro em MDEC, aceita o controle e chega ao
+primeiro nivel, com HUD e sprites animados nos dois framebuffers (153 600 pixels redesenhados por
+quadro). Quatro defeitos, nenhum deles especifico deste jogo:
+**(1)** o MDEC nao decodificava em cor (`run_decode` saia vazio em 15/24bpp);
+**(2)** o DMA1 desistia quando encontrava a fifo vazia — o jogo arma o canal 1 ANTES de alimentar
+o MDEC pelo canal 0, entao o canal armado tem de retomar quando o MDEC produz;
+**(3)** o DMA1 nao costurava os quatro blocos 8x8 no macrobloco 16x16 (quadro saia em faixas);
+**(4)** o /ACK do SIO0 chegava no meio do byte em vez de depois do ultimo SCK, e o driver do
+kernel o apagava na limpeza de IRQ7 — 483 reinicios do PAD driver viraram 5.
+**A reducao de profundidade do MDEC ARREDONDA, nao trunca** (774 de 3072 canais saiam um passo
+abaixo do console). Os testes de `mdec/4bit` e `mdec/8bit` eram verdes contra constantes
+derivadas da spec que erravam 16 de 64 e 16 de 32 bytes do gabarito de hardware; agora usam o
+gabarito. Bateria 12/12 e 2/2; a 0174 foi reexecutada (6/6, 2/2).
 
 ## Próxima tarefa
 
-**Achado 10.94 — a alca `0x80132BF0` do Rayman.** Ela espera o byte de completude de um
-descritor de 20 bytes na tabela em `0x801CF5E0`; `0x80132B50` zera esse byte antes de despachar o
-pedido, e nada o levanta. **O VBlank nao e o bloqueio** (ver 0183). O jogo agora carrega
-`cdrom:SLUS-000.05;1`, imprime `Execute !` e o `PS-X Control PAD Driver Ver 3.0`, e para em
-`0x80132BF0`: `while (*(u8*)$s0 == 0) {}`, logo depois que `0x80133F40` retorna. Continuam **296**
-`VSync: timeout` — o 10.90 nunca foi tocado e e o proximo obstaculo provavel.
+**ROADMAP 4.4b — Crash Bandicoot ate o primeiro nivel.** O Rayman fechou o 4.4; o Crash e 3D e
+vai bater no GTE (5.4b-5.6) e no SPU (M7), que continuam abertos. Imagem em
+`../roms/extraido/Crash Bandicoot (USA).cue`.
 
-**Rodar sempre com o `.cue` MULTI-TRILHA** (`Rayman (USA).cue`): o `DADOS` nao tem trilha de audio
-e o autopause nao dispara nele.
+**Rodar o Rayman sempre com `--pad` e com o `.cue` MULTI-TRILHA** (`Rayman (USA).cue`).
+Reproduzir o estado de jogo: `--max-steps 1200000000 --pad --dump-vram <arquivo>`; o dump e VRAM
+crua 1024x512x16bpp, nao PNG.
 
-Achados abertos em `docs/achados.md`. Pendencias do lote A: 10.112 (SPU sem estado) e o resto de `cpu/io-access-bitwidth` (I_MASK ecoa
-bruto, SIO/JOY largura, `Dma::write_dicr` deixa passar o bit 6). Lotes do oraculo: tarefa-modelo
-em `logs/orquestrador/task-lote-oraculo.txt`.
+Achados abertos em `docs/achados.md`. Pendencias do lote A: 10.112 (SPU sem estado) e o resto de
+`cpu/io-access-bitwidth`. Lotes do oraculo: tarefa-modelo em
+`logs/orquestrador/task-lote-oraculo.txt`.
 
 `K/M` no CSV e **K linhas divergentes de M**. `timers` tem jitter real e nunca dara `identico`.
 **Antes de medir CD-ROM, monte disco** (10.108).
@@ -51,7 +54,7 @@ Invariantes relevantes: nenhuma.
 
 ## Placar de testes
 
-Workspace: **1029** testes.
+Workspace: **1039** testes.
 - **NUNCA rodar `cargo test` nem a bateria de mutação junto com o oráculo**: a disputa de CPU faz
   o `Start-Process` ler stdout antes do flush e reportar `sem-saida` falso. Derrubou 16/21 numa
   medição da 0170; rodada limpa deu 21/21.

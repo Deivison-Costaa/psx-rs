@@ -161,8 +161,8 @@ fn ativacao_inicial_do_hook_preserva_vblank_antes_do_handler() {
         "quatro ativacoes do hook devem ser observadas"
     );
     let inicial = &activations[0];
-    assert_eq!(inicial.vector_step, 164_111_528);
-    assert_eq!(inicial.hook_step, 164_112_358);
+    assert_eq!(inicial.vector_step, 164_109_946);
+    assert_eq!(inicial.hook_step, 164_110_776);
     assert_ne!(inicial.vector_stat & 1, 0);
     assert_ne!(inicial.hook_stat & 1, 0);
     assert_eq!(inicial.handler_step, None);
@@ -177,7 +177,7 @@ fn ativacao_inicial_do_hook_preserva_vblank_antes_do_handler() {
     let posterior = &activations[3];
     assert_ne!(posterior.vector_stat & 1, 0);
     assert_eq!(posterior.hook_stat & 1, 0);
-    assert_eq!(posterior.handler_step, Some(164_157_757));
+    assert_eq!(posterior.handler_step, Some(164_156_175));
     assert!(posterior.handler_step.unwrap_or(usize::MAX) < posterior.hook_step);
     assert_eq!(
         posterior.writes,

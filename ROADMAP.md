@@ -53,8 +53,8 @@ Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 10.30 Habilitar canal no DPCR nao dispara transferencia pendente (so no CHCR)
 - [ ] 10.25 `unwrap_or` de caminho nos meta-testes silencia `strip_prefix` que falha (10.12)
 - [ ] 10.13 GP0(24h) e modulacao, nao raw texture (03-gpu.md L264/L1610) (0110)
-- [ ] 10.14 U/V e gouraud reinterpolados sobre span recortado (03-gpu.md L452-454)
-- [ ] 10.17 `mutantes.ps1` recusa arvore suja; permitir sujeira em `docs/mutantes/*.mut`
+- [ ] 10.14 U/V e gouraud reinterpolados sobre span recortado (03-gpu.md L452)
+- [ ] 10.17 `mutantes.ps1` recusa arvore suja; permitir `docs/mutantes/*.mut`
 - [ ] 10.24 Job `scoreboard` da CI sai VERDE medindo zero (0072)
 - [ ] 10.26 Nenhum dos 9 testes de `ci_scoreboard.rs` afirma que o job mede algo
 - [ ] 10.27 Placar local (gitignored) e o unico com veredito real e nao e versionado
@@ -62,25 +62,25 @@ Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 10.18 Nada torna `arquivada:` caro: 0052 e 0059 largaram 17 registros, 12 casavam
 - [ ] 10.33 `mutantes.ps1` so roda `cargo test -p psx-core` (L290); outros crates a mao
 - [ ] 10.34 Nenhum meta-teste reprova `#[test]` sem assercao (T10 da 0080 passou assim)
-- [ ] 10.35 `mutantes.ps1` grava nome qualificado, `mutation_battery` busca fn literal: nao casam
-- [ ] 10.40 `mutantes.ps1` so casa ancora em LF; em CRLF diz 'encontrada 0 vez(es)'
+- [ ] 10.35 `mutantes.ps1` grava nome qualificado, `mutation_battery` busca fn literal
+- [ ] 10.40 `mutantes.ps1` so casa ancora em LF; CRLF da 'encontrada 0 vez(es)'
 - [ ] 10.42 Linhas tremulas: captura sem sync com vblank; suspeito GP1(05h) (30/07)
 - [ ] 10.42b Manifesto trata `#` como comentario em `@@DE`/`@@PARA` (alvo `.md`)
 - [ ] 10.44 Manifesto com alvo em documento vivo (STATUS.md) envelhece sempre
 - [ ] 10.45 Load shadow sobrepoe as instrucoes seguintes (`docs/reference/02-cpu.md` L281)
-- [ ] 10.46 `justificativa:` do equivalente nao aceita continuacao de linha (2 parsers)
-- [ ] 10.52 `lhu`/`lbu` no modo do timer nao limpa bits 11/12; 32 bits limpa (0118)
-- [ ] 10.51 GPU em `region_read_byte`: `(phys & 3) + offset` sem mascara estoura em debug (0118)
-- [ ] 10.50 `GP0(C0h)` sem transferencia devolve zero; dreno le zeros (0117)
-- [ ] 10.49 Bit 15 do `DICR` (bus error) gravavel mas nada o levanta; DMA fora da RAM ignorada (0116)
-- [ ] 10.48 `sw` em `1F801044h..104Fh` cai no sumidouro de `region_write32`: JOY_MODE/CTRL (0115)
+- [ ] 10.46 `justificativa:` do equivalente nao aceita continuacao de linha
+- [ ] 10.52 `lhu`/`lbu` no modo do timer nao limpa bits 11/12 (0118)
+- [ ] 10.51 GPU em `region_read_byte`: `(phys&3)+offset` sem mascara estoura em debug (0118)
+- [ ] 10.50 `GP0(C0h)` sem transferencia devolve zero (0117)
+- [ ] 10.49 Bit 15 do `DICR` gravavel mas nada o levanta; DMA fora da RAM ignorada (0116)
+- [ ] 10.48 `sw` em `1F801044h..104Fh` cai no sumidouro de `region_write32` (0115)
 - [ ] 10.57 Regiao do GetID fixada em SCEA; ler o setor de licenca do `.bin` (0122)
 - [ ] 10.56 Result FIFO do comando anterior continua legivel na janela da primeira resposta (0121)
 - [ ] 10.55 Atraso da primeira resposta ignora o motor: spec da `Nop (when stopped) 0x5CF4` (0121)
 - [ ] 10.53 Comando executa mesmo com INT pendente; spec exige esperar o ack (06-cdrom.md L1984) (0121)
-- [ ] 10.47 Espera da BIOS (`0x80059DA4`/`0x80059D54`) por timeout: 0x8000 giros < ~230 k (0114)
+- [ ] 10.47 Espera da BIOS por timeout: 0x8000 giros < ~230 k (0114)
 - [ ] 10.58 mutantes.ps1 so roda psx-core; alvo por crate e revalidar 0078/0079 (invariante 29) (0125)
-- [ ] 10.66 Meta-teste nao reexecuta bateria antiga: `.resultado` pode mentir (0143)
+- [ ] 10.66 Meta-teste nao reexecuta bateria antiga: `.resultado` mente (0143)
 - [ ] 10.63 `-ContinueBranch` diz "reprovado na revisao" apos travamento (0140)
 - [ ] 10.65 Revisor isolado em /tmp nao le o repo nem confere citacao (0141)
 - [ ] 10.64 `evcb_descritor_mapeia_para_spec_correto` custa 447 s dos 449 s sob nextest (0140)
@@ -101,6 +101,7 @@ Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 10.110 AutoPause: INT4 no fim da trilha arma o modo 4/5 do Rayman (06-cdrom.md L1267) (0178)
 - [ ] 10.111 `.cue` multi-trilha do Rayman trava em `boot file` (0178)
 - [ ] 10.112 SPU sem estado: fetch em `0x1F801C00` vira NOP infinito (0172)
+- [ ] 10.115 Provas do Rayman fixam passo absoluto: melhoria legitima desloca e reprova (0174)
 - [ ] 10.113 step-by-step-log (1524/1665): 1a divergencia e endereco de build; falta yuv2rgb (0174)
 - [ ] 10.114 DMA sem custo por ciclo: SPU testDMA*Timing exigem poll antes de completar (0174)
 

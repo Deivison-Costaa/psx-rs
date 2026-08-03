@@ -28,7 +28,7 @@ adversarialmente e faz merge é o orquestrador (Claude). Papéis em `docs/orques
 - **R7 — Comentários ≤5% por arquivo `.rs` (reprova em 10%).** Justificativa, narrativa e
   citação de spec moram em `docs/iterations/`, não no código.
 - **R8 — Orçamento de contexto é recurso do projeto.** Leia SÓ: `STATUS.md` → a linha do item
-  no `ROADMAP.md` → a(s) seção(ões) da spec apontadas pelo handoff → o(s) arquivo(s)-alvo
+  no `ROADMAP.md` ou em `docs/achados.md` → a(s) seção(ões) da spec apontadas pelo handoff → o(s) arquivo(s)-alvo
   achados via `docs/mapa.md` → o teste do item atual. NUNCA leia `tests/` inteiro, specs
   inteiras nem arquivos fora do item. **Arquivo de TESTE com >500 linhas reprova em
   `file_size.rs`**: um arquivo de teste por item do ROADMAP, não um por subsistema.
@@ -41,7 +41,8 @@ adversarialmente e faz merge é o orquestrador (Claude). Papéis em `docs/orques
 |---|---|
 | Estado atual + próxima tarefa | `STATUS.md` |
 | O que fazer e como (protocolo, 12 passos) | `.claude/skills/iterate/SKILL.md` |
-| Escada de itens | `ROADMAP.md` |
+| Escada de itens (o que construir) | `ROADMAP.md` |
+| Defeitos achados por medição (o que consertar) | `docs/achados.md` |
 | Onde mora cada módulo/arquivo | `docs/mapa.md` |
 | Spec de hardware (com índice de seções no topo) | `docs/reference/NN-*.md` |
 | Template do doc de iteração | `docs/iterations/TEMPLATE.md` |

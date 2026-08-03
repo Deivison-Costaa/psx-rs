@@ -11,7 +11,8 @@ se algo aqui conflitar com outro doc, este ganha e o outro deve ser corrigido.
 ## Passo 0 — Contexto mínimo
 
 Leia `STATUS.md` inteiro (é curto — teto de 6 KB). A seção **Próxima tarefa** define o item e
-as seções de spec. Abra no `ROADMAP.md` SÓ a linha do item. Em `docs/invariantes.md` abra SÓ as
+as seções de spec. Abra SÓ a linha do item — na escada (`ROADMAP.md`) se for algo a construir,
+em `docs/achados.md` se for defeito achado por medição, que é a maioria. Em `docs/invariantes.md` abra SÓ as
 entradas listadas na linha `Invariantes relevantes:` do handoff — o arquivo inteiro é referência
 de 8 KB e ler tudo é justamente o que o teto do STATUS existe para evitar. Não leia mais nada
 "de graça" (R8) — nem `tests/` inteiro, nem specs inteiras, nem iterações antigas.
@@ -109,7 +110,12 @@ assumiu, o que a spec diz, como foi pego. Registrado não é vergonha — um log
 deu certo é um log inútil. Atualize `STATUS.md`: última iteração (1 linha), **Próxima tarefa**
 (handoff denso: item, arquivo de spec + seções, arquivos-alvo, armadilha conhecida), placar,
 invariantes/notas novas (índice numerado, nunca renumere). Marque o checkbox do item no
-`ROADMAP.md` com `(iter NNNN)` — a 0009 esqueceu e o orquestrador teve que fechar depois.
+`ROADMAP.md` (ou `docs/achados.md`, conforme onde o item mora) com `(iter NNNN)` — a 0009
+esqueceu e o orquestrador teve que fechar depois.
+
+**Achado novo se numera `NNNN.k`**, com o número da SUA iteração, e entra no FIM da seção em
+`docs/achados.md`. Nunca reaproveite número nem renumere item alheio: com rodadas paralelas o
+esquema antigo colidia (dois lotes escolheram `10.108` na mesma noite).
 Se `logs/metrics-pending.csv` existir, mova suas linhas para o fim de `docs/metricas.csv`
 (mesmo formato, sem cabeçalho) e apague o pendente — são as métricas das execuções
 anteriores, appendadas pelo runner.

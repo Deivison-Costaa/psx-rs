@@ -71,11 +71,17 @@ fn arquivo_de_fechados_so_contem_item_fechado() {
 
 #[test]
 fn nenhum_item_aparece_nos_dois_arquivos() {
-    let no_roadmap: HashSet<String> = ler("ROADMAP.md")
+    let mut no_roadmap: HashSet<String> = ler("ROADMAP.md")
         .lines()
         .filter_map(id_do_item)
         .map(|(id, _)| id)
         .collect();
+    no_roadmap.extend(
+        ler("docs/achados.md")
+            .lines()
+            .filter_map(id_do_item)
+            .map(|(id, _)| id),
+    );
     let no_arquivo: HashSet<String> = ler(ARQUIVO)
         .lines()
         .filter_map(id_do_item)

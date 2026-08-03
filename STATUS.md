@@ -7,13 +7,14 @@
 
 ## Última iteração concluída
 
-**0180** — **o laço do Rayman quebrou.** `[0x801CEEBC]` foi de `0` para **`1`** e o jogo saiu de
-`0x8019FA1C`, onde estava desde a 0167. Três mudanças: (a) `.cue` com um arquivo por trilha —
-`parse_cue` guardava um `bin_path` só e sobrava o **último**, então a trilha de dados era lida do
-arquivo da trilha 6 e o boot morria em `boot file`; (b) TOC absoluto — o `INDEX 01` de um rip por
-trilha é relativo ao próprio arquivo, e sem somar os anteriores a fronteira entre trilhas some;
-(c) **AutoPause** — o jogo manda `Setmode=07h` (medido), e o INT4 no fim da trilha é o que arma o
-modo que escreve a flag. Bateria 6/6, controles 2/2; âncora da 0064 reparada e reexecutada 7/7.
+**0181** — **o ROADMAP foi separado em escada e achados.** Ele fazia dois trabalhos: a escada
+(M4-M11, o que construir) ocupava 1000 bytes e o backlog de defeitos (M10) ocupava 5188 de 6812.
+Com oito ramos paralelos numa noite isso cobrou quatro renumerações manuais (dois lotes
+escolheram `10.108`, dois escolheram `10.102`) e cinco estouros de teto, cada um pago comprimindo
+linhas de itens alheios. Agora: `docs/achados.md` com teto proprio de 24 KB, numeracao **`NNNN.k`
+pela iteracao que achou** (colisao impossivel por construcao), append no fim da secao, e cinco
+guardas novos — cada um verificado violando a propriedade de proposito, nao so por passar.
+`ROADMAP.md` caiu para 1778 bytes e o teto dele apertou para 3000.
 
 ## Próxima tarefa
 
@@ -25,7 +26,7 @@ modo que escreve a flag. Bateria 6/6, controles 2/2; âncora da 0064 reparada e 
 **Rodar sempre com o `.cue` MULTI-TRILHA** (`Rayman (USA).cue`): o `DADOS` nao tem trilha de audio
 e o autopause nao dispara nele.
 
-Pendencias do lote A: 10.112 (SPU sem estado) e o resto de `cpu/io-access-bitwidth` (I_MASK ecoa
+Achados abertos em `docs/achados.md`. Pendencias do lote A: 10.112 (SPU sem estado) e o resto de `cpu/io-access-bitwidth` (I_MASK ecoa
 bruto, SIO/JOY largura, `Dma::write_dicr` deixa passar o bit 6). Lotes do oraculo: tarefa-modelo
 em `logs/orquestrador/task-lote-oraculo.txt`.
 
@@ -48,7 +49,7 @@ Invariantes relevantes: nenhuma.
 
 ## Placar de testes
 
-Workspace: **1019** testes.
+Workspace: **1024** testes.
 - **NUNCA rodar `cargo test` nem a bateria de mutação junto com o oráculo**: a disputa de CPU faz
   o `Start-Process` ler stdout antes do flush e reportar `sem-saida` falso. Derrubou 16/21 numa
   medição da 0170; rodada limpa deu 21/21.

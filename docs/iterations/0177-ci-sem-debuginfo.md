@@ -64,6 +64,11 @@ CI, job `check` — medido nos dois PRs, mesma máquina, mesmo cache:
 Os 135 s que sobraram continuam sendo link. O candidato seguinte é trocar o linker por `mold`,
 em rodada separada para que a medida continue atribuível.
 
+**O que NÃO contar como ganho:** o terceiro empurrão deste mesmo PR mexeu só em documentação e o
+job fechou em 65 s, com o passo de suíte em 20 s. Isso é o cache acertando porque nenhuma fonte
+mudou — não é efeito do `debug=0`. A comparação honesta é 290 s contra 239 s, as duas com
+mudança em `crates/psx-core/tests/` e o cache igualmente quente.
+
 Um erro de processo a registrar: o primeiro empurrão usou `perf(ci):` como tipo de commit. O
 `CLAUDE.md` lista `perf` entre os tipos, mas a expressão regular do `commit-lint` aceita só
 `(test|feat|fix|refactor|docs|chore)`. Os dois estão em desacordo desde antes desta rodada; virou

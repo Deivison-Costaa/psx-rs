@@ -20,14 +20,15 @@ Regra imposta por `status_handoff.rs`.
    hoje e nomeia a dúvida, para que uma futura mudança seja deliberada. Ponto de
    resolução: Amidog `psxtest_cpu` no item 1.11 — se ele reprovar, inverter a ordem em
    `Cpu::step` (commitar o load antes de executar, escrevendo num banco de saída).
-3. **BcondZ com `rt` fora da tabela: comportamento ASSUMIDO (resolve no item 1.11).** O
-   opcode 01h só tem `rt`=00h/01h/10h/11h tabelados em `02-cpu.md § Opcode/Parameter
-   Encoding`; a spec local não diz o que `rt`=02h..0Fh/12h..1Fh fazem. Assumimos **no-op
-   silencioso** (nem desvia nem linka). O teste
-   `bcondz_rt_fora_da_tabela_comportamento_assumido` fixa isso e diz na asserção que é
-   suposição. Se o Amidog `psxtest_cpu` reprovar, o critério a testar primeiro é o de
-   hardware conhecido: bit16 sozinho decide BLTZ/BGEZ e o link ocorre quando os bits
-   20..17 valem 1000b — o que faria `rt`=02h agir como BLTZ.
+3. **BcondZ com `rt` fora da tabela: RESOLVIDO contra o Amidog `psxtest_cpu` (item 10.92,
+   iter 0166).** O opcode 01h só tem `rt`=00h/01h/10h/11h tabelados em `02-cpu.md §
+   Opcode/Parameter Encoding`; a spec local (e o psx-spx upstream, checado na 0166) não diz
+   o que `rt`=02h..0Fh/12h..1Fh fazem. O palpite registrado aqui batia: bit16 (bit0 de
+   `rt`) sozinho decide a condição (par=bltz, ímpar=bgez) para os 32 valores; o link só
+   ocorre para `rt`=10h/11h exatamente — os demais valores com bit4 ligado (12h..1Fh) NÃO
+   linkam. Amidog `Result` caiu de `00000109` para `00000101` e os 4.312 erros de
+   `b_0xNN` para 0. Testes: `cpu_bcondz_codificacoes.rs` (varredura completa) e
+   `bcondz_rt_fora_da_tabela_desvia_como_bltz` em `cpu_branches.rs`.
 4. **EPC e BadVaddr são graváveis via MTC0 — comportamento ASSUMIDO (resolve no item
    1.11).** A spec marca ambos como (R), mas o comportamento sob escrita não está
    documentado localmente. Implementados como R/W na 1.8a. Os testes

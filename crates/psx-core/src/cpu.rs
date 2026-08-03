@@ -578,13 +578,11 @@ impl Cpu {
         let rt = ((instr >> 16) & 0x1F) as usize;
         let imm = Self::sign_extend_imm(instr);
         let rs_val = self.reg(rs) as i32;
-        let link = rt >= 16;
-        let cond = match rt & 0x1F {
-            0x00 => rs_val < 0,
-            0x01 => rs_val >= 0,
-            0x10 => rs_val < 0,
-            0x11 => rs_val >= 0,
-            _ => return,
+        let link = rt == 0x10 || rt == 0x11;
+        let cond = if rt & 0x01 == 0 {
+            rs_val < 0
+        } else {
+            rs_val >= 0
         };
         if link {
             self.set_reg(31, self.pc.wrapping_add(4));

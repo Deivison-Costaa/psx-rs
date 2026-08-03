@@ -1,0 +1,99 @@
+# Manifesto de mutacao da iteracao 0166 — bcondz: codificacoes de rt fora da tabela
+formato: 1
+iteracao: 0166
+item: 10.92
+alvo: crates/psx-core/src/cpu.rs
+teste: cpu_bcondz_codificacoes
+
+mutante: m1
+rotulo: reintroduz o no-op para rt fora de 00/01/10/11
+ocorrencias: 1
+@@DE
+        let link = rt == 0x10 || rt == 0x11;
+        let cond = if rt & 0x01 == 0 {
+            rs_val < 0
+        } else {
+            rs_val >= 0
+        };
+@@PARA
+        let link = rt >= 16;
+        let cond = match rt & 0x1F {
+            0x00 => rs_val < 0,
+            0x01 => rs_val >= 0,
+            0x10 => rs_val < 0,
+            0x11 => rs_val >= 0,
+            _ => return,
+        };
+@@FIM
+
+mutante: m2
+rotulo: inverte qual paridade de rt desvia com rs negativo
+ocorrencias: 1
+@@DE
+        let cond = if rt & 0x01 == 0 {
+@@PARA
+        let cond = if rt & 0x01 == 1 {
+@@FIM
+
+mutante: m3
+rotulo: volta a linkar por bit4 solto em vez de rt exato
+ocorrencias: 1
+@@DE
+        let link = rt == 0x10 || rt == 0x11;
+@@PARA
+        let link = rt >= 16;
+@@FIM
+
+mutante: m4
+rotulo: nunca linka mesmo nos encodings canonicos
+ocorrencias: 1
+@@DE
+        let link = rt == 0x10 || rt == 0x11;
+@@PARA
+        let link = false;
+@@FIM
+
+mutante: m5
+rotulo: linka exatamente nos encodings que nao deveriam linkar
+ocorrencias: 1
+@@DE
+        let link = rt == 0x10 || rt == 0x11;
+@@PARA
+        let link = rt == 0x00 || rt == 0x01;
+@@FIM
+
+mutante: m6
+rotulo: fecha o limite de bgez excluindo rs igual a zero
+ocorrencias: 1
+@@DE
+            rs_val >= 0
+@@PARA
+            rs_val > 0
+@@FIM
+
+mutante: m7
+rotulo: abre o limite de bltz incluindo rs igual a zero
+ocorrencias: 1
+@@DE
+            rs_val < 0
+@@PARA
+            rs_val <= 0
+@@FIM
+
+controle: c1
+rotulo: reescreve o teste de link canonico com matches equivalente
+ocorrencias: 1
+@@DE
+        let link = rt == 0x10 || rt == 0x11;
+@@PARA
+        let link = matches!(rt, 0x10 | 0x11);
+@@FIM
+
+controle: c2
+rotulo: reescreve a paridade de rt usando modulo equivalente
+ocorrencias: 1
+@@DE
+        let cond = if rt & 0x01 == 0 {
+@@PARA
+        let cond = if rt % 2 == 0 {
+@@FIM

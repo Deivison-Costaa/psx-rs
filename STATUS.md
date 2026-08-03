@@ -7,18 +7,26 @@
 
 ## Última iteração concluída
 
-**0165** — **load delay slot encadeado corrigido.** Quando dois loads escreviam o mesmo GPR, o
-primeiro resultado ficava visivel durante a instrucao seguinte. A condicao agora substitui o
-load pendente pelo novo sem commitar o antigo: Amidog `Result: 00000109` e erros
-`nop_.*_d` **588 -> 0**. Bateria 5/5 e 2/2; 0111 reexecutada com 5/5 e 2/2.
+**0166** — **BcondZ: os 32 valores de `rt` decodificados contra o oraculo Amidog.** A tabela
+local so cobre 4 encodings; o `_ => return` fazia 28 valores de `rt` virarem no-op. Medido: a
+condicao usa so o bit0 de `rt` (par=bltz, impar=bgez) e o link ($ra=pc+8) so ocorre em
+`rt`=10h/11h exatos — nao em qualquer `rt` com bit4 ligado. Amidog `Result: 00000109 ->
+00000101`, erros `b_0xNN` **4312 -> 0**. Bateria 7/7 e 2/2.
 
 ## Próxima tarefa
 
-**ROADMAP 10.92 — branch encoding: ~4.312 erros de codificacao de branch na suite Amidog.**
+**ROADMAP 10.71 — `mutantes.ps1`: duas clausulas `"teste"` no mesmo switch do PowerShell sem
+`break` (linhas ~191 e ~213); a de registro vaza para o cabecalho e passa a valer tambem para
+registros sem override.** Reconfirmado na 0166 ao tentar usar `teste:` por registro no
+manifesto de 10.92 (contornado ali sem tocar no script). Fix esperado: `break` apos cada
+`case`, ou reestruturar em `if/elseif`; adicionar um manifesto de regressao que exercite
+override + default no mesmo arquivo.
 
-Handoff: nao iniciar outro item nesta rodada. Para 10.92, leia a secao de branches da spec
-antes de tocar no decode/execucao de branch em `crates/psx-core/src/cpu.rs`; R1 continua
-literal. O oraculo Amidog permanece disponivel com o comando do runner no historico da rodada.
+Nota (nao e handoff, e leitura): Amidog CPU `Result` ainda nao e `00000000` — restam bits
+0x001 e 0x100 sem NENHUMA linha `error @` visivel no TTY; nao investigado, pode exigir
+decodificar o bitmask fora do texto. Load delay (10.93) e branch (10.92) — as duas causas
+que mantinham Rayman fora de foco — estao fechadas; a premissa de bloqueio de Rayman pode
+ter mudado, mas isso NAO foi reverificado nesta rodada.
 
 Invariantes relevantes: nenhum.
 
@@ -36,7 +44,7 @@ Invariantes relevantes: nenhum.
 
 ## Placar de testes
 
-Workspace: **917** testes.
+Workspace: **921** testes.
 
 ## Bloqueios
 
@@ -54,10 +62,12 @@ Workspace: **917** testes.
 - **10.85 (0159)**: o laço final do Rayman é `0x801B9574`, esperando `[0x801CF2CC] >= 2`. A espera
   do memory card NÃO é o bloqueio: termina sozinha em 166.321.383 com `F4000001h,0100h`.
 - **Oraculo de hardware disponivel (0164)**: 51 EXEs em `tests/exes/` (gitignored). Amidog CPU
-  em `Result: 00000109`. Depurar o CPU contra ele custa menos que inferir de jogo.
+  em `Result: 00000101` (0166; era `00000109`). Depurar o CPU contra ele custa menos que
+  inferir de jogo.
 - **Rayman parou de ser a frente principal (0164)**: a cadeia esta mapeada mas depende de um
-  auto-ack que o BIOS religa por projeto; com o CPU ainda reprovado em branch e load delay, o
-  sintoma do jogo nao e o lugar certo para trabalhar.
+  auto-ack que o BIOS religa por projeto. As duas causas de CPU citadas em 0164 (branch e
+  load delay) fecharam em 10.92/10.93 (0165/0166) — reavaliar se o sintoma do jogo volta a
+  ser o lugar certo antes de retomar Rayman.
 - **Janela util do Rayman: depois do passo 164.000.000** (`Execute !`). Antes disso e boot do
   BIOS + BOOTSTRAP LOADER; `0x8003xxxx`/`0x8005xxxx` sao do carregador. O executavel do jogo ocupa
   `0x80125000..0x801CF800`.

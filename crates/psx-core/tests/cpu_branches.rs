@@ -346,10 +346,12 @@ fn load_em_delay_slot() {
     assert_eq!(cpu.regs[10], 0, "LW em delay slot: r10 ainda OLD");
 }
 
-// ===== Achado da revisao adversarial (orquestrador) =====
+// ===== BcondZ com rt fora da tabela: resolvido contra o oraculo Amidog (item 10.92) =====
+// A varredura completa dos 32 valores de rt mora em cpu_bcondz_codificacoes.rs; este caso
+// fica aqui so como regressao do achado que motivou a nota (invariante 3, agora resolvida).
 
 #[test]
-fn bcondz_rt_fora_da_tabela_comportamento_assumido() {
+fn bcondz_rt_fora_da_tabela_desvia_como_bltz() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
     cpu.pc = 0;
@@ -359,9 +361,8 @@ fn bcondz_rt_fora_da_tabela_comportamento_assumido() {
     cpu.step(&mut bus);
     cpu.step(&mut bus);
     assert_eq!(
-        cpu.pc, 0x8,
-        "SUPOSICAO NAO VERIFICADA (nota 4 do STATUS, resolve no item 1.11): a spec local so \
-         tabela rt=00/01/10/11 no opcode 01h e nao diz o que rt=02h faz. Assumimos no-op; \
-         se o psxtest_cpu reprovar, o criterio vira bit16 = condicao e link por bits 20..17"
+        cpu.pc, 0x14,
+        "rt=02h nao esta na tabela oficial, mas o hardware (Amidog b_0x02) so olha o bit0 \
+         de rt para a condicao: bit0=0 desvia como bltz"
     );
 }

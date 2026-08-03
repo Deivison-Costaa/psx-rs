@@ -59,11 +59,53 @@ achado ficou registrado em `docs/achados.md`.
 
 ## Bateria de mutação
 
-<!-- preenchido pelo scripts/mutantes.ps1 -->
+Placar da bateria: 14/14 mutantes mortos, 2/2 controles verdes, 0 equivalente —
+`docs/mutantes/0185-gte-comandos-de-cor.mut`. A bateria da 0088 foi reexecutada com a âncora
+renovada (o mutante m4 do `sf` passou a casar 6 vezes em vez de 4, porque os comandos de cor
+também usam `let shift = sf * 12;`): 7/7 e 2/2.
+
+**A primeira rodada foi 12/14, e os dois sobreviventes eram testes meus verdes sem medir nada.**
+
+| Mutante | Por que sobreviveu | Caso de hardware que passou a matá-lo |
+|---|---|---|
+| m1 — acumulador não dá a volta | Nenhum dos 12 casos escolhidos tinha parcela passando de 2^43 | NCDS #40 e NCCT #34 (divergem em `FLAG`) |
+| m7 — FIFO guarda `MACn` em vez de `MACn/16` | Nos 12 casos o canal saturava em `00h`/`FFh` de qualquer jeito, com ou sem o `/16` | DPCS #9 e NCCT #12 (divergem em `RGB2` e `FLAG`) |
+
+Os quatro casos não foram escolhidos a gosto: rodei o modelo Python **com a mutação aplicada**
+contra os 600 casos e peguei os que separam o correto do mutado. Isso é o inverso do fluxo
+normal — a bateria disse qual buraco existia e o gabarito disse qual caso o tapa.
 
 ## Placar antes → depois
 
-Workspace: **1039** → **1051** testes (12 novos em `gte_comandos_cor`).
+Workspace: **1039** → **1055** testes (16 novos em `gte_comandos_cor`).
+
+**O Crash desenha em cor.** O menu principal saía com a placa de madeira texturizada correta e o
+modelo do personagem como silhueta branca chapada; agora sai com o logo `CRASH` em amarelo e o
+Crash com pelo laranja, olhos e focinho — o mesmo quadro, a mesma execução, só com os três
+opcodes que faltavam.
+
+**Ele ainda não entra no primeiro nível**, então o 4.4ae continua aberto. Com `--press start` o
+cursor não sai do lugar, e o TTY do jogo mostra por quê: o runtime da Naughty Dog imprime
+`GPU timeout:que=0,stat=5604267e,chcr=01000401,madr=00058498` em laço. O `chcr` é DMA2 em lista
+encadeada (SyncMode=2) que fica com o bit de ocupado ligado e não completa. **Isso já aparecia
+antes desta iteração** (uma vez em 400 M passos, nove em 900 M), então não é regressão da cor —
+é o próximo obstáculo, registrado como 0185.2.
+
+## Efeito colateral: cinco provas do Rayman andaram +15.801 passos
+
+O Rayman é 2D, mas **também emite comandos de cor do GTE** — que até agora eram no-op. Assim que
+passaram a fazer trabalho, o jogo gastou ciclos que antes não gastava e todo o boot deslizou
+**+15.801 passos, uniformemente**. Reprovaram quatro arquivos (`rayman_autoack`,
+`rayman_evcb_descritores`, `rayman_exception_chain`, `rayman_hook_activation`), nove constantes
+no total.
+
+Antes de repinar, confirmei que era isso e não regressão: restaurei o `gte.rs` da revisão
+anterior, rodei `rayman_autoack` e ele passou; com o novo, falha. Em todas as nove, `arg`, `ra` e
+os endereços ficaram **idênticos** — só o instante mudou, e o deslocamento é o mesmo número nas
+nove. As constantes foram medidas uma a uma, não somadas de cabeça.
+
+É o achado **10.115** cobrando o preço que ele mesmo previu: prova que fixa passo absoluto
+reprova por melhoria legítima. O comentário no ponto de cada repinagem registra a causa.
 
 ## Revisão cruzada (orquestrador)
 

@@ -85,3 +85,4 @@
 - [ ] 0181.1 `docs/relatorio.md` e `docs/orquestracao.md` ainda descrevem o ROADMAP unico (0181)
 - [ ] 0184.1 MDEC: 35 de 512 palavras do gabarito divergem em 1 passo de 5 bits (0184)
 - [ ] 0185.1 rtps/mvmva/op/sqr checam overflow do MAC no total; o hardware checa a cada parcela (0185)
+- [ ] 0185.2 Crash: runtime imprime `GPU timeout` com DMA2 em lista encadeada (chcr=01000401) que nao completa; ja ocorria antes da 0185 (0185)

@@ -7,29 +7,31 @@
 
 ## Última iteração concluída
 
-**0184** — **O Rayman roda.** Ele carrega, toca a intro em MDEC, aceita o controle e chega ao
-primeiro nivel, com HUD e sprites animados nos dois framebuffers (153 600 pixels redesenhados por
-quadro). Quatro defeitos, nenhum deles especifico deste jogo:
-**(1)** o MDEC nao decodificava em cor (`run_decode` saia vazio em 15/24bpp);
-**(2)** o DMA1 desistia quando encontrava a fifo vazia — o jogo arma o canal 1 ANTES de alimentar
-o MDEC pelo canal 0, entao o canal armado tem de retomar quando o MDEC produz;
-**(3)** o DMA1 nao costurava os quatro blocos 8x8 no macrobloco 16x16 (quadro saia em faixas);
-**(4)** o /ACK do SIO0 chegava no meio do byte em vez de depois do ultimo SCK, e o driver do
-kernel o apagava na limpeza de IRQ7 — 483 reinicios do PAD driver viraram 5.
-**A reducao de profundidade do MDEC ARREDONDA, nao trunca** (774 de 3072 canais saiam um passo
-abaixo do console). Os testes de `mdec/4bit` e `mdec/8bit` eram verdes contra constantes
-derivadas da spec que erravam 16 de 64 e 16 de 32 bytes do gabarito de hardware; agora usam o
-gabarito. Bateria 12/12 e 2/2; a 0174 foi reexecutada (6/6, 2/2).
+**0185** — **O Crash desenha em cor.** Ele ja chegava ao menu, mas o modelo saia como silhueta
+branca. A causa nao foi inferida: instrumentei o dispatch do GTE e medi os opcodes que caiam no
+`_ => {}` — `0x13` NCDS, `0x3F` NCCT, `0x10` DPCS, as instrucoes de cor por vertice. Os **doze**
+comandos da familia entraram juntos (sao um motor so): fecham 5.4b, 5.4c e 5.4d.
+**Gabarito: `tests/exes/ps1-tests/gte-fuzz`, 50 execucoes por comando em console real.** Modelei
+a spec em Python antes do Rust e a 1a versao deu **0/50** no NCS. Tres coisas que a spec nao diz:
+**(1)** `MAC1..3` sao registradores de **32 bits** e o IR satura do valor ja truncado;
+**(2)** o acumulador de 44 bits **da a volta** — em `(FC<<12)-MAC` estenda o sinal em 44 bits
+antes do deslocamento; **(3)** as flags de overflow sao checadas **a cada parcela**, nao no
+total, por isso o hardware liga o bit positivo E o negativo do mesmo MAC num comando so.
+Bateria 14/14 e 2/2; 0088 reexecutada (7/7, 2/2). **Cinco provas do Rayman andaram +15.801
+passos** (ele tambem emite comandos de cor): repinadas, e o 10.115 em acao.
 
 ## Próxima tarefa
 
-**ROADMAP 4.4ae — Crash Bandicoot ate o primeiro nivel.** O Rayman fechou o 4.4; o Crash e 3D e
-vai bater no GTE (5.4b-5.6) e no SPU (M7), que continuam abertos. Imagem em
-`../roms/extraido/Crash Bandicoot (USA).cue`.
+**ROADMAP 4.4ae — Crash Bandicoot ate o primeiro nivel.** O menu desenha completo e o `--press
+start` nao move o cursor. O TTY do jogo diz por que: `GPU timeout:que=0,stat=5604267e,
+chcr=01000401,madr=00058498` em laco, mais `intr timeout(0040:004d)`. O `chcr` e **DMA2 em lista
+encadeada (SyncMode=2) que fica ocupado e nao completa** — achado 0185.2. Ja aparecia antes da
+0185 (1x em 400 M passos, 9x em 900 M), entao nao e regressao da cor. **Comece por ai**, nao pelo
+controle: o PAD driver instala e o controle e detectado (`TYPE : 6 free button`).
 
-**Rodar o Rayman sempre com `--pad` e com o `.cue` MULTI-TRILHA** (`Rayman (USA).cue`).
-Reproduzir o estado de jogo: `--max-steps 1200000000 --pad --dump-vram <arquivo>`; o dump e VRAM
-crua 1024x512x16bpp, nao PNG.
+Rodar: `--bios bios/SCPH1001.BIN --disc "../roms/extraido/Crash Bandicoot (USA).cue"
+--max-steps 400000000 --pad --dump-vram <f>`; o dump e VRAM crua 1024x512x16bpp, nao PNG, e o
+menu ja esta pronto em 400 M. **Rayman: sempre `--pad` e o `.cue` MULTI-TRILHA**, 1200000000.
 
 Achados abertos em `docs/achados.md`. Pendencias do lote A: 10.112 (SPU sem estado) e o resto de
 `cpu/io-access-bitwidth`. Lotes do oraculo: tarefa-modelo em
@@ -54,7 +56,7 @@ Invariantes relevantes: nenhuma.
 
 ## Placar de testes
 
-Workspace: **1039** testes.
+Workspace: **1055** testes.
 - **NUNCA rodar `cargo test` nem a bateria de mutação junto com o oráculo**: a disputa de CPU faz
   o `Start-Process` ler stdout antes do flush e reportar `sem-saida` falso. Derrubou 16/21 numa
   medição da 0170; rodada limpa deu 21/21.

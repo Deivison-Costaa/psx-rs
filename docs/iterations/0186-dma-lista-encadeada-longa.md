@@ -79,7 +79,7 @@ o alvo, e reportou 5 sobreviventes falsos. Passou a derivar o pacote do campo `a
 
 ## Placar antes → depois
 
-- Workspace: 1055 → 1060 testes.
+- Workspace: 1055 → 1059 testes.
 - Crash Bandicoot (USA): `PRESS START` sem resposta → **menu, LOADING, N. SANITY BEACH jogável**,
   com câmera, animação, colisão, morte e respawn. TTY final limpo — sem `GPU timeout`, sem
   `intr timeout`.

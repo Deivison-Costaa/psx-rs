@@ -1,0 +1,125 @@
+# Manifesto de mutação da iteração 0172 — cpu-oraculo
+formato: 1
+iteracao: 0172
+item: 10.100
+alvo: crates/psx-core/src/cpu.rs
+teste: cpu_cop0_invalid_opcode
+
+mutante: m1
+rotulo: cop0cmd fora de RFE nunca lanca reservado, nem para TLBxx
+teste: cpu_cop0_invalid_opcode
+@@DE
+                    0x01 | 0x02 | 0x06 | 0x08 => {
+                        self.raise_exception(0x0A, None);
+                        None
+                    }
+                    _ => None,
+@@PARA
+                    _ => None,
+@@FIM
+
+mutante: m2
+rotulo: TLBP (08h) escapa da lista de TLBxx que tem de lancar reservado
+teste: cpu_cop0_invalid_opcode
+@@DE
+                    0x01 | 0x02 | 0x06 | 0x08 => {
+@@PARA
+                    0x01 | 0x02 | 0x06 => {
+@@FIM
+
+mutante: m3
+rotulo: RFE some do cop0cmd 10h, SR para de mover IEc/KUc corretamente
+teste: cpu_cop0_regs
+@@DE
+                    0x10 => {
+@@PARA
+                    0x18 => {
+@@FIM
+
+mutante: m4
+rotulo: DPCR sai da lista de registradores que ecoam o rt cheio em sb/sh
+arquivo: crates/psx-core/src/bus.rs
+teste: cpu_io_write_width_echo
+@@DE
+        matches!(phys, 0x1F80_1080..=0x1F80_10EC | 0x1F80_10F0 | 0x1F80_10F4)
+@@PARA
+        matches!(phys, 0x1F80_1080..=0x1F80_10EC | 0x1F80_10F4)
+@@FIM
+
+mutante: m5
+rotulo: eco de 32 bits trunca o rt para 1 byte antes de gravar
+arquivo: crates/psx-core/src/bus.rs
+teste: cpu_io_write_width_echo
+ocorrencias: 2
+@@DE
+            self.write32::<Op>(addr & !0x3, gpr);
+@@PARA
+            self.write32::<Op>(addr & !0x3, gpr & 0xFF);
+@@FIM
+
+mutante: m6
+rotulo: leitura de byte/halfword do DPCR volta a mentir zero
+arquivo: crates/psx-core/src/bus.rs
+teste: cpu_io_write_width_echo
+@@DE
+            0x1F80_10F0 => Some(self.dma.read_dpcr()),
+@@PARA
+            0x1F80_10F0 => Some(0),
+@@FIM
+
+mutante: m7
+rotulo: fetch em scratchpad/IO lanca reservado (0Ah) em vez de bus error (06h)
+teste: cpu_fetch_bus_error
+@@DE
+        if Bus::fetch_causa_bus_error(instr_pc) {
+            self.enter_exception(0x06, Some(instr_pc), instr_pc, false, false);
+            return;
+        }
+@@PARA
+        if Bus::fetch_causa_bus_error(instr_pc) {
+            self.enter_exception(0x0A, Some(instr_pc), instr_pc, false, false);
+            return;
+        }
+@@FIM
+
+mutante: m8
+rotulo: bloco do MDEC some da regra de bus error de fetch
+arquivo: crates/psx-core/src/bus.rs
+teste: cpu_fetch_bus_error
+@@DE
+            0x1F80_0000..=0x1F80_03FF          // Scratchpad
+            | 0x1F80_1070..=0x1F80_1077        // Interrupt Control (I_STAT/I_MASK)
+            | 0x1F80_1820..=0x1F80_1827        // MDEC Registers
+@@PARA
+            0x1F80_0000..=0x1F80_03FF          // Scratchpad
+            | 0x1F80_1070..=0x1F80_1077        // Interrupt Control (I_STAT/I_MASK)
+@@FIM
+
+controle: c1
+rotulo: renomear offset/ch em dma_register_value nao muda comportamento
+arquivo: crates/psx-core/src/bus.rs
+teste: cpu_io_write_width_echo
+@@DE
+            0x1F80_1080..=0x1F80_10EC => {
+                let offset = phys - 0x1F80_1080;
+                let ch = (offset / 0x10) as usize;
+                match offset % 0x10 {
+                    0x0 => Some(self.dma.read_madr(ch)),
+@@PARA
+            0x1F80_1080..=0x1F80_10EC => {
+                let deslocamento = phys - 0x1F80_1080;
+                let ch = (deslocamento / 0x10) as usize;
+                match deslocamento % 0x10 {
+                    0x0 => Some(self.dma.read_madr(ch)),
+@@FIM
+
+controle: c2
+rotulo: renomear cop0cmd para comando nao muda comportamento
+teste: cpu_cop0_invalid_opcode
+@@DE
+                let cop0cmd = instr & 0x3F;
+                match cop0cmd {
+@@PARA
+                let comando = instr & 0x3F;
+                match comando {
+@@FIM

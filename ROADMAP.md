@@ -10,7 +10,7 @@ iteração que o achou (`NNNN.k`). A escada é o que construir; os achados são 
 Regra imposta por `roadmap_arquivo.rs`.
 
 ## M4 — CDROM
-- [ ] 4.4b Crash Bandicoot: chegar ao primeiro nivel (o Rayman chegou na 0184)
+- [ ] 4.4ae Crash Bandicoot: chegar ao primeiro nivel (o Rayman chegou na 0184)
 - [ ] 4.5 1o frame: rollback do init do LIBSN; poll orfao do TMR2 (diag 0137-0147)
 
 ## M5 — GTE

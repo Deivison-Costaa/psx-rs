@@ -23,7 +23,7 @@ gabarito. Bateria 12/12 e 2/2; a 0174 foi reexecutada (6/6, 2/2).
 
 ## Próxima tarefa
 
-**ROADMAP 4.4b — Crash Bandicoot ate o primeiro nivel.** O Rayman fechou o 4.4; o Crash e 3D e
+**ROADMAP 4.4ae — Crash Bandicoot ate o primeiro nivel.** O Rayman fechou o 4.4; o Crash e 3D e
 vai bater no GTE (5.4b-5.6) e no SPU (M7), que continuam abertos. Imagem em
 `../roms/extraido/Crash Bandicoot (USA).cue`.
 

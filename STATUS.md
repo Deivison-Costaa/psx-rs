@@ -7,13 +7,15 @@
 
 ## Última iteração concluída
 
-**0171** — **10.97+10.98+10.99 numa rodada (R4 dobrado a pedido do usuário)**. (a) o hook de TTY
-de alto nível só emite quando o vetor de syscall está stubado com `jr $ra`: com kernel real a
-BIOS já emitia por `putchar` e a saída saía **duplicada** — **todo número de TTY de 0163-0170
-estava inflado em 2x**; o `VSync: timeout` do Rayman é **71**, não 142. (b) o oráculo alinha na
-primeira linha do gabarito presente na nossa saída e devolve `sem-alinhamento` em vez de inventar
-K/M. (c) Coprocessor Unusable é decidido pelo **bit CU do SR**, não pela existência do
-coprocessador. Bateria 7/7, controles 2/2. CI passou a usar `cargo nextest`.
+**0174** — **8.1 (MDEC) e SPU RAM+DMA4, lote C do oráculo (R4 dobrado a pedido do usuário)**.
+MDEC: regs 1F801820h/24h, tabelas de quant/escala, `MDEC(1)` mono (RLE+IDCT+y_to_mono, ver doc
+da iteração). SPU: RAM 512 KiB, escrita manual e DMA4. Achados: **DMA SyncMode0 usa um campo
+único (BC), não BS*BA** — confundir os dois fazia o SPU pedir 65536x mais palavras; e **DMA1 do
+MDEC não pode pedir mais palavras do que o MDEC decodificou** (mdec/4bit/8bit do ps1-tests fazem
+isso por BS*BA mal dimensionado) — canal fica "em andamento" em vez de completar. K/M (diff):
+mdec/4bit 11/19→9/19, spu/memory-transfer 9/11→7/11; mdec/8bit sem mudança de linha (bytes mais
+próximos do gabarito, mas a IDCT documentada admite imprecisão vs. hardware real — ver doc).
+Bateria 6/6, controles 2/2.
 
 ## Próxima tarefa
 
@@ -42,7 +44,7 @@ Invariantes relevantes: nenhuma.
 
 ## Placar de testes
 
-Workspace: **953** testes.
+Workspace: **966** testes.
 
 ## Bloqueios
 

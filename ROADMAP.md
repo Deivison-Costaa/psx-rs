@@ -28,8 +28,7 @@ Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 7.4 Reverb + noise + CD-DA/XA
 
 ## M8 — MDEC
-- [ ] 8.1 Regs + DMA canais 0/1
-- [ ] 8.2 Macroblocos (RLE, IDCT, YUV→RGB) → FMVs
+- [ ] 8.2 Macroblocos: mono (RLE+IDCT+y_to_mono) feito (iter 0174); falta cor (yuv_to_rgb, 15/24bpp)
 
 ## M9 — App desktop
 - [ ] 9.1 Biblioteca: scan BIN/CUE, título/serial/região, lista
@@ -96,6 +95,8 @@ Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 10.90 Rayman: 71x `VSync: timeout` apos `Execute !` (0163; era 2x, ver 0171)
 - [ ] 10.94 Rayman em 590-600 M: laco `0x8019FA1C` espera `[0x801CEEBC]` != 0 (0167)
 - [ ] 10.100 cpu/cop: `testCop0InvalidOpcode` — cop0cmd invalido nao-TLB nao lanca 0Ah (0171)
+- [ ] 10.102 step-by-step-log (1524/1665): 1a divergencia e endereco de build, mesma familia do blockSize de mdec/4bit-8bit; falta yuv_to_rgb (0174)
+- [ ] 10.103 DMA sem custo por ciclo: SPU testDMA{Write,Read}Timing exigem >=1 poll antes de completar (0174)
 
 ## M11 — Apresentação (incremental desde o M1)
 - [ ] 11.2 Gráficos de metricas.csv + scoreboard-data

@@ -4,6 +4,9 @@ use psx_core::cpu::Cpu;
 mod support;
 use support::asm::{bus_with_bios_empty, nop};
 
+// A partir da iteracao 0171 o GTE exige CU2 ligado no SR (§ cop0r12 - SR (L746) de
+// docs/reference/02-cpu.md); o hardware lanca 0Bh sem ele. Codigo real liga antes de usar.
+
 fn mfc2(rt: u32, rd: u32) -> u32 {
     (0x12 << 26) | (rt << 16) | (rd << 11)
 }
@@ -56,6 +59,7 @@ fn le_cfc2(cpu: &mut Cpu, bus: &mut psx_core::bus::Bus, a: u32, dst: usize, rd: 
 fn nclip_poligono_horario_mac0_positivo() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    cpu.set_sr(1 << 30);
     let a = 0x0000u32;
 
     mtc2_r8(&mut cpu, &mut bus, a, 12, 0x0000_0000);
@@ -77,6 +81,7 @@ fn nclip_poligono_horario_mac0_positivo() {
 fn nclip_poligono_anti_horario_mac0_negativo() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    cpu.set_sr(1 << 30);
     let a = 0x0000u32;
 
     mtc2_r8(&mut cpu, &mut bus, a, 12, 0x0000_0000);
@@ -98,6 +103,7 @@ fn nclip_poligono_anti_horario_mac0_negativo() {
 fn nclip_colinear_mac0_zero() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    cpu.set_sr(1 << 30);
     let a = 0x0000u32;
 
     mtc2_r8(&mut cpu, &mut bus, a, 12, 0x0000_0000);
@@ -121,6 +127,7 @@ fn nclip_colinear_mac0_zero() {
 fn avsz3_media_ponderada_de_tres_z() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    cpu.set_sr(1 << 30);
     let a = 0x0000u32;
 
     ctc2_r8(&mut cpu, &mut bus, a, 29, 0x0000_0068);
@@ -155,6 +162,7 @@ fn avsz3_media_ponderada_de_tres_z() {
 fn avsz3_otz_saturado_em_maximo() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    cpu.set_sr(1 << 30);
     let a = 0x0000u32;
 
     ctc2_r8(&mut cpu, &mut bus, a, 29, (0x1000i32) as u32);
@@ -191,6 +199,7 @@ fn avsz3_otz_saturado_em_maximo() {
 fn avsz4_media_ponderada_de_quatro_z() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    cpu.set_sr(1 << 30);
     let a = 0x0000u32;
 
     ctc2_r8(&mut cpu, &mut bus, a, 30, 0x0000_0040);
@@ -228,6 +237,7 @@ fn avsz4_media_ponderada_de_quatro_z() {
 fn sqr_sf0_quadrado_de_ir_produz_mac_e_ir() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    cpu.set_sr(1 << 30);
     let a = 0x0000u32;
 
     mtc2_r8(&mut cpu, &mut bus, a, 9, 1);
@@ -250,6 +260,7 @@ fn sqr_sf0_quadrado_de_ir_produz_mac_e_ir() {
 fn sqr_sf1_desloca_12_bits_para_direita() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    cpu.set_sr(1 << 30);
     let a = 0x0000u32;
 
     mtc2_r8(&mut cpu, &mut bus, a, 9, 0x0100u32);
@@ -271,6 +282,7 @@ fn sqr_sf1_desloca_12_bits_para_direita() {
 fn sqr_saturacao_ir_em_7fff() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    cpu.set_sr(1 << 30);
     let a = 0x0000u32;
 
     mtc2_r8(&mut cpu, &mut bus, a, 9, 0x4000u32);
@@ -298,6 +310,7 @@ fn sqr_saturacao_ir_em_7fff() {
 fn op_produto_vetorial_sf0_lm0() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    cpu.set_sr(1 << 30);
     let a = 0x0000u32;
 
     mtc2_r8(&mut cpu, &mut bus, a, 9, 1);
@@ -338,6 +351,7 @@ fn op_produto_vetorial_sf0_lm0() {
 fn op_sf1_desloca_12_bits() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    cpu.set_sr(1 << 30);
     let a = 0x0000u32;
 
     mtc2_r8(&mut cpu, &mut bus, a, 9, 0x0100u32 as i16 as u32);

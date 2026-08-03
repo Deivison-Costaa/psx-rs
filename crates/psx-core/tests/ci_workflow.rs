@@ -39,10 +39,14 @@ fn job_check_sem_condicionais_e_com_os_tres_passos() {
          job verde. O job check roda inteiro, sempre.",
         conditional
     );
+    // `cargo test --all --doc` contem a substring `cargo test --all`, entao exigir a string
+    // antiga passaria sozinha depois da troca para o nextest — verde oco. As duas linhas abaixo
+    // sao exigidas explicitamente: a suite (nextest) e os doctests, que o nextest nao roda.
     for required in [
         "cargo fmt --all -- --check",
         "cargo clippy --all-targets -- -D warnings",
-        "cargo test --all",
+        "cargo nextest run --all-targets",
+        "cargo test --all --doc",
     ] {
         assert!(
             effective.iter().any(|l| l.contains(required)),

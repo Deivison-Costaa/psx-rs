@@ -1,6 +1,10 @@
 use psx_core::bus::BusRead;
 use psx_core::cpu::Cpu;
 
+// Sem kernel montado, o vetor de syscall e um `jr $ra` — e nesse ambiente que o hook de
+// alto nivel de TTY emite. Com kernel real quem emite e a BIOS (ver cpu_tty_sem_duplicar).
+const JR_RA_STUB: u32 = (31 << 21) | 0x08;
+
 mod support;
 use support::asm::{bus_with_bios_empty, nop};
 
@@ -29,6 +33,8 @@ fn setup_printf(
     args: &[u32],
     sp_arg_base: u32,
 ) {
+    bus.write32::<BusRead>(0xA0, JR_RA_STUB);
+    bus.write32::<BusRead>(0xB0, JR_RA_STUB);
     cpu.pc = 0x0000_0000;
     cpu.regs[9] = 0x3F;
     cpu.regs[4] = fmt_addr;
@@ -209,6 +215,8 @@ fn printf_a0h_distinto_de_puts_b0h() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
 
+    bus.write32::<BusRead>(0xA0, JR_RA_STUB);
+    bus.write32::<BusRead>(0xB0, JR_RA_STUB);
     cpu.pc = 0x0000_0000;
     cpu.regs[9] = 0x3F;
     cpu.regs[4] = 0x100;
@@ -257,6 +265,8 @@ fn printf_fmt_sem_terminador_teto_1mib_evita_laco_infinito() {
     bus.write32::<BusRead>(0x0000_0000, jal(0x0000_00A0));
     bus.write32::<BusRead>(0x0000_0004, nop());
 
+    bus.write32::<BusRead>(0xA0, JR_RA_STUB);
+    bus.write32::<BusRead>(0xB0, JR_RA_STUB);
     cpu.pc = 0x0000_0000;
     cpu.regs[9] = 0x3F;
     cpu.regs[4] = 0x100;
@@ -285,6 +295,8 @@ fn printf_percent_no_final_da_string() {
 
     write_str(&mut bus, 0x100, "x%");
 
+    bus.write32::<BusRead>(0xA0, JR_RA_STUB);
+    bus.write32::<BusRead>(0xB0, JR_RA_STUB);
     cpu.pc = 0x0000_0000;
     cpu.regs[9] = 0x3F;
     cpu.regs[4] = 0x100;

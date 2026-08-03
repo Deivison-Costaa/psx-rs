@@ -7,22 +7,24 @@
 
 ## Última iteração concluída
 
-**0170** — **`--bios`+`--exe` agora boota o kernel de verdade** ate `0x80030000` (ExCB em
-`0xA000E004`, A0/B0/C0 com dispatcher real) e só então sobrepõe o PS-EXE; `install_return_stubs`
-saiu desse caminho. As 21 suítes do ps1-tests saem do `ResetGraph:SR=1001` idêntico e passam a
-`difere` com TTY bem maior (uma, `mdec/step-by-step-log`, chega a 3178/3180 linhas iguais ao
-gabarito). Amidog CPU inalterado (`00000101`); `psxtest_gte` continua em `Running tests`.
+**0171** — **10.97+10.98+10.99 numa rodada (R4 dobrado a pedido do usuário)**. (a) o hook de TTY
+de alto nível só emite quando o vetor de syscall está stubado com `jr $ra`: com kernel real a
+BIOS já emitia por `putchar` e a saída saía **duplicada** — **todo número de TTY de 0163-0170
+estava inflado em 2x**; o `VSync: timeout` do Rayman é **71**, não 142. (b) o oráculo alinha na
+primeira linha do gabarito presente na nossa saída e devolve `sem-alinhamento` em vez de inventar
+K/M. (c) Coprocessor Unusable é decidido pelo **bit CU do SR**, não pela existência do
+coprocessador. Bateria 7/7, controles 2/2. CI passou a usar `cargo nextest`.
 
 ## Próxima tarefa
 
-**ROADMAP 10.97 + 10.98 — tirar os dois artefatos que escondem os defeitos reais.** Com o kernel
-real montado (0170), o TTY sai **duplicado**: medi `cpu/cop` e das 56 linhas 23 pares sao linhas
-adjacentes identicas. Causa a confirmar: `do_printf` intercepta `A0h/3Fh` e escreve o texto, e a
-BIOS real escreve de novo. O gabarito ainda prefixa `% `, que a comparacao nao tira.
+**ROADMAP 10.100 e os lotes do oráculo de TTY.** `scripts/oraculo-tty.ps1` é confiável desde a
+0171 e o placar em `logs/oraculo-tty.csv` é o alvo: fechar divergência por divergência, por
+subsistema. Cinco lotes
+— A CPU/kernel, B DMA, C MDEC+SPU, D CD-ROM, E timers+GPU+GTE. Tarefa-modelo pronta em
+`logs/orquestrador/task-lote-oraculo.txt` (trocar `<<<LOTE>>>`).
 
-Removendo os dois na mao, `cpu/cop` fica com **18 linhas de cada lado e 7 divergencias reais**,
-todas de excecao de coprocessador (item 10.99): o `difere 52/52` do CSV e 7 defeitos atras de
-dois artefatos. 10.97 (emulador) + 10.98 (arreio) tornam as 21 suites contagens confiaveis.
+`K/M` no CSV é **K linhas divergentes de M** — já foi lido ao contrário. `timers` tem jitter
+real de hardware no gabarito e nunca dará `identico` por comparação exata.
 
 Invariantes relevantes: nenhuma.
 
@@ -40,25 +42,23 @@ Invariantes relevantes: nenhuma.
 
 ## Placar de testes
 
-Workspace: **939** testes.
+Workspace: **953** testes.
 
 ## Bloqueios
 
-- **10.95 fechado (0170)**: `--bios`+`--exe` boota o kernel de verdade ate `0x80030000` antes
-  de sobrepor o PS-EXE. As 21 suítes TTY saem do `ResetGraph` idêntico e viram `difere` com TTY
-  bem maior. Medir o oráculo junto com `cargo test` concorrente derrubou 16/21 para `sem-saida`
-  por artefato de flush do `Start-Process`; rodada limpa deu 21/21 `difere`, 0 `sem-saida`.
+- **Primeira paridade com hardware real (0171)**: `gpu/gp0-e1` (0/12) e `gpu/mask-bit` (0/7)
+  batem byte a byte com o gabarito do ps1-tests. Placar do oráculo: **2 identico, 19 difere**.
+  `cpu/cop` caiu de 19/19 para 1/19 — sobra `testCop0InvalidOpcode` (item 10.100).
+- **NUNCA rodar `cargo test` nem a bateria de mutação junto com o oráculo**: a disputa de CPU faz
+  o `Start-Process` ler stdout antes do flush e reportar `sem-saida` falso. Derrubou 16/21 numa
+  medição da 0170; rodada limpa deu 21/21.
 - **4.4 Boot de jogo**: o motor 4.4ad agora avanca setores sequencialmente; a fronteira
   seguinte medida no Rayman foi o caminho hook -> incremento. Imagens de disco ficam fora do
   repositorio, em `.../Programacao com agentes/roms/extraido/`.
   **Nunca commitar imagem de disco.**
-- **10.79 concluído como diagnóstico**: `CAUSE.ExcCode=00h` em 1029 hooks, VBlank pendente em
-  1; leitura e escrita convergem em `0x801CF2CC`. Não transformar essa medição em correção de
-  produção sem revisão adversarial.
-- **10.80 concluído como diagnóstico**: `0xBFC00448` instala `0x4A1C` antes de `C(00h)`;
-  `0x4A1C` limpa IRQ0 antes da consulta de entrega, e o hook observa `I_STAT` diretamente.
-- **10.81 concluído como diagnóstico**: nos 458 intervalos sem ack do balanço, `I_STAT` tinha
-  somente bit 2 (173 CDROM) ou bit 3 (285 DMA); não há defeito de VBlank a corrigir nesta rodada.
+- **10.79/10.80/10.81 são diagnóstico, não correção**: `CAUSE.ExcCode=00h` em 1029 hooks e
+  convergência em `0x801CF2CC`; `0xBFC00448` instala `0x4A1C` antes de `C(00h)`; nos 458
+  intervalos sem ack o `I_STAT` só tinha bit 2 (CDROM) ou 3 (DMA) — não há defeito de VBlank aí.
 - **10.85 (0159)**: o laço final do Rayman é `0x801B9574`, esperando `[0x801CF2CC] >= 2`. A espera
   do memory card NÃO é o bloqueio: termina sozinha em 166.321.383 com `F4000001h,0100h`.
 - **Oraculo de hardware disponivel (0164)**: 51 EXEs em `tests/exes/` (gitignored). Amidog CPU

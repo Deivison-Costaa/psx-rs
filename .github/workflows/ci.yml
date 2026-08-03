@@ -21,7 +21,13 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y libasound2-dev libudev-dev libxkbcommon-dev
       - run: cargo fmt --all -- --check
       - run: cargo clippy --all-targets -- -D warnings
-      - run: cargo test --all
+      # cargo test roda os binarios de teste em SERIE; o nextest roda em paralelo entre eles.
+      # Medido em 02/08: 139 binarios, 189 s no CI, dos quais ~180 s em dez diagnosticos que
+      # emulam dezenas de milhoes de passos. O nextest nao roda doctest, dai o passo separado.
+      - name: instala cargo-nextest (binario pronto, sem compilar)
+        run: curl -LsSf https://get.nexte.st/latest/linux | tar zxf - -C "${CARGO_HOME:-$HOME/.cargo}/bin"
+      - run: cargo nextest run --all-targets --no-fail-fast
+      - run: cargo test --all --doc
 
   scoreboard:
     name: scoreboard

@@ -140,11 +140,12 @@ impl Cpu {
         let phys = instr_pc & 0x1FFF_FFFF;
         if phys == 0xA0 || phys == 0xB0 {
             let fn_idx = self.reg_with_pending(9);
+            let stubbed = bus.read32::<BusRead>(phys) == Self::JR_RA;
             match (fn_idx, phys) {
                 (0x3C, 0xA0) | (0x3D, 0xB0) => {
                     bus.tty_push((self.reg_with_pending(4) & 0xFF) as u8);
                 }
-                (0x3E, 0xA0) | (0x3F, 0xB0) => {
+                (0x3E, 0xA0) | (0x3F, 0xB0) if stubbed => {
                     let src = self.reg_with_pending(4);
                     if src == 0 {
                         for &b in b"<NULL>" {
@@ -160,7 +161,7 @@ impl Cpu {
                         }
                     }
                 }
-                (0x3F, 0xA0) => self.do_printf(bus),
+                (0x3F, 0xA0) if stubbed => self.do_printf(bus),
                 _ => {}
             }
         }
@@ -298,16 +299,22 @@ impl Cpu {
                 self.swr(instr, bus);
                 None
             }
-            0x10 => self.cop0_op(instr),
-            0x12 => self.cop2_op(instr, bus),
-            0x32 => self.lwc2_op(instr, bus),
-            0x3A => self.swc2_op(instr, bus),
-            _ => {
+            0x10 | 0x11 | 0x12 | 0x13 | 0x30 | 0x31 | 0x32 | 0x33 | 0x38 | 0x39 | 0x3A | 0x3B => {
+                let unit = primary & 3;
+                if !self.cop_usable(unit, primary & 0x20 == 0) {
+                    self.raise_exception(0x0B, None);
+                    return None;
+                }
                 match primary {
-                    0x11 | 0x13 => self.raise_exception(0x0B, None),
-                    0x30 | 0x31 | 0x33 | 0x38 | 0x39 | 0x3B => self.raise_exception(0x0B, None),
-                    _ => self.raise_exception(0x0A, None),
-                };
+                    0x10 => self.cop0_op(instr),
+                    0x12 => self.cop2_op(instr, bus),
+                    0x32 => self.lwc2_op(instr, bus),
+                    0x3A => self.swc2_op(instr, bus),
+                    _ => None,
+                }
+            }
+            _ => {
+                self.raise_exception(0x0A, None);
                 None
             }
         }
@@ -975,6 +982,16 @@ impl Cpu {
         }
         self.written_gpr = Some(idx);
         self.regs[idx] = val;
+    }
+
+    const JR_RA: u32 = (31 << 21) | 0x08;
+
+    fn cop_usable(&self, unit: u32, is_cop_op: bool) -> bool {
+        let sr = self.cop0[12];
+        if sr & (1 << (28 + unit)) != 0 {
+            return true;
+        }
+        unit == 0 && is_cop_op && sr & (1 << 1) == 0
     }
 
     fn do_printf(&self, bus: &mut Bus) {

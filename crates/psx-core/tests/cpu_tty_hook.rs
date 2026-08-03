@@ -1,6 +1,10 @@
 use psx_core::bus::BusRead;
 use psx_core::cpu::Cpu;
 
+// Sem kernel montado, o vetor de syscall e um `jr $ra` — e nesse ambiente que o hook de
+// alto nivel de TTY emite. Com kernel real quem emite e a BIOS (ver cpu_tty_sem_duplicar).
+const JR_RA_STUB: u32 = (31 << 21) | 0x08;
+
 mod support;
 use support::asm::{bus_with_bios_empty, encode_j_type, nop};
 
@@ -28,6 +32,8 @@ fn step_n(cpu: &mut Cpu, bus: &mut psx_core::bus::Bus, n: usize) {
 fn putchar_por_a0h() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    bus.write32::<BusRead>(0xA0, JR_RA_STUB);
+    bus.write32::<BusRead>(0xB0, JR_RA_STUB);
     cpu.pc = 0x0000_0000;
     cpu.regs[9] = 0x3C;
     cpu.regs[4] = b'X' as u32;
@@ -50,6 +56,8 @@ fn putchar_por_a0h() {
 fn putchar_por_b0h() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    bus.write32::<BusRead>(0xA0, JR_RA_STUB);
+    bus.write32::<BusRead>(0xB0, JR_RA_STUB);
     cpu.pc = 0x0000_0000;
     cpu.regs[9] = 0x3D;
     cpu.regs[4] = b'Y' as u32;
@@ -70,6 +78,8 @@ fn putchar_por_b0h() {
 fn b0h_com_numero_de_a0h_ignorado() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    bus.write32::<BusRead>(0xA0, JR_RA_STUB);
+    bus.write32::<BusRead>(0xB0, JR_RA_STUB);
     cpu.pc = 0x0000_0000;
     cpu.regs[9] = 0x3C;
     cpu.regs[4] = b'Z' as u32;
@@ -91,6 +101,8 @@ fn b0h_com_numero_de_a0h_ignorado() {
 fn puts_le_ate_zero() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    bus.write32::<BusRead>(0xA0, JR_RA_STUB);
+    bus.write32::<BusRead>(0xB0, JR_RA_STUB);
     cpu.pc = 0x0000_0000;
     cpu.regs[9] = 0x3E;
     cpu.regs[4] = 0x100;
@@ -117,6 +129,8 @@ fn puts_le_ate_zero() {
 fn puts_null_emite_texto_null() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    bus.write32::<BusRead>(0xA0, JR_RA_STUB);
+    bus.write32::<BusRead>(0xB0, JR_RA_STUB);
     cpu.pc = 0x0000_0000;
     cpu.regs[9] = 0x3E;
     cpu.regs[4] = 0x0000_0000;
@@ -139,6 +153,8 @@ fn puts_null_emite_texto_null() {
 fn numero_desconhecido_ignorado_sem_panico() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    bus.write32::<BusRead>(0xA0, JR_RA_STUB);
+    bus.write32::<BusRead>(0xB0, JR_RA_STUB);
     cpu.pc = 0x0000_0000;
     cpu.regs[9] = 0xFF;
     cpu.regs[4] = 0x42;
@@ -172,6 +188,8 @@ fn numero_desconhecido_ignorado_sem_panico() {
 fn espelho_kseg0_dispara_hook() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    bus.write32::<BusRead>(0xA0, JR_RA_STUB);
+    bus.write32::<BusRead>(0xB0, JR_RA_STUB);
     cpu.pc = 0x0000_0000;
     cpu.regs[9] = 0x3C;
     cpu.regs[4] = b'K' as u32;
@@ -195,6 +213,8 @@ fn espelho_kseg0_dispara_hook() {
 fn puts_b0h_com_numero_de_a0h_ignorado() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    bus.write32::<BusRead>(0xA0, JR_RA_STUB);
+    bus.write32::<BusRead>(0xB0, JR_RA_STUB);
     cpu.pc = 0x0000_0000;
     cpu.regs[9] = 0x3E;
     cpu.regs[4] = 0x100;
@@ -220,6 +240,8 @@ fn puts_b0h_com_numero_de_a0h_ignorado() {
 fn putchar_com_lw_no_delay_slot_do_jal() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    bus.write32::<BusRead>(0xA0, JR_RA_STUB);
+    bus.write32::<BusRead>(0xB0, JR_RA_STUB);
     cpu.pc = 0x0000_0000;
     cpu.regs[9] = 0x3C;
     cpu.regs[16] = 0x200;

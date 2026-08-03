@@ -4,6 +4,9 @@ use psx_core::cpu::Cpu;
 mod support;
 use support::asm::{bus_with_bios_empty, nop};
 
+// A partir da iteracao 0171 o GTE exige CU2 ligado no SR (§ cop0r12 - SR (L746) de
+// docs/reference/02-cpu.md); o hardware lanca 0Bh sem ele. Codigo real liga antes de usar.
+
 fn mfc2(rt: u32, rd: u32) -> u32 {
     (0x12 << 26) | (rt << 16) | (rd << 11)
 }
@@ -44,6 +47,7 @@ fn mtc2_r8(cpu: &mut Cpu, bus: &mut psx_core::bus::Bus, addr: u32, rd: u32, val:
 fn rtps_perspectiva_simples_sem_saturacao() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    cpu.set_sr(1 << 30);
     let a = 0x0000u32;
 
     ctc2_r8(&mut cpu, &mut bus, a, 0, 0x0000_1000);
@@ -97,6 +101,7 @@ fn rtps_perspectiva_simples_sem_saturacao() {
 fn rtpt_processa_tres_vertices_e_desloca_fifos() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    cpu.set_sr(1 << 30);
     let a = 0x0000u32;
 
     ctc2_r8(&mut cpu, &mut bus, a, 0, 0x0000_1000);
@@ -174,6 +179,7 @@ fn rtpt_processa_tres_vertices_e_desloca_fifos() {
 fn rtps_com_sf_zero_irao_diferentes_de_sf_um() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    cpu.set_sr(1 << 30);
     let a = 0x0000u32;
 
     ctc2_r8(&mut cpu, &mut bus, a, 0, 0x0000_1000);
@@ -225,6 +231,7 @@ fn rtps_com_sf_zero_irao_diferentes_de_sf_um() {
 fn rtps_satura_ir1_com_valor_acima_do_limite() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    cpu.set_sr(1 << 30);
     let a = 0x0000u32;
 
     ctc2_r8(&mut cpu, &mut bus, a, 0, 0x0000_7FFF);
@@ -264,6 +271,7 @@ fn rtps_satura_ir1_com_valor_acima_do_limite() {
 fn rtps_divide_overflow_com_h_maior_que_sz3_dobro() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    cpu.set_sr(1 << 30);
     let a = 0x0000u32;
 
     ctc2_r8(&mut cpu, &mut bus, a, 0, 0x0000_1000);
@@ -297,6 +305,7 @@ fn rtps_divide_overflow_com_h_maior_que_sz3_dobro() {
 fn rtps_sz3_saturado_em_zero_para_z_negativo() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    cpu.set_sr(1 << 30);
     let a = 0x0000u32;
 
     ctc2_r8(&mut cpu, &mut bus, a, 0, 0x0000_1000);

@@ -6,6 +6,7 @@ alvo: crates/psx-core/src/spu/adpcm.rs
 teste: spu_vozes_adpcm
 
 mutante: m1
+teste: spu_vozes_adpcm
 rotulo: coeficiente negativo do filtro perde o sinal e o preditor diverge
 ocorrencias: 1
 @@DE
@@ -15,6 +16,7 @@ const NEG: [i32; 5] = [0, 0, 52, 55, 60];
 @@FIM
 
 mutante: m2
+teste: spu_vozes_adpcm
 rotulo: predicao sem o arredondamento de +32 antes do SAR 6
 ocorrencias: 1
 @@DE
@@ -24,6 +26,7 @@ ocorrencias: 1
 @@FIM
 
 mutante: m3
+teste: spu_vozes_adpcm
 rotulo: nibble de 8h a Fh deixa de ser negativo
 ocorrencias: 1
 @@DE
@@ -33,6 +36,7 @@ ocorrencias: 1
 @@FIM
 
 mutante: m4
+teste: spu_vozes_adpcm
 rotulo: amostra nao satura em 16 bits com sinal e da a volta
 ocorrencias: 1
 @@DE
@@ -42,6 +46,7 @@ ocorrencias: 1
 @@FIM
 
 mutante: m5
+teste: spu_vozes_adpcm
 rotulo: shift do cabecalho ignorado: toda amostra vira nibble SHL 12
 ocorrencias: 1
 @@DE
@@ -51,6 +56,7 @@ ocorrencias: 1
 @@FIM
 
 mutante: m6
+teste: spu_vozes_adpcm
 arquivo: crates/psx-core/src/spu/voice.rs
 rotulo: repeat e marcado pelo loop-end em vez do loop-start
 ocorrencias: 1
@@ -65,6 +71,7 @@ ocorrencias: 1
 @@FIM
 
 mutante: m7
+teste: spu_vozes_adpcm
 arquivo: crates/psx-core/src/spu/voice.rs
 rotulo: End+Mute e End+Repeat trocados: quem repete e que emudece
 ocorrencias: 1
@@ -83,6 +90,7 @@ ocorrencias: 1
 @@FIM
 
 mutante: m8
+teste: spu_vozes_adpcm
 arquivo: crates/psx-core/src/spu/voice.rs
 rotulo: loop-end nao salta para o repeat e cai no bloco seguinte
 ocorrencias: 1
@@ -95,6 +103,7 @@ ocorrencias: 1
 @@FIM
 
 mutante: m9
+teste: spu_vozes_adpcm
 arquivo: crates/psx-core/src/spu/voice.rs
 rotulo: key on nao zera a envoltoria e a voz comeca no nivel anterior
 ocorrencias: 1
@@ -208,6 +217,7 @@ ocorrencias: 1
 @@FIM
 
 controle: c1
+teste: spu_vozes_adpcm
 rotulo: laco de decodificacao escrito com indice explicito, mesmo resultado
 ocorrencias: 1
 @@DE

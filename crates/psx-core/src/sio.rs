@@ -54,6 +54,20 @@ impl Sio {
         (self.ctrl.get() & (1 << 1)) != 0
     }
 
+    /// Ciclos que os 8 bits do byte levam para sair, pela taxa configurada em JOY_BAUD e pelo
+    /// fator dos bits 0-1 de JOY_MODE. Com os valores do kernel (reload 88h, fator MUL1) dao os
+    /// ~250 kHz que § Address byte (01h) being sent (L379-386) de
+    /// docs/reference/10-controllers-memcards.md descreve — 136 ciclos por bit.
+    pub fn transfer_cycles(&self) -> u64 {
+        let fator: u64 = match self.mode.get() & 0x3 {
+            2 => 16,
+            3 => 64,
+            _ => 1,
+        };
+        let reload = self.baud.get().max(1) as u64;
+        8 * reload * fator
+    }
+
     fn dsr_irq_enabled(&self) -> bool {
         (self.ctrl.get() & (1 << 12)) != 0
     }

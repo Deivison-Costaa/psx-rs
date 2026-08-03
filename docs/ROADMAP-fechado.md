@@ -164,6 +164,7 @@ da escada valer so para o que FALTA. Narrativa de cada item continua em
 - [x] 10.91 Fetch desalinhado levanta AdEL; Amidog sai de 00000909 para 00000109 (iter 0164)
 - [x] 10.92 Amidog: 4312 erros em codificacoes de branch `b_0xNN` (bltz/bgez/bltzal/bgezal) (iter 0166)
 - [x] 10.93 Amidog: ~590 erros de load delay slot encadeado `nop_lX_lY_d` (iter 0165)
+- [x] 10.96 psx-cli conecta pad digital e aperta botoes por passo (--pad/--press) (iter 0169)
 
 ## M11 — Apresentação (incremental desde o M1)
 - [x] 11.1 Relatório consolidado (docs/relatorio.md — atualizado a cada marco) (iter 0096)

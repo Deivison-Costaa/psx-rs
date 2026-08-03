@@ -97,6 +97,7 @@ Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 10.94 Rayman em 590-600 M: laco `0x8019FA1C` espera `[0x801CEEBC]` != 0 (0167)
 - [ ] 10.100 cpu/cop: `testCop0InvalidOpcode` — cop0cmd invalido nao-TLB nao lanca 0Ah (0171)
 - [ ] 10.103 GetlocL/GetlocP sao stub (so devolvem stat); disc-swap exige tray fisico scriptavel (06-cdrom.md L1052/1073) (0175)
+- [ ] 10.107 `CLAUDE.md` lista `perf`/`ci` mas o commit-lint so aceita 6 tipos (0177)
 - [ ] 10.108 Oraculo roda suites de cdrom sem `--disc`; com disco: GetStat sem bit1, GetlocL nao falha, Setloc falha (0175)
 
 ## M11 — Apresentação (incremental desde o M1)

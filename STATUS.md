@@ -23,8 +23,12 @@ estado) e o resto de `cpu/io-access-bitwidth` (I_MASK ecoa bruto sem mascarar, S
 timers com bits "open bus" no read de 32, `Dma::write_dicr` deixa passar o bit 6 — grava
 0x340078 em vez de 0x340038, visível só depois do eco de largura).
 
-`K/M` no CSV é **K linhas divergentes de M** — já foi lido ao contrário. `timers` tem jitter
-real de hardware no gabarito e nunca dará `identico` por comparação exata.
+`K/M` no CSV é **K linhas divergentes de M**. `timers` tem jitter real no gabarito e nunca dá
+`identico`. Medição isolada pode divergir do CSV sob disputa de CPU — `chain-looping` deu 9/11
+no CSV e 4/11 isolado e determinístico (0173).
+
+**Antes de medir CD-ROM, monte disco:** o oráculo roda as suítes sem `--disc` e as contagens
+delas medem a falta de mídia, não a nossa fidelidade (10.108).
 
 Invariantes relevantes: nenhuma.
 
@@ -46,6 +50,8 @@ Workspace: **972** testes.
 
 ## Bloqueios
 
+- **Suites de cdrom precisam de `--disc` (0175)**: os gabaritos foram gravados com disco na
+  bandeja (`GetStat -> 0x02`). Sem mídia, a contagem mede a ausência dela (10.108).
 - **Primeira paridade com hardware real (0171)**: `gpu/gp0-e1` (0/12) e `gpu/mask-bit` (0/7)
   batem byte a byte com o gabarito do ps1-tests. `cpu/cop` fechou 0/19 na 0172.
 - **NUNCA rodar `cargo test` nem a bateria de mutação junto com o oráculo**: a disputa de CPU faz
@@ -55,9 +61,9 @@ Workspace: **972** testes.
   seguinte medida no Rayman foi o caminho hook -> incremento. Imagens de disco ficam fora do
   repositorio, em `.../Programacao com agentes/roms/extraido/`.
   **Nunca commitar imagem de disco.**
-- **10.79/10.80/10.81 são diagnóstico, não correção**: `CAUSE.ExcCode=00h` em 1029 hooks e
-  convergência em `0x801CF2CC`; `0xBFC00448` instala `0x4A1C` antes de `C(00h)`; nos 458
-  intervalos sem ack o `I_STAT` só tinha bit 2 (CDROM) ou 3 (DMA) — não há defeito de VBlank aí.
+- **10.79/10.80/10.81 são diagnóstico, não correção**: `CAUSE.ExcCode=00h` em 1029 hooks;
+  `0xBFC00448` instala `0x4A1C` antes de `C(00h)`; nos 458 intervalos sem ack o `I_STAT` só tinha
+  bit 2 (CDROM) ou 3 (DMA).
 - **10.85 (0159)**: o laço final do Rayman é `0x801B9574`, esperando `[0x801CF2CC] >= 2`. A espera
   do memory card NÃO é o bloqueio: termina sozinha em 166.321.383 com `F4000001h,0100h`.
 - **Oraculo de hardware disponivel (0164)**: 51 EXEs em `tests/exes/` (gitignored). Amidog CPU

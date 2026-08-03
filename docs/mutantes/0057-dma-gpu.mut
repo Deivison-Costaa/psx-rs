@@ -17,6 +17,7 @@ mutante: m2
 rotulo: SyncMode ignorado (qualquer modo executa linked-list)
 @@DE
         match sync_mode {
+            0 => self.execute_burst(ram, gpu),
             1 => self.execute_block(ram, gpu),
             2 => self.execute_linked_list(ram, gpu),
             _ => {}
@@ -40,11 +41,13 @@ rotulo: block mode BS=0 nao tratado como 0x10000 (zero palavras)
 mutante: m4
 rotulo: bit24 nao limpo apos linked-list
 @@DE
-            addr = next_addr & 0x00FF_FFFC;
+        if alcancou_fim {
+            self.chcr[2] &= !(1 << 24);
+            self.signal_completion(2);
         }
-        self.chcr[2] &= !(1 << 24);
 @@PARA
-            addr = next_addr & 0x00FF_FFFC;
+        if alcancou_fim {
+            self.signal_completion(2);
         }
 @@FIM
 

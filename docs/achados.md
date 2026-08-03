@@ -66,7 +66,7 @@
 - [ ] 10.78 oc-iter.ps1: exit 0 sem commits vira ok (0151)
 - [ ] 10.83 Rayman: ~89/660 IRQ0 sem hook (0158)
 - [ ] 10.85 Rayman: laco `0x801B9574` espera `[0x801CF2CC]>=2` (0159)
-- [ ] 10.90 Rayman: 71x `VSync: timeout` apos `Execute !` (0163; era 2x, ver 0171)
+- [ ] 10.90 Rayman: 296x `VSync: timeout` com o cue multi-trilha; causa em 0182.2 (0163)
 - [ ] 10.94 Rayman: laco `0x8019FA1C` quebrado na 0180; para agora em `0x80132BF0` (`*$s0`)
 - [ ] 10.101 SPU/DMA4 ausente bloqueia dma/dpcr (13/15) (0173)
 - [ ] 10.102 DMA sincrono: ticks medidos ao redor leem overhead do poll (0173)
@@ -84,3 +84,4 @@
 ## Iteração 0181 em diante (`NNNN.k`)
 
 - [ ] 0181.1 `docs/relatorio.md` e `docs/orquestracao.md` ainda descrevem o ROADMAP unico (0181)
+- [ ] 0182.2 Rayman tem despachante de IRQ proprio (`0x801B8E98`, tabela `0x801C9290`): passa do portao 492x e roda o handler de VBlank 3x — a BIOS apaga `I_STAT` bit0 antes (0182)

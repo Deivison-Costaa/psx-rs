@@ -73,7 +73,32 @@ do emulador (ver "Decisões e notas").
 
 ## Revisão cruzada (orquestrador)
 
-<!-- Preenchido pelo Claude na revisão do PR. -->
+Rodada de trabalhador (`claude-sonnet-5`), revisada antes do merge. **Aprovada.**
+
+O que eu conferi e o que acrescento:
+
+1. **O achado principal está certo e é maior do que o doc diz.** `install_return_stubs`
+   (`crates/psx-core/src/psexe.rs:70`) não só grava `jr $ra` em `0x00A0/0x00B0/0x00C0`: ela
+   também sobrescreve o vetor de exceção `0x80000080` com um stub de seis instruções que só faz
+   ack de `I_STAT` e volta. Como a BIOS é carregada mas nunca executa a própria inicialização, o
+   ambiente de sideload não tem kernel nenhum. O TTY funciona por um motivo lateral — a CPU
+   intercepta `A0h` função `3Fh` (`do_printf`) diretamente em `cpu.rs`. Ou seja: **o sideload
+   oferece printf e nada mais**, e qualquer suíte que arme uma interrupção fica parada. Isso
+   sustenta o item 10.95 com evidência de código, não só de sintoma.
+2. **A desconfiança do arreio foi feita, e do jeito certo.** O trabalhador não parou no K/M: leu
+   os bytes de nove suítes, incluindo as quatro que o handoff apontava como prováveis
+   `identico`, e mostrou que são os mesmos 56 bytes. Sem isso, "0/21" seria indistinguível de um
+   arreio quebrado.
+3. **A anomalia `timers` 128/129 foi desarmada em vez de comemorada** — a linha que "bate" é uma
+   linha vazia coincidente, não conteúdo. É exatamente o tipo de falso progresso que já custou
+   iterações a este projeto.
+4. Conferido: 930 testes, portão limpo, CI verde nos quatro jobs, nenhum arquivo em
+   `crates/*/src/` tocado (a dispensa de bateria é legítima), e o script novo não mexe no
+   `scoreboard.ps1` que nove asserções já travam.
+
+**Ressalva de escopo, não de qualidade:** esta é a terceira iteração seguida sem código de
+emulação (0167 zero linhas, 0168 zero linhas em `crates/*/src/`). A régua já está construída o
+bastante; as próximas rodadas voltam para o hardware.
 
 ## Decisões e notas
 

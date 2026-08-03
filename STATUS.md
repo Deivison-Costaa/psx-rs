@@ -40,7 +40,7 @@ Invariantes relevantes: nenhuma.
 
 ## Placar de testes
 
-Workspace: **939** testes.
+Workspace: **942** testes.
 
 ## Bloqueios
 

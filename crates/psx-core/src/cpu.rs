@@ -140,11 +140,12 @@ impl Cpu {
         let phys = instr_pc & 0x1FFF_FFFF;
         if phys == 0xA0 || phys == 0xB0 {
             let fn_idx = self.reg_with_pending(9);
+            let stubbed = bus.read32::<BusRead>(phys) == Self::JR_RA;
             match (fn_idx, phys) {
                 (0x3C, 0xA0) | (0x3D, 0xB0) => {
                     bus.tty_push((self.reg_with_pending(4) & 0xFF) as u8);
                 }
-                (0x3E, 0xA0) | (0x3F, 0xB0) => {
+                (0x3E, 0xA0) | (0x3F, 0xB0) if stubbed => {
                     let src = self.reg_with_pending(4);
                     if src == 0 {
                         for &b in b"<NULL>" {
@@ -160,7 +161,7 @@ impl Cpu {
                         }
                     }
                 }
-                (0x3F, 0xA0) => self.do_printf(bus),
+                (0x3F, 0xA0) if stubbed => self.do_printf(bus),
                 _ => {}
             }
         }
@@ -976,6 +977,8 @@ impl Cpu {
         self.written_gpr = Some(idx);
         self.regs[idx] = val;
     }
+
+    const JR_RA: u32 = (31 << 21) | 0x08;
 
     fn do_printf(&self, bus: &mut Bus) {
         let fmt = self.reg_with_pending(4);

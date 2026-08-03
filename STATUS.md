@@ -7,13 +7,14 @@
 
 ## Última iteração concluída
 
-**0171** — **10.97+10.98+10.99 numa rodada (R4 dobrado a pedido do usuário)**. (a) o hook de TTY
-de alto nível só emite quando o vetor de syscall está stubado com `jr $ra`: com kernel real a
-BIOS já emitia por `putchar` e a saída saía **duplicada** — **todo número de TTY de 0163-0170
-estava inflado em 2x**; o `VSync: timeout` do Rayman é **71**, não 142. (b) o oráculo alinha na
-primeira linha do gabarito presente na nossa saída e devolve `sem-alinhamento` em vez de inventar
-K/M. (c) Coprocessor Unusable é decidido pelo **bit CU do SR**, não pela existência do
-coprocessador. Bateria 7/7, controles 2/2. CI passou a usar `cargo nextest`.
+**0175** — **Lote D (CD-ROM); terminou SEM mudança de produção.** A rodada removeu o
+INT5(stat,80h) do Setloc sem disco porque a seção do Setloc não menciona disco. A revisão
+reverteu: § Error Codes (L1020) de docs/reference/06-cdrom.md lista `02h` **em primeiro lugar**
+entre os comandos que devolvem 80h com disco ausente. O que a medição achou de verdade: as suítes de
+CD-ROM do ps1-tests foram gravadas **com disco na bandeja** (`GetStat -> 0x02`, `GetlocP
+succeeded - track 01`), e nosso arreio as roda sem `--disc`. Montando um disco aparecem três
+divergências reais — `GetStat` sem o bit de motor, `GetlocL` passando onde deve falhar, e
+`Setloc` falhando mesmo com disco. Item **10.108**.
 
 ## Próxima tarefa
 
@@ -25,6 +26,9 @@ subsistema. Cinco lotes
 
 `K/M` no CSV é **K linhas divergentes de M** — já foi lido ao contrário. `timers` tem jitter
 real de hardware no gabarito e nunca dará `identico` por comparação exata.
+
+**Antes de medir CD-ROM, monte disco:** o oráculo roda as suítes sem `--disc` e as contagens
+delas medem a falta de mídia, não a nossa fidelidade (10.108).
 
 Invariantes relevantes: nenhuma.
 

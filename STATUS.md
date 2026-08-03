@@ -25,6 +25,11 @@ estado) e o resto de `cpu/io-access-bitwidth` (I_MASK ecoa bruto sem mascarar, S
 timers com bits "open bus" no read de 32, `Dma::write_dicr` deixa passar o bit 6 — grava
 0x340078 em vez de 0x340038, visível só depois do eco de largura).
 
+**Placar do oráculo em `a221b78`, com os cinco lotes e a 0178 integrados: 3 idênticas, 18
+diferem.** `gpu/gp0-e1` 0/12, `gpu/mask-bit` 0/7 e `cpu/cop` **0/19** batem byte a byte com
+hardware real. Maiores quedas da noite: `gte/test-all` 1048/1050 → **15/17**, `cpu/cop` 19/19 →
+0/19, `cpu/code-in-io` 7/10 → 4/10, `dma/chopping` 131/132 → 130/132.
+
 `K/M` no CSV é **K linhas divergentes de M**. `timers` tem jitter real no gabarito e nunca dá
 `identico`. Medição isolada pode divergir do CSV sob disputa de CPU — `chain-looping` deu 9/11
 no CSV e 4/11 isolado e determinístico (0173).

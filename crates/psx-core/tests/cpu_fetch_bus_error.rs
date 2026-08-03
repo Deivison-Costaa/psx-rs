@@ -1,6 +1,6 @@
 mod support;
 
-use psx_core::bus::BusWrite;
+use psx_core::bus::{Bus, BusWrite};
 use psx_core::cpu::Cpu;
 use support::asm;
 
@@ -8,7 +8,11 @@ const VETOR_GERAL: u32 = 0x8000_0080;
 const EXCODE_IBE: u32 = 0x06;
 const BASE: u32 = 0x0000_1000;
 const SCRATCHPAD: u32 = 0x1F80_0000;
-const IO_PORTS: u32 = 0x1F80_1070; // I_STAT, dentro do bloco de 4K de I/O Ports.
+const I_STAT: u32 = 0x1F80_1070;
+const MDEC: u32 = 0x1F80_1820;
+const DMA0_MADR: u32 = 0x1F80_1080;
+const DPCR: u32 = 0x1F80_10F0;
+const SPU_BASE: u32 = 0x1F80_1C00;
 
 fn jr(rs: u32) -> u32 {
     asm::encode_special(0x08, 0, 0, rs)
@@ -68,16 +72,52 @@ fn jr_para_scratchpad_levanta_bus_error_de_instrucao() {
     );
 }
 
-// § Memory Exceptions (L156) de docs/reference/01-memory-map.md, L160: "Bus Error ------>
-// Unused Memory Regions (including Gaps in I/O Region)". testCodeInMDEC/Interrupts/SPU/
-// DMA0/DMAControl do gabarito cobrem o mesmo bloco de 4K de I/O Ports (1F801000h-1F801FFFh)
-// e esperam o mesmo IBE.
+// A spec local (§ Memory Exceptions, L156-160) so cita "Unused Memory Regions" de forma
+// generica — nao diz QUAIS blocos de I/O faltam ao buscar instrucao. O gabarito
+// (ps1-tests/cpu/code-in-io/psx.log) e o oraculo aqui, medido por instrumentacao na 0172:
+// testCodeInInterrupts e testCodeInMDEC lancam IBE; testCodeInDMA0/DMAControl/SPU NAO
+// lancam (ver testes de controle abaixo). So os dois blocos comprovados entram na regra.
 #[test]
-fn jr_para_io_ports_levanta_bus_error_de_instrucao() {
-    let cpu = salta_para(IO_PORTS);
+fn jr_para_interrupt_control_levanta_bus_error_de_instrucao() {
+    let cpu = salta_para(I_STAT);
 
     assert_eq!(cpu.pc, VETOR_GERAL, "a excecao tem de vetorizar");
-    assert_eq!(excode(&cpu), EXCODE_IBE, "buscar opcode em I/O Ports e IBE (06h)");
+    assert_eq!(
+        excode(&cpu),
+        EXCODE_IBE,
+        "buscar opcode em I_STAT/I_MASK e IBE (06h)"
+    );
+}
+
+#[test]
+fn jr_para_mdec_levanta_bus_error_de_instrucao() {
+    let cpu = salta_para(MDEC);
+
+    assert_eq!(cpu.pc, VETOR_GERAL, "a excecao tem de vetorizar");
+    assert_eq!(
+        excode(&cpu),
+        EXCODE_IBE,
+        "buscar opcode nos registradores do MDEC e IBE (06h)"
+    );
+}
+
+// Controles negativos: testCodeInDMA0/DMAControl/SPU passam no gabarito esperando
+// `wasExceptionThrown() == false` — DMA e SPU NAO fazem parte da regra, ao contrario do que
+// uma leitura genérica de "todo o bloco de I/O Ports falta" sugeriria.
+#[test]
+fn dma0_dpcr_e_spu_nao_causam_bus_error_de_fetch() {
+    assert!(
+        !Bus::fetch_causa_bus_error(DMA0_MADR),
+        "testCodeInDMA0 (gabarito): fetch em MADR do canal 0 nao lanca"
+    );
+    assert!(
+        !Bus::fetch_causa_bus_error(DPCR),
+        "testCodeInDMAControl (gabarito): fetch em DPCR nao lanca"
+    );
+    assert!(
+        !Bus::fetch_causa_bus_error(SPU_BASE),
+        "testCodeInSPU (gabarito): fetch no banco de registradores da SPU nao lanca"
+    );
 }
 
 #[test]

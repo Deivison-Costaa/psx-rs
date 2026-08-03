@@ -7,21 +7,25 @@
 
 ## Última iteração concluída
 
-**0168** — **oráculo de TTY: 21 suítes medidas, 0 identico.** `scripts/oraculo-tty.ps1` compara
-o TTY do psx-cli contra os 21 `psx.log` (hardware real, ps1-tests). Resultado: 0 `identico`, 21
-`difere`, 0 `sem-saida`. Achado: as 21 emitem o MESMO TTY de 56 bytes (`ResetGraph:itb=...` /
-`SR=1001`) e travam aí — `--exe` sideload stuba A0/B0/C0 com `jr ra` puro
-(`install_return_stubs`, `psexe.rs:70`), entao `ResetGraph()` nunca recebe a interrupcao que
-espera. Nao e 21 bugs de hardware: e 1 bug de ambiente de boot (novo item 10.95).
+**0169** — **entrada de controle no `psx-cli`** (`--pad`, `--press BOTAO@PASSO[:DURACAO]`).
+Agenda pura em `psx-core/src/pad_script.rs`, 8 testes, bateria 7/7 e 2/2. **Duas hipoteses
+refutadas com o binario desta rodada:** o Rayman NAO espera entrada (14 apertos de START/X entre
+250 M e 550 M passos deixam `[0x801CEEBC]`=0 e os 522 `VSync: timeout` identicos) e a suite
+`psxtest_gte` NAO espera menu — ela trava no mesmo `ResetGraph` do item 10.95.
 
 ## Próxima tarefa
 
-**ROADMAP 10.23 (parte 2/2) — veredito automatico de VRAM.** Tarefa em
-`logs/orquestrador/task-10.23-vram.txt` (branch `iter/0169-oraculo-vram`). 13 gabaritos
-`vram.png` (11 `gpu/*` + `mdec/4bit`, `mdec/8bit`); `diffvram` ja baixado em
-`tests/exes/ps1-tests/tools/`. Conversao 5→8 bits por canal ja medida: `canal8 = canal5 << 3`
-(deslocamento puro, sem replicar bits — nao redescubra). Reuse `scripts/lib/` da 0168 em vez de
-duplicar o arreio.
+**ROADMAP 10.95 — o caminho `--exe` carrega a BIOS mas nunca a inicializa.**
+`install_return_stubs` (`crates/psx-core/src/psexe.rs:70`) grava `jr $ra` em
+`0x00A0/0x00B0/0x00C0` E um stub de seis instrucoes em `0x80000080`. O TTY so funciona porque a
+CPU intercepta `A0h/3Fh` (`do_printf`) direto. Resultado: **as 22 suites de sideload param em
+`ResetGraph`** — as 21 com gabarito de TTY (0168) e a `psxtest_gte` (0169). Ideia a testar:
+rodar a BIOS de verdade ate o ponto de `Execute !` e so entao sobrepor o PS-EXE, como faz o
+sideload real, em vez de stubar.
+
+Faca 10.95 ANTES da parte 2 do 10.23 (VRAM): com o mesmo travamento em todas, o arreio de VRAM
+so produziria 13 linhas `difere` da mesma causa. A tarefa da VRAM segue pronta em
+`logs/orquestrador/task-10.23-vram.txt`.
 
 Invariantes relevantes: nenhuma.
 
@@ -39,7 +43,7 @@ Invariantes relevantes: nenhuma.
 
 ## Placar de testes
 
-Workspace: **930** testes.
+Workspace: **938** testes.
 
 ## Bloqueios
 

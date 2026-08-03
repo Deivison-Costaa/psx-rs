@@ -1,0 +1,89 @@
+# Manifesto de mutacao da iteracao 0169 — entrada de controle
+formato: 1
+iteracao: 0169
+item: 10.96
+alvo: crates/psx-core/src/pad_script.rs
+teste: pad_script
+
+mutante: m1
+rotulo: a janela do aperto passa a excluir o proprio passo inicial
+ocorrencias: 1
+@@DE
+            if step >= press.start && step < press.end {
+@@PARA
+            if step > press.start && step < press.end {
+@@FIM
+
+mutante: m2
+rotulo: a janela vaza um passo alem do fim, e o botao fica preso
+ocorrencias: 1
+@@DE
+            if step >= press.start && step < press.end {
+@@PARA
+            if step >= press.start && step <= press.end {
+@@FIM
+
+mutante: m3
+rotulo: em vez de zerar o bit do botao apertado, marca ele como solto
+ocorrencias: 1
+@@DE
+                state &= !(1u16 << press.bit);
+@@PARA
+                state |= 1u16 << press.bit;
+@@FIM
+
+mutante: m4
+rotulo: duracao zero deixa de ser erro e cria janela vazia
+ocorrencias: 1
+@@DE
+    if duracao == 0 {
+@@PARA
+    if duracao == u64::MAX {
+@@FIM
+
+mutante: m5
+rotulo: troca a ordem de start e up na tabela de bits da spec
+ocorrencias: 1
+@@DE
+    "select", "l3", "r3", "start", "up", "right", "down", "left", "l2", "r2", "l1", "r1",
+@@PARA
+    "select", "l3", "r3", "up", "start", "right", "down", "left", "l2", "r2", "l1", "r1",
+@@FIM
+
+mutante: m6
+rotulo: o nome do botao passa a exigir caixa exata
+ocorrencias: 1
+@@DE
+    let lower = name.to_ascii_lowercase();
+@@PARA
+    let lower = name.to_string();
+@@FIM
+
+mutante: m7
+rotulo: duracao omitida vira um unico passo em vez do padrao
+ocorrencias: 1
+@@DE
+        None => DEFAULT_PRESS_STEPS,
+@@PARA
+        None => 1,
+@@FIM
+
+controle: c1
+rotulo: comparacao espelhada do inicio da janela (cosmetico)
+ocorrencias: 1
+@@DE
+            if step >= press.start && step < press.end {
+@@PARA
+            if press.start <= step && step < press.end {
+@@FIM
+
+controle: c2
+rotulo: anotar o tipo do acumulador nao muda comportamento
+ocorrencias: 1
+@@DE
+        let mut state = RELEASED;
+        for press in &self.presses {
+@@PARA
+        let mut state: u16 = RELEASED;
+        for press in &self.presses {
+@@FIM

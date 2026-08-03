@@ -9,6 +9,7 @@ pub mod gpu;
 pub mod gte;
 pub mod irq;
 pub mod mdec;
+pub mod pad_script;
 pub mod psexe;
 pub mod scheduler;
 pub mod sio;

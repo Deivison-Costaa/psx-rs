@@ -1,0 +1,169 @@
+# Manifesto de mutação da iteração 0185 — gte-comandos-de-cor
+formato: 1
+iteracao: 0185
+item: 5.4b
+alvo: crates/psx-core/src/gte.rs
+teste: gte_comandos_cor
+
+mutante: m1
+rotulo: acumulador de 44 bits nao da a volta (usa o inteiro exato)
+ocorrencias: todas
+@@DE
+fn sinal44(val: i64) -> i64 {
+    (val << 20) >> 20
+}
+@@PARA
+fn sinal44(val: i64) -> i64 {
+    val
+}
+@@FIM
+
+mutante: m2
+rotulo: MAC deixa de ser registrador de 32 bits na leitura
+@@DE
+    fn le_mac(&self) -> (i64, i64, i64) {
+        (
+            self.regs[25] as i32 as i64,
+            self.regs[26] as i32 as i64,
+            self.regs[27] as i32 as i64,
+        )
+    }
+@@PARA
+    fn le_mac(&self) -> (i64, i64, i64) {
+        (
+            self.regs[25] as i64,
+            self.regs[26] as i64,
+            self.regs[27] as i64,
+        )
+    }
+@@FIM
+
+mutante: m3
+rotulo: flags de overflow do MAC olham so o total, nao cada parcela
+@@DE
+                acc += m(linha * 3 + coluna) * comp;
+                check_mac_43bit_overflow(acc, 30 - linha as u32, 27 - linha as u32, flag);
+                acc = sinal44(acc);
+@@PARA
+                acc += m(linha * 3 + coluna) * comp;
+                acc = sinal44(acc);
+@@FIM
+
+mutante: m4
+rotulo: intermediario do far color satura pelo lm real em vez de sempre lm=0
+@@DE
+            ir[i] = saturate_ir(deslocado, 0, 24 - i as u32, flag) as i64;
+@@PARA
+            ir[i] = saturate_ir(deslocado, 1, 24 - i as u32, flag) as i64;
+@@FIM
+
+mutante: m5
+rotulo: intermediario do far color nao passa pelo MAC de 32 bits
+@@DE
+            let deslocado = (sinal44(bruto) >> shift) as i32 as i64;
+@@PARA
+            let deslocado = sinal44(bruto) >> shift;
+@@FIM
+
+mutante: m6
+rotulo: modulacao pelo RGBC troca o SHL 4 por SHL 0
+@@DE
+        let canal = |cor: i64, ir: i64| (cor * ir) << 4;
+@@PARA
+        let canal = |cor: i64, ir: i64| cor * ir;
+@@FIM
+
+mutante: m7
+rotulo: FIFO de cor guarda MACn inteiro em vez de MACn/16
+@@DE
+        let r = saturate_cor(m1 >> 4, 21, flag);
+        let g = saturate_cor(m2 >> 4, 20, flag);
+        let b = saturate_cor(m3 >> 4, 19, flag);
+@@PARA
+        let r = saturate_cor(m1, 21, flag);
+        let g = saturate_cor(m2, 20, flag);
+        let b = saturate_cor(m3, 19, flag);
+@@FIM
+
+mutante: m8
+rotulo: FIFO de cor nao desce as entradas antigas
+@@DE
+        self.regs[20] = self.regs[21];
+        self.regs[21] = self.regs[22];
+@@PARA
+        self.regs[21] = self.regs[22];
+@@FIM
+
+mutante: m9
+rotulo: segunda multiplicacao usa o far color como translacao em vez do BK
+@@DE
+        self.matriz_por_vetor(LLM, None, v, sf, lm, &mut flag);
+        self.matriz_por_vetor(LCM, Some(BK), self.le_ir(), sf, lm, &mut flag);
+@@PARA
+        self.matriz_por_vetor(LLM, None, v, sf, lm, &mut flag);
+        self.matriz_por_vetor(LCM, Some(FC), self.le_ir(), sf, lm, &mut flag);
+@@FIM
+
+mutante: m10
+rotulo: primeira multiplicacao aplica translacao onde a spec nao tem nenhuma
+@@DE
+        self.matriz_por_vetor(LLM, None, v, sf, lm, &mut flag);
+@@PARA
+        self.matriz_por_vetor(LLM, Some(BK), v, sf, lm, &mut flag);
+@@FIM
+
+mutante: m11
+rotulo: DPCT le a cor do RGBC em vez do fundo da FIFO
+@@DE
+            OrigemRgb::Fifo => self.regs[20],
+@@PARA
+            OrigemRgb::Fifo => self.regs[6],
+@@FIM
+
+mutante: m12
+rotulo: NCCS/NCCT ganham a interpolacao com far color que so o NCDx tem
+@@DE
+            0x1B => self.normal_color(0, sf, lm, Modulacao::Rgbc, FarColor::Nao),
+@@PARA
+            0x1B => self.normal_color(0, sf, lm, Modulacao::Rgbc, FarColor::Sim),
+@@FIM
+
+mutante: m13
+rotulo: NCS/NCT ganham a modulacao pelo RGBC que so o NCCx/NCDx tem
+@@DE
+            0x1E => self.normal_color(0, sf, lm, Modulacao::Nenhuma, FarColor::Nao),
+@@PARA
+            0x1E => self.normal_color(0, sf, lm, Modulacao::Rgbc, FarColor::Nao),
+@@FIM
+
+mutante: m14
+rotulo: comando triplo roda uma vez so, deixando V1 e V2 sem cor
+@@DE
+        for vi in 0..3 {
+            self.normal_color(vi, sf, lm, modula, fc);
+        }
+@@PARA
+        for vi in 0..1 {
+            self.normal_color(vi, sf, lm, modula, fc);
+        }
+@@FIM
+
+controle: c1
+rotulo: renomear a constante da matriz de luz nao muda comportamento
+@@DE
+const LLM: usize = 40; // cnt8-12  — matriz de luz
+@@PARA
+const LLM: usize = 40; // cnt8-12  — matriz de luz do GTE
+@@FIM
+
+controle: c2
+rotulo: laco explicito no lugar do iterador da modulacao nao muda resultado
+@@DE
+        let m1 = canal((rgbc & 0xFF) as i64, ir[0]);
+        let m2 = canal(((rgbc >> 8) & 0xFF) as i64, ir[1]);
+        let m3 = canal(((rgbc >> 16) & 0xFF) as i64, ir[2]);
+@@PARA
+        let m3 = canal(((rgbc >> 16) & 0xFF) as i64, ir[2]);
+        let m2 = canal(((rgbc >> 8) & 0xFF) as i64, ir[1]);
+        let m1 = canal((rgbc & 0xFF) as i64, ir[0]);
+@@FIM

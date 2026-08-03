@@ -16,16 +16,10 @@ rotulo: M6 fica 100% fechado e continua ocupando bytes da escada
 mutante: m2
 rotulo: M5 fica 100% fechado e continua ocupando bytes da escada
 @@DE
-- [ ] 5.4b NCS/NCT/NCCS/NCCT
-- [ ] 5.4c NCDS/NCDT/CC/CDP
-- [ ] 5.4d DCPL/DPCS/DPCT/INTPL
-- [ ] 5.5 Flags de saturação/overflow completos
+- [ ] 5.5 Flags de saturação/overflow completos (por parcela, nao no total — ver 0185.1)
 - [ ] 5.6 Amidog psxtest_gte no scoreboard → jogo 3D jogável
 @@PARA
-- [x] 5.4b NCS/NCT/NCCS/NCCT
-- [x] 5.4c NCDS/NCDT/CC/CDP
-- [x] 5.4d DCPL/DPCS/DPCT/INTPL
-- [x] 5.5 Flags de saturação/overflow completos
+- [x] 5.5 Flags de saturação/overflow completos (por parcela, nao no total — ver 0185.1)
 - [x] 5.6 Amidog psxtest_gte no scoreboard → jogo 3D jogável
 @@FIM
 
@@ -48,9 +42,9 @@ rotulo: item reaparece na escada com id que ja vive no arquivo de historico
 mutante: m5
 rotulo: segundo id repetido entre escada e historico, por outro caminho
 @@DE
-- [ ] 5.5 Flags de saturação/overflow completos
+- [ ] 5.5 Flags de saturação/overflow completos (por parcela, nao no total — ver 0185.1)
 @@PARA
-- [ ] 0.2 Flags de saturação/overflow completos
+- [ ] 0.2 Flags de saturação/overflow completos (por parcela, nao no total — ver 0185.1)
 @@FIM
 
 controle: c1

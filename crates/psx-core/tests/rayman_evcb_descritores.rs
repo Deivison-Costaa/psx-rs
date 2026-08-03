@@ -118,7 +118,9 @@ fn sys_init_memory_troca_o_dono_dos_descritores_que_o_jogo_guardou() {
         "e o F1000004h e o erro do mesmo CDROM"
     );
 
-    assert_eq!(reinit_step, 154_895_851);
+    // +15.801 na iteracao 0185: o Rayman emite comandos de cor do GTE, que deixaram de ser
+    // no-op. Mesmo deslocamento uniforme de rayman_autoack.rs — achado 10.115.
+    assert_eq!(reinit_step, 154_911_652);
     assert_eq!(
         reinit_ra, 0xBFC0_6F4C,
         "quem chama SysInitMemory de novo e a ROM do BIOS, nao o jogo"

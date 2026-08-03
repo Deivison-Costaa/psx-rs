@@ -96,6 +96,7 @@ Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 10.90 Rayman: 71x `VSync: timeout` apos `Execute !` (0163; era 2x, ver 0171)
 - [ ] 10.94 Rayman em 590-600 M: laco `0x8019FA1C` espera `[0x801CEEBC]` != 0 (0167)
 - [ ] 10.100 cpu/cop: `testCop0InvalidOpcode` — cop0cmd invalido nao-TLB nao lanca 0Ah (0171)
+- [ ] 10.103 GetlocL/GetlocP sao stub (so devolvem stat); disc-swap exige tray fisico scriptavel (06-cdrom.md L1052/1073) (0175)
 
 ## M11 — Apresentação (incremental desde o M1)
 - [ ] 11.2 Gráficos de metricas.csv + scoreboard-data

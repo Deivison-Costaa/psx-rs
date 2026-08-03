@@ -7,13 +7,13 @@
 
 ## Última iteração concluída
 
-**0171** — **10.97+10.98+10.99 numa rodada (R4 dobrado a pedido do usuário)**. (a) o hook de TTY
-de alto nível só emite quando o vetor de syscall está stubado com `jr $ra`: com kernel real a
-BIOS já emitia por `putchar` e a saída saía **duplicada** — **todo número de TTY de 0163-0170
-estava inflado em 2x**; o `VSync: timeout` do Rayman é **71**, não 142. (b) o oráculo alinha na
-primeira linha do gabarito presente na nossa saída e devolve `sem-alinhamento` em vez de inventar
-K/M. (c) Coprocessor Unusable é decidido pelo **bit CU do SR**, não pela existência do
-coprocessador. Bateria 7/7, controles 2/2. CI passou a usar `cargo nextest`.
+**0175** — **Lote D (CD-ROM) do oráculo de TTY; R4 dobrado a pedido do usuário.** `cdrom/timing`
+travava em "Unexpected INT5!" assim que a bateria de medição chegava em `CdlSetloc`: o Setloc
+exigia `disc_inserted` (suposição da 0063 nunca confirmada contra a spec), mas 06-cdrom.md
+L787-797 não menciona checagem de disco no Setloc — só valida BCD. Corrigido; os itens
+10.53/10.55/10.56 foram lidos mas NÃO são a causa. `cdrom/getloc` e `cdrom/disc-swap` ficam
+abertos (10.103): GetlocL/GetlocP são stub e exigem disco/TOC real; disc-swap exige tray físico
+scriptável — nenhum dos dois tem oráculo local. Bateria 5/5, controles 2/2.
 
 ## Próxima tarefa
 
@@ -25,6 +25,9 @@ subsistema. Cinco lotes
 
 `K/M` no CSV é **K linhas divergentes de M** — já foi lido ao contrário. `timers` tem jitter
 real de hardware no gabarito e nunca dará `identico` por comparação exata.
+
+Lote D fechado (0175): Setloc corrigido; GetlocL/GetlocP e disc-swap ficam em 10.103 (falta
+disco real montado).
 
 Invariantes relevantes: nenhuma.
 

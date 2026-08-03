@@ -418,3 +418,14 @@ entrou na 0125. Mas a justificativa da invariante — "mutante fora do psx-core 
 **não se aplica** a `.ps1`: `ci_oc_iter.rs` lê o arquivo do disco em runtime, então mutá-lo afeta o
 teste sem recompilação nenhuma. A guarda super-bloqueia este caso. A bateria da 0139 foi manual;
 a dívida encosta em 10.58 e 10.33 e não foi consertada aqui (R4).
+
+## 2026-08-02 — nova categoria de erro: `[AllowNull()]` não impede a coerção de tipo do PowerShell
+
+Na 0168 (`scripts/lib/tty-veredito.ps1`), um parâmetro `[AllowNull()][string]$Gabarito` deveria
+aceitar `$null` para distinguir "gabarito ausente" de "gabarito vazio". Não aceitou: o PowerShell
+converte `$null` em `""` ao vincular o argumento ao tipo `[string]` — a conversão de tipo roda
+antes da validação de `AllowNull()`, então o atributo nunca chega a ser consultado para esse caso.
+O teste sintético pego (`gabarito_ausente_nao_e_confundido_com_diferenca`) devolveu `difere` em
+vez de `sem-gabarito`. Correção: remover a anotação de tipo do parâmetro (deixar sem tipo) — sem
+conversão declarada, `$null` chega como `$null` de verdade. Categoria nova para o campo "Erros de
+primeira tentativa" dos docs de iteração: **API-PowerShell**, ao lado de API-Rust.

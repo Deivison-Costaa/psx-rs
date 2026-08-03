@@ -7,32 +7,23 @@
 
 ## Última iteração concluída
 
-**0167** — **diagnostico: a CPU limpa NAO destrava o Rayman.** Comparei o mesmo disco nos
-commits `0768725` (Amidog 4.918 erros) e `a21d500` (0 erros): `VSync: timeout` 142 em 200 M e
-522 em 600 M **nos dois**, e o histograma de PC de 590-600 M bate amostra a amostra. O laco
-atual nao e o de 10.85: e `0x8019FA1C` esperando `[0x801CEEBC]` != 0 (item 10.94).
+**0168** — **oráculo de TTY: 21 suítes medidas, 0 identico.** `scripts/oraculo-tty.ps1` compara
+o TTY do psx-cli contra os 21 `psx.log` (hardware real, ps1-tests). Resultado: 0 `identico`, 21
+`difere`, 0 `sem-saida`. Achado: as 21 emitem o MESMO TTY de 56 bytes (`ResetGraph:itb=...` /
+`SR=1001`) e travam aí — `--exe` sideload stuba A0/B0/C0 com `jr ra` puro
+(`install_return_stubs`, `psexe.rs:70`), entao `ResetGraph()` nunca recebe a interrupcao que
+espera. Nao e 21 bugs de hardware: e 1 bug de ambiente de boot (novo item 10.95).
 
 ## Próxima tarefa
 
-**ROADMAP 10.23 — dar veredito automatico as suites que ja tem gabarito no disco.** Tarefa
-escrita em `logs/orquestrador/task-10.23-tty.txt`. Existem **21 arquivos `psx.log`** em
-`tests/exes/ps1-tests/**` que sao o TTY do HARDWARE REAL, ao lado de cada EXE, e nunca foram
-comparados; `scripts/scoreboard.ps1` conta bytes e joga o texto fora (10.24). Comece pelo
-diff de texto; a parte de VRAM (13 `vram.png` + o binario `diffvram`) e a rodada seguinte,
-descrita em `task-10.23-vram.txt`.
+**ROADMAP 10.23 (parte 2/2) — veredito automatico de VRAM.** Tarefa em
+`logs/orquestrador/task-10.23-vram.txt` (branch `iter/0169-oraculo-vram`). 13 gabaritos
+`vram.png` (11 `gpu/*` + `mdec/4bit`, `mdec/8bit`); `diffvram` ja baixado em
+`tests/exes/ps1-tests/tools/`. Conversao 5→8 bits por canal ja medida: `canal8 = canal5 << 3`
+(deslocamento puro, sem replicar bits — nao redescubra). Reuse `scripts/lib/` da 0168 em vez de
+duplicar o arreio.
 
-Por que esta e a proxima e nao o jogo: a 0167 mostrou que corrigir *funcao* da CPU nao moveu o
-Rayman, e a 0104 ja tinha medido que `VSync: timeout` estoura por **orcamento de ciclos** do
-laco de espera, nao por evento nao entregue. O suspeito agora e *tempo*, e e isso que
-`timers/psx.log` e `cpu/access-time/psx.log` medem. Regua antes de conserto.
-
-Notas (nao sao handoff): (a) Amidog CPU `Result` nao e `00000000` — restam bits 0x001 e 0x100
-sem nenhuma linha `error @` no TTY; o readme do Amidog nao documenta o codigo, e os dois bits
-estavam ligados tambem nas medicoes de 4.918 erros, entao provavelmente nao sao falha — nao
-escrever "CPU passa limpa" antes de decodificar. (b) 10.71 (`mutantes.ps1`, duas clausulas
-`teste` no mesmo switch) foi reconfirmado na 0166 e continua aberto.
-
-Invariantes relevantes: nenhum.
+Invariantes relevantes: nenhuma.
 
 ## Repositório
 
@@ -48,10 +39,14 @@ Invariantes relevantes: nenhum.
 
 ## Placar de testes
 
-Workspace: **921** testes.
+Workspace: **930** testes.
 
 ## Bloqueios
 
+- **10.95 novo (0168)**: as 21 suítes do ps1-tests com gabarito TTY travam idênticas em 56
+  bytes (`ResetGraph:SR=1001`) no `--exe` sideload — `install_return_stubs` (`psexe.rs:70`)
+  stuba A0/B0/C0 com `jr ra` puro, e `ResetGraph()` nunca recebe a interrupção que espera. Não
+  é comparável ao boot via CD (0158-0167): são caminhos de código diferentes no psx-cli.
 - **4.4 Boot de jogo**: o motor 4.4ad agora avanca setores sequencialmente; a fronteira
   seguinte medida no Rayman foi o caminho hook -> incremento. Imagens de disco ficam fora do
   repositorio, em `.../Programacao com agentes/roms/extraido/`.

@@ -2,7 +2,7 @@ mod support;
 
 use std::fs;
 
-const MAX_BYTES: u64 = 7_000;
+const MAX_BYTES: u64 = 3_000;
 
 #[test]
 fn roadmap_dentro_do_teto() {
@@ -12,6 +12,7 @@ fn roadmap_dentro_do_teto() {
         size <= MAX_BYTES,
         "ROADMAP.md com {size} bytes (teto {MAX_BYTES}). O roadmap é uma escada de \
          checkboxes de uma linha — no gb-rs ele virou 29 KB de prosa e um segundo corpo \
-         narrativo. Justificativa e contexto de cada item moram em docs/iterations/NNNN-*.md."
+         narrativo. Defeito achado por medicao mora em docs/achados.md, que tem teto proprio: \
+         se a escada esta estourando, ha achado disfarcado de degrau."
     );
 }

@@ -37,7 +37,7 @@ fn ids_citados(texto: &str) -> Vec<String> {
 
 fn ids_existentes() -> HashSet<String> {
     let mut saida = HashSet::new();
-    for arquivo in ["ROADMAP.md", "docs/ROADMAP-fechado.md"] {
+    for arquivo in ["ROADMAP.md", "docs/achados.md", "docs/ROADMAP-fechado.md"] {
         for linha in ler(arquivo).lines() {
             if linha.starts_with("- [x] ") || linha.starts_with("- [ ] ") {
                 if let Some(id) = linha[6..].split_whitespace().next() {

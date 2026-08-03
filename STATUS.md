@@ -7,25 +7,24 @@
 
 ## Última iteração concluída
 
-**0175** — **Lote D (CD-ROM); terminou SEM mudança de produção.** A rodada removeu o
-INT5(stat,80h) do Setloc sem disco porque a seção do Setloc não menciona disco. A revisão
-reverteu: § Error Codes (L1020) de docs/reference/06-cdrom.md lista `02h` **em primeiro lugar**
-entre os comandos que devolvem 80h com disco ausente. O que a medição achou de verdade: as suítes de
-CD-ROM do ps1-tests foram gravadas **com disco na bandeja** (`GetStat -> 0x02`, `GetlocP
-succeeded - track 01`), e nosso arreio as roda sem `--disc`. Montando um disco aparecem três
-divergências reais — `GetStat` sem o bit de motor, `GetlocL` passando onde deve falhar, e
-`Setloc` falhando mesmo com disco. Item **10.108**.
+**0173** — **lote B (DMA), 3 achados (R4 dobrado pelo usuário)**. `chain-looping`: cadeia
+linked-list sem end-marker fica ocupada para sempre, não completa (igual ao hardware).
+`chopping`: canal 2 ignorava SyncMode=0 (Burst) e travava para sempre; `execute_burst` fecha
+isso (131/132→130/132). `otc-test` (15/17): artefato — `.exe` tem 2 subtestes a mais que o
+`psx.log` gravado. `dpcr` (13/15): bloqueado por SPU/DMA4 ausentes (10.101). Ticks/ciclos ao
+redor de DMA não fecham com o gabarito em nenhuma suíte — root cause estrutural no 10.102.
+Bateria 5/5, controles 2/2; 6/6+2/2 do 0057 reconfirmados após reparo de âncora envelhecida.
 
 ## Próxima tarefa
 
-**ROADMAP 10.100 e os lotes do oráculo de TTY.** `scripts/oraculo-tty.ps1` é confiável desde a
-0171 e o placar em `logs/oraculo-tty.csv` é o alvo: fechar divergência por divergência, por
-subsistema. Cinco lotes
-— A CPU/kernel, B DMA, C MDEC+SPU, D CD-ROM, E timers+GPU+GTE. Tarefa-modelo pronta em
-`logs/orquestrador/task-lote-oraculo.txt` (trocar `<<<LOTE>>>`).
+**ROADMAP 10.100 e os lotes C/D/E do oráculo de TTY.** Lote B (DMA) fechado pela 0173. Restam
+C MDEC+SPU, D CD-ROM, E timers+GPU+GTE; tarefa-modelo em
+`logs/orquestrador/task-lote-oraculo.txt` (trocar `<<<LOTE>>>`). 10.101 e 10.102 são achados
+novos do lote B, sem dono ainda.
 
-`K/M` no CSV é **K linhas divergentes de M** — já foi lido ao contrário. `timers` tem jitter
-real de hardware no gabarito e nunca dará `identico` por comparação exata.
+`K/M` no CSV é **K linhas divergentes de M**. `timers` tem jitter real no gabarito e nunca dá
+`identico`. Medição isolada pode divergir do CSV sob disputa de CPU — `chain-looping` deu 9/11
+no CSV e 4/11 isolado e determinístico (0173).
 
 **Antes de medir CD-ROM, monte disco:** o oráculo roda as suítes sem `--disc` e as contagens
 delas medem a falta de mídia, não a nossa fidelidade (10.108).
@@ -46,10 +45,12 @@ Invariantes relevantes: nenhuma.
 
 ## Placar de testes
 
-Workspace: **955** testes.
+Workspace: **958** testes.
 
 ## Bloqueios
 
+- **Suites de cdrom precisam de `--disc` (0175)**: os gabaritos foram gravados com disco na
+  bandeja (`GetStat -> 0x02`). Sem mídia, a contagem mede a ausência dela (10.108).
 - **Primeira paridade com hardware real (0171)**: `gpu/gp0-e1` (0/12) e `gpu/mask-bit` (0/7)
   batem byte a byte com o gabarito do ps1-tests. Placar do oráculo: **2 identico, 19 difere**.
   `cpu/cop` caiu de 19/19 para 1/19 — sobra `testCop0InvalidOpcode` (item 10.100).
@@ -60,9 +61,9 @@ Workspace: **955** testes.
   seguinte medida no Rayman foi o caminho hook -> incremento. Imagens de disco ficam fora do
   repositorio, em `.../Programacao com agentes/roms/extraido/`.
   **Nunca commitar imagem de disco.**
-- **10.79/10.80/10.81 são diagnóstico, não correção**: `CAUSE.ExcCode=00h` em 1029 hooks e
-  convergência em `0x801CF2CC`; `0xBFC00448` instala `0x4A1C` antes de `C(00h)`; nos 458
-  intervalos sem ack o `I_STAT` só tinha bit 2 (CDROM) ou 3 (DMA) — não há defeito de VBlank aí.
+- **10.79/10.80/10.81 são diagnóstico, não correção**: `CAUSE.ExcCode=00h` em 1029 hooks;
+  `0xBFC00448` instala `0x4A1C` antes de `C(00h)`; nos 458 intervalos sem ack o `I_STAT` só tinha
+  bit 2 (CDROM) ou 3 (DMA).
 - **10.85 (0159)**: o laço final do Rayman é `0x801B9574`, esperando `[0x801CF2CC] >= 2`. A espera
   do memory card NÃO é o bloqueio: termina sozinha em 166.321.383 com `F4000001h,0100h`.
 - **Oraculo de hardware disponivel (0164)**: 51 EXEs em `tests/exes/` (gitignored). Amidog CPU

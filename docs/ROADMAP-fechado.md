@@ -167,6 +167,7 @@ da escada valer so para o que FALTA. Narrativa de cada item continua em
 - [x] 10.96 psx-cli conecta pad digital e aperta botoes por passo (--pad/--press) (iter 0169)
 - [x] 10.95 `--exe` agora boota o kernel de verdade ate 0x80030000 antes de sobrepor o PS-EXE (iter 0170)
 - [x] 10.97 TTY duplicado com kernel real (iter 0171)
+- [x] 10.43 TTY duplicado ('System ROM' 2x): mesma causa do 10.97, fechado por medicao (iter 0171)
 - [x] 10.98 oraculo-tty: alinhamento e prefixo uniforme (iter 0171)
 - [x] 10.99 cpu/cop: Coprocessor Unusable pelo bit CU do SR, 19/19 -> 1/19 (iter 0171)
 - [x] 10.105 CI: 188 s de link contra 14 s de execucao; debuginfo desligado no workflow (iter 0177)

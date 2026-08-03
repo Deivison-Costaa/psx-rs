@@ -104,3 +104,103 @@ fn watch_mem_recusa_endereco_invalido() {
         "a mensagem de erro tem de nomear a flag"
     );
 }
+
+// Um observador que reporta sempre, ou que esquece de lembrar o valor novo, vira ruido: uma
+// linha por passo. O numero de escritas reais na tabela de ExCB durante o boot e pequeno.
+#[test]
+fn watch_mem_nao_reporta_passo_que_nao_mudou_nada() {
+    let bios = workspace_bios();
+    if !bios.exists() {
+        eprintln!("SKIP: BIOS nao encontrada");
+        return;
+    }
+    let saida = roda(&[
+        "--bios",
+        &bios.to_string_lossy(),
+        "--max-steps",
+        "3000000",
+        "--watch-mem",
+        ALVO,
+    ]);
+    let n = saida.lines().filter(|l| l.starts_with("watch ")).count();
+    assert!(
+        n < 1000,
+        "{n} linhas de watch em 3 M passos: o observador esta reportando passo sem mudanca \
+         (ou nao esta atualizando o valor lembrado). Isso afoga o sinal que ele existe para dar."
+    );
+}
+
+// A ROM da BIOS nunca e escrita e nao e zero. Zero linha e a resposta certa; uma linha no
+// primeiro passo denuncia baseline inicializado com zero em vez do valor real.
+#[test]
+fn watch_mem_em_memoria_somente_leitura_nao_reporta_nada() {
+    let bios = workspace_bios();
+    if !bios.exists() {
+        eprintln!("SKIP: BIOS nao encontrada");
+        return;
+    }
+    let saida = roda(&[
+        "--bios",
+        &bios.to_string_lossy(),
+        "--max-steps",
+        "200000",
+        "--watch-mem",
+        "0xBFC00000",
+    ]);
+    let linhas: Vec<&str> = saida.lines().filter(|l| l.starts_with("watch ")).collect();
+    assert!(
+        linhas.is_empty(),
+        "a ROM nao muda; qualquer linha aqui e falso positivo do valor inicial: {linhas:?}"
+    );
+}
+
+// O PC culpado tem de ser a instrucao que ESCREVEU, nao a seguinte. Decodifico o opcode no
+// endereco reportado e exijo que seja um store.
+#[test]
+fn watch_mem_culpa_a_instrucao_de_store_e_nao_a_seguinte() {
+    let bios = workspace_bios();
+    if !bios.exists() {
+        eprintln!("SKIP: BIOS nao encontrada");
+        return;
+    }
+    let bios = bios.to_string_lossy().into_owned();
+    let saida = roda(&[
+        "--bios",
+        &bios,
+        "--max-steps",
+        "3000000",
+        "--watch-mem",
+        ALVO,
+    ]);
+    let pc = saida
+        .lines()
+        .find(|l| l.starts_with("watch "))
+        .and_then(|l| l.split("pc=0x").nth(1))
+        .and_then(|s| s.split_whitespace().next())
+        .map(|s| s.to_string())
+        .expect("ao menos uma linha de watch com pc=");
+
+    let dump = roda(&[
+        "--bios",
+        &bios,
+        "--max-steps",
+        "3000000",
+        "--dump-mem",
+        &format!("0x{pc}"),
+        "0x4",
+    ]);
+    let palavra = dump
+        .lines()
+        .find(|l| l.trim_start().starts_with(&pc.to_uppercase()))
+        .and_then(|l| l.split_whitespace().nth(1))
+        .and_then(|s| u32::from_str_radix(s, 16).ok())
+        .unwrap_or_else(|| panic!("instrucao em 0x{pc} nao pode ser lida; dump={dump:?}"));
+
+    let opcode = palavra >> 26;
+    // sb=28h, sh=29h, swl=2Ah, sw=2Bh, swr=2Eh
+    assert!(
+        matches!(opcode, 0x28 | 0x29 | 0x2A | 0x2B | 0x2E),
+        "o PC culpado (0x{pc}) tem de conter um store; achei opcode 0x{opcode:02X} \
+         (instrucao 0x{palavra:08X}). Reportar o PC seguinte culpa a instrucao errada."
+    );
+}

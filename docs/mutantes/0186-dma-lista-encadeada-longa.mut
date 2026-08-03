@@ -1,0 +1,94 @@
+# Manifesto de mutação da iteração 0186 — dma-lista-encadeada-longa
+formato: 1
+iteracao: 0186
+item: 4.4ae
+alvo: crates/psx-core/src/dma.rs
+teste: dma_lista_encadeada_longa
+
+mutante: m1
+rotulo: volta o teto artificial de 4096 nos (o defeito original)
+@@DE
+        let teto_de_nos = ram.len() / 4;
+@@PARA
+        let teto_de_nos = 4096;
+@@FIM
+
+mutante: m2
+rotulo: endereco do proximo no truncado em 20 bits (end-marker deixa de ser visto)
+@@DE
+            let next_addr = header & 0x00FF_FFFF;
+@@PARA
+            let next_addr = header & 0x000F_FFFF;
+@@FIM
+
+mutante: m3
+rotulo: teto mil vezes menor
+@@DE
+        let teto_de_nos = ram.len() / 4;
+@@PARA
+        let teto_de_nos = ram.len() / 4000;
+@@FIM
+
+mutante: m4
+rotulo: end-marker nao marca fim (canal fica ocupado para sempre)
+@@DE
+                self.madr[2] = (self.madr[2] & !0x00FF_FFFF) | next_addr;
+                alcancou_fim = true;
+@@PARA
+                self.madr[2] = (self.madr[2] & !0x00FF_FFFF) | next_addr;
+                alcancou_fim = false;
+@@FIM
+
+mutante: m5
+rotulo: MADR nao recebe o end marker ao fim da transferencia
+@@DE
+                self.madr[2] = (self.madr[2] & !0x00FF_FFFF) | next_addr;
+@@PARA
+                self.madr[2] &= !0x00FF_FFFF;
+@@FIM
+
+mutante: m6
+rotulo: bit24 (start/busy) nao e limpo ao completar
+@@DE
+        if alcancou_fim {
+            self.chcr[2] &= !(1 << 24);
+@@PARA
+        if alcancou_fim {
+            self.chcr[2] |= 1 << 24;
+@@FIM
+
+mutante: m7
+rotulo: palavras do no comecam no header em vez de depois dele
+@@DE
+            let mut data_addr = addr.wrapping_add(4);
+@@PARA
+            let mut data_addr = addr;
+@@FIM
+
+mutante: m8
+rotulo: nenhuma palavra de dados sai do no
+@@DE
+            let word_count = (header >> 24) as usize;
+@@PARA
+            let word_count = 0;
+@@FIM
+
+controle: c1
+rotulo: teto calculado em duas etapas
+@@DE
+        let teto_de_nos = ram.len() / 4;
+@@PARA
+        let palavras_na_ram = ram.len() / 4;
+        let teto_de_nos = palavras_na_ram;
+@@FIM
+
+controle: c2
+rotulo: let _ = 0 no inicio de execute_linked_list
+@@DE
+        let mut addr = self.madr[2] & 0x00FF_FFFC;
+        let mut node_count = 0;
+@@PARA
+        let _ = 0;
+        let mut addr = self.madr[2] & 0x00FF_FFFC;
+        let mut node_count = 0;
+@@FIM

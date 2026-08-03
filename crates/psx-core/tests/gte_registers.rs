@@ -39,8 +39,8 @@ fn mtc2_escreve_registro_de_dados_e_mfc2_le_de_volta() {
     cpu.pc = 0;
 
     cpu.regs[8] = 0xDEAD_BEEF;
-    bus.write32::<BusRead>(0x0000, mtc2(8, 5));
-    bus.write32::<BusRead>(0x0004, mfc2(10, 5));
+    bus.write32::<BusRead>(0x0000, mtc2(8, 0));
+    bus.write32::<BusRead>(0x0004, mfc2(10, 0));
     bus.write32::<BusRead>(0x0008, nop());
 
     cpu.step(&mut bus);
@@ -49,7 +49,7 @@ fn mtc2_escreve_registro_de_dados_e_mfc2_le_de_volta() {
 
     assert_eq!(
         cpu.regs[10], 0xDEAD_BEEF,
-        "MFC2 deve ler o valor escrito por MTC2 no registrador r5"
+        "MFC2 deve ler o valor escrito por MTC2 no registrador r0 (VXY0, passthrough)"
     );
 }
 
@@ -82,8 +82,8 @@ fn mfc2_tem_load_delay_de_uma_instrucao() {
     cpu.set_sr(1 << 30);
     cpu.pc = 0;
 
-    bus.write32::<BusRead>(0x0000, mtc2(8, 3));
-    bus.write32::<BusRead>(0x0004, mfc2(9, 3));
+    bus.write32::<BusRead>(0x0000, mtc2(8, 0));
+    bus.write32::<BusRead>(0x0004, mfc2(9, 0));
     bus.write32::<BusRead>(0x0008, nop());
     bus.write32::<BusRead>(0x000C, nop());
 
@@ -192,8 +192,8 @@ fn swc2_armazena_registro_de_dados_na_memoria() {
 
     cpu.regs[1] = 0x0000_0200;
     cpu.regs[8] = 0xFEED_C0DE;
-    bus.write32::<BusRead>(0x0000, mtc2(8, 3));
-    bus.write32::<BusRead>(0x0004, swc2(3, 1, 0x10));
+    bus.write32::<BusRead>(0x0000, mtc2(8, 0));
+    bus.write32::<BusRead>(0x0004, swc2(0, 1, 0x10));
     bus.write32::<BusRead>(0x0008, nop());
 
     cpu.step(&mut bus);
@@ -214,8 +214,10 @@ fn gte_tem_64_registradores_indexaveis() {
     cpu.set_sr(1 << 30);
     cpu.pc = 0;
 
-    cpu.regs[8] = 0xAAAA_BBBB;
-    bus.write32::<BusRead>(0x0000, mtc2(8, 31));
+    // r31 (LZCR) e somente-leitura, computado de r30 (LZCS): 0x1 tem 31 zeros a
+    // esquerda (§ cop2r30/31 - LZCS/LZCR (L331-334) de docs/reference/07-gte.md).
+    cpu.regs[8] = 0x0000_0001;
+    bus.write32::<BusRead>(0x0000, mtc2(8, 30));
     bus.write32::<BusRead>(0x0004, mfc2(10, 31));
     bus.write32::<BusRead>(0x0008, nop());
 
@@ -224,8 +226,8 @@ fn gte_tem_64_registradores_indexaveis() {
     cpu.step(&mut bus);
 
     assert_eq!(
-        cpu.regs[10], 0xAAAA_BBBB,
-        "MFC2 r31 (ultimo registrador de dados) deve ser acessivel"
+        cpu.regs[10], 31,
+        "MFC2 r31 (ultimo registrador de dados, LZCR) deve ser acessivel"
     );
 
     cpu.regs[8] = 0xCCCC_DDDD;

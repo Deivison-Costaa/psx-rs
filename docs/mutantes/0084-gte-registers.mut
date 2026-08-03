@@ -4,6 +4,7 @@ iteracao: 0084
 item: 5.1
 alvo: crates/psx-core/src/gte.rs
 teste: gte_registers
+arquivada: read_data/write_data reescritos na iter 0176 (formatos por registrador) — ancoras nao correspondem mais
 
 mutante: m1
 rotulo: read_data retorna 0 em vez do valor armazenado

@@ -4,6 +4,7 @@ iteracao: 0086
 item: 5.2
 alvo: crates/psx-core/src/gte.rs
 teste: gte_rtps_rtpt
+arquivada: exec_rtps_vertex reescrito na iter 0176 (IR3/lm, overflow de MAC0/MAC1-3, shift) — ancoras nao correspondem mais
 
 mutante: m1
 rotulo: sf sempre 0 no execute_command (ignora bit 19)

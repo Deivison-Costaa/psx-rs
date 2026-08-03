@@ -26,6 +26,9 @@ novos do lote B, sem dono ainda.
 `identico`. Medição isolada pode divergir do CSV sob disputa de CPU — `chain-looping` deu 9/11
 no CSV e 4/11 isolado e determinístico (0173).
 
+**Antes de medir CD-ROM, monte disco:** o oráculo roda as suítes sem `--disc` e as contagens
+delas medem a falta de mídia, não a nossa fidelidade (10.108).
+
 Invariantes relevantes: nenhuma.
 
 ## Repositório
@@ -46,6 +49,8 @@ Workspace: **956** testes.
 
 ## Bloqueios
 
+- **Suites de cdrom precisam de `--disc` (0175)**: os gabaritos foram gravados com disco na
+  bandeja (`GetStat -> 0x02`). Sem mídia, a contagem mede a ausência dela (10.108).
 - **Primeira paridade com hardware real (0171)**: `gpu/gp0-e1` (0/12) e `gpu/mask-bit` (0/7)
   batem byte a byte com o gabarito do ps1-tests. Placar do oráculo: **2 identico, 19 difere**.
   `cpu/cop` caiu de 19/19 para 1/19 — sobra `testCop0InvalidOpcode` (item 10.100).
@@ -56,9 +61,9 @@ Workspace: **956** testes.
   seguinte medida no Rayman foi o caminho hook -> incremento. Imagens de disco ficam fora do
   repositorio, em `.../Programacao com agentes/roms/extraido/`.
   **Nunca commitar imagem de disco.**
-- **10.79/10.80/10.81 são diagnóstico, não correção**: `CAUSE.ExcCode=00h` em 1029 hooks e
-  convergência em `0x801CF2CC`; `0xBFC00448` instala `0x4A1C` antes de `C(00h)`; nos 458
-  intervalos sem ack o `I_STAT` só tinha bit 2 (CDROM) ou 3 (DMA) — não há defeito de VBlank aí.
+- **10.79/10.80/10.81 são diagnóstico, não correção**: `CAUSE.ExcCode=00h` em 1029 hooks;
+  `0xBFC00448` instala `0x4A1C` antes de `C(00h)`; nos 458 intervalos sem ack o `I_STAT` só tinha
+  bit 2 (CDROM) ou 3 (DMA).
 - **10.85 (0159)**: o laço final do Rayman é `0x801B9574`, esperando `[0x801CF2CC] >= 2`. A espera
   do memory card NÃO é o bloqueio: termina sozinha em 166.321.383 com `F4000001h,0100h`.
 - **Oraculo de hardware disponivel (0164)**: 51 EXEs em `tests/exes/` (gitignored). Amidog CPU

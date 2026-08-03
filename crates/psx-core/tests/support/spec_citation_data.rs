@@ -196,6 +196,9 @@ fn collect_md_recursive(root: &Path, dir: &Path, out: &mut Vec<PathBuf>) {
                 if dname == "target" || dname == ".git" {
                     continue;
                 }
+                if dname == "worktrees" && path.parent().is_some_and(|p| p.ends_with(".claude")) {
+                    continue;
+                }
                 collect_md_recursive(root, &path, out);
             } else if is_scan_target(&path) {
                 out.push(path);

@@ -459,7 +459,10 @@ impl Bus {
                     0x8 => {
                         self.dma.write_chcr(ch, val);
                         match ch {
-                            0 => self.dma.try_execute_dma0(&self.ram.data, &mut self.mdec),
+                            0 => {
+                                self.dma.try_execute_dma0(&self.ram.data, &mut self.mdec);
+                                self.dma.try_execute_dma1(&mut self.ram.data, &self.mdec);
+                            }
                             1 => self.dma.try_execute_dma1(&mut self.ram.data, &self.mdec),
                             2 => self.dma.try_execute_dma2(&mut self.ram.data, &mut self.gpu),
                             3 => self.dma.try_execute_dma3(&mut self.ram.data, &self.cdrom),
@@ -496,6 +499,10 @@ impl Bus {
             }
             0x1F80_1820 | 0x1F80_1824 => {
                 self.mdec.write32(phys - 0x1F80_1820, val);
+                // Um DMA1 ja armado espera saida do MDEC: alimentar o MDEC pela CPU tem de
+                // retomar o canal, como o DREQ faria no console.
+                self.dma.try_execute_dma1(&mut self.ram.data, &self.mdec);
+                self.service_dma_irq();
                 true
             }
             0x1F80_1800..=0x1F80_1803 => {

@@ -3,20 +3,24 @@
 # 0175 — cdrom-oraculo
 
 - **Data:** 2026-08-03
-- **Item do roadmap:** nenhum item prévio cobria o defeito achado (Setloc); 10.103 registrado
-  para o que ficou aberto (GetlocL/GetlocP e disc-swap).
+- **Item do roadmap:** 10.103 (o que ficou aberto) e 10.108 (arreio sem disco).
 - **Objetivo:** lote D do oráculo de TTY — `cdrom/disc-swap`, `cdrom/timing`, `cdrom/getloc`.
-- **Fonte:** trabalhador (lote D, orquestrado em paralelo com A/B/C/E).
+- **Fonte:** trabalhador (lote D, orquestrado em paralelo com A/B/C/E); **correção de rumo na
+  revisão cruzada do orquestrador**.
 
 **R4 dobrado a pedido do usuário.** A regra diz uma micro-funcionalidade por iteração; aqui o
 lote inteiro fecha numa rodada porque o custo não é o código, é a espera de suíte e CI.
+
+**Esta rodada terminou sem mudança de produção.** O defeito que ela julgou ter achado não
+existia; o que existe é outra coisa, medida na revisão e registrada abaixo. Fica no acervo
+inteira, com o caminho errado visível, porque é para isso que o acervo serve.
 
 ## Spec consultada
 
 | Fonte | Seção | Arquivo local |
 |---|---|---|
 | psx-spx | § Setloc - Command 02h,amm,ass,asect (L787-798) | docs/reference/06-cdrom.md |
-| psx-spx | § First Response (INT3) (or INT5 if failed) (L1984-2000) | docs/reference/06-cdrom.md |
+| psx-spx | § Error Codes (L1020-1022) | docs/reference/06-cdrom.md |
 | psx-spx | § GetlocL - Command 10h (L1052-1064) | docs/reference/06-cdrom.md |
 | psx-spx | § GetlocP - Command 11h (L1073-1084) | docs/reference/06-cdrom.md |
 
@@ -24,81 +28,65 @@ lote inteiro fecha numa rodada porque o custo não é o código, é a espera de 
 
 | # | Categoria | O que eu assumi | O que a spec diz | Como foi pego |
 |---|---|---|---|---|
-| 1 | hardware (herdado da 0063) | Que Setloc exigisse disco inserido, como SeekL/ReadN — decisão #3 da 0063 ("comandos que exigem disco... Setloc"), nunca confirmada contra o texto da própria seção. | § Setloc (L787-798) só valida BCD; não menciona disco. A checagem pertence ao SeekL/ReadN, que fazem o seek/leitura de fato. | `cdrom/timing` (ps1-tests real, sem disco) trava em "Unexpected INT5!" assim que a bateria de 100 execuções chega em `CdlSetloc` — hardware real não trava aí. |
+| 1 | hardware | Que Setloc **não** exigisse disco: § Setloc (L787-798) de docs/reference/06-cdrom.md só valida BCD e não menciona disco, então a checagem herdada da 0063 seria suposição sem base. | § Error Codes (L1020) do mesmo arquivo lista o comando **02h em primeiro lugar** entre os que devolvem erro 80h "when the disk is missing". A seção do Setloc é omissa; a de códigos de erro não é. | Revisão cruzada do orquestrador. Argumento de silêncio numa seção não vence texto explícito noutra — e R1 diz exatamente isso: ler a spec antes, e a spec inteira que trata do assunto. |
+| 2 | medição | Que a suíte travar em `CdlSetloc` provasse defeito nosso. | Não é assunto de spec. | O gabarito de hardware mostra `GetStat -> 0x02` (motor girando) e `GetlocP succeeded - track 01 index 00`: as suítes de CD-ROM do ps1-tests foram gravadas **com disco na bandeja**. Nosso arreio as roda com `--exe` e sem `--disc`. A suíte travava porque falta mídia, não porque o Setloc esteja errado. |
 
-## As mudanças
+## O que a medição mostrou de verdade
 
-**Defeito achado e corrigido: Setloc não exige disco.** `send_command(0x02)` retornava
-INT5(stat,80h) sem disco inserido, além da validação de BCD já existente. A seção da spec não
-prevê essa checagem — Setloc "só guarda o alvo do seek, sem ainda iniciar o seek". Removida a
-checagem; Setloc agora só falha por BCD inválido (INT5,10h), igual à spec.
+Montando um disco (`--exe` + `--disc`) e rodando `cdrom/getloc`, aparecem três divergências
+reais que a rodada sem mídia escondia:
+
+| Nossa saída | Gabarito de hardware |
+|---|---|
+| `GetStat -> 0x00` | `GetStat -> 0x02` — não ligamos o bit de motor girando |
+| `GetlocL succeeded - [00:00:00] mode 0` | `GetlocL failed, IRQ = 5, status = 0x02` — deve falhar antes de qualquer leitura |
+| `SetLoc failed, irq=5, status=0x01` | seek prossegue — falha mesmo **com** disco montado |
+
+Isto é: remover a checagem de disco do Setloc não tocaria na causa. Com disco, o Setloc falha
+assim mesmo, e por outro motivo ainda não isolado. Os três viram o item **10.108**, junto com o
+arreio: enquanto o oráculo rodar as suítes de CD-ROM sem `--disc`, as contagens delas medem a
+ausência de mídia, não a nossa fidelidade.
 
 **10.53/10.55/10.56 lidos e descartados como causa.** O handoff pedia checar se algum destes
-itens já abertos explicava `cdrom/timing`. Não explicam: o defeito real (Setloc/disco) é
-diferente dos três, que continuam abertos e sem relação direta com a suíte medida aqui.
+itens já abertos explicava `cdrom/timing`. Não explicam; continuam abertos e sem relação com o
+que foi medido aqui.
 
 ## Bateria de mutação
 
-Placar da bateria: **5/5 mutantes mortos, 2/2 controles verdes, 0 equivalente** —
-`docs/mutantes/0175-cdrom-oraculo.mut`.
-
-| Mutante | Teste que o pegou |
-|---|---|
-| m1 (reintroduz a checagem de disco removida) | `setloc_sem_disco_retorna_int3_mas_stat_com_bit0` |
-| m2 (para de validar o setor/ff do BCD) | `setloc_rejeita_setor_bcd_invalido` |
-| m3 (troca a ordem dos bytes de erro) | `setloc_rejeita_segundo_bcd_invalido` |
-| m4 (Setloc válido dispara INT5) | `setloc_com_bcd_valido_retorna_int3_e_armazena_posicao` |
-| m5 (troca ss/ff ao guardar o alvo) | `setor_mode2_form1_le_os_dados_a_partir_de_0x18` (cdrom_setor_mode2) |
-
-Registros declaram `teste:` individualmente (m5 mata em `cdrom_setor_mode2`, os demais em
-`cdrom_seek_pause`) — contorna o item 10.71.
-
-O nome do teste que expõe o defeito (`setloc_sem_disco_retorna_int3_mas_stat_com_bit0`) foi
-preservado da iteração 0063: renomeá-lo quebraria `mutation_battery::bateria_nomes_de_teste_existem`,
-que confere nomes creditados em `.resultado` antigos (mesmo arquivados) contra as fns reais. Só o
-corpo (as asserções) mudou.
+Bateria de mutação: não se aplica — a rodada terminou sem mudança em `crates/*/src/`, e o
+manifesto que existia media a correção que a revisão desfez.
 
 ## Placar antes → depois
 
-Workspace: **953 → 953** testes (nenhum teste novo — o único adicionado corrige um já existente
-no lugar, ver acima).
+Workspace: **953 → 953** testes. Nenhuma suíte do lote mudou de contagem:
+`cdrom/disc-swap` 7/11, `cdrom/timing` 17/19, `cdrom/getloc` 41/45.
 
-**Oráculo de TTY, lote D (`K/M` = K linhas divergentes de M, alinhado na 1ª linha do gabarito
-presente na nossa saída).** Medido com `psx-cli --bios bios/SCPH1001.BIN --exe <exe>
---max-steps 800000000`, sem disco montado (nenhuma imagem disponível para estas três suítes):
-
-| Suíte | antes | depois | nota |
-|---|---|---|---|
-| `cdrom/disc-swap` | 7/11 | 7/11 (inalterado) | precisa de abertura/fechamento **físico** da bandeja; sem mecanismo de script no `psx-cli` para simular isso, não há como avançar sem inventar comportamento (10.103). |
-| `cdrom/timing` | 17/19 | 17/19 (mesmo número, causa mudou) | antes travava ANTES de emitir `CdlSetloc`/`CdlSetmode` (bug nosso). Depois do fix, as duas linhas são alcançadas — ainda divergem numericamente (nosso modelo de timing de ACK é determinístico; o hardware real tem jitter de mainloop, item 10.1) — e a suíte avança até a seção "single-speed timing", onde um `ReadN` sem disco real produz o mesmo "Unexpected INT5!" que antes, agora por falta de mídia, não por defeito. |
-| `cdrom/getloc` | 40/44 (medido; a tabela do lote dizia 41/45 — não bati a mesma contagem, ver nota) | 40/44 (inalterado) | antes: `Setloc` falhava (bug). Depois: `Setloc` passa e o próximo comando (`SeekL`) falha corretamente por falta de disco — mesmo sintoma superficial (`* Seek/SetLoc failed, irq=5, status=0x01`), causa diferente. `GetlocL`/`GetlocP` continuam stub (10.103) e a suíte pressupõe TOC de um disco de 74 min que não temos. |
-
-Nota de contagem: recontei `cdrom/getloc` linha a linha (script de alinhamento ad-hoc, mesmo
-método usado para `disc-swap`/`timing`, que bateram exatamente com a tabela do lote) e cheguei em
-M=44 (45 linhas não-vazias do gabarito, contando `cdrom/header-valid-bit` como âncora e `Test
-passed` como última linha, menos a âncora que não conta como divergência) em vez de 45. Não
-insisti em achar a diferença de 1 — registro a discrepância em vez de forçar a bater.
+Nota de contagem: o trabalhador recontou `cdrom/getloc` com script ad-hoc e chegou a 40/44 em vez
+dos 41/45 do CSV. A discrepância de 1 linha não foi isolada; fica registrada em vez de forçada a
+bater.
 
 ## Revisão cruzada (orquestrador)
 
-<!-- Preenchido pelo Claude na revisão do PR: achados no formato de docs/prompts/review.md, ou "sem achados". -->
+**Achado, severidade alta — regressão contra a spec.** O commit `ef281a0` removia o
+INT5(stat,80h) do Setloc sem disco. § Error Codes (L1020) de docs/reference/06-cdrom.md lista
+`02h` entre os comandos que devolvem 80h com disco ausente. Revertido em `1ce4dab`, junto com o
+teste reescrito e o manifesto de mutação construído em cima dele. O teste
+`setloc_sem_disco_retorna_int3_mas_stat_com_bit0` volta às asserções originais da 0063.
+
+Vale registrar o que a rodada acertou: a leitura de `disc-swap` como bloqueio de infraestrutura,
+o diagnóstico de que `GetlocL`/`GetlocP` caem no braço genérico de `send_command`, a recusa a
+forçar a contagem a bater, e a nota sobre symlink e `.gitignore`. O erro foi de método num ponto
+só — parar de ler a spec cedo demais.
 
 ## Decisões e notas
 
-- **`disc-swap` não é "sem TTY nenhum"** (o critério literal do handoff), mas trava numa
-  interação física (abrir/fechar a bandeja) que o hardware real espera de um operador humano.
-  Sem um jeito de scriptar isso no `psx-cli`, tratar como bloqueado por falta de infraestrutura,
-  não como defeito de hardware — registrado em 10.103 em vez de forçar um palpite de
-  comportamento.
-- **`getloc`/`GetlocL`/`GetlocP` são stub reais** (`send_command` cai no braço `_` genérico, que
-  só devolve `stat_byte()`). Implementar direito exige TOC real (a suíte espera um disco de 74
-  minutos, com múltiplas trilhas/índices) e rastreamento de posição de subchannel Q durante seek —
-  maior que uma correção pontual e sem imagem de disco local para servir de oráculo. Registrado em
-  10.103 em vez de forçar.
-- **Ambiente de trabalho:** os symlinks `bios` e `tests/exes` (mandados pelo setup do worktree)
-  não são reconhecidos pelo `.gitignore` porque um padrão com barra final (`/bios/`) não casa
-  symlink-para-diretório em Git — só diretório de verdade. Isso derrubava a checagem de árvore
-  suja do `scripts/mutantes.ps1`. Corrigido localmente via `.git/info/exclude` (não versionado,
-  não afeta outros clones/worktrees), sem tocar no `.gitignore` do repositório.
-- Concorrência: rodada medida uma suíte por vez (`cargo build -j4`, sem `mutantes.ps1` nem
-  `cargo test` em paralelo com o oráculo de outro lote), conforme o handoff.
+- **`disc-swap` não é "sem TTY nenhum"**, mas trava numa interação física (abrir/fechar a
+  bandeja) que o hardware real espera de um operador. Sem jeito de scriptar isso no `psx-cli`,
+  é bloqueio de infraestrutura, não defeito de hardware (10.103).
+- **`GetlocL`/`GetlocP` são stub reais**: `send_command` cai no braço `_` genérico, que só
+  devolve `stat_byte()`. Implementar exige TOC real e rastreamento de subchannel Q durante seek.
+- **Ambiente:** os symlinks `bios` e `tests/exes` do setup do worktree não casam com o
+  `.gitignore` (padrão com barra final não casa symlink-para-diretório), o que derrubava a
+  checagem de árvore suja do `scripts/mutantes.ps1`. Contornado via `.git/info/exclude`, que não
+  é versionado.
+- Concorrência: uma suíte por vez, sem bateria nem `cargo test` em paralelo com o oráculo.

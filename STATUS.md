@@ -7,13 +7,14 @@
 
 ## Última iteração concluída
 
-**0175** — **Lote D (CD-ROM) do oráculo de TTY; R4 dobrado a pedido do usuário.** `cdrom/timing`
-travava em "Unexpected INT5!" assim que a bateria de medição chegava em `CdlSetloc`: o Setloc
-exigia `disc_inserted` (suposição da 0063 nunca confirmada contra a spec), mas 06-cdrom.md
-L787-797 não menciona checagem de disco no Setloc — só valida BCD. Corrigido; os itens
-10.53/10.55/10.56 foram lidos mas NÃO são a causa. `cdrom/getloc` e `cdrom/disc-swap` ficam
-abertos (10.103): GetlocL/GetlocP são stub e exigem disco/TOC real; disc-swap exige tray físico
-scriptável — nenhum dos dois tem oráculo local. Bateria 5/5, controles 2/2.
+**0175** — **Lote D (CD-ROM); terminou SEM mudança de produção.** A rodada removeu o
+INT5(stat,80h) do Setloc sem disco, alegando que § Setloc (L787-798) não menciona disco. A
+revisão reverteu: § Error Codes (L1020) do mesmo arquivo lista `02h` **em primeiro lugar** entre
+os comandos que devolvem 80h com disco ausente. O que a medição achou de verdade: as suítes de
+CD-ROM do ps1-tests foram gravadas **com disco na bandeja** (`GetStat -> 0x02`, `GetlocP
+succeeded - track 01`), e nosso arreio as roda sem `--disc`. Montando um disco aparecem três
+divergências reais — `GetStat` sem o bit de motor, `GetlocL` passando onde deve falhar, e
+`Setloc` falhando mesmo com disco. Item **10.108**.
 
 ## Próxima tarefa
 
@@ -26,8 +27,8 @@ subsistema. Cinco lotes
 `K/M` no CSV é **K linhas divergentes de M** — já foi lido ao contrário. `timers` tem jitter
 real de hardware no gabarito e nunca dará `identico` por comparação exata.
 
-Lote D fechado (0175): Setloc corrigido; GetlocL/GetlocP e disc-swap ficam em 10.103 (falta
-disco real montado).
+**Antes de medir CD-ROM, monte disco:** o oráculo roda as suítes sem `--disc` e as contagens
+delas medem a falta de mídia, não a nossa fidelidade (10.108).
 
 Invariantes relevantes: nenhuma.
 

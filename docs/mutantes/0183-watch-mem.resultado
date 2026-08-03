@@ -1,0 +1,11 @@
+# gerado a mao: scripts/mutantes.ps1 recusa alvo fora de psx-core (ROADMAP 10.58)
+# commit: 74c8682bf7fb7d13e5e3383a00b604758b975b74
+# rodado_em: 2026-08-03T10:25:02-03:00
+m1,mutante,morreu,morreu,0.9,result:
+m2,mutante,morreu,morreu,27.7,result:
+m3,mutante,morreu,morreu,40.3,result:
+m4,mutante,morreu,morreu,1.2,result:
+m5,mutante,morreu,morreu,1.1,result:
+m6,mutante,morreu,morreu,1.2,result:
+c1,controle,sobreviveu,sobreviveu,1.2,
+c2,controle,sobreviveu,sobreviveu,1.2,

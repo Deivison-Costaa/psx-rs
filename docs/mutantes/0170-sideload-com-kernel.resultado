@@ -1,0 +1,10 @@
+# gerado por bateria MANUAL executada pelo trabalhador — mutantes.ps1 NAO se aplica: alvo em crates/psx-cli (invariante 29)
+# commit: d814845d38365f264bad1780c7ce1172527da679
+# rodado_em: 2026-08-03T00:05:04-03:00
+m1,mutante,morreu,morreu,1.2,exe_com_bios_boota_kernel_antes_de_saltar_para_o_psexe
+m2,mutante,morreu,morreu,0.2,exe_com_bios_boota_kernel_antes_de_saltar_para_o_psexe
+m3,mutante,morreu,morreu,0.1,exe_com_bios_boota_kernel_antes_de_saltar_para_o_psexe
+m4,mutante,morreu,morreu,0.2,exe_com_bios_boota_kernel_antes_de_saltar_para_o_psexe
+m5,mutante,morreu,morreu,0.9,exe_com_bios_boota_kernel_antes_de_saltar_para_o_psexe
+c1,controle,sobreviveu,sobreviveu,0.2,
+c2,controle,sobreviveu,sobreviveu,0.2,

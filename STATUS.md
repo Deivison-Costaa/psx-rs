@@ -7,25 +7,22 @@
 
 ## Última iteração concluída
 
-**0169** — **entrada de controle no `psx-cli`** (`--pad`, `--press BOTAO@PASSO[:DURACAO]`).
-Agenda pura em `psx-core/src/pad_script.rs`, 8 testes, bateria 7/7 e 2/2. **Duas hipoteses
-refutadas com o binario desta rodada:** o Rayman NAO espera entrada (14 apertos de START/X entre
-250 M e 550 M passos deixam `[0x801CEEBC]`=0 e os 522 `VSync: timeout` identicos) e a suite
-`psxtest_gte` NAO espera menu — ela trava no mesmo `ResetGraph` do item 10.95.
+**0170** — **`--bios`+`--exe` agora boota o kernel de verdade** ate `0x80030000` (ExCB em
+`0xA000E004`, A0/B0/C0 com dispatcher real) e só então sobrepõe o PS-EXE; `install_return_stubs`
+saiu desse caminho. As 21 suítes do ps1-tests saem do `ResetGraph:SR=1001` idêntico e passam a
+`difere` com TTY bem maior (uma, `mdec/step-by-step-log`, chega a 3178/3180 linhas iguais ao
+gabarito). Amidog CPU inalterado (`00000101`); `psxtest_gte` continua em `Running tests`.
 
 ## Próxima tarefa
 
-**ROADMAP 10.95 — o caminho `--exe` carrega a BIOS mas nunca a inicializa.**
-`install_return_stubs` (`crates/psx-core/src/psexe.rs:70`) grava `jr $ra` em
-`0x00A0/0x00B0/0x00C0` E um stub de seis instrucoes em `0x80000080`. O TTY so funciona porque a
-CPU intercepta `A0h/3Fh` (`do_printf`) direto. Resultado: **as 22 suites de sideload param em
-`ResetGraph`** — as 21 com gabarito de TTY (0168) e a `psxtest_gte` (0169). Ideia a testar:
-rodar a BIOS de verdade ate o ponto de `Execute !` e so entao sobrepor o PS-EXE, como faz o
-sideload real, em vez de stubar.
+**ROADMAP 10.97 + 10.98 — tirar os dois artefatos que escondem os defeitos reais.** Com o kernel
+real montado (0170), o TTY sai **duplicado**: medi `cpu/cop` e das 56 linhas 23 pares sao linhas
+adjacentes identicas. Causa a confirmar: `do_printf` intercepta `A0h/3Fh` e escreve o texto, e a
+BIOS real escreve de novo. O gabarito ainda prefixa `% `, que a comparacao nao tira.
 
-Faca 10.95 ANTES da parte 2 do 10.23 (VRAM): com o mesmo travamento em todas, o arreio de VRAM
-so produziria 13 linhas `difere` da mesma causa. A tarefa da VRAM segue pronta em
-`logs/orquestrador/task-10.23-vram.txt`.
+Removendo os dois na mao, `cpu/cop` fica com **18 linhas de cada lado e 7 divergencias reais**,
+todas de excecao de coprocessador (item 10.99): o `difere 52/52` do CSV e 7 defeitos atras de
+dois artefatos. 10.97 (emulador) + 10.98 (arreio) tornam as 21 suites contagens confiaveis.
 
 Invariantes relevantes: nenhuma.
 
@@ -43,14 +40,14 @@ Invariantes relevantes: nenhuma.
 
 ## Placar de testes
 
-Workspace: **938** testes.
+Workspace: **939** testes.
 
 ## Bloqueios
 
-- **10.95 novo (0168)**: as 21 suítes do ps1-tests com gabarito TTY travam idênticas em 56
-  bytes (`ResetGraph:SR=1001`) no `--exe` sideload — `install_return_stubs` (`psexe.rs:70`)
-  stuba A0/B0/C0 com `jr ra` puro, e `ResetGraph()` nunca recebe a interrupção que espera. Não
-  é comparável ao boot via CD (0158-0167): são caminhos de código diferentes no psx-cli.
+- **10.95 fechado (0170)**: `--bios`+`--exe` boota o kernel de verdade ate `0x80030000` antes
+  de sobrepor o PS-EXE. As 21 suítes TTY saem do `ResetGraph` idêntico e viram `difere` com TTY
+  bem maior. Medir o oráculo junto com `cargo test` concorrente derrubou 16/21 para `sem-saida`
+  por artefato de flush do `Start-Process`; rodada limpa deu 21/21 `difere`, 0 `sem-saida`.
 - **4.4 Boot de jogo**: o motor 4.4ad agora avanca setores sequencialmente; a fronteira
   seguinte medida no Rayman foi o caminho hook -> incremento. Imagens de disco ficam fora do
   repositorio, em `.../Programacao com agentes/roms/extraido/`.

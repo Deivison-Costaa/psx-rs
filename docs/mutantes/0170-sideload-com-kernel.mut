@@ -1,0 +1,85 @@
+# Manifesto de mutação da iteração 0170 — sideload-com-kernel
+formato: 1
+iteracao: 0170
+item: 10.95
+alvo: crates/psx-cli/src/main.rs
+teste: exe_kernel_montado
+
+mutante: m1
+rotulo: ponto de parada do boot trocado (0x80030000 -> 0x80010000, nunca cai no GUI de verdade)
+@@DE
+const KERNEL_ENTRYPOINT_PC: u32 = 0x8003_0000;
+@@PARA
+const KERNEL_ENTRYPOINT_PC: u32 = 0x8001_0000;
+@@FIM
+
+mutante: m2
+rotulo: teto de passos do boot pequeno demais — corta o boot antes do kernel montar
+@@DE
+const BIOS_BOOT_TO_KERNEL_MAX_STEPS: usize = 20_000_000;
+@@PARA
+const BIOS_BOOT_TO_KERNEL_MAX_STEPS: usize = 2_000_000;
+@@FIM
+
+mutante: m3
+rotulo: condicao do laco invertida — boot_bios_to_kernel nunca da um passo sequer
+@@DE
+    while cpu.pc != KERNEL_ENTRYPOINT_PC {
+@@PARA
+    while cpu.pc == KERNEL_ENTRYPOINT_PC {
+@@FIM
+
+mutante: m4
+rotulo: install_return_stubs volta a ser chamada no caminho --bios + --exe
+@@DE
+            if let Err(e) = psx_core::psexe::load_psexe(&exe_data, &mut bus, &mut cpu) {
+                eprintln!("Erro: falha ao carregar PS-EXE '{}': {}", exe_path, e);
+                std::process::exit(1);
+            }
+@@PARA
+            if let Err(e) = psx_core::psexe::load_psexe(&exe_data, &mut bus, &mut cpu) {
+                eprintln!("Erro: falha ao carregar PS-EXE '{}': {}", exe_path, e);
+                std::process::exit(1);
+            }
+            psx_core::psexe::install_return_stubs(&mut bus);
+@@FIM
+
+mutante: m5
+rotulo: ordem trocada — load_psexe roda antes do boot, kernel nunca monta
+@@DE
+            if let Err(e) = boot_bios_to_kernel(&mut cpu, &mut bus) {
+                eprintln!("Erro: {}", e);
+                std::process::exit(1);
+            }
+            if let Err(e) = psx_core::psexe::load_psexe(&exe_data, &mut bus, &mut cpu) {
+                eprintln!("Erro: falha ao carregar PS-EXE '{}': {}", exe_path, e);
+                std::process::exit(1);
+            }
+@@PARA
+            if let Err(e) = psx_core::psexe::load_psexe(&exe_data, &mut bus, &mut cpu) {
+                eprintln!("Erro: falha ao carregar PS-EXE '{}': {}", exe_path, e);
+                std::process::exit(1);
+            }
+            if let Err(e) = boot_bios_to_kernel(&mut cpu, &mut bus) {
+                eprintln!("Erro: {}", e);
+                std::process::exit(1);
+            }
+@@FIM
+
+controle: c1
+rotulo: teto de passos do boot generoso — ainda sobra folga, comportamento igual
+@@DE
+const BIOS_BOOT_TO_KERNEL_MAX_STEPS: usize = 20_000_000;
+@@PARA
+const BIOS_BOOT_TO_KERNEL_MAX_STEPS: usize = 40_000_000;
+@@FIM
+
+controle: c2
+rotulo: texto da mensagem de erro do boot alterado, sem mudar comportamento
+@@DE
+                "BIOS nao alcancou o ponto de kernel montado (pc=0x{:08X}) em {} passos; \
+                 pc atual=0x{:08X}",
+@@PARA
+                "BIOS definitivamente nao alcancou o ponto de kernel montado (pc=0x{:08X}) em {} passos; \
+                 pc atual=0x{:08X}",
+@@FIM

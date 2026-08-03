@@ -7,6 +7,24 @@ use std::io::Read;
 use std::io::Write;
 
 const RUNNER_MAX_STEPS: usize = 50_000_000;
+const KERNEL_ENTRYPOINT_PC: u32 = 0x8003_0000;
+const BIOS_BOOT_TO_KERNEL_MAX_STEPS: usize = 20_000_000;
+
+fn boot_bios_to_kernel(cpu: &mut Cpu, bus: &mut Bus) -> Result<usize, String> {
+    let mut steps = 0usize;
+    while cpu.pc != KERNEL_ENTRYPOINT_PC {
+        if steps >= BIOS_BOOT_TO_KERNEL_MAX_STEPS {
+            return Err(format!(
+                "BIOS nao alcancou o ponto de kernel montado (pc=0x{:08X}) em {} passos; \
+                 pc atual=0x{:08X}",
+                KERNEL_ENTRYPOINT_PC, BIOS_BOOT_TO_KERNEL_MAX_STEPS, cpu.pc
+            ));
+        }
+        cpu.step(bus);
+        steps += 1;
+    }
+    Ok(steps)
+}
 
 fn resolve_btable_entry(bus: &Bus, index: u32) -> Option<u32> {
     let w_b0 = bus.read32::<BusRead>(0x0000_00B0);
@@ -364,12 +382,14 @@ fn main() {
                 bus.inject_disc(layout, bin_data);
             }
 
+            if let Err(e) = boot_bios_to_kernel(&mut cpu, &mut bus) {
+                eprintln!("Erro: {}", e);
+                std::process::exit(1);
+            }
             if let Err(e) = psx_core::psexe::load_psexe(&exe_data, &mut bus, &mut cpu) {
                 eprintln!("Erro: falha ao carregar PS-EXE '{}': {}", exe_path, e);
                 std::process::exit(1);
             }
-
-            psx_core::psexe::install_return_stubs(&mut bus);
 
             if pad_connected {
                 bus.sio_mut().connect_digital_pad(true);

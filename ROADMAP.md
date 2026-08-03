@@ -57,7 +57,7 @@ Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 10.13 GP0(24h) e modulacao, nao raw texture; bit 24 nao lido (03-gpu.md L264/L1610); nao causa o 2.2e (0110)
 - [ ] 10.14 U/V e gouraud reinterpolados sobre span recortado pela drawing area (03-gpu.md L452-454)
 - [ ] 10.17 `mutantes.ps1` recusa arvore suja — permitir sujeira restrita a `docs/mutantes/*.mut`
-- [ ] 10.24 Job `scoreboard` da CI sai VERDE medindo zero — sem BIOS rotula 51 suites `sem-bios` (iter 0072)
+- [ ] 10.24 Job `scoreboard` da CI sai VERDE medindo zero (iter 0072)
 - [ ] 10.26 Nenhum dos 9 testes de `ci_scoreboard.rs` afirma que o job mede algo
 - [ ] 10.27 Placar local (gitignored) e o unico com veredito real e nao e versionado
 - [ ] 10.23 45 das 51 suites do scoreboard nao dao veredito (renderizam na VRAM) — TTY: 0/21 (0168); falta VRAM (0169)
@@ -88,14 +88,16 @@ Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 10.65 Revisor isolado em /tmp nao le o repo nem confere citacao; precisa r/o (0141)
 - [ ] 10.64 `evcb_descritor_mapeia_para_spec_correto` sozinho custa 447 s dos 449 s da suite sob nextest (0140)
 - [ ] 10.68 `cdrom_evento_kernel`: 150 M passos sem saida antecipada em 2 testes; alvo antes de 100 M (0144)
-- [ ] 10.71 `mutantes.ps1`: duas ramificacoes `teste` no mesmo switch, a de registro sobrescreve o cabecalho (0146)
-- [ ] 10.77 Trabalhador inventa linha de metricas em vez de drenar logs/metrics-pending.csv (0150, 0151)
-- [ ] 10.78 oc-iter.ps1: exit 0 sem commits vira ok, e nao ve `Request too large` do TPM (0151)
-- [ ] 10.83 Rayman: ~89/660 IRQ0 sem hook; cadeia `0x74A8` (iter 0158)
-- [ ] 10.85 Rayman para em `0x801B9574` esperando `[0x801CF2CC] >= 2`; contador fica em 1 (0159)
-- [ ] 10.90 Rayman: `VSync: timeout` 142x no TTY depois do `Execute !` de 164 M (0163)
+- [ ] 10.71 `mutantes.ps1`: duas ramificacoes `teste` no mesmo switch (0146)
+- [ ] 10.77 Trabalhador inventa metrica em vez de drenar metrics-pending.csv (0150)
+- [ ] 10.78 oc-iter.ps1: exit 0 sem commits vira ok (0151)
+- [ ] 10.83 Rayman: ~89/660 IRQ0 sem hook (0158)
+- [ ] 10.85 Rayman: laco `0x801B9574` espera `[0x801CF2CC]>=2` (0159)
+- [ ] 10.90 Rayman: 142x `VSync: timeout` apos `Execute !` (0163)
 - [ ] 10.94 Rayman em 590-600 M: laco `0x8019FA1C` espera `[0x801CEEBC]` != 0 (0167)
-- [ ] 10.95 `--exe` sideload trava em `ResetGraph:SR=1001` (A0/B0/C0 stubados) nas 21 suites TTY (0168)
+- [ ] 10.97 TTY sai duplicado com kernel real: `do_printf` intercepta E a BIOS escreve (0170)
+- [ ] 10.98 oraculo-tty: alinhar (pular preambulo da BIOS, tirar prefixo `% ` do gabarito) (0170)
+- [ ] 10.99 cpu/cop: 7 divergencias de excecao de coprocessador contra hardware (0170)
 
 ## M11 — Apresentação (incremental desde o M1)
 - [ ] 11.2 Gráficos de metricas.csv + scoreboard-data

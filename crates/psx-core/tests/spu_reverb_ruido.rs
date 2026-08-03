@@ -267,3 +267,56 @@ fn volume_de_cd_entra_no_mixer_so_com_o_bit0_do_spucnt() {
         "§ 1F801DB0h (L498): volume de CD e signed de 16 bits, sem o meio-passo do canal"
     );
 }
+
+#[test]
+fn endereco_de_reverb_enrola_dentro_da_area_e_nao_no_topo_da_ram() {
+    let mut spu = Spu::new();
+    // Area de 80h bytes em FFF0h: mLAPF2 = 20h pede 100h bytes adiante, que passam do
+    // teto e tem de voltar para o inicio da area, nao para o endereco zero da RAM.
+    escreve_ram(&mut spu, 0xFFF0, &[0x1234]);
+    spu.write16(MBASE, 0xFFF0);
+    spu.write16(M_LAPF2, 0x20);
+    spu.write16(D_APF2, 0);
+    spu.write16(VLOUT, 0x7FFF);
+    spu.write16(MAIN_L, 0x3FFF);
+    spu.write16(CNT, 0xC000);
+    let (esquerda, _) = spu.tick();
+    assert_eq!(
+        esquerda, 4658,
+        "100h mod 80h = 0: o endereco volta para mBASE, onde esta 1234h"
+    );
+}
+
+#[test]
+fn reflexao_soma_de_volta_a_amostra_de_duas_meias_palavras_antes() {
+    let mut spu = Spu::new();
+    // 1000 fica em 780FEh, que e [mLSAME-2]; com vIIR = 0 a formula devolve exatamente ele.
+    escreve_ram(&mut spu, 0xF01F, &[0, 0, 0, 1000]);
+    spu.write16(MBASE, BASE_EM_OITAVOS);
+    spu.write16(M_LSAME, 0x20);
+    spu.write16(CNT, 0xC080);
+    spu.tick();
+    assert_eq!(
+        spu.ram_peek16(BASE_EM_BYTES + 0x100),
+        1000,
+        "[mLSAME] = (Lin + [dLSAME]*vWALL - [mLSAME-2])*vIIR + [mLSAME-2]"
+    );
+}
+
+#[test]
+fn reverb_roda_a_metade_da_taxa_do_mixer() {
+    let mut spu = Spu::new();
+    escreve_ram(&mut spu, 0xF008, &[0x1234, 0x1234]);
+    spu.write16(MBASE, BASE_EM_OITAVOS);
+    spu.write16(M_LAPF2, 0x10);
+    spu.write16(D_APF2, 0x08);
+    spu.write16(VLOUT, 0x7FFF);
+    spu.write16(MAIN_L, 0x3FFF);
+    spu.write16(CNT, 0xC000);
+    let ciclos: Vec<i16> = (0..3).map(|_| spu.tick().0).collect();
+    assert_eq!(
+        ciclos,
+        vec![4658, 0, 4658],
+        "a unidade de reverb roda a 22050 Hz: um ciclo sim, um nao"
+    );
+}

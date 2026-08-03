@@ -1,0 +1,22 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: 7eb447636c148e898e3fe8b98ee28aa643145ae1
+# rodado_em: 2026-08-03T20:46:07-03:00
+m1,mutante,morreu,morreu,0.5,apf2_com_volume_zero_devolve_o_que_esta_no_buffer_vezes_vlout;reflexao_do_mesmo_lado_grava_lin_vezes_viir_no_buffer
+m2,mutante,morreu,sobreviveu,0.5,
+m3,mutante,morreu,sobreviveu,0.5,
+m4,mutante,morreu,morreu,0.5,reflexao_do_mesmo_lado_grava_lin_vezes_viir_no_buffer
+m5,mutante,morreu,morreu,0.5,apf2_com_volume_zero_devolve_o_que_esta_no_buffer_vezes_vlout
+m6,mutante,morreu,morreu,0.5,bit7_do_spucnt_corta_a_escrita_no_buffer_mas_nao_a_leitura
+m7,mutante,morreu,morreu,0.5,endereco_corrente_anda_de_duas_em_duas_e_da_a_volta_no_topo
+m8,mutante,morreu,sobreviveu,0.6,
+m9,mutante,morreu,morreu,0.6,non_troca_a_amostra_da_voz_pelo_ruido;passo_do_ruido_vem_dos_bits_9_8_do_spucnt;ruido_avanca_como_lfsr_de_paridade
+m10,mutante,morreu,morreu,0.6,passo_do_ruido_vem_dos_bits_9_8_do_spucnt
+m11,mutante,morreu,morreu,0.6,eon_manda_a_saida_da_voz_para_o_reverb
+m12,mutante,morreu,morreu,0.6,volume_de_cd_entra_no_mixer_so_com_o_bit0_do_spucnt
+m13,mutante,morreu,morreu,0.6,xa_desloca_o_nibble_por_12_menos_o_campo_de_shift;xa_estereo_alterna_nibble_baixo_a_esquerda_e_alto_a_direita;xa_filtro_2_soma_115_do_anterior_e_menos_52_do_penultimo;xa_mono_poe_os_dois_nibbles_em_sequencia_no_mesmo_canal;xa_nibble_alto_usa_o_proprio_par_de_shift_e_filtro
+m14,mutante,morreu,morreu,0.6,xa_estereo_alterna_nibble_baixo_a_esquerda_e_alto_a_direita;xa_mono_poe_os_dois_nibbles_em_sequencia_no_mesmo_canal;xa_nibble_alto_usa_o_proprio_par_de_shift_e_filtro
+m15,mutante,morreu,morreu,0.6,setor_cdda_vira_588_quadros_estereo_de_16_bits
+m16,mutante,morreu,morreu,0.6,reamostragem_de_37800_para_44100_estica_sete_por_seis
+m17,mutante,morreu,morreu,0.6,subcabecalho_diz_taxa_estereo_e_se_o_setor_e_de_audio
+c1,controle,sobreviveu,sobreviveu,0.6,
+c2,controle,sobreviveu,sobreviveu,0.6,

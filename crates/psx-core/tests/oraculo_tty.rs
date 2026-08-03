@@ -188,3 +188,53 @@ fn arreio_usa_max_steps_generoso_por_padrao() {
          da tarefa 10.23): suites pequenas ainda demoram para emitir todo o TTY."
     );
 }
+
+// ===== Alinhamento (item 10.98) =====
+// Com o kernel real (0170) o nosso TTY passa a trazer o banner de boot da BIOS, que o gabarito
+// do ps1-tests nao tem. Sem alinhar, TODA linha diverge e o K/M vira ruido.
+
+#[test]
+fn preambulo_da_bios_e_descartado_antes_de_comparar() {
+    if !pwsh_disponivel() {
+        return;
+    }
+    let (status, detalhe) = chama_get_tty_veredito(
+        "PS-X Realtime Kernel\nKERNEL SETUP!\npass - um\npass - dois",
+        Some("pass - um\npass - dois"),
+    );
+    assert_eq!(status, "identico", "detalhe={detalhe}");
+}
+
+#[test]
+fn prefixo_uniforme_do_gabarito_e_removido() {
+    if !pwsh_disponivel() {
+        return;
+    }
+    let (status, detalhe) =
+        chama_get_tty_veredito("pass - um\npass - dois", Some("% pass - um\n% pass - dois"));
+    assert_eq!(status, "identico", "detalhe={detalhe}");
+}
+
+#[test]
+fn prefixo_nao_uniforme_nao_e_removido() {
+    if !pwsh_disponivel() {
+        return;
+    }
+    let (status, _) = chama_get_tty_veredito("pass - um\npass - dois", Some("% pass - um\nx"));
+    assert_ne!(
+        status, "identico",
+        "so remover o prefixo quando TODAS as linhas o tem; senao e chute sobre o formato"
+    );
+}
+
+#[test]
+fn sem_ancora_comum_nao_e_confundido_com_divergencia() {
+    if !pwsh_disponivel() {
+        return;
+    }
+    let (status, _) = chama_get_tty_veredito("so banner de boot", Some("pass - um\npass - dois"));
+    assert_eq!(
+        status, "sem-alinhamento",
+        "nenhuma linha nossa casa com o gabarito: reportar isso, nao um K/M inventado"
+    );
+}

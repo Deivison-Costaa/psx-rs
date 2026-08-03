@@ -19,10 +19,11 @@ by Rayman". Bateria 7/7, controles 2/2.
 
 ## Próxima tarefa
 
-**ROADMAP 10.100 e os lotes C/D/E do oráculo de TTY.** Lote B (DMA) fechado pela 0173. Restam
-C MDEC+SPU, D CD-ROM, E timers+GPU+GTE; tarefa-modelo em
-`logs/orquestrador/task-lote-oraculo.txt` (trocar `<<<LOTE>>>`). 10.101 e 10.102 são achados
-novos do lote B, sem dono ainda.
+**Lotes B-E do oráculo seguem** (DMA, MDEC+SPU, CD-ROM, timers+GPU+GTE —
+`logs/orquestrador/task-lote-oraculo.txt`). Pendências do lote A: ROADMAP 10.108 (SPU sem
+estado) e o resto de `cpu/io-access-bitwidth` (I_MASK ecoa bruto sem mascarar, SIO/JOY largura,
+timers com bits "open bus" no read de 32, `Dma::write_dicr` deixa passar o bit 6 — grava
+0x340078 em vez de 0x340038, visível só depois do eco de largura).
 
 `K/M` no CSV é **K linhas divergentes de M**. `timers` tem jitter real no gabarito e nunca dá
 `identico`. Medição isolada pode divergir do CSV sob disputa de CPU — `chain-looping` deu 9/11
@@ -47,15 +48,14 @@ Invariantes relevantes: nenhuma.
 
 ## Placar de testes
 
-Workspace: **964** testes.
+Workspace: **981** testes.
 
 ## Bloqueios
 
 - **Suites de cdrom precisam de `--disc` (0175)**: os gabaritos foram gravados com disco na
   bandeja (`GetStat -> 0x02`). Sem mídia, a contagem mede a ausência dela (10.108).
 - **Primeira paridade com hardware real (0171)**: `gpu/gp0-e1` (0/12) e `gpu/mask-bit` (0/7)
-  batem byte a byte com o gabarito do ps1-tests. Placar do oráculo: **2 identico, 19 difere**.
-  `cpu/cop` caiu de 19/19 para 1/19 — sobra `testCop0InvalidOpcode` (item 10.100).
+  batem byte a byte com o gabarito do ps1-tests. `cpu/cop` fechou 0/19 na 0172.
 - **NUNCA rodar `cargo test` nem a bateria de mutação junto com o oráculo**: a disputa de CPU faz
   o `Start-Process` ler stdout antes do flush e reportar `sem-saida` falso. Derrubou 16/21 numa
   medição da 0170; rodada limpa deu 21/21.
@@ -83,9 +83,8 @@ Workspace: **964** testes.
   quem religa depois do `ChangeClearPAD(0)` do jogo é o próprio `StartPAD2`. Não procurar defeito aí.
 - **Duas correções de SIO0 (0159, 0160) são da spec e NÃO mexeram no boot** — o histograma de PC
   dos últimos 20 M passos é idêntico byte a byte. Não gastar rodada nova no SIO0 esperando boot.
-- **10.83 diagnóstico (0158, já revisado)**: a ativação 0 não visita `0x4A1C`; a posterior visita
-  depois do nó `0x74A8` de prioridade 2, inserido pelo BIOS (não pelo jogo). A caminhada da
-  ativação 0 chega ao fim (prioridade 3, `0x2458`) — `0x4A1C` estava fora das cadeias, não pulado.
+- **10.83 diagnóstico (0158)**: a ativação 0 não visita `0x4A1C`; ele estava fora das cadeias,
+  não pulado.
 - **Premissa refutada:** o slot `$v1+0x18` não muda entre boots (0147). O defeito não está
   no valor do slot mas no encaixe temporal entre `SysInitMemory` e o enfileiramento dos
   handlers do jogo.

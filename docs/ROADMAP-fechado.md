@@ -172,6 +172,8 @@ da escada valer so para o que FALTA. Narrativa de cada item continua em
 - [x] 10.99 cpu/cop: Coprocessor Unusable pelo bit CU do SR, 19/19 -> 1/19 (iter 0171)
 - [x] 10.105 CI: 188 s de link contra 14 s de execucao; debuginfo desligado no workflow (iter 0177)
 - [x] 10.106 spec_citations varria `.claude/worktrees/`: 295 erros de outra arvore (iter 0177)
+- [x] 10.3 Bus error (06h) ao buscar instrucao no scratchpad/I_STAT/MDEC (iter 0172)
+- [x] 10.100 cpu/cop: `testCop0InvalidOpcode` — so TLBxx lanca reservado, resto e no-op (iter 0172)
 
 ## M11 — Apresentação (incremental desde o M1)
 - [x] 11.1 Relatório consolidado (docs/relatorio.md — atualizado a cada marco) (iter 0096)

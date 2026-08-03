@@ -7,13 +7,15 @@
 
 ## Última iteração concluída
 
-**0171** — **10.97+10.98+10.99 numa rodada (R4 dobrado a pedido do usuário)**. (a) o hook de TTY
-de alto nível só emite quando o vetor de syscall está stubado com `jr $ra`: com kernel real a
-BIOS já emitia por `putchar` e a saída saía **duplicada** — **todo número de TTY de 0163-0170
-estava inflado em 2x**; o `VSync: timeout` do Rayman é **71**, não 142. (b) o oráculo alinha na
-primeira linha do gabarito presente na nossa saída e devolve `sem-alinhamento` em vez de inventar
-K/M. (c) Coprocessor Unusable é decidido pelo **bit CU do SR**, não pela existência do
-coprocessador. Bateria 7/7, controles 2/2. CI passou a usar `cargo nextest`.
+**0176** — **lote E do oráculo de TTY: timers+GPU+GTE (R4 dobrado)**. Achada a causa única do
+`gte/test-all` (997/999→17/19): `read_data`/`write_data` não tinham os formatos por registrador
+da spec (sign-extend VZ/IR, máscara U16 OTZ/SZ, push de SXYP, IRGB/ORGB, LZCR, bug de H) — o
+programa aborta os 1100 testes de opcode assim que o 1º teste de registro falha. RTPS ganhou 4
+correções (FLAG.22 de IR3 sempre em faixa lm=0, overflow de MAC0/MAC1-3, SAR em vez de divisão
+truncada): 71/1150 opcodes passam (era ~1). `timers`: GPU nunca propagava resolução real pros
+timers (corrigido; não moveu o placar — HBLANK nunca é agendado de verdade, achado e não
+corrigido). `gpu/bandwidth` e `timer-dump` seguem sem correção (10.104/10.105). Bateria 8/8,
+controles 2/2.
 
 ## Próxima tarefa
 
@@ -42,13 +44,16 @@ Invariantes relevantes: nenhuma.
 
 ## Placar de testes
 
-Workspace: **953** testes.
+Workspace: **969** testes.
 
 ## Bloqueios
 
-- **Primeira paridade com hardware real (0171)**: `gpu/gp0-e1` (0/12) e `gpu/mask-bit` (0/7)
-  batem byte a byte com o gabarito do ps1-tests. Placar do oráculo: **2 identico, 19 difere**.
-  `cpu/cop` caiu de 19/19 para 1/19 — sobra `testCop0InvalidOpcode` (item 10.100).
+- **Paridade com hardware real (0171)**: `gpu/gp0-e1`/`gpu/mask-bit` idênticos byte a byte;
+  `cpu/cop` sobra `testCop0InvalidOpcode` (10.100).
+- **Lote E (0176)**: `gte/test-all` trava no teste 72/1150 (RTPS), defeito novo não diagnosticado
+  (SX2/SY2/IR0/SZ3). `timers`: `set_hblank_active` sem chamador real; "System Clock" diverge
+  ~13-70x sem depender de GPU, raiz não encontrada. `timer-dump` parece exigir motherboard
+  modificada (RTS→TCLK0), pré-requisito que o próprio psx.log documenta.
 - **NUNCA rodar `cargo test` nem a bateria de mutação junto com o oráculo**: a disputa de CPU faz
   o `Start-Process` ler stdout antes do flush e reportar `sem-saida` falso. Derrubou 16/21 numa
   medição da 0170; rodada limpa deu 21/21.
@@ -71,9 +76,8 @@ Workspace: **953** testes.
 - **Janela util do Rayman: depois do passo 164.000.000** (`Execute !`). Antes disso e boot do
   BIOS + BOOTSTRAP LOADER; `0x8003xxxx`/`0x8005xxxx` sao do carregador. O executavel do jogo ocupa
   `0x80125000..0x801CF800`.
-- **10.89 fechado como premissa refutada (0163)**: o 2o `KERNEL SETUP` e do bootstrap.
-- **10.88 fechado como premissa refutada (0162)**: os descritores que o jogo consulta eram de
-  CDROM no momento da espera. Não procurar defeito no caminho de card por causa dessa espera.
+- **10.88/10.89 fechados como premissa refutada (0162/0163)**: os descritores no momento da
+  espera eram de CDROM (não card); o 2o `KERNEL SETUP` e do bootstrap.
 - **10.87 fechado sem correção (0161)**: o auto-ack de IRQ0 no handler de Pad/Card é do BIOS, e
   quem religa depois do `ChangeClearPAD(0)` do jogo é o próprio `StartPAD2`. Não procurar defeito aí.
 - **Duas correções de SIO0 (0159, 0160) são da spec e NÃO mexeram no boot** — o histograma de PC

@@ -22,8 +22,8 @@ fn write_gp1(bus: &mut psx_core::bus::Bus, cmd: u8, param: u32) {
 fn tick_timers_le_a_resolucao_real_da_gpu_em_vez_do_default() {
     let mut bus = bus_with_bios_empty();
 
-    // GP1(08h) com HR1=1 (320px) -> cycles_per_pix=8 (docs/reference/03-gpu.md
-    // L851-854), diferente do default de 10 (256px) usado por `Timers::new`.
+    // § GP1(08h) - Display mode (L887) de docs/reference/03-gpu.md: HR1=1 -> 320px
+    // -> cycles_per_pix=8, diferente do default de 10 (256px) de `Timers::new`.
     write_gp1(&mut bus, 0x08, 0b0_0001);
 
     bus.write32::<BusRead>(T0_MODE, 0x0100); // Timer0, clock_src=dotclock

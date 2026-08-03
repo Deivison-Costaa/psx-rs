@@ -96,6 +96,8 @@ Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 10.90 Rayman: 71x `VSync: timeout` apos `Execute !` (0163; era 2x, ver 0171)
 - [ ] 10.94 Rayman em 590-600 M: laco `0x8019FA1C` espera `[0x801CEEBC]` != 0 (0167)
 - [ ] 10.100 cpu/cop: `testCop0InvalidOpcode` — cop0cmd invalido nao-TLB nao lanca 0Ah (0171)
+- [ ] 10.104 gpu/bandwidth sem timing de desenho da GPU; spec omissa em ciclos/pixel (03-gpu.md L1107)
+- [ ] 10.105 timers: hblank nunca agendado (so em teste); System Clock diverge ~13-70x sem GPU; timer-dump exige motherboard modificada (0176)
 
 ## M11 — Apresentação (incremental desde o M1)
 - [ ] 11.2 Gráficos de metricas.csv + scoreboard-data

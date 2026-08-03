@@ -162,18 +162,28 @@ fn load_disc(disc_path: &str) -> (DiscLayout, Vec<u8>) {
         .parent()
         .unwrap_or_else(|| std::path::Path::new("."));
 
-    let bin_path = cue_dir.join(&layout.bin_path);
-    let bin_data = match std::fs::read(&bin_path) {
-        Ok(d) => d,
-        Err(e) => {
-            eprintln!(
-                "Erro: nao foi possivel ler BIN '{}': {}",
-                bin_path.display(),
-                e
-            );
-            std::process::exit(1);
+    let mut layout = layout;
+    let mut setores: Vec<u32> = Vec::new();
+    let mut bin_data: Vec<u8> = Vec::new();
+    for arquivo in layout.arquivos_em_ordem() {
+        let bin_path = cue_dir.join(&arquivo);
+        match std::fs::read(&bin_path) {
+            Ok(d) => {
+                setores.push((d.len() / 2352) as u32);
+                bin_data.extend_from_slice(&d);
+            }
+            Err(e) => {
+                eprintln!(
+                    "Erro: nao foi possivel ler BIN '{}': {}",
+                    bin_path.display(),
+                    e
+                );
+                std::process::exit(1);
+            }
         }
-    };
+    }
+
+    layout.atribui_lbas_absolutos(&setores);
 
     (layout, bin_data)
 }

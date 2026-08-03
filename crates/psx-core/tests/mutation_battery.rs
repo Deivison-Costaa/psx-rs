@@ -226,7 +226,7 @@ fn bateria_nomes_de_teste_existem() {
     let mutantes_dir = root.join("docs/mutantes");
     let mut errs = Vec::new();
 
-    for (_path, rel, manifest) in &manifests {
+    for (_path, rel, _manifest) in &manifests {
         let candidates: Vec<_> = match fs::read_dir(&mutantes_dir) {
             Ok(entries) => entries
                 .filter_map(|e| {

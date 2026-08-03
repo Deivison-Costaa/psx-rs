@@ -343,3 +343,94 @@ fn dma1_reordena_os_quatro_blocos_8x8_em_macroblocos_16x16() {
         }
     }
 }
+
+// § MDEC(2) - Set Quant Table(s) (L141-149) de docs/reference/09-mdec.md: com bit0=1 vem uma
+// SEGUNDA tabela de 64 bytes, usada por Cb e Cr. No gabarito do ps1-tests as duas metades sao
+// iguais, entao ignorar a de cor passa despercebido — trocar so a segunda metade tem de mudar
+// o quadro.
+#[test]
+fn tabela_de_quantizacao_de_cor_e_usada_por_cr_e_cb() {
+    let referencia = decodificar(3);
+
+    let mut bus = asm::bus_with_bios_empty();
+    bus.write32::<BusRead>(MDEC_CMD, (2 << 29) | 1);
+    let mut tabela = QUANT;
+    for b in tabela[64..].iter_mut() {
+        *b = b.saturating_mul(2);
+    }
+    for chunk in tabela.chunks_exact(4) {
+        bus.write32::<BusRead>(
+            MDEC_CMD,
+            u32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]),
+        );
+    }
+    bus.write32::<BusRead>(MDEC_CMD, 3 << 29);
+    for pair in IDCT.chunks_exact(2) {
+        bus.write32::<BusRead>(
+            MDEC_CMD,
+            (pair[0] as u16 as u32) | ((pair[1] as u16 as u32) << 16),
+        );
+    }
+    bus.write32::<BusRead>(MDEC_CMD, (1 << 29) | (3 << 27) | ENTRADA.len() as u32);
+    for &palavra in ENTRADA.iter() {
+        bus.write32::<BusRead>(MDEC_CMD, palavra);
+    }
+    let mut saida = Vec::new();
+    while bus.read32::<BusRead>(MDEC_STATUS) & (1 << 31) == 0 {
+        saida.push(bus.read32::<BusRead>(MDEC_CMD));
+        if saida.len() > referencia.len() {
+            break;
+        }
+    }
+    assert_eq!(saida.len(), referencia.len());
+    assert_ne!(
+        saida, referencia,
+        "dobrar a tabela de cor tem de mudar o croma; se nao muda, Cr e Cb estao lendo a \
+         tabela de luminancia"
+    );
+}
+
+// O DMA1 so pode levar macroblocos INTEIROS: metade de um macrobloco reordenado e lixo, e o
+// pedaco que sobra na fifo desalinha o proximo. Com meio macrobloco a mais na fifo do que o
+// pedido cabe, o canal leva o que fecha e fica armado para o resto.
+#[test]
+fn dma1_nao_leva_macrobloco_pela_metade() {
+    let mut bus = asm::bus_with_bios_empty();
+    enviar_tabelas(&mut bus);
+    bus.write32::<BusRead>(MDEC_CMD, (1 << 29) | (3 << 27) | ENTRADA.len() as u32);
+    let mut entregues = 0;
+    for &palavra in ENTRADA.iter() {
+        bus.write32::<BusRead>(MDEC_CMD, palavra);
+        entregues += 1;
+        if bus.mdec().output_len() >= 192 {
+            break;
+        }
+    }
+    assert_eq!(
+        bus.mdec().output_len(),
+        192,
+        "pre-condicao: um macrobloco e meio na fifo apos {entregues} palavras"
+    );
+
+    let dst: u32 = 0x0002_0000;
+    bus.write32::<BusRead>(DPCR, 0x0765_4321 | (1 << 7));
+    bus.write32::<BusRead>(D1_MADR, dst);
+    bus.write32::<BusRead>(D1_BCR, 0x0001_00C0); // 192 palavras
+    bus.write32::<BusRead>(D1_CHCR, CHCR_MDEC_OUT);
+
+    assert_eq!(
+        bus.read32::<BusRead>(D1_CHCR) & (1 << 24),
+        1 << 24,
+        "so um macrobloco inteiro cabe: o canal continua em andamento"
+    );
+    assert_eq!(
+        bus.mdec().output_len(),
+        64,
+        "os 64 words do macrobloco incompleto continuam na fifo"
+    );
+    assert_eq!(
+        bus.read32::<BusRead>(dst + 128 * 4),
+        0,
+        "nada pode ter sido escrito depois do primeiro macrobloco"
+    );
+}

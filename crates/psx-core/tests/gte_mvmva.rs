@@ -6,6 +6,9 @@ use psx_core::cpu::Cpu;
 mod support;
 use support::asm::{bus_with_bios_empty, nop};
 
+// A partir da iteracao 0171 o GTE exige CU2 ligado no SR (§ cop0r12 - SR (L746) de
+// docs/reference/02-cpu.md); o hardware lanca 0Bh sem ele. Codigo real liga antes de usar.
+
 fn mfc2(rt: u32, rd: u32) -> u32 {
     (0x12 << 26) | (rt << 16) | (rd << 11)
 }
@@ -81,6 +84,7 @@ fn setup_light_matrix(cpu: &mut Cpu, bus: &mut psx_core::bus::Bus, a: u32) {
 fn mvmva_rt_v0_tr_sf1_lm0() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    cpu.set_sr(1 << 30);
     let a = 0x0000u32;
 
     setup_rt_identity(&mut cpu, &mut bus, a);
@@ -122,6 +126,7 @@ fn mvmva_rt_v0_tr_sf1_lm0() {
 fn mvmva_rt_v0_tr_sf0_lm0() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    cpu.set_sr(1 << 30);
     let a = 0x0000u32;
 
     ctc2_r8(&mut cpu, &mut bus, a, 0, 0x0000_0001);
@@ -167,6 +172,7 @@ fn mvmva_rt_v0_tr_sf0_lm0() {
 fn mvmva_llm_v1_bk_sf1_lm0() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    cpu.set_sr(1 << 30);
     let a = 0x0000u32;
 
     setup_light_matrix(&mut cpu, &mut bus, a);
@@ -208,6 +214,7 @@ fn mvmva_llm_v1_bk_sf1_lm0() {
 fn mvmva_lcm_v2_tr_sf1_lm0() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    cpu.set_sr(1 << 30);
     let a = 0x0000u32;
 
     ctc2_r8(&mut cpu, &mut bus, a, 16, 0x0000_0800);
@@ -253,6 +260,7 @@ fn mvmva_lcm_v2_tr_sf1_lm0() {
 fn mvmva_rt_ir_none_sf1_lm0() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    cpu.set_sr(1 << 30);
     let a = 0x0000u32;
 
     setup_rt_identity(&mut cpu, &mut bus, a);
@@ -282,6 +290,7 @@ fn mvmva_rt_ir_none_sf1_lm0() {
 fn mvmva_saturacao_ir_lm1_negativo_saturado_em_zero() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    cpu.set_sr(1 << 30);
     let a = 0x0000u32;
 
     ctc2_r8(&mut cpu, &mut bus, a, 0, 0x8000u32);
@@ -316,6 +325,7 @@ fn mvmva_saturacao_ir_lm1_negativo_saturado_em_zero() {
 fn mvmva_rt_v1_tr_sf1_lm0() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    cpu.set_sr(1 << 30);
     let a = 0x0000u32;
 
     setup_rt_identity(&mut cpu, &mut bus, a);
@@ -350,6 +360,7 @@ fn mvmva_rt_v1_tr_sf1_lm0() {
 fn mvmva_lcm_m33_negativo_sign_extend() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    cpu.set_sr(1 << 30);
     let a = 0x0000u32;
 
     ctc2_r8(&mut cpu, &mut bus, a, 16, 0);

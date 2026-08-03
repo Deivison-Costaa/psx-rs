@@ -4,6 +4,9 @@ use psx_core::cpu::Cpu;
 mod support;
 use support::asm::{bus_with_bios_empty, nop};
 
+// A partir da iteracao 0171 o GTE exige CU2 ligado no SR (§ cop0r12 - SR (L746) de
+// docs/reference/02-cpu.md); o hardware lanca 0Bh sem ele. Codigo real liga antes de usar.
+
 fn mfc2(rt: u32, rd: u32) -> u32 {
     (0x12 << 26) | (rt << 16) | (rd << 11)
 }
@@ -32,6 +35,7 @@ fn swc2(rt: u32, rs: u32, imm: u16) -> u32 {
 fn mtc2_escreve_registro_de_dados_e_mfc2_le_de_volta() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    cpu.set_sr(1 << 30);
     cpu.pc = 0;
 
     cpu.regs[8] = 0xDEAD_BEEF;
@@ -53,6 +57,7 @@ fn mtc2_escreve_registro_de_dados_e_mfc2_le_de_volta() {
 fn ctc2_escreve_registro_de_controle_e_cfc2_le_de_volta() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    cpu.set_sr(1 << 30);
     cpu.pc = 0;
 
     cpu.regs[8] = 0x1234_5678;
@@ -74,6 +79,7 @@ fn ctc2_escreve_registro_de_controle_e_cfc2_le_de_volta() {
 fn mfc2_tem_load_delay_de_uma_instrucao() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    cpu.set_sr(1 << 30);
     cpu.pc = 0;
 
     bus.write32::<BusRead>(0x0000, mtc2(8, 3));
@@ -103,6 +109,7 @@ fn mfc2_tem_load_delay_de_uma_instrucao() {
 fn cfc2_tem_load_delay_de_uma_instrucao() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    cpu.set_sr(1 << 30);
     cpu.pc = 0;
 
     bus.write32::<BusRead>(0x0000, ctc2(8, 0));
@@ -128,6 +135,7 @@ fn cfc2_tem_load_delay_de_uma_instrucao() {
 fn mtc2_32bits_para_reg_16bits_trunca_e_sign_extende_na_leitura() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    cpu.set_sr(1 << 30);
     cpu.pc = 0;
 
     cpu.regs[8] = 0x1200_8900;
@@ -151,6 +159,7 @@ fn mtc2_32bits_para_reg_16bits_trunca_e_sign_extende_na_leitura() {
 fn lwc2_carrega_palavra_da_memoria_para_registro_de_dados() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    cpu.set_sr(1 << 30);
     cpu.pc = 0;
 
     cpu.regs[1] = 0x0000_0100;
@@ -178,6 +187,7 @@ fn lwc2_carrega_palavra_da_memoria_para_registro_de_dados() {
 fn swc2_armazena_registro_de_dados_na_memoria() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    cpu.set_sr(1 << 30);
     cpu.pc = 0;
 
     cpu.regs[1] = 0x0000_0200;
@@ -201,6 +211,7 @@ fn swc2_armazena_registro_de_dados_na_memoria() {
 fn gte_tem_64_registradores_indexaveis() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    cpu.set_sr(1 << 30);
     cpu.pc = 0;
 
     cpu.regs[8] = 0xAAAA_BBBB;
@@ -236,6 +247,7 @@ fn gte_tem_64_registradores_indexaveis() {
 fn cfc2_reg16_sign_extende_valor_com_bit15_ligado() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    cpu.set_sr(1 << 30);
     cpu.pc = 0;
 
     cpu.regs[8] = 0x0000_8000;
@@ -257,6 +269,7 @@ fn cfc2_reg16_sign_extende_valor_com_bit15_ligado() {
 fn mtc2_nao_dispara_saturacao_em_reg_16bit() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    cpu.set_sr(1 << 30);
     cpu.pc = 0;
 
     cpu.regs[8] = 0x1200_8900;
@@ -279,6 +292,7 @@ fn mtc2_nao_dispara_saturacao_em_reg_16bit() {
 fn flag_bit11_read_only_escrita_com_bit11_retorna_0() {
     let mut bus = bus_with_bios_empty();
     let mut cpu = Cpu::new();
+    cpu.set_sr(1 << 30);
 
     cpu.regs[8] = 0x0000_0800;
     bus.write32::<BusRead>(0x0000, ctc2(8, 31));

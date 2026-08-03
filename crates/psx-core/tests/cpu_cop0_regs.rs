@@ -59,7 +59,9 @@ fn sr_rfe_move_campos_ie_ku_corretamente() {
         let mut cpu = Cpu::new();
         cpu.pc = 0;
 
-        cpu.regs[8] = 0x0000_000C;
+        // CU0 ligado: apos o RFE o SR fica com KUc=1 (usuario) e sem CU0 o `mfc0` seguinte
+        // lancaria 0Bh — § cop0r16-r31 - Garbage (L892) de docs/reference/02-cpu.md.
+        cpu.regs[8] = 0x1000_000C;
         bus.write32::<BusRead>(0x0000, mtc0(8, 12));
         bus.write32::<BusRead>(0x0004, rfe());
         bus.write32::<BusRead>(0x0008, mfc0(10, 12));
@@ -71,7 +73,7 @@ fn sr_rfe_move_campos_ie_ku_corretamente() {
         cpu.step(&mut bus);
 
         assert_eq!(
-            cpu.regs[10], 0x0000_0003,
+            cpu.regs[10], 0x1000_0003,
             "RFE: SR=0x0C → 0x03 (pega mutante que usa (sr & !0x3) em vez de (sr & !0xF))"
         );
     }

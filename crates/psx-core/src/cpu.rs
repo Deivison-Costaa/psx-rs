@@ -299,16 +299,22 @@ impl Cpu {
                 self.swr(instr, bus);
                 None
             }
-            0x10 => self.cop0_op(instr),
-            0x12 => self.cop2_op(instr, bus),
-            0x32 => self.lwc2_op(instr, bus),
-            0x3A => self.swc2_op(instr, bus),
-            _ => {
+            0x10 | 0x11 | 0x12 | 0x13 | 0x30 | 0x31 | 0x32 | 0x33 | 0x38 | 0x39 | 0x3A | 0x3B => {
+                let unit = primary & 3;
+                if !self.cop_usable(unit, primary & 0x20 == 0) {
+                    self.raise_exception(0x0B, None);
+                    return None;
+                }
                 match primary {
-                    0x11 | 0x13 => self.raise_exception(0x0B, None),
-                    0x30 | 0x31 | 0x33 | 0x38 | 0x39 | 0x3B => self.raise_exception(0x0B, None),
-                    _ => self.raise_exception(0x0A, None),
-                };
+                    0x10 => self.cop0_op(instr),
+                    0x12 => self.cop2_op(instr, bus),
+                    0x32 => self.lwc2_op(instr, bus),
+                    0x3A => self.swc2_op(instr, bus),
+                    _ => None,
+                }
+            }
+            _ => {
+                self.raise_exception(0x0A, None);
                 None
             }
         }
@@ -979,6 +985,14 @@ impl Cpu {
     }
 
     const JR_RA: u32 = (31 << 21) | 0x08;
+
+    fn cop_usable(&self, unit: u32, is_cop_op: bool) -> bool {
+        let sr = self.cop0[12];
+        if sr & (1 << (28 + unit)) != 0 {
+            return true;
+        }
+        unit == 0 && is_cop_op && sr & (1 << 1) == 0
+    }
 
     fn do_printf(&self, bus: &mut Bus) {
         let fmt = self.reg_with_pending(4);

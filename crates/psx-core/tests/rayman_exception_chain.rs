@@ -211,12 +211,12 @@ fn caminhada_da_cadeia_muda_antes_do_quarto_hook() {
 
     let inicial = &activations[0];
     let posterior = &activations[3];
-    assert_eq!(inicial.vector_step, 164_111_528);
-    assert_eq!(inicial.hook_step, 164_112_358);
+    assert_eq!(inicial.vector_step, 164_109_946);
+    assert_eq!(inicial.hook_step, 164_110_776);
     assert_eq!(inicial.vector_stat & 1, 1);
     assert_eq!(inicial.hook_stat & 1, 1);
-    assert_eq!(posterior.vector_step, 164_153_882);
-    assert_eq!(posterior.hook_step, 164_157_984);
+    assert_eq!(posterior.vector_step, 164_152_300);
+    assert_eq!(posterior.hook_step, 164_156_402);
     assert_eq!(posterior.vector_stat & 1, 1);
     assert_eq!(posterior.hook_stat & 1, 0);
 

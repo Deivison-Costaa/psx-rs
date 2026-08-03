@@ -1,0 +1,91 @@
+# Manifesto de mutacao da iteracao 0174 — MDEC (regs/DMA0-1/decode) e SPU (RAM/DMA4)
+formato: 1
+iteracao: 0174
+item: 8.1
+alvo: crates/psx-core/src/mdec.rs
+teste: mdec_macroblock_decode
+
+mutante: m1
+rotulo: nao inverte outputSigned antes de y_to_mono, saida sai com sinal trocado
+teste: mdec_macroblock_decode
+ocorrencias: 1
+@@DE
+            Self::push_mono_block(&spatial, self.color_depth, !self.output_signed, &mut out);
+@@PARA
+            Self::push_mono_block(&spatial, self.color_depth, self.output_signed, &mut out);
+@@FIM
+
+mutante: m2
+rotulo: troca a ordem dos nibbles no empacotamento de 4 bits
+teste: mdec_macroblock_decode
+ocorrencias: 1
+@@DE
+                .map(|c| (c[0] >> 4) | ((c[1] >> 4) << 4))
+@@PARA
+                .map(|c| (c[1] >> 4) | ((c[0] >> 4) << 4))
+@@FIM
+
+mutante: m3
+rotulo: mascara de y_to_mono unsigned vira 0x7F em vez de 0x80
+teste: mdec_macroblock_decode
+ocorrencias: 1
+@@DE
+            v ^= 0x80;
+@@PARA
+            v ^= 0x7F;
+@@FIM
+
+mutante: m4
+rotulo: rl_decode_block deixa de pular a propria entrada ao avancar k
+teste: mdec_macroblock_decode
+ocorrencias: 1
+@@DE
+            k += skip + 1;
+@@PARA
+            k += skip;
+@@FIM
+
+mutante: m5
+rotulo: total_words troca SyncMode0 (campo unico) por SyncMode1 (BS*BA)
+arquivo: crates/psx-core/src/dma.rs
+teste: spu_memory_transfer
+ocorrencias: 1
+@@DE
+        if sync_mode == 0 {
+@@PARA
+        if sync_mode == 1 {
+@@FIM
+
+mutante: m6
+rotulo: write_ram_halfword grava os bytes do SPU em ordem trocada
+arquivo: crates/psx-core/src/spu.rs
+teste: spu_memory_transfer
+ocorrencias: 1
+@@DE
+        self.ram[off] = (half & 0xFF) as u8;
+        self.ram[off + 1] = (half >> 8) as u8;
+@@PARA
+        self.ram[off] = (half >> 8) as u8;
+        self.ram[off + 1] = (half & 0xFF) as u8;
+@@FIM
+
+controle: c1
+rotulo: Current Block do status do MDEC muda de 4 para 5, nenhum teste le esse campo
+teste: mdec_registers_dma
+ocorrencias: 1
+@@DE
+        s |= 4 << 16; // Current Block: so o caminho monocromatico (Y) roda nesta iteracao.
+@@PARA
+        s |= 5 << 16; // Current Block: so o caminho monocromatico (Y) roda nesta iteracao.
+@@FIM
+
+controle: c2
+rotulo: current_address inicial do SPU muda de 0, sempre sobrescrito antes de usar
+arquivo: crates/psx-core/src/spu.rs
+teste: spu_memory_transfer
+ocorrencias: 1
+@@DE
+            current_address: 0,
+@@PARA
+            current_address: 4,
+@@FIM

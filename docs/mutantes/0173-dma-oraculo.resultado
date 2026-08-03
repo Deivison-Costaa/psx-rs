@@ -1,0 +1,10 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: 354e0802188b6e5aca1f66f45ac16467f4825b66
+# rodado_em: 2026-08-03T03:20:32-03:00
+m1,mutante,morreu,morreu,0.5,dma2_linked_list_auto_referente_nunca_completa;dma2_linked_list_ciclo_de_dois_nos_nunca_completa
+m2,mutante,morreu,morreu,0.5,dma2_linked_list_auto_referente_nunca_completa;dma2_linked_list_ciclo_de_dois_nos_nunca_completa
+m3,mutante,morreu,morreu,0.5,dma2_burst_sync_mode0_completa_em_vez_de_travar
+m4,mutante,morreu,morreu,0.5,dma2_burst_sync_mode0_completa_em_vez_de_travar
+m5,mutante,morreu,morreu,0.5,dma2_burst_sync_mode0_completa_em_vez_de_travar
+c1,controle,sobreviveu,sobreviveu,0.5,
+c2,controle,sobreviveu,sobreviveu,0.5,

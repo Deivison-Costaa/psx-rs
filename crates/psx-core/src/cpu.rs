@@ -135,6 +135,10 @@ impl Cpu {
             self.enter_exception(0x04, Some(instr_pc), instr_pc, false, false);
             return;
         }
+        if Bus::fetch_causa_bus_error(instr_pc) {
+            self.enter_exception(0x06, Some(instr_pc), instr_pc, false, false);
+            return;
+        }
         let instr = bus.read32::<BusRead>(instr_pc);
 
         let phys = instr_pc & 0x1FFF_FFFF;
@@ -756,8 +760,8 @@ impl Cpu {
         if self.is_isc() {
             return;
         }
-        let val = self.reg(rt) as u8;
-        bus.write8::<BusRead>(addr, val);
+        let val = self.reg(rt);
+        bus.write8_gpr_completo::<BusRead>(addr, val);
     }
 
     fn sh(&mut self, instr: u32, bus: &mut Bus) {
@@ -772,8 +776,8 @@ impl Cpu {
         if self.is_isc() {
             return;
         }
-        let val = self.reg(rt) as u16;
-        bus.write16::<BusRead>(addr, val);
+        let val = self.reg(rt);
+        bus.write16_gpr_completo::<BusRead>(addr, val);
     }
 
     fn lwl(&mut self, instr: u32, bus: &Bus) -> (usize, u32) {
@@ -893,10 +897,11 @@ impl Cpu {
                         self.cop0[12] = (sr & !0xF) | iec_kuc | (iep_kup << 2);
                         None
                     }
-                    _ => {
+                    0x01 | 0x02 | 0x06 | 0x08 => {
                         self.raise_exception(0x0A, None);
                         None
                     }
+                    _ => None,
                 }
             }
             _ => None,

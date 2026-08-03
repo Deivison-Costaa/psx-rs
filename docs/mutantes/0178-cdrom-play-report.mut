@@ -1,0 +1,98 @@
+# Manifesto de mutacao da iteracao 0178 — comando Play e relatorio de posicao
+formato: 1
+iteracao: 0178
+item: 10.110
+alvo: crates/psx-core/src/cdrom.rs
+teste: cdrom_play_report
+
+mutante: m1
+rotulo: o Play deixa de exigir disco e confirma com INT3 sem midia
+ocorrencias: 1
+@@DE
+            0x03 => {
+                if !self.disc_inserted.get() {
+@@PARA
+            0x03 => {
+                if false {
+@@FIM
+
+mutante: m2
+rotulo: o stat nao levanta o bit7 de Play, e quem consulta nunca sabe que toca
+ocorrencias: 1
+@@DE
+        if self.playing.get() {
+            s |= 1 << 7;
+        }
+@@PARA
+        if false {
+            s |= 1 << 7;
+        }
+@@FIM
+
+mutante: m3
+rotulo: o relatorio sai em todo quadro, nao a cada dez
+ocorrencias: 1
+@@DE
+                    if bcd_to_int(self.read_pos_ff.get()) % 10 == 0 {
+@@PARA
+                    if bcd_to_int(self.read_pos_ff.get()) % 1 == 0 {
+@@FIM
+
+mutante: m4
+rotulo: todo relatorio vira tempo absoluto, e o de trilha some
+ocorrencias: 1
+@@DE
+                let absoluto = (bcd_to_int(asect) / 10) % 2 == 0;
+@@PARA
+                let absoluto = true;
+@@FIM
+
+mutante: m5
+rotulo: o relatorio relativo esquece o bit7 que o distingue do absoluto
+ocorrencias: 1
+@@DE
+                    self.result_push(ss | 0x80);
+@@PARA
+                    self.result_push(ss);
+@@FIM
+
+mutante: m6
+rotulo: o relatorio para de se re-armar e sai uma vez so
+ocorrencias: 1
+@@DE
+        if pending == 6 && self.playing.get() && self.mode.get() & 0x04 != 0 {
+@@PARA
+        if pending == 6 && self.playing.get() && self.mode.get() & 0x04 == 0 {
+@@FIM
+
+mutante: m7
+rotulo: o Play ignora o bit de report do Setmode e sempre relata
+ocorrencias: 1
+@@DE
+                    if self.mode.get() & 0x04 != 0 {
+                        self.int1_pending.set(true);
+@@PARA
+                    if true {
+                        self.int1_pending.set(true);
+@@FIM
+
+controle: c1
+rotulo: nomear a condicao de tempo absoluto nao muda comportamento
+ocorrencias: 1
+@@DE
+                let absoluto = (bcd_to_int(asect) / 10) % 2 == 0;
+@@PARA
+                let dezenas = bcd_to_int(asect) / 10;
+                let absoluto = dezenas % 2 == 0;
+@@FIM
+
+controle: c2
+rotulo: comparacao espelhada do bit de report (cosmetico)
+ocorrencias: 1
+@@DE
+                    if self.mode.get() & 0x04 != 0 {
+                        self.int1_pending.set(true);
+@@PARA
+                    if 0 != self.mode.get() & 0x04 {
+                        self.int1_pending.set(true);
+@@FIM

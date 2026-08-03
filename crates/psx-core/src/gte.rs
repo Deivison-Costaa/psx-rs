@@ -1,3 +1,27 @@
+// Bases dos registradores de controle usados pelos comandos de cor (cop2r32+n).
+const LLM: usize = 40; // cnt8-12  — matriz de luz
+const BK: usize = 45; // cnt13-15 — cor de fundo
+const LCM: usize = 48; // cnt16-20 — matriz de cor
+const FC: usize = 53; // cnt21-23 — far color
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Modulacao {
+    Nenhuma,
+    Rgbc,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum FarColor {
+    Nao,
+    Sim,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum OrigemRgb {
+    Rgbc,
+    Fifo,
+}
+
 #[derive(Debug)]
 pub struct Gte {
     pub regs: [u32; 64],
@@ -99,8 +123,227 @@ impl Gte {
             0x28 => self.sqr(sf),
             0x0C => self.op(sf, lm),
             0x12 => self.mvmva(sf, mx, v, cv, lm),
+            0x1E => self.normal_color(0, sf, lm, Modulacao::Nenhuma, FarColor::Nao),
+            0x20 => self.normal_color_triplo(sf, lm, Modulacao::Nenhuma, FarColor::Nao),
+            0x1B => self.normal_color(0, sf, lm, Modulacao::Rgbc, FarColor::Nao),
+            0x3F => self.normal_color_triplo(sf, lm, Modulacao::Rgbc, FarColor::Nao),
+            0x13 => self.normal_color(0, sf, lm, Modulacao::Rgbc, FarColor::Sim),
+            0x16 => self.normal_color_triplo(sf, lm, Modulacao::Rgbc, FarColor::Sim),
+            0x1C => self.color_color(sf, lm, FarColor::Nao),
+            0x14 => self.color_color(sf, lm, FarColor::Sim),
+            0x29 => self.dcpl(sf, lm),
+            0x11 => self.intpl(sf, lm),
+            0x10 => self.depth_cue(sf, lm, OrigemRgb::Rgbc),
+            0x2A => {
+                for _ in 0..3 {
+                    self.depth_cue(sf, lm, OrigemRgb::Fifo);
+                }
+            }
             _ => {}
         }
+    }
+
+    fn normal_color_triplo(&mut self, sf: u32, lm: u32, modula: Modulacao, fc: FarColor) {
+        for vi in 0..3 {
+            self.normal_color(vi, sf, lm, modula, fc);
+        }
+    }
+
+    fn normal_color(&mut self, vi: usize, sf: u32, lm: u32, modula: Modulacao, fc: FarColor) {
+        let mut flag: u32 = 0;
+        let v = [
+            self.regs[vi * 2] as i16 as i64,
+            (self.regs[vi * 2] >> 16) as i16 as i64,
+            self.regs[vi * 2 + 1] as i16 as i64,
+        ];
+
+        self.matriz_por_vetor(LLM, None, v, sf, lm, &mut flag);
+        self.matriz_por_vetor(LCM, Some(BK), self.le_ir(), sf, lm, &mut flag);
+
+        self.finaliza_cor(sf, lm, modula, fc, &mut flag);
+        self.regs[63] |= flag;
+    }
+
+    fn color_color(&mut self, sf: u32, lm: u32, fc: FarColor) {
+        let mut flag: u32 = 0;
+        self.matriz_por_vetor(LCM, Some(BK), self.le_ir(), sf, lm, &mut flag);
+        self.finaliza_cor(sf, lm, Modulacao::Rgbc, fc, &mut flag);
+        self.regs[63] |= flag;
+    }
+
+    fn dcpl(&mut self, sf: u32, lm: u32) {
+        let mut flag: u32 = 0;
+        self.finaliza_cor(sf, lm, Modulacao::Rgbc, FarColor::Sim, &mut flag);
+        self.regs[63] |= flag;
+    }
+
+    fn intpl(&mut self, sf: u32, lm: u32) {
+        let mut flag: u32 = 0;
+        let ir = self.le_ir();
+        self.escreve_mac(ir[0] << 12, ir[1] << 12, ir[2] << 12);
+        self.finaliza_cor(sf, lm, Modulacao::Nenhuma, FarColor::Sim, &mut flag);
+        self.regs[63] |= flag;
+    }
+
+    // § COP2 0780010h - DPCS (L565): DPCT le R,G,B do FUNDO da FIFO de cor (RGB0), nao
+    // do RGBC; o CODE continua vindo do RGBC.
+    fn depth_cue(&mut self, sf: u32, lm: u32, origem: OrigemRgb) {
+        let mut flag: u32 = 0;
+        let fonte = match origem {
+            OrigemRgb::Rgbc => self.regs[6],
+            OrigemRgb::Fifo => self.regs[20],
+        };
+        let r = (fonte & 0xFF) as i64;
+        let g = ((fonte >> 8) & 0xFF) as i64;
+        let b = ((fonte >> 16) & 0xFF) as i64;
+        self.escreve_mac(r << 16, g << 16, b << 16);
+        self.finaliza_cor(sf, lm, Modulacao::Nenhuma, FarColor::Sim, &mut flag);
+        self.regs[63] |= flag;
+    }
+
+    // Cauda comum: modula pelo RGBC, interpola com o far color, desloca e empurra na FIFO.
+    fn finaliza_cor(
+        &mut self,
+        sf: u32,
+        lm: u32,
+        modula: Modulacao,
+        fc: FarColor,
+        flag: &mut u32,
+    ) {
+        if modula == Modulacao::Rgbc {
+            self.modula_por_rgbc(flag);
+        }
+        if fc == FarColor::Sim {
+            self.interpola_far_color(sf, flag);
+        }
+        if modula == Modulacao::Rgbc || fc == FarColor::Sim {
+            let shift = sf * 12;
+            let (m1, m2, m3) = self.le_mac();
+            self.escreve_mac(m1 >> shift, m2 >> shift, m3 >> shift);
+        }
+        self.empurra_cor(lm, flag);
+    }
+
+    // § GTE Color Calculation Commands (L586): [MAC] = [R*IR1,G*IR2,B*IR3] SHL 4.
+    fn modula_por_rgbc(&mut self, flag: &mut u32) {
+        let rgbc = self.regs[6];
+        let ir = self.le_ir();
+        let canal = |cor: i64, ir: i64| (cor * ir) << 4;
+        let m1 = canal((rgbc & 0xFF) as i64, ir[0]);
+        let m2 = canal(((rgbc >> 8) & 0xFF) as i64, ir[1]);
+        let m3 = canal(((rgbc >> 16) & 0xFF) as i64, ir[2]);
+        check_mac_43bit_overflow(m1, 30, 27, flag);
+        check_mac_43bit_overflow(m2, 29, 26, flag);
+        check_mac_43bit_overflow(m3, 28, 25, flag);
+        self.escreve_mac(sinal44(m1), sinal44(m2), sinal44(m3));
+    }
+
+    // § Details on "MAC+(FC-MAC)*IR0" (L596-600): o intermediario e saturado SEMPRE como
+    // se lm=0. Medido contra o gabarito: o acumulador tem 44 bits com sinal e DA A VOLTA,
+    // e o valor que chega na saturacao ja passou pelo registrador MAC, de 32 bits — ler o
+    // inteiro exato de 64 bits troca o sinal de 18 dos 50 casos de hardware do DPCS.
+    fn interpola_far_color(&mut self, sf: u32, flag: &mut u32) {
+        let (m1, m2, m3) = self.le_mac();
+        let shift = sf * 12;
+        let mac = [m1, m2, m3];
+        let mut ir = [0i64; 3];
+        for i in 0..3 {
+            let fc = self.regs[FC + i] as i32 as i64;
+            let bruto = (fc << 12) - mac[i];
+            check_mac_43bit_overflow(bruto, 30 - i as u32, 27 - i as u32, flag);
+            let deslocado = (sinal44(bruto) >> shift) as i32 as i64;
+            ir[i] = saturate_ir(deslocado, 0, 24 - i as u32, flag) as i64;
+        }
+        let ir0 = self.regs[8] as i16 as i64;
+        let mut saida = [0i64; 3];
+        for i in 0..3 {
+            let bruto = ir[i] * ir0 + mac[i];
+            check_mac_43bit_overflow(bruto, 30 - i as u32, 27 - i as u32, flag);
+            saida[i] = sinal44(bruto);
+        }
+        self.escreve_mac(saida[0], saida[1], saida[2]);
+    }
+
+    // § Notes (L607-609): os 8 bits que entram na FIFO sao MACn/16 saturados em 00h..FFh.
+    fn empurra_cor(&mut self, lm: u32, flag: &mut u32) {
+        let (m1, m2, m3) = self.le_mac();
+        let r = saturate_cor(m1 >> 4, 21, flag);
+        let g = saturate_cor(m2 >> 4, 20, flag);
+        let b = saturate_cor(m3 >> 4, 19, flag);
+        let code = (self.regs[6] >> 24) & 0xFF;
+
+        self.regs[20] = self.regs[21];
+        self.regs[21] = self.regs[22];
+        self.regs[22] = (code << 24) | (b << 16) | (g << 8) | r;
+
+        self.regs[9] = saturate_ir(m1, lm, 24, flag) as u32;
+        self.regs[10] = saturate_ir(m2, lm, 23, flag) as u32;
+        self.regs[11] = saturate_ir(m3, lm, 22, flag) as u32;
+    }
+
+    // Medido contra o gabarito: as flags de overflow do MAC sao decididas a CADA parcela
+    // acumulada, nao no total. Sem isso o hardware liga bit positivo E negativo do mesmo
+    // MAC num unico comando (caso 40 do NCS) e nos nao ligamos nenhum dos dois.
+    fn matriz_por_vetor(
+        &mut self,
+        base_mat: usize,
+        base_tr: Option<usize>,
+        v: [i64; 3],
+        sf: u32,
+        lm: u32,
+        flag: &mut u32,
+    ) {
+        let m = |idx: usize| -> i64 {
+            let palavra = self.regs[base_mat + idx / 2];
+            if idx % 2 == 0 {
+                palavra as i16 as i64
+            } else {
+                (palavra >> 16) as i16 as i64
+            }
+        };
+        let shift = sf * 12;
+        let mut macs = [0i64; 3];
+        for (linha, mac) in macs.iter_mut().enumerate() {
+            let mut acc = match base_tr {
+                Some(tr) => (self.regs[tr + linha] as i32 as i64) * 0x1000,
+                None => 0,
+            };
+            for (coluna, comp) in v.iter().enumerate() {
+                acc += m(linha * 3 + coluna) * comp;
+                check_mac_43bit_overflow(acc, 30 - linha as u32, 27 - linha as u32, flag);
+                acc = sinal44(acc);
+            }
+            *mac = acc >> shift;
+        }
+        self.escreve_mac(macs[0], macs[1], macs[2]);
+        let (m1, m2, m3) = self.le_mac();
+        self.regs[9] = saturate_ir(m1, lm, 24, flag) as u32;
+        self.regs[10] = saturate_ir(m2, lm, 23, flag) as u32;
+        self.regs[11] = saturate_ir(m3, lm, 22, flag) as u32;
+    }
+
+    // MAC1..MAC3 sao registradores de 32 bits: o que a etapa seguinte enxerga ja veio
+    // truncado, e e desse valor que o IR satura.
+    fn escreve_mac(&mut self, m1: i64, m2: i64, m3: i64) {
+        self.regs[25] = m1 as u32;
+        self.regs[26] = m2 as u32;
+        self.regs[27] = m3 as u32;
+    }
+
+    fn le_mac(&self) -> (i64, i64, i64) {
+        (
+            self.regs[25] as i32 as i64,
+            self.regs[26] as i32 as i64,
+            self.regs[27] as i32 as i64,
+        )
+    }
+
+    fn le_ir(&self) -> [i64; 3] {
+        [
+            self.regs[9] as i16 as i64,
+            self.regs[10] as i16 as i64,
+            self.regs[11] as i16 as i64,
+        ]
     }
 
     fn rtps(&mut self, sf: u32, lm: u32) {
@@ -531,6 +774,25 @@ fn lm_range(lm: u32) -> (i64, i64) {
         (-0x8000i64, 0x7FFFi64)
     } else {
         (0i64, 0x7FFFi64)
+    }
+}
+
+// O acumulador interno do GTE tem 44 bits com sinal e da a volta em vez de saturar; o
+// que o proximo passo enxerga e a extensao de sinal a partir do bit 43.
+fn sinal44(val: i64) -> i64 {
+    (val << 20) >> 20
+}
+
+// § cop2r63 - FLAG (L342-344): bits 19-21 acusam canal da FIFO de cor fora de 00h..FFh.
+fn saturate_cor(val: i64, flag_bit: u32, flag: &mut u32) -> u32 {
+    if val > 0xFF {
+        *flag |= 1 << flag_bit;
+        0xFF
+    } else if val < 0 {
+        *flag |= 1 << flag_bit;
+        0
+    } else {
+        val as u32
     }
 }
 

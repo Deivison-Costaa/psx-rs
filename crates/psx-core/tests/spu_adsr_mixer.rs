@@ -153,9 +153,11 @@ fn envoltoria_ataque_exponencial_desacelera_acima_de_6000h() {
 
 #[test]
 fn envoltoria_com_taxa_toda_em_um_nunca_avanca() {
-    assert_eq!(
-        envoltoria(0x4000, linear(3, 31, true), 64),
-        vec![0x4000; 64],
+    // 32769 ciclos porque com o minimo de 1 o contador so cruza 8000h no ciclo 32768:
+    // uma bateria de 64 ciclos nao distingue "nunca anda" de "anda devagar".
+    let niveis = envoltoria(0x4000, linear(3, 31, true), 32769);
+    assert!(
+        niveis.iter().all(|n| *n == 0x4000),
         "StepValue | (ShiftValue SHL 2) = 7Fh: o contador nao recebe o minimo de 1"
     );
 }

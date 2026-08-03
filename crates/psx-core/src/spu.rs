@@ -1,8 +1,10 @@
 pub mod adpcm;
 pub mod envelope;
 pub mod gauss;
+pub mod reverb;
 pub mod voice;
 
+use reverb::Reverb;
 use voice::{Voice, Volume};
 
 const RAM_SIZE: usize = 512 * 1024;
@@ -17,6 +19,8 @@ const REG_VOICE_BASE: u32 = 0x1F80_1C00;
 const REG_VOICE_END: u32 = 0x1F80_1D7F;
 const REG_MAIN_VOL_L: u32 = 0x1F80_1D80;
 const REG_MAIN_VOL_R: u32 = 0x1F80_1D82;
+const REG_VLOUT: u32 = 0x1F80_1D84;
+const REG_VROUT: u32 = 0x1F80_1D86;
 const REG_KON_LO: u32 = 0x1F80_1D88;
 const REG_KON_HI: u32 = 0x1F80_1D8A;
 const REG_KOFF_LO: u32 = 0x1F80_1D8C;
@@ -29,6 +33,7 @@ const REG_EON_LO: u32 = 0x1F80_1D98;
 const REG_EON_HI: u32 = 0x1F80_1D9A;
 const REG_ENDX_LO: u32 = 0x1F80_1D9C;
 const REG_ENDX_HI: u32 = 0x1F80_1D9E;
+const REG_MBASE: u32 = 0x1F80_1DA2;
 const REG_IRQ_ADDR: u32 = 0x1F80_1DA4;
 const REG_TRANSFER_ADDR: u32 = 0x1F80_1DA6;
 const REG_FIFO: u32 = 0x1F80_1DA8;
@@ -41,6 +46,8 @@ const REG_EXT_VOL_L: u32 = 0x1F80_1DB4;
 const REG_EXT_VOL_R: u32 = 0x1F80_1DB6;
 const REG_CURRENT_MAIN_L: u32 = 0x1F80_1DB8;
 const REG_CURRENT_MAIN_R: u32 = 0x1F80_1DBA;
+const REG_REVERB_BASE: u32 = 0x1F80_1DC0;
+const REG_REVERB_END: u32 = 0x1F80_1DFF;
 const REG_VOICE_INTERNAL: u32 = 0x1F80_1E00;
 const REG_VOICE_INTERNAL_END: u32 = 0x1F80_1E5F;
 
@@ -79,6 +86,8 @@ pub struct Spu {
     cd_left: i16,
     cd_right: i16,
     capture_offset: u32,
+    reverb: Reverb,
+    reverb_fase: bool,
     output: Vec<(i16, i16)>,
 }
 
@@ -111,6 +120,8 @@ impl Spu {
             cd_left: 0,
             cd_right: 0,
             capture_offset: 0,
+            reverb: Reverb::default(),
+            reverb_fase: false,
             output: Vec::new(),
         }
     }
@@ -147,6 +158,12 @@ impl Spu {
             }
             REG_MAIN_VOL_L => self.main_volume_left.raw,
             REG_MAIN_VOL_R => self.main_volume_right.raw,
+            REG_VLOUT => self.reverb.vlout,
+            REG_VROUT => self.reverb.vrout,
+            REG_MBASE => self.reverb.mbase,
+            REG_REVERB_BASE..=REG_REVERB_END => {
+                self.reverb.regs[((addr - REG_REVERB_BASE) / 2) as usize]
+            }
             REG_KON_LO => self.kon as u16,
             REG_KON_HI => (self.kon >> 16) as u16,
             REG_KOFF_LO => self.koff as u16,
@@ -209,6 +226,12 @@ impl Spu {
             }
             REG_MAIN_VOL_L => self.main_volume_left.write(val),
             REG_MAIN_VOL_R => self.main_volume_right.write(val),
+            REG_VLOUT => self.reverb.vlout = val,
+            REG_VROUT => self.reverb.vrout = val,
+            REG_MBASE => self.reverb.set_mbase(val),
+            REG_REVERB_BASE..=REG_REVERB_END => {
+                self.reverb.regs[((addr - REG_REVERB_BASE) / 2) as usize] = val
+            }
             REG_KON_LO => {
                 self.kon = (self.kon & 0xFFFF_0000) | u32::from(val);
                 self.apply_key_on(u32::from(val));
@@ -352,6 +375,10 @@ impl Spu {
         pending
     }
 
+    pub fn noise_level(&self) -> i16 {
+        self.noise_level
+    }
+
     pub fn voice_out(&self, index: usize) -> i16 {
         self.voices.get(index).map(|v| v.out).unwrap_or(0)
     }
@@ -389,6 +416,7 @@ impl Spu {
         let irq_ligada = self.irq_enabled();
 
         let (mut esquerda, mut direita) = (0i32, 0i32);
+        let (mut rev_esq, mut rev_dir) = (0i32, 0i32);
         let mut anterior = 0i16;
         let mut pedidos_de_irq = false;
         let mut fim = 0u32;
@@ -413,8 +441,14 @@ impl Spu {
             if passo.reached_end {
                 fim |= bit;
             }
-            esquerda += (i32::from(passo.out) * voz.volume_left.level()) >> 15;
-            direita += (i32::from(passo.out) * voz.volume_right.level()) >> 15;
+            let vl = (i32::from(passo.out) * voz.volume_left.level()) >> 15;
+            let vr = (i32::from(passo.out) * voz.volume_right.level()) >> 15;
+            esquerda += vl;
+            direita += vr;
+            if self.eon & bit != 0 {
+                rev_esq += vl;
+                rev_dir += vr;
+            }
         }
 
         self.endx |= fim;
@@ -423,9 +457,19 @@ impl Spu {
         }
 
         if self.cnt & 1 != 0 {
-            esquerda += (i32::from(self.cd_left) * volume_de_16_bits(self.cd_volume_left)) >> 15;
-            direita += (i32::from(self.cd_right) * volume_de_16_bits(self.cd_volume_right)) >> 15;
+            let cd_e = (i32::from(self.cd_left) * volume_de_16_bits(self.cd_volume_left)) >> 15;
+            let cd_d = (i32::from(self.cd_right) * volume_de_16_bits(self.cd_volume_right)) >> 15;
+            esquerda += cd_e;
+            direita += cd_d;
+            if self.cnt & (1 << 2) != 0 {
+                rev_esq += cd_e;
+                rev_dir += cd_d;
+            }
         }
+
+        let (rl, rr) = self.run_reverb(rev_esq, rev_dir);
+        esquerda += rl;
+        direita += rr;
 
         self.capture();
         self.main_volume_left.tick();
@@ -445,6 +489,20 @@ impl Spu {
             self.output.push(quadro);
         }
         quadro
+    }
+
+    // § Reverb Formula (L947) de docs/reference/08-spu.md: a unidade roda a 22050 Hz,
+    // metade do mixer. O bit7 do SPUCNT so corta a ESCRITA no buffer; a leitura continua.
+    fn run_reverb(&mut self, lin: i32, rin: i32) -> (i32, i32) {
+        self.reverb_fase = !self.reverb_fase;
+        if !self.reverb_fase {
+            return (0, 0);
+        }
+        let escrever = self.cnt & (1 << 7) != 0;
+        let Spu { ram, reverb, .. } = self;
+        let saida = reverb.run(ram, lin, rin, escrever);
+        reverb.advance();
+        saida
     }
 
     // § SPU Memory layout (L140) de docs/reference/08-spu.md: os 4 KiB iniciais

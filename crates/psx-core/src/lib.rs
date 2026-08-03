@@ -3,6 +3,7 @@
 pub mod bus;
 pub mod cdrom;
 pub mod cdrom_bin_cue;
+pub mod cdrom_xa;
 pub mod cpu;
 pub mod dma;
 pub mod gpu;

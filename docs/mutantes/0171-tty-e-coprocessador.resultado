@@ -1,12 +1,12 @@
 # gerado por scripts/mutantes.ps1 — NAO editar a mao
-# commit: 83bf34747aba3b6a6d6a605b729cdf7516cea46c
-# rodado_em: 2026-08-03T02:18:54-03:00
-m1,mutante,morreu,morreu,0.7,com_kernel_real_o_hook_de_printf_nao_emite_nada
+# commit: fe5e66b0502f5011b0ae92c0d5ee74f8590d200b
+# rodado_em: 2026-08-03T02:19:36-03:00
+m1,mutante,morreu,morreu,0.6,com_kernel_real_o_hook_de_printf_nao_emite_nada
 m2,mutante,morreu,morreu,0.5,sem_kernel_o_hook_de_printf_emite_a_string
-m3,mutante,morreu,morreu,0.6,cop0_em_modo_usuario_sem_cu0_lanca;cop2_exige_cu2_ligado;coprocessadores_inexistentes_lancam_quando_desabilitados;coprocessadores_inexistentes_nao_lancam_quando_habilitados;store_de_cop0_nao_lanca_com_cu0_ligado;store_e_load_de_cop2_exigem_cu2_ligado
+m3,mutante,morreu,morreu,0.6,cop0_em_modo_usuario_sem_cu0_lanca;cop2_exige_cu2_ligado;coprocessadores_inexistentes_lancam_quando_desabilitados;coprocessadores_inexistentes_nao_lancam_quando_habilitados;load_e_store_de_cop0_lancam_sem_cu0_mesmo_em_modo_kernel;store_de_cop0_nao_lanca_com_cu0_ligado;store_e_load_de_cop2_exigem_cu2_ligado
 m4,mutante,morreu,morreu,0.6,cop2_exige_cu2_ligado;coprocessadores_inexistentes_lancam_quando_desabilitados;coprocessadores_inexistentes_nao_lancam_quando_habilitados;store_de_cop0_nao_lanca_com_cu0_ligado
-m5,mutante,morreu,sobreviveu,0.6,
+m5,mutante,morreu,morreu,0.6,load_e_store_de_cop0_lancam_sem_cu0_mesmo_em_modo_kernel
 m6,mutante,morreu,morreu,0.6,cop0_em_modo_usuario_sem_cu0_lanca
-m7,mutante,morreu,sobreviveu,0.6,
+m7,mutante,morreu,morreu,0.6,load_e_store_de_cop0_lancam_sem_cu0_mesmo_em_modo_kernel
 c1,controle,sobreviveu,sobreviveu,0.6,
 c2,controle,sobreviveu,sobreviveu,0.6,

@@ -49,7 +49,13 @@ desligado **lançam**. Nosso despacho fazia o oposto nos dois casos.
 
 ## Bateria de mutação
 
-Placar da bateria: preenchido pela execução de `scripts/mutantes.ps1 -Iter 0171`.
+Placar da bateria: **7/7 mutantes mortos, 2/2 controles verdes, 0 equivalente.**
+
+Na primeira execução m5 e m7 sobreviveram — ambos apagam a distinção entre `copN` e
+`lwcN`/`swcN` para a unidade 0, e o meu arquivo de teste só cobria `swc0` com CU0 **ligado**.
+O assassino existia noutro arquivo (`cpu_opcode_reservado`), o que não vale: a bateria mede a
+cobertura do teste da rodada. Fechei a lacuna com
+`load_e_store_de_cop0_lancam_sem_cu0_mesmo_em_modo_kernel` e os dois morreram.
 
 Os registros declaram `teste:` individualmente porque a rodada tem dois assassinos
 (`cpu_tty_sem_duplicar` e `cpu_coprocessador_usavel`). Isso contorna o item **10.71** — a
@@ -58,7 +64,7 @@ inofensiva: se todos os registros declaram o seu, não sobra registro para herda
 
 ## Placar antes → depois
 
-Workspace: **939 → 951** testes.
+Workspace: **939 → 952** testes.
 
 **Oráculo de TTY (`K/M` = K linhas divergentes de M).** Antes da 0171 o arreio não alinhava e
 contava o preâmbulo de boot como divergência, então toda suíte marcava `M/M` — 21 de 21 sem

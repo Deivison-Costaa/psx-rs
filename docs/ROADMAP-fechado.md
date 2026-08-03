@@ -166,6 +166,9 @@ da escada valer so para o que FALTA. Narrativa de cada item continua em
 - [x] 10.93 Amidog: ~590 erros de load delay slot encadeado `nop_lX_lY_d` (iter 0165)
 - [x] 10.96 psx-cli conecta pad digital e aperta botoes por passo (--pad/--press) (iter 0169)
 - [x] 10.95 `--exe` agora boota o kernel de verdade ate 0x80030000 antes de sobrepor o PS-EXE (iter 0170)
+- [x] 10.97 TTY duplicado com kernel real (iter 0171)
+- [x] 10.98 oraculo-tty: alinhamento e prefixo uniforme (iter 0171)
+- [x] 10.99 cpu/cop: Coprocessor Unusable pelo bit CU do SR, 19/19 -> 1/19 (iter 0171)
 
 ## M11 — Apresentação (incremental desde o M1)
 - [x] 11.1 Relatório consolidado (docs/relatorio.md — atualizado a cada marco) (iter 0096)

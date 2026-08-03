@@ -111,9 +111,11 @@ fn o_jogo_so_executa_depois_do_bootstrap_e_ja_perde_o_vsync() {
     assert_eq!(passo_do_execute, 164_000_000, "amostragem de 200 k passos");
     assert_eq!(passo_do_primeiro_timeout, 167_000_000);
 
+    // Ate a iteracao 0170 o TTY saia duplicado (o hook de printf escrevia e a BIOS real
+    // escrevia de novo), entao esta contagem media 142 — o dobro do real. Ver 0171.
     let ocorrencias = tty.matches("VSync: timeout").count();
     assert!(
-        ocorrencias > 100,
+        ocorrencias > 50,
         "o VSync do jogo estoura o tempo de forma continua, nao uma vez: {ocorrencias} ocorrencias"
     );
 

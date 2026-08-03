@@ -95,7 +95,6 @@ Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 10.85 Rayman para em `0x801B9574` esperando `[0x801CF2CC] >= 2`; contador fica em 1 (0159)
 - [ ] 10.90 Rayman: `VSync: timeout` 142x no TTY depois do `Execute !` de 164 M (0163)
 - [ ] 10.94 Rayman em 590-600 M: laco `0x8019FA1C` espera `[0x801CEEBC]` != 0 (0167)
-- [ ] 10.95 `--exe` sideload trava em `ResetGraph:SR=1001` (A0/B0/C0 stubados) nas 21 suites TTY (0168)
 
 ## M11 — Apresentação (incremental desde o M1)
 - [ ] 11.2 Gráficos de metricas.csv + scoreboard-data

@@ -60,7 +60,7 @@ Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 10.24 Job `scoreboard` da CI sai VERDE medindo zero — sem BIOS rotula 51 suites `sem-bios` (iter 0072)
 - [ ] 10.26 Nenhum dos 9 testes de `ci_scoreboard.rs` afirma que o job mede algo
 - [ ] 10.27 Placar local (gitignored) e o unico com veredito real e nao e versionado
-- [ ] 10.23 45 das 51 suites do scoreboard nao dao veredito (renderizam na VRAM)
+- [ ] 10.23 45 das 51 suites do scoreboard nao dao veredito (renderizam na VRAM) — TTY: 0/21 (0168); falta VRAM (0169)
 - [ ] 10.18 Nada torna `arquivada:` caro: 0052 e 0059 largaram 17 registros, 12 casavam
 - [ ] 10.33 `mutantes.ps1` so roda `cargo test -p psx-core` (linha 290) — outros crates precisam de bateria manual
 - [ ] 10.34 Nenhum meta-teste reprova `#[test]` sem assercao (T10 da 0080 passou assim)
@@ -95,6 +95,7 @@ Regra imposta por `roadmap_arquivo.rs`.
 - [ ] 10.85 Rayman para em `0x801B9574` esperando `[0x801CF2CC] >= 2`; contador fica em 1 (0159)
 - [ ] 10.90 Rayman: `VSync: timeout` 142x no TTY depois do `Execute !` de 164 M (0163)
 - [ ] 10.94 Rayman em 590-600 M: laco `0x8019FA1C` espera `[0x801CEEBC]` != 0 (0167)
+- [ ] 10.95 `--exe` sideload trava em `ResetGraph:SR=1001` (A0/B0/C0 stubados) nas 21 suites TTY (0168)
 
 ## M11 — Apresentação (incremental desde o M1)
 - [ ] 11.2 Gráficos de metricas.csv + scoreboard-data

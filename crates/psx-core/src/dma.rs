@@ -1,5 +1,7 @@
 use crate::cdrom::Cdrom;
 use crate::gpu::Gpu;
+use crate::mdec::Mdec;
+use crate::spu::Spu;
 
 #[derive(Debug)]
 pub struct Dma {
@@ -270,6 +272,133 @@ impl Dma {
         }
         self.chcr[2] &= !(1 << 24);
         self.signal_completion(2);
+    }
+
+    // § D#_BCR (docs/reference/04-dma.md L36-58): formato depende do SyncMode
+    // do CHCR (bits9-10). SyncMode=0 usa um unico campo BC (bits0-15); SyncMode=1
+    // usa BS*BA (bits0-15 * bits16-31). Os dois "podem ser 0001h..FFFFh, ou
+    // 0=10000h". Confundir os dois formatos faz o canal 4 (SPU, unico deste lote
+    // que usa SyncMode=0 em testDMA{Write,Read}ToRamSyncMode0) pedir bilhoes de
+    // palavras em vez de poucas — motivo da rodada de correcao 0174.
+    fn total_words(&self, ch: usize) -> usize {
+        let bcr = self.bcr[ch];
+        let field16 = |v: u32| -> usize { if v == 0 { 0x10000 } else { v as usize } };
+        let sync_mode = (self.chcr[ch] >> 9) & 0x3;
+        if sync_mode == 0 {
+            field16(bcr & 0xFFFF)
+        } else {
+            field16(bcr & 0xFFFF) * field16((bcr >> 16) & 0xFFFF)
+        }
+    }
+
+    /// DMA0 (MDECin, RAM->MDEC). § DMA (docs/reference/09-mdec.md L114-124).
+    pub fn try_execute_dma0(&mut self, ram: &[u8], mdec: &mut Mdec) {
+        if self.dpcr & (1 << 3) == 0 {
+            return;
+        }
+        if self.chcr[0] & (1 << 24) == 0 {
+            return;
+        }
+        let step: i32 = if self.chcr[0] & 2 != 0 { -4 } else { 4 };
+        let mut addr = self.madr[0] & 0x00FF_FFFC;
+        for _ in 0..self.total_words(0) {
+            let offset = (addr & 0x1F_FFFF) as usize;
+            if offset + 4 <= ram.len() {
+                let word = u32::from_le_bytes([
+                    ram[offset],
+                    ram[offset + 1],
+                    ram[offset + 2],
+                    ram[offset + 3],
+                ]);
+                mdec.write32(0, word);
+            }
+            addr = if step < 0 {
+                addr.wrapping_sub(4)
+            } else {
+                addr.wrapping_add(4)
+            };
+        }
+        self.madr[0] = (self.madr[0] & !0x00FF_FFFF) | (addr & 0x00FF_FFFF);
+        self.chcr[0] &= !(1 << 24);
+        self.signal_completion(0);
+    }
+
+    /// DMA1 (MDECout, MDEC->RAM). Transfere no maximo o que o MDEC realmente
+    /// decodificou (`mdec.output_len()`): pedir mais do que isso e sintoma de
+    /// BS/BA mal dimensionados pelo software guest (visto em mdec/4bit e
+    /// mdec/8bit, iter 0174) e travaria a RAM inteira num motor sem timing por
+    /// palavra — o canal fica "em andamento" (bit24 mantido) em vez de
+    /// completar, igual a uma DMA real que nunca recebe mais DREQ
+    /// (docs/reference/09-mdec.md L108-112).
+    pub fn try_execute_dma1(&mut self, ram: &mut [u8], mdec: &Mdec) {
+        if self.dpcr & (1 << 7) == 0 {
+            return;
+        }
+        if self.chcr[1] & (1 << 24) == 0 {
+            return;
+        }
+        let requested = self.total_words(1);
+        let available = mdec.output_len().min(requested);
+        let step: i32 = if self.chcr[1] & 2 != 0 { -4 } else { 4 };
+        let mut addr = self.madr[1] & 0x00FF_FFFC;
+        for _ in 0..available {
+            let word = mdec.read32(0);
+            let offset = (addr & 0x1F_FFFF) as usize;
+            if offset + 4 <= ram.len() {
+                let bytes_lidas = word.to_le_bytes();
+                ram[offset..offset + 4].copy_from_slice(&bytes_lidas);
+            }
+            addr = if step < 0 {
+                addr.wrapping_sub(4)
+            } else {
+                addr.wrapping_add(4)
+            };
+        }
+        self.madr[1] = (self.madr[1] & !0x00FF_FFFF) | (addr & 0x00FF_FFFF);
+        if available == requested {
+            self.chcr[1] &= !(1 << 24);
+            self.signal_completion(1);
+        }
+    }
+
+    /// DMA4 (SPU). § SPU RAM DMA-Write/-Read (docs/reference/08-spu.md L755-773).
+    pub fn try_execute_dma4(&mut self, ram: &mut [u8], spu: &mut Spu) {
+        if self.dpcr & (1 << 19) == 0 {
+            return;
+        }
+        if self.chcr[4] & (1 << 24) == 0 {
+            return;
+        }
+        let from_ram = self.chcr[4] & 1 != 0;
+        let step: i32 = if self.chcr[4] & 2 != 0 { -4 } else { 4 };
+        let mut addr = self.madr[4] & 0x00FF_FFFC;
+        for _ in 0..self.total_words(4) {
+            let offset = (addr & 0x1F_FFFF) as usize;
+            if from_ram {
+                if offset + 4 <= ram.len() {
+                    let word = u32::from_le_bytes([
+                        ram[offset],
+                        ram[offset + 1],
+                        ram[offset + 2],
+                        ram[offset + 3],
+                    ]);
+                    spu.dma_push_word(word);
+                }
+            } else {
+                let word = spu.dma_pop_word();
+                if offset + 4 <= ram.len() {
+                    ram[offset..offset + 4].copy_from_slice(&word.to_le_bytes());
+                }
+            }
+            addr = if step < 0 {
+                addr.wrapping_sub(4)
+            } else {
+                addr.wrapping_add(4)
+            };
+        }
+        self.madr[4] = (self.madr[4] & !0x00FF_FFFF) | (addr & 0x00FF_FFFF);
+        self.chcr[4] &= !(1 << 24);
+        self.signal_completion(4);
     }
 }
 

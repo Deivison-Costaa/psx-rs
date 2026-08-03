@@ -1,0 +1,12 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: 3f7f70f89e9fd51219424628cbfd4abef34e2db1
+# rodado_em: 2026-08-03T18:54:05-03:00
+m1,mutante,morreu,morreu,0.6,botoes_pressionados_aparecem_na_resposta_42h;start_sozinho_sai_no_primeiro_byte_de_switches
+m2,mutante,morreu,morreu,0.5,botoes_pressionados_aparecem_na_resposta_42h;start_sozinho_sai_no_primeiro_byte_de_switches
+m3,mutante,morreu,morreu,0.5,botoes_pressionados_aparecem_na_resposta_42h
+m4,mutante,morreu,morreu,0.5,botoes_pressionados_aparecem_na_resposta_42h;botoes_soltos_retornam_ff;pad_digital_responde_5a41_ffff_ao_comando_42h;start_sozinho_sai_no_primeiro_byte_de_switches
+m5,mutante,morreu,morreu,0.5,botoes_pressionados_aparecem_na_resposta_42h;botoes_soltos_retornam_ff;dtr_transicao_reseta_contagem_de_bytes;leitura_32bit_do_sio_data_consome_byte_do_fifo;pad_digital_responde_5a41_ffff_ao_comando_42h
+m6,mutante,morreu,morreu,0.5,botoes_pressionados_aparecem_na_resposta_42h;botoes_soltos_retornam_ff;pad_digital_responde_5a41_ffff_ao_comando_42h
+m7,mutante,morreu,morreu,0.5,sem_pad_digital_rx_fifo_retorna_ff
+c1,controle,sobreviveu,sobreviveu,0.5,
+c2,controle,sobreviveu,sobreviveu,0.5,

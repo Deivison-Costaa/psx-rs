@@ -1,0 +1,13 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: 3f7f70f89e9fd51219424628cbfd4abef34e2db1
+# rodado_em: 2026-08-03T18:53:59-03:00
+m1,mutante,morreu,morreu,0.6,cadeia_de_20000_nos_completa;cadeia_de_4097_nos_completa;cadeia_longa_entrega_todas_as_palavras_ao_gp0
+m2,mutante,morreu,morreu,0.6,cadeia_de_20000_nos_completa;cadeia_de_4097_nos_completa;cadeia_longa_entrega_todas_as_palavras_ao_gp0
+m3,mutante,morreu,morreu,0.6,cadeia_de_20000_nos_completa;cadeia_de_4097_nos_completa;cadeia_longa_entrega_todas_as_palavras_ao_gp0
+m4,mutante,morreu,morreu,0.6,cadeia_de_20000_nos_completa;cadeia_de_4097_nos_completa;cadeia_longa_entrega_todas_as_palavras_ao_gp0
+m5,mutante,morreu,morreu,0.6,cadeia_de_4097_nos_completa;cadeia_longa_entrega_todas_as_palavras_ao_gp0
+m6,mutante,morreu,morreu,0.6,cadeia_de_20000_nos_completa;cadeia_de_4097_nos_completa;cadeia_longa_entrega_todas_as_palavras_ao_gp0
+m7,mutante,morreu,morreu,0.6,cadeia_longa_entrega_todas_as_palavras_ao_gp0
+m8,mutante,morreu,morreu,0.6,cadeia_longa_entrega_todas_as_palavras_ao_gp0
+c1,controle,sobreviveu,sobreviveu,0.6,
+c2,controle,sobreviveu,sobreviveu,0.6,

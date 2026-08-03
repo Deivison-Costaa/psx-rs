@@ -1,0 +1,92 @@
+# Manifesto de mutação da iteração 0186 — sio-ordem-dos-switches
+formato: 1
+iteracao: 0186
+item: 4.4ae
+alvo: crates/psx-core/src/sio.rs
+teste: sio_digital_pad
+
+mutante: m1
+rotulo: reinverte os dois bytes de switches (o defeito original)
+@@DE
+                3 => (self.button_state.get() & 0xFF) as u8,
+                4 => (self.button_state.get() >> 8) as u8,
+@@PARA
+                3 => (self.button_state.get() >> 8) as u8,
+                4 => (self.button_state.get() & 0xFF) as u8,
+@@FIM
+
+mutante: m2
+rotulo: swlo devolve sempre "nenhum botao"
+@@DE
+                3 => (self.button_state.get() & 0xFF) as u8,
+@@PARA
+                3 => 0xFF,
+@@FIM
+
+mutante: m3
+rotulo: swhi devolve sempre "nenhum botao"
+@@DE
+                4 => (self.button_state.get() >> 8) as u8,
+@@PARA
+                4 => 0xFF,
+@@FIM
+
+mutante: m4
+rotulo: swlo perde o bit7 (Left)
+@@DE
+                3 => (self.button_state.get() & 0xFF) as u8,
+@@PARA
+                3 => (self.button_state.get() & 0x7F) as u8,
+@@FIM
+
+mutante: m5
+rotulo: ID low vira 0x53 (analog stick) em vez de 0x41 (digital)
+@@DE
+                1 => 0x41,
+@@PARA
+                1 => 0x53,
+@@FIM
+
+mutante: m6
+rotulo: ID high vira 0xA5 em vez de 0x5A
+@@DE
+                2 => 0x5A,
+@@PARA
+                2 => 0xA5,
+@@FIM
+
+mutante: m7
+rotulo: porta sem periferico responde 0x00 em vez de HiZ (0xFF)
+@@DE
+        let response = if count == 0 || !present {
+            0xFF
+@@PARA
+        let response = if count == 0 || !present {
+            0x00
+@@FIM
+
+controle: c1
+rotulo: swlo calculado numa variavel local
+@@DE
+                3 => (self.button_state.get() & 0xFF) as u8,
+                4 => (self.button_state.get() >> 8) as u8,
+                _ => 0xFF,
+@@PARA
+                3 => {
+                    let swlo = self.button_state.get() & 0xFF;
+                    swlo as u8
+                }
+                4 => (self.button_state.get() >> 8) as u8,
+                _ => 0xFF,
+@@FIM
+
+controle: c2
+rotulo: let _ = 0 no inicio de send_byte
+@@DE
+    fn send_byte(&self, val: u8) {
+        self.tx_data.set(val);
+@@PARA
+    fn send_byte(&self, val: u8) {
+        let _ = 0;
+        self.tx_data.set(val);
+@@FIM

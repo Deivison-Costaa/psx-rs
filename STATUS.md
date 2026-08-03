@@ -7,31 +7,33 @@
 
 ## Última iteração concluída
 
-**0185** — **O Crash desenha em cor.** Ele ja chegava ao menu, mas o modelo saia como silhueta
-branca. A causa nao foi inferida: instrumentei o dispatch do GTE e medi os opcodes que caiam no
-`_ => {}` — `0x13` NCDS, `0x3F` NCCT, `0x10` DPCS, as instrucoes de cor por vertice. Os **doze**
-comandos da familia entraram juntos (sao um motor so): fecham 5.4b, 5.4c e 5.4d.
-**Gabarito: `tests/exes/ps1-tests/gte-fuzz`, 50 execucoes por comando em console real.** Modelei
-a spec em Python antes do Rust e a 1a versao deu **0/50** no NCS. Tres coisas que a spec nao diz:
-**(1)** `MAC1..3` sao registradores de **32 bits** e o IR satura do valor ja truncado;
-**(2)** o acumulador de 44 bits **da a volta** — em `(FC<<12)-MAC` estenda o sinal em 44 bits
-antes do deslocamento; **(3)** as flags de overflow sao checadas **a cada parcela**, nao no
-total, por isso o hardware liga o bit positivo E o negativo do mesmo MAC num comando so.
-Bateria 14/14 e 2/2; 0088 reexecutada (7/7, 2/2). **Cinco provas do Rayman andaram +15.801
-passos** (ele tambem emite comandos de cor): repinadas, e o 10.115 em acao.
+**0186** — **O Crash joga N. Sanity Beach.** Dois defeitos em serie, os dois achados por
+instrumentacao e nao por leitura de codigo. **(1)** `execute_linked_list` tinha teto de 4096
+nos; instrumentado com deteccao de ciclo, ele reportou `ciclo_em=None, nos=4097` — a cadeia do
+Crash so e **maior**, e o teto a cortava, deixando o canal ocupado (era o `GPU timeout`, 0185.2).
+O teto certo e `ram.len()/4`: cadeia com mais nos do que palavras na RAM repetiu endereco por
+casa dos pombos, logo tem ciclo, e ciclo nunca completa (`dma/chain-looping`). **(2)** Os dois
+bytes de switches do pad saiam **trocados**: em `docs/reference/10-controllers-memcards.md`,
+§ Controller Transfer (L546-549) manda `swlo` (bit0-7, onde mora Start) primeiro. Start chegava ao jogo na posicao do **R1** — nenhum menu
+respondia, em jogo nenhum. O teste antigo pinava a ordem errada, e a 0092 tinha o mesmo vicio
+no manifesto. Baterias: 8/8 e 7/7, 2/2 cada; 0092, 0129 e 0076 refeitas.
+
+**O meta-teste da bateria casava `.mut` com `.resultado` so pelo prefixo da iteracao**: com dois
+manifestos por iteracao ele conferia o placar de um contra o resultado do outro. Agora casa pelo
+nome exato — o que destapou um `.resultado` da 0076 envelhecido desde julho.
 
 ## Próxima tarefa
 
-**ROADMAP 4.4ae — Crash Bandicoot ate o primeiro nivel.** O menu desenha completo e o `--press
-start` nao move o cursor. O TTY do jogo diz por que: `GPU timeout:que=0,stat=5604267e,
-chcr=01000401,madr=00058498` em laco, mais `intr timeout(0040:004d)`. O `chcr` e **DMA2 em lista
-encadeada (SyncMode=2) que fica ocupado e nao completa** — achado 0185.2. Ja aparecia antes da
-0185 (1x em 400 M passos, 9x em 900 M), entao nao e regressao da cor. **Comece por ai**, nao pelo
-controle: o PAD driver instala e o controle e detectado (`TYPE : 6 free button`).
+**ROADMAP 7.1 — SPU: regs de voz + ADPCM.** O Crash joga mudo; som e o buraco maior agora.
+Antes, um teste barato de 10 min: **remedir o Rayman com a ordem de switches corrigida** — ele
+nunca recebeu Start de verdade, e parte do que se atribuiu a "o jogo nao chega a ler o controle"
+(10.79-10.87) pode ser isto. Use a nova `--dump-vram-every N PREFIXO`, que da a linha do tempo
+inteira numa execucao so (2,5 G passos em 5m30).
 
-Rodar: `--bios bios/SCPH1001.BIN --disc "../roms/extraido/Crash Bandicoot (USA).cue"
---max-steps 400000000 --pad --dump-vram <f>`; o dump e VRAM crua 1024x512x16bpp, nao PNG, e o
-menu ja esta pronto em 400 M. **Rayman: sempre `--pad` e o `.cue` MULTI-TRILHA**, 1200000000.
+Rodar Crash: `--bios bios/SCPH1001.BIN --disc "../roms/extraido/Crash Bandicoot (USA).cue"
+--max-steps 1200000000 --pad --press start@330000000 --press cross@700000000`; o menu esta em
+330 M, a ilha em 600 M e o nivel em 720 M. Dump de VRAM e cru 1024x512x16bpp, nao PNG.
+**Rayman: sempre `--pad` e o `.cue` MULTI-TRILHA**, 1200000000.
 
 Achados abertos em `docs/achados.md`. Pendencias do lote A: 10.112 (SPU sem estado) e o resto de
 `cpu/io-access-bitwidth`. Lotes do oraculo: tarefa-modelo em
@@ -56,7 +58,7 @@ Invariantes relevantes: nenhuma.
 
 ## Placar de testes
 
-Workspace: **1055** testes.
+Workspace: **1059** testes.
 - **NUNCA rodar `cargo test` nem a bateria de mutação junto com o oráculo**: a disputa de CPU faz
   o `Start-Process` ler stdout antes do flush e reportar `sem-saida` falso. Derrubou 16/21 numa
   medição da 0170; rodada limpa deu 21/21.
@@ -64,9 +66,8 @@ Workspace: **1055** testes.
   seguinte medida no Rayman foi o caminho hook -> incremento. Imagens de disco ficam fora do
   repositorio, em `.../Programacao com agentes/roms/extraido/`.
   **Nunca commitar imagem de disco.**
-- **10.79/10.80/10.81 são diagnóstico, não correção**: `CAUSE.ExcCode=00h` em 1029 hooks;
-  `0xBFC00448` instala `0x4A1C` antes de `C(00h)`; nos 458 intervalos sem ack o `I_STAT` só tinha
-  bit 2 (CDROM) ou 3 (DMA).
+- **10.79/10.80/10.81 são diagnóstico, não correção**: `CAUSE.ExcCode=00h` em 1029 hooks; nos
+  458 intervalos sem ack o `I_STAT` só tinha bit 2 (CDROM) ou 3 (DMA).
 - **10.85 (0159)**: o laço final do Rayman é `0x801B9574`, esperando `[0x801CF2CC] >= 2`. A espera
   do memory card NÃO é o bloqueio: termina sozinha em 166.321.383 com `F4000001h,0100h`.
 - **Oraculo de hardware disponivel (0164)**: 51 EXEs em `tests/exes/` (gitignored). Amidog CPU

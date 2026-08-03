@@ -122,8 +122,8 @@ impl Sio {
             match count {
                 1 => 0x41,
                 2 => 0x5A,
-                3 => (self.button_state.get() >> 8) as u8,
-                4 => (self.button_state.get() & 0xFF) as u8,
+                3 => (self.button_state.get() & 0xFF) as u8,
+                4 => (self.button_state.get() >> 8) as u8,
                 _ => 0xFF,
             }
         };

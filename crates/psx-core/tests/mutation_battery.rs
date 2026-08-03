@@ -7,6 +7,17 @@ mod mutation_format;
 
 use mutation_format::{PRIMEIRA_ITER_COM_MANIFESTO, RecordKind, load_manifests, parse_resultado};
 
+/// O `.resultado` de um manifesto e o arquivo de mesmo nome. Casar so pelo prefixo de
+/// iteracao confunde manifestos irmaos: a 0186 tem dois, e o placar de um foi conferido
+/// contra o resultado do outro (7 registros contra 8) antes desta correcao.
+fn stem_do_manifesto(rel: &str) -> String {
+    std::path::Path::new(rel)
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .unwrap_or_default()
+        .to_string()
+}
+
 #[test]
 fn bateria_existencia_manifestos_ou_opt_out() {
     let root = support::repo_root();
@@ -76,7 +87,7 @@ fn bateria_resultados_consistem_com_manifestos() {
                     (p.extension().is_some_and(|e| e == "resultado")
                         && p.file_stem()
                             .and_then(|s| s.to_str())
-                            .is_some_and(|s| s.starts_with(&format!("{:04}", manifest.iteracao))))
+                            .is_some_and(|s| s == stem_do_manifesto(rel)))
                     .then_some(p)
                 })
                 .collect(),
@@ -215,7 +226,7 @@ fn bateria_nomes_de_teste_existem() {
     let mutantes_dir = root.join("docs/mutantes");
     let mut errs = Vec::new();
 
-    for (_path, rel, manifest) in &manifests {
+    for (_path, rel, _manifest) in &manifests {
         let candidates: Vec<_> = match fs::read_dir(&mutantes_dir) {
             Ok(entries) => entries
                 .filter_map(|e| {
@@ -223,7 +234,7 @@ fn bateria_nomes_de_teste_existem() {
                     (p.extension().is_some_and(|e| e == "resultado")
                         && p.file_stem()
                             .and_then(|s| s.to_str())
-                            .is_some_and(|s| s.starts_with(&format!("{:04}", manifest.iteracao))))
+                            .is_some_and(|s| s == stem_do_manifesto(rel)))
                     .then_some(p)
                 })
                 .collect(),
@@ -315,7 +326,7 @@ fn bateria_placar_bate_com_resultado() {
                     (p.extension().is_some_and(|e| e == "resultado")
                         && p.file_stem()
                             .and_then(|s| s.to_str())
-                            .is_some_and(|s| s.starts_with(&format!("{:04}", manifest.iteracao))))
+                            .is_some_and(|s| s == stem_do_manifesto(rel)))
                     .then_some(p)
                 })
                 .collect(),

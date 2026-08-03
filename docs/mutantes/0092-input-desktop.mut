@@ -16,8 +16,8 @@ rotulo: set_buttons ignora parametro (no-op, mantem 0xFFFF)
 mutante: m2
 rotulo: send_byte ignora button_state e sempre responde 0xFF para bytes 3 e 4
 @@DE
-                3 => (self.button_state.get() >> 8) as u8,
-                4 => (self.button_state.get() & 0xFF) as u8,
+                3 => (self.button_state.get() & 0xFF) as u8,
+                4 => (self.button_state.get() >> 8) as u8,
 @@PARA
                 3 => 0xFF,
                 4 => 0xFF,
@@ -26,9 +26,9 @@ rotulo: send_byte ignora button_state e sempre responde 0xFF para bytes 3 e 4
 mutante: m3
 rotulo: send_byte troca high/low dos botoes (shift errado)
 @@DE
-                3 => (self.button_state.get() >> 8) as u8,
-@@PARA
                 3 => (self.button_state.get() & 0xFF) as u8,
+@@PARA
+                3 => (self.button_state.get() >> 8) as u8,
 @@FIM
 
 mutante: m4
@@ -42,8 +42,8 @@ rotulo: button_state inicializado com zero em vez de 0xFFFF
 mutante: m5
 rotulo: send_byte retorna 0x00 para bytes de botao em vez do estado real
 @@DE
-                3 => (self.button_state.get() >> 8) as u8,
-                4 => (self.button_state.get() & 0xFF) as u8,
+                3 => (self.button_state.get() & 0xFF) as u8,
+                4 => (self.button_state.get() >> 8) as u8,
 @@PARA
                 3 => 0x00,
                 4 => 0x00,

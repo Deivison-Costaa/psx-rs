@@ -183,18 +183,53 @@ fn botoes_pressionados_aparecem_na_resposta_42h() {
     sio.write_tx(0x00);
     assert_eq!(sio.read_rx(), 0x5A, "ID high = 0x5A");
 
+    // § Controller Transfer (L546-549): a ordem e "swlo  Receive Digital Switches
+    // bit0..7" e SO DEPOIS "swhi  ... bit8..15". § Standard Controllers (L618-625):
+    // bit3 = Start, bit14 = Cross. Trocar os dois bytes entrega Start ao jogo na
+    // posicao de R1 — foi o que impediu o Crash de sair do menu (achado 0186.1).
     sio.write_tx(0x00);
     assert_eq!(
         sio.read_rx(),
-        0xBF,
-        "buttons high: Start(bit3)=0, Cross(bit14)=0 -> bit15-8 = 10111111 = 0xBF"
+        0xF7,
+        "swlo (bit0..7) vem primeiro: Start(bit3)=0 -> 11110111 = 0xF7"
     );
 
     sio.write_tx(0x00);
     assert_eq!(
         sio.read_rx(),
+        0xBF,
+        "swhi (bit8..15) vem depois: Cross(bit14)=0 -> 10111111 = 0xBF"
+    );
+
+    sio.write_ctrl(0x0000);
+}
+
+#[test]
+fn start_sozinho_sai_no_primeiro_byte_de_switches() {
+    let sio = Sio::new();
+    sio.connect_digital_pad(true);
+    sio.set_buttons(!(1u16 << 3));
+
+    sio.write_ctrl(0x0002);
+    sio.write_tx(0x01);
+    let _ = sio.read_rx();
+    sio.write_tx(0x42);
+    let _ = sio.read_rx();
+    sio.write_tx(0x00);
+    let _ = sio.read_rx();
+
+    sio.write_tx(0x00);
+    assert_eq!(
+        sio.read_rx(),
         0xF7,
-        "buttons low: Cross(bit14) no low, Start(bit3)=0 -> bit7-0 = 11110111 = 0xF7"
+        "Start e o bit3 do swlo, que e o PRIMEIRO byte de switches"
+    );
+
+    sio.write_tx(0x00);
+    assert_eq!(
+        sio.read_rx(),
+        0xFF,
+        "nenhum botao do swhi (L2/R2/L1/R1/triangulo/circulo/cross/quadrado) foi apertado"
     );
 
     sio.write_ctrl(0x0000);

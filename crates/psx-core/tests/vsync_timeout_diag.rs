@@ -487,10 +487,13 @@ fn diagnostico_vsync_timeout_rayman() {
          cadeia de dispatch regrediu de verdade — o que a versao anterior deste teste afirmava \
          lendo 0x801DF2CC, endereco fora do executavel do jogo."
     );
+    // § Priority Chains (L1484-1502) de docs/reference/13-kernel-bios.md: `VblankIrq` esta na
+    // prioridade 1, faz o ack e chama ReturnFromException, o que PULA o hook do jogo. Que o
+    // contador do jogo fique atras do numero de VBlanks no comeco e, portanto, correto — nao
+    // defeito. Esta assercao existe para pegar contagem em duplicidade.
     assert!(
         (counter as u64) < irq0_total,
-        "o contador ({counter}) passou o numero de VBlanks ({irq0_total}) — se isso acontecer, \
-         ou o defeito 0182.2 foi corrigido (atualize este teste e o achado) ou ha incremento \
-         em duplicidade."
+        "o contador ({counter}) passou o numero de VBlanks ({irq0_total}): so pode ser \
+         incremento em duplicidade."
     );
 }

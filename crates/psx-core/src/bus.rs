@@ -732,6 +732,31 @@ impl Bus {
         self.ram.data[idx + 1] = bytes[1];
     }
 
+    /// § Caution - 8/16-bit writes to certain IO registers (L309) de docs/reference/02-cpu.md:
+    /// o registrador de DMA nao decodifica os byte-enables do barramento, entao um `sb`/`sh`
+    /// carrega os 32 bits inteiros de `rt` como se fosse um `sw` alinhado.
+    fn e_registrador_dma_de_32_bits(phys: u32) -> bool {
+        matches!(phys, 0x1F80_1080..=0x1F80_10EC | 0x1F80_10F0 | 0x1F80_10F4)
+    }
+
+    pub fn write8_gpr_completo<Op: MemoryOp>(&mut self, addr: u32, gpr: u32) {
+        let phys = Self::to_physical(addr);
+        if Self::e_registrador_dma_de_32_bits(phys) {
+            self.write32::<Op>(addr & !0x3, gpr);
+            return;
+        }
+        self.write8::<Op>(addr, gpr as u8);
+    }
+
+    pub fn write16_gpr_completo<Op: MemoryOp>(&mut self, addr: u32, gpr: u32) {
+        let phys = Self::to_physical(addr);
+        if Self::e_registrador_dma_de_32_bits(phys) {
+            self.write32::<Op>(addr & !0x3, gpr);
+            return;
+        }
+        self.write16::<Op>(addr, gpr as u16);
+    }
+
     pub fn load_cycles(addr: u32) -> u32 {
         match Self::to_physical(addr) {
             0x1F80_0000..=0x1F80_03FF => 1,

@@ -756,8 +756,8 @@ impl Cpu {
         if self.is_isc() {
             return;
         }
-        let val = self.reg(rt) as u8;
-        bus.write8::<BusRead>(addr, val);
+        let val = self.reg(rt);
+        bus.write8_gpr_completo::<BusRead>(addr, val);
     }
 
     fn sh(&mut self, instr: u32, bus: &mut Bus) {
@@ -772,8 +772,8 @@ impl Cpu {
         if self.is_isc() {
             return;
         }
-        let val = self.reg(rt) as u16;
-        bus.write16::<BusRead>(addr, val);
+        let val = self.reg(rt);
+        bus.write16_gpr_completo::<BusRead>(addr, val);
     }
 
     fn lwl(&mut self, instr: u32, bus: &Bus) -> (usize, u32) {

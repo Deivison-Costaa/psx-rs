@@ -7,17 +7,19 @@
 
 ## Última iteração concluída
 
-**0182** — **o diagnóstico do VSync lia RAM intocada.** `vsync_timeout_diag` checava o contador
-de VBlank do jogo em `0x801DF2CC`, que cai **fora** do executável (`0x80125000..0x801CF800`), e
-com a suíte verde afirmava que "o handler nunca incrementou o contador" e que "a cadeia ExCB/EvCB
-nao contem entrada para F0000001". As duas sao falsas: o contador certo e `0x801CF2CC` (um digito
-de diferenca, o mesmo que o achado 10.85 ja citava) e vale **1469** em 700 M passos; `F0000001` e
-entregue **1723** vezes. O que sobra, medido, e defasagem: no primeiro `VSync: timeout` o contador
-esta em **1** com 660 IRQ0 e 1470 handlers (achado 0182.2).
+**0183** — **o achado 0182.2 era comportamento correto; fechado como refutado.** Instrumentei o
+`sw` e 345 de 348 acks do bit 0 de `I_STAT` vem de `pc=0x00004A20`, codigo da BIOS (o `0x4A1C` do
+achado 10.80), sempre ANTES do despachante do jogo. Registrei isso como defeito; nao e.
+§ Priority Chains (L1484-1502) de docs/reference/13-kernel-bios.md poe `VblankIrq` na prioridade 1,
+e § B(19h) - HookEntryInt (L1476-1479) diz que o hook do jogo e **pulado** quando um handler chama
+`ReturnFromException`. O jogo recebe VBlank pelo caminho certo: `DeliverEvent(F0000001)` 1723x e o
+contador dele chega a 1469. O `VSync: timeout` e da PSY-Q linkada no jogo, nao da BIOS.
 
 ## Próxima tarefa
 
-**Achado 0182.2 (defasagem do contador de VBlank) e 10.94 (nova parada do Rayman).** O jogo agora carrega
+**Achado 10.94 — a alca `0x80132BF0` do Rayman.** Ela espera o byte de completude de um
+descritor de 20 bytes na tabela em `0x801CF5E0`; `0x80132B50` zera esse byte antes de despachar o
+pedido, e nada o levanta. **O VBlank nao e o bloqueio** (ver 0183). O jogo agora carrega
 `cdrom:SLUS-000.05;1`, imprime `Execute !` e o `PS-X Control PAD Driver Ver 3.0`, e para em
 `0x80132BF0`: `while (*(u8*)$s0 == 0) {}`, logo depois que `0x80133F40` retorna. Continuam **296**
 `VSync: timeout` — o 10.90 nunca foi tocado e e o proximo obstaculo provavel.

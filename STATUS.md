@@ -46,7 +46,7 @@ Invariantes relevantes: nenhuma.
 
 ## Placar de testes
 
-Workspace: **972** testes.
+Workspace: **975** testes.
 
 ## Bloqueios
 
@@ -67,8 +67,7 @@ Workspace: **972** testes.
 - **10.85 (0159)**: o laço final do Rayman é `0x801B9574`, esperando `[0x801CF2CC] >= 2`. A espera
   do memory card NÃO é o bloqueio: termina sozinha em 166.321.383 com `F4000001h,0100h`.
 - **Oraculo de hardware disponivel (0164)**: 51 EXEs em `tests/exes/` (gitignored). Amidog CPU
-  em `Result: 00000101` (0166; era `00000109`). Depurar o CPU contra ele custa menos que
-  inferir de jogo.
+  em `Result: 00000101` (0166). Depurar contra ele custa menos que inferir de jogo.
 - **Rayman: a CPU nao era a causa (0167, medido)**: com o Amidog em 0 erros o jogo se comporta
   identico ao de antes das tres correcoes. A cadeia de auto-ack de 0158-0163 descreve a parada
   de ~166 M; em 590-600 M o jogo ja esta noutro laco (10.94). Nao retomar Rayman por inferencia:
@@ -83,9 +82,8 @@ Workspace: **972** testes.
   quem religa depois do `ChangeClearPAD(0)` do jogo é o próprio `StartPAD2`. Não procurar defeito aí.
 - **Duas correções de SIO0 (0159, 0160) são da spec e NÃO mexeram no boot** — o histograma de PC
   dos últimos 20 M passos é idêntico byte a byte. Não gastar rodada nova no SIO0 esperando boot.
-- **10.83 diagnóstico (0158, já revisado)**: a ativação 0 não visita `0x4A1C`; a posterior visita
-  depois do nó `0x74A8` de prioridade 2, inserido pelo BIOS (não pelo jogo). A caminhada da
-  ativação 0 chega ao fim (prioridade 3, `0x2458`) — `0x4A1C` estava fora das cadeias, não pulado.
+- **10.83 diagnóstico (0158)**: a ativação 0 não visita `0x4A1C`; ele estava fora das cadeias,
+  não pulado.
 - **Premissa refutada:** o slot `$v1+0x18` não muda entre boots (0147). O defeito não está
   no valor do slot mas no encaixe temporal entre `SysInitMemory` e o enfileiramento dos
   handlers do jogo.

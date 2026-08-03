@@ -61,7 +61,34 @@ Nenhum manifesto antigo tem âncora em `bcondz`; `mutation_anchors` não acusou 
 
 ## Revisão cruzada (orquestrador)
 
-Pendente — preenchida pelo orquestrador durante a revisão do PR, antes do merge.
+Primeira rodada conduzida por `claude-sonnet-5` como trabalhador (as anteriores foram
+`gpt-5.6-luna` ou o próprio orquestrador). Revisada antes do merge.
+
+**Aprovado sem correção.** O que eu conferi, e por quê:
+
+1. **A regra empírica bate com o hardware documentado fora deste repositório.** `rt`=10h/11h
+   exatamente é o mesmo conjunto que `(rt AND 1Eh) == 10h`, isto é, bits 20..17 = 1000b — o
+   critério que a invariante 3 já tinha registrado como palpite. O trabalhador chegou nele pelo
+   oráculo, sem tê-lo lido pronto, e derrubou a própria primeira tentativa (`rt & 10h != 0`)
+   quando o Amidog reprovou `b_0x12`..`b_0x1f`. Erro de primeira tentativa registrado no doc.
+2. **A alteração em teste existente não afrouxa nada.** `bcondz_rt_fora_da_tabela_*` afirmava
+   `pc == 0x8` com a mensagem "SUPOSICAO NAO VERIFICADA"; virou `pc == 0x14` medido. Trocar um
+   marcador de dúvida por um valor de hardware é o desfecho previsto pela própria invariante 3,
+   não um teste enfraquecido para passar.
+3. **O teste distingue o caso que importa em `rs == $ra`.** Se a comparação usasse o valor
+   pós-link (8), `bltzal` deixaria de desviar e `bgezal` passaria a desviar — o teste fixa os
+   dois sentidos, então não é vacuoso.
+4. **Nenhum mutante morreu de erro de compilação.** As sete linhas `error:` do log são o
+   `test failed` do cargo; `error[E…]` não aparece nenhuma vez, e há 14 `panicked` de asserção.
+   O `.resultado` versionado ainda registra qual teste matou cada mutante.
+5. Portão reexecutado pelo orquestrador na árvore limpa: 921 testes, `fmt --check` e
+   `clippy -D warnings` verdes; CI verde nos quatro jobs.
+
+**Ressalva que fica aberta, e não deve virar comemoração:** o relatório de erro do Amidog está
+vazio, mas `Result` é `00000101`, não `00000000`. Os bits 0x001 e 0x100 estavam ligados em todas
+as medições, inclusive nas de 4.918 erros, e não caíram junto com nenhuma família — a hipótese é
+que não sejam bits de falha, mas é hipótese. Não escrever em lugar nenhum que a CPU passa limpa
+antes de decodificar esse valor.
 
 ## Decisões e notas
 

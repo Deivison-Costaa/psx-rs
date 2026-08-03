@@ -1,4 +1,4 @@
-use psx_core::pad_script::{PadScript, DEFAULT_PRESS_STEPS, RELEASED};
+use psx_core::pad_script::{DEFAULT_PRESS_STEPS, PadScript, RELEASED};
 
 fn script(specs: &[&str]) -> PadScript {
     let owned: Vec<String> = specs.iter().map(|s| s.to_string()).collect();
@@ -16,16 +16,35 @@ fn sem_aperto_nenhum_todos_os_bits_ficam_soltos() {
 #[test]
 fn start_apertado_zera_o_bit_3_so_dentro_da_janela() {
     let s = script(&["start@1000:500"]);
-    assert_eq!(s.buttons_at(999), RELEASED, "antes do passo o botao esta solto");
-    assert_eq!(s.buttons_at(1000), RELEASED & !(1 << 3), "no passo inicial ja vale");
-    assert_eq!(s.buttons_at(1499), RELEASED & !(1 << 3), "ultimo passo da janela");
-    assert_eq!(s.buttons_at(1500), RELEASED, "a janela e semiaberta: solta no fim");
+    assert_eq!(
+        s.buttons_at(999),
+        RELEASED,
+        "antes do passo o botao esta solto"
+    );
+    assert_eq!(
+        s.buttons_at(1000),
+        RELEASED & !(1 << 3),
+        "no passo inicial ja vale"
+    );
+    assert_eq!(
+        s.buttons_at(1499),
+        RELEASED & !(1 << 3),
+        "ultimo passo da janela"
+    );
+    assert_eq!(
+        s.buttons_at(1500),
+        RELEASED,
+        "a janela e semiaberta: solta no fim"
+    );
 }
 
 #[test]
 fn duracao_omitida_usa_o_padrao() {
     let s = script(&["cross@10"]);
-    assert_eq!(s.buttons_at(10 + DEFAULT_PRESS_STEPS - 1), RELEASED & !(1 << 14));
+    assert_eq!(
+        s.buttons_at(10 + DEFAULT_PRESS_STEPS - 1),
+        RELEASED & !(1 << 14)
+    );
     assert_eq!(s.buttons_at(10 + DEFAULT_PRESS_STEPS), RELEASED);
 }
 
@@ -72,14 +91,28 @@ fn os_dezesseis_nomes_batem_com_a_ordem_de_bits_da_spec() {
 
 #[test]
 fn o_nome_do_botao_nao_depende_de_caixa() {
-    assert_eq!(script(&["START@0:1"]).buttons_at(0), script(&["start@0:1"]).buttons_at(0));
+    assert_eq!(
+        script(&["START@0:1"]).buttons_at(0),
+        script(&["start@0:1"]).buttons_at(0)
+    );
 }
 
 #[test]
 fn especificacao_malformada_e_erro_com_o_texto_ofensor() {
-    for ruim in ["start", "start@", "@100", "start@abc", "botao@100", "start@100:0", "start@1:x"] {
+    for ruim in [
+        "start",
+        "start@",
+        "@100",
+        "start@abc",
+        "botao@100",
+        "start@100:0",
+        "start@1:x",
+    ] {
         let erro = PadScript::parse(&[ruim.to_string()]).expect_err(ruim);
-        assert!(erro.contains(ruim), "a mensagem deve citar '{ruim}', veio '{erro}'");
+        assert!(
+            erro.contains(ruim),
+            "a mensagem deve citar '{ruim}', veio '{erro}'"
+        );
     }
 }
 

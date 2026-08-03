@@ -1,6 +1,7 @@
 use psx_core::bus::{Bios, Bus, BusRead, Ram};
 use psx_core::cdrom_bin_cue::{DiscLayout, parse_cue};
 use psx_core::cpu::Cpu;
+use psx_core::pad_script::{PadScript, RELEASED};
 use std::collections::HashSet;
 use std::io::Read;
 use std::io::Write;
@@ -36,12 +37,25 @@ fn run(
     max_steps: usize,
     trace_pcs: &HashSet<u32>,
     sample_pcs: Option<(usize, usize, usize)>,
+    pad: &PadScript,
 ) -> usize {
     let mut steps = 0;
+    let mut pad_state = RELEASED;
+    if !pad.is_empty() {
+        bus.sio_mut().set_buttons(pad_state);
+    }
     let mut deliver_event_pc: Option<u32> = None;
     while steps < max_steps {
         cpu.step(bus);
         steps += 1;
+
+        if !pad.is_empty() {
+            let desejado = pad.buttons_at(steps as u64);
+            if desejado != pad_state {
+                pad_state = desejado;
+                bus.sio_mut().set_buttons(pad_state);
+            }
+        }
 
         if let Some((start, end, stride)) = sample_pcs {
             if steps >= start && steps <= end && (steps - start) % stride == 0 {
@@ -161,6 +175,8 @@ fn main() {
     let mut dump_mem: Vec<(u32, usize)> = Vec::new();
     let mut dump_vram: Option<String> = None;
     let mut sample_pcs: Option<(usize, usize, usize)> = None;
+    let mut pad_connected = false;
+    let mut press_specs: Vec<String> = Vec::new();
     let mut i = 1;
     while i < args.len() {
         match args[i].as_str() {
@@ -170,6 +186,15 @@ fn main() {
             }
             "--exe" if i + 1 < args.len() => {
                 exe_arg = Some(args[i + 1].clone());
+                i += 2;
+            }
+            "--pad" => {
+                pad_connected = true;
+                i += 1;
+            }
+            "--press" if i + 1 < args.len() => {
+                press_specs.push(args[i + 1].clone());
+                pad_connected = true;
                 i += 2;
             }
             "--disc" if i + 1 < args.len() => {
@@ -270,6 +295,10 @@ fn main() {
                     }
                 }
             }
+            "--press" => {
+                eprintln!("Erro: '--press' requer BOTAO@PASSO[:DURACAO]");
+                std::process::exit(1);
+            }
             "--max-steps" | "--trace-pcs" | "--dump-vram" | "--sample-pcs" => {
                 eprintln!("Erro: '{}' requer um valor", args[i]);
                 std::process::exit(1);
@@ -281,6 +310,13 @@ fn main() {
         }
     }
     let max_steps = max_steps.unwrap_or(RUNNER_MAX_STEPS);
+    let pad_script = match PadScript::parse(&press_specs) {
+        Ok(p) => p,
+        Err(e) => {
+            eprintln!("Erro: --press {}", e);
+            std::process::exit(1);
+        }
+    };
 
     if disc_arg.is_some() && bios_arg.is_none() {
         eprintln!("Erro: --disc requer --bios <caminho_da_BIOS>");
@@ -335,7 +371,17 @@ fn main() {
 
             psx_core::psexe::install_return_stubs(&mut bus);
 
-            let steps = run(&mut cpu, &mut bus, max_steps, &trace_pcs, sample_pcs);
+            if pad_connected {
+                bus.sio_mut().connect_digital_pad(true);
+            }
+            let steps = run(
+                &mut cpu,
+                &mut bus,
+                max_steps,
+                &trace_pcs,
+                sample_pcs,
+                &pad_script,
+            );
 
             let tty = bus.take_tty();
             if !tty.is_empty() {
@@ -395,7 +441,17 @@ fn main() {
                 bus.cdrom_mut().insert_disc();
             }
 
-            let steps = run(&mut cpu, &mut bus, max_steps, &trace_pcs, sample_pcs);
+            if pad_connected {
+                bus.sio_mut().connect_digital_pad(true);
+            }
+            let steps = run(
+                &mut cpu,
+                &mut bus,
+                max_steps,
+                &trace_pcs,
+                sample_pcs,
+                &pad_script,
+            );
 
             let tty = bus.take_tty();
             if !tty.is_empty() {
@@ -455,5 +511,6 @@ fn main() {
     }
 
     eprintln!("Uso: psx-cli [--version | --bios <caminho> [--exe <caminho>] [--disc <caminho>]]");
+    eprintln!("     [--pad] [--press BOTAO@PASSO[:DURACAO]]");
     std::process::exit(1);
 }

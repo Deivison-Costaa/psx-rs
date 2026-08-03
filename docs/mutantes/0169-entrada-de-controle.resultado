@@ -1,0 +1,7 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: 0ab16124694076174c86a122e4e3e7bbf77ced13
+# rodado_em: 2026-08-02T23:03:16-03:00
+m1,mutante,morreu,morreu,0.9,a_janela_de_um_aperto_nunca_e_vazia;os_dezesseis_nomes_batem_com_a_ordem_de_bits_da_spec;start_apertado_zera_o_bit_3_so_dentro_da_janela
+m2,mutante,morreu,morreu,0.5,a_janela_de_um_aperto_nunca_e_vazia;duracao_omitida_usa_o_padrao;start_apertado_zera_o_bit_3_so_dentro_da_janela
+m3,mutante,morreu,morreu,0.5,a_janela_de_um_aperto_nunca_e_vazia;apertos_sobrepostos_zeram_os_dois_bits;duracao_omitida_usa_o_padrao;os_dezesseis_nomes_batem_com_a_ordem_de_bits_da_spec;start_apertado_zera_o_bit_3_so_dentro_da_janela
+m4,mutante,morreu,morreu,0.5,especificacao_malformada_e_erro_com_o_texto_ofensor

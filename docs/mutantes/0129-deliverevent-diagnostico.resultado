@@ -1,10 +1,10 @@
-# gerado por bateria MANUAL (invariante 29): alvo fora de crates/psx-core/, mutantes.ps1:366 pula
-# commit: d6cfbf8cb1bca00d49c241b593cf1536f13d9b26
-# rodado_em: 2026-08-01T19:37:57-03:00
-m1,mutante,morreu,morreu,0.4,trace_format_inclui_a1_na_saida
-m2,mutante,morreu,morreu,0.4,trace_format_inclui_a1_na_saida
-m3,mutante,morreu,morreu,0.4,trace_format_inclui_a1_na_saida
-m4,mutante,morreu,morreu,0.4,trace_format_inclui_a1_na_saida
-m5,mutante,morreu,morreu,0.4,trace_format_inclui_a1_na_saida
-c1,controle,sobreviveu,sobreviveu,0.4,
-c2,controle,sobreviveu,sobreviveu,0.4,
+# gerado por bateria manual (alvo fora do psx-core, invariante 29 / ROADMAP 10.58)
+# commit: c28380e06c635037d2918bb65bdc623ff2117868
+# rodado_em: manual
+m1,mutante,morreu,morreu,0.0,trace_format_inclui_a1_na_saida
+m2,mutante,morreu,morreu,0.0,trace_format_inclui_a1_na_saida
+m3,mutante,morreu,morreu,0.0,trace_format_inclui_a1_na_saida
+m4,mutante,morreu,morreu,0.0,trace_format_inclui_a1_na_saida
+m5,mutante,morreu,morreu,0.0,trace_format_inclui_a1_na_saida
+c1,controle,sobreviveu,sobreviveu,0.0,
+c2,controle,sobreviveu,sobreviveu,0.0,

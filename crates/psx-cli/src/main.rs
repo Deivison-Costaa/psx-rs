@@ -49,15 +49,22 @@ fn resolve_btable_entry(bus: &Bus, index: u32) -> Option<u32> {
     if addr == 0 { None } else { Some(addr) }
 }
 
-fn run(
-    cpu: &mut Cpu,
-    bus: &mut Bus,
-    max_steps: usize,
-    trace_pcs: &HashSet<u32>,
+/// Sondas que so existem para medir uma rodada; nenhuma delas muda o que o
+/// emulador executa.
+struct Sondas<'a> {
+    trace_pcs: &'a HashSet<u32>,
     sample_pcs: Option<(usize, usize, usize)>,
-    pad: &PadScript,
-    watch_mem: &[u32],
-) -> usize {
+    watch_mem: &'a [u32],
+    vram_timeline: Option<(usize, &'a str)>,
+}
+
+fn run(cpu: &mut Cpu, bus: &mut Bus, max_steps: usize, pad: &PadScript, sondas: &Sondas) -> usize {
+    let Sondas {
+        trace_pcs,
+        sample_pcs,
+        watch_mem,
+        vram_timeline,
+    } = *sondas;
     let mut steps = 0;
     // Comparar antes/depois de cada passo atribui a escrita ao PC exato que a fez. Foi assim
     // que a 0182 descobriu quem apagava o IRQ0 do Rayman em minutos, depois de horas de
@@ -92,6 +99,12 @@ fn run(
             if desejado != pad_state {
                 pad_state = desejado;
                 bus.sio_mut().set_buttons(pad_state);
+            }
+        }
+
+        if let Some((cada, prefixo)) = vram_timeline {
+            if steps % cada == 0 {
+                write_vram_dump(&format!("{prefixo}-{}.vram", steps / cada), bus);
             }
         }
 
@@ -223,6 +236,7 @@ fn main() {
     let mut watch_mem: Vec<u32> = Vec::new();
     let mut dump_mem: Vec<(u32, usize)> = Vec::new();
     let mut dump_vram: Option<String> = None;
+    let mut vram_timeline: Option<(usize, String)> = None;
     let mut sample_pcs: Option<(usize, usize, usize)> = None;
     let mut pad_connected = false;
     let mut press_specs: Vec<String> = Vec::new();
@@ -328,6 +342,16 @@ fn main() {
                 dump_mem.push((addr, len));
                 i += 3;
             }
+            "--dump-vram-every" if i + 2 < args.len() => {
+                match args[i + 1].parse::<usize>() {
+                    Ok(n) if n > 0 => vram_timeline = Some((n, args[i + 2].clone())),
+                    _ => {
+                        eprintln!("Erro: --dump-vram-every espera N PREFIXO com N > 0");
+                        std::process::exit(1);
+                    }
+                }
+                i += 3;
+            }
             "--dump-vram" if i + 1 < args.len() => {
                 dump_vram = Some(args[i + 1].clone());
                 i += 2;
@@ -364,7 +388,8 @@ fn main() {
                 eprintln!("Erro: '--press' requer BOTAO@PASSO[:DURACAO]");
                 std::process::exit(1);
             }
-            "--max-steps" | "--trace-pcs" | "--dump-vram" | "--sample-pcs" | "--watch-mem" => {
+            "--max-steps" | "--trace-pcs" | "--dump-vram" | "--sample-pcs" | "--watch-mem"
+            | "--dump-vram-every" => {
                 eprintln!("Erro: '{}' requer um valor", args[i]);
                 std::process::exit(1);
             }
@@ -445,10 +470,13 @@ fn main() {
                 &mut cpu,
                 &mut bus,
                 max_steps,
-                &trace_pcs,
-                sample_pcs,
                 &pad_script,
-                &watch_mem,
+                &Sondas {
+                    trace_pcs: &trace_pcs,
+                    sample_pcs,
+                    watch_mem: &watch_mem,
+                    vram_timeline: vram_timeline.as_ref().map(|(n, p)| (*n, p.as_str())),
+                },
             );
 
             let tty = bus.take_tty();
@@ -516,10 +544,13 @@ fn main() {
                 &mut cpu,
                 &mut bus,
                 max_steps,
-                &trace_pcs,
-                sample_pcs,
                 &pad_script,
-                &watch_mem,
+                &Sondas {
+                    trace_pcs: &trace_pcs,
+                    sample_pcs,
+                    watch_mem: &watch_mem,
+                    vram_timeline: vram_timeline.as_ref().map(|(n, p)| (*n, p.as_str())),
+                },
             );
 
             let tty = bus.take_tty();

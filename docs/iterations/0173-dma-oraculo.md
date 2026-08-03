@@ -39,9 +39,9 @@ suíte e CI — decisão do usuário, registrada aqui para o histórico não men
 verdade), mas ao estourar esse teto sinalizava conclusão do mesmo jeito que um end-marker real.
 A spec (`docs/reference/04-dma.md`, § Linked List DMA L211) só descreve o caminho feliz — "a
 transferência para quando um end-marker é alcançado" — e é omissa sobre o que acontece quando
-ele **nunca** é alcançado; o
-gabarito (`psx.log`) foi o oráculo usado: `finished = false, irq = false` para cadeia
-auto-referente e para ciclo de dois nós. A correção introduz `alcancou_fim: bool`, só `true`
+ele **nunca** é alcançado; o gabarito (`psx.log`) foi o oráculo usado: `finished = false,
+irq = false` para cadeia auto-referente e para ciclo de dois nós. A correção introduz
+`alcancou_fim: bool`, só `true`
 quando o laço termina por end-marker real (ou por RAM fora dos limites, caminho inalterado); o
 teto de segurança agora deixa o canal **ocupado para sempre** em vez de completar.
 

@@ -21,6 +21,7 @@ const D2_MADR: u32 = 0x1F80_10A0;
 const D2_BCR: u32 = 0x1F80_10A4;
 const D2_CHCR: u32 = 0x1F80_10A8;
 const DPCR: u32 = 0x1F80_10F0;
+const GPUSTAT: u32 = 0x1F80_1814;
 
 const BASE: u32 = 0x0001_0000;
 const FIM: u32 = 0x00FF_FFFF;
@@ -85,13 +86,17 @@ fn cadeia_longa_entrega_todas_as_palavras_ao_gp0() {
     habilitar_canal2(&mut bus);
 
     // 5000 nos de 1 palavra extra cada: header, dado, header, dado...
-    // O dado e GP0(01h) "Clear Cache", que nao mexe em VRAM nem na FIFO de resposta.
+    // Cada dado e um GP0(E1h), que aterrissa nos bits 0-10 do GPUSTAT. O ultimo no
+    // leva um valor diferente dos outros, entao o GPUSTAT final so bate se a cadeia
+    // foi ate o fim E cada palavra saiu do lugar certo.
     let nos = 5000u32;
     for i in 0..nos {
         let addr = BASE + i * 8;
-        let proximo = if i + 1 == nos { FIM } else { addr + 8 };
+        let ultimo = i + 1 == nos;
+        let proximo = if ultimo { FIM } else { addr + 8 };
+        let texpage = if ultimo { 0x1F } else { 0x0A };
         bus.write32::<BusRead>(addr, (1 << 24) | (proximo & 0x00FF_FFFF));
-        bus.write32::<BusRead>(addr + 4, 0x0100_0000);
+        bus.write32::<BusRead>(addr + 4, 0xE100_0000 | texpage);
     }
     dispara(&mut bus);
 
@@ -104,5 +109,11 @@ fn cadeia_longa_entrega_todas_as_palavras_ao_gp0() {
         bus.read32::<BusRead>(D2_MADR),
         FIM,
         "MADR final e o end marker mesmo com 5000 nos"
+    );
+    assert_eq!(
+        bus.read32::<BusRead>(GPUSTAT) & 0x7FF,
+        0x1F,
+        "GPUSTAT tem o E1h do ULTIMO no: a cadeia inteira passou pelo GP0, cada \
+         palavra lida do endereco certo"
     );
 }

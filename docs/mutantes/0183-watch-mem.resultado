@@ -1,0 +1,11 @@
+# gerado a mao: scripts/mutantes.ps1 recusa alvo fora de psx-core (achado 10.58)
+# commit: 74c8682bf7fb7d13e5e3383a00b604758b975b74
+# rodado_em: 2026-08-03T10:30:26-03:00
+m1,mutante,morreu,morreu,1.0,watch_mem_atribui_a_escrita_ao_pc_que_a_fez;watch_mem_culpa_a_instrucao_de_store_e_nao_a_seguinte
+m2,mutante,morreu,morreu,27.2,watch_mem_culpa_a_instrucao_de_store_e_nao_a_seguinte;watch_mem_em_memoria_somente_leitura_nao_reporta_nada;watch_mem_nao_reporta_passo_que_nao_mudou_nada
+m3,mutante,morreu,morreu,41.4,watch_mem_nao_reporta_passo_que_nao_mudou_nada
+m4,mutante,morreu,morreu,1.2,watch_mem_culpa_a_instrucao_de_store_e_nao_a_seguinte
+m5,mutante,morreu,morreu,1.2,watch_mem_recusa_endereco_invalido
+m6,mutante,morreu,morreu,1.2,watch_mem_em_memoria_somente_leitura_nao_reporta_nada
+c1,controle,sobreviveu,sobreviveu,1.2,
+c2,controle,sobreviveu,sobreviveu,1.2,

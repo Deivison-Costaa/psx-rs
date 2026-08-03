@@ -84,3 +84,4 @@
 ## Iteração 0181 em diante (`NNNN.k`)
 
 - [ ] 0181.1 `docs/relatorio.md` e `docs/orquestracao.md` ainda descrevem o ROADMAP unico (0181)
+- [ ] 0183.2 Rayman trava em `0x80132BF0` esperando byte0 de `[0x801CF5F4]`; ninguem no jogo escreve nesse byte (0183)

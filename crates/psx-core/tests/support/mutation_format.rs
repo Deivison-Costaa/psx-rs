@@ -435,6 +435,12 @@ pub fn parse_resultado(content: &str) -> Result<(String, Vec<ResultadoRow>), Vec
         if trimmed.starts_with("# gerado por") {
             continue;
         }
+        // `scripts/mutantes.ps1` recusa alvo fora do `psx-core` (achado 10.58). Ate isso mudar,
+        // esses alvos so tem bateria se alguem rodar a mao — e o cabecalho tem de DIZER isso,
+        // em vez de se disfarcar de saida do script.
+        if trimmed.starts_with("# gerado a mao") {
+            continue;
+        }
         if let Some(rest) = trimmed.strip_prefix("# commit: ") {
             commit = Some(rest.to_string());
             continue;

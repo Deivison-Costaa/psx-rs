@@ -56,16 +56,36 @@ fn run(
     trace_pcs: &HashSet<u32>,
     sample_pcs: Option<(usize, usize, usize)>,
     pad: &PadScript,
+    watch_mem: &[u32],
 ) -> usize {
     let mut steps = 0;
+    // Comparar antes/depois de cada passo atribui a escrita ao PC exato que a fez. Foi assim
+    // que a 0182 descobriu quem apagava o IRQ0 do Rayman em minutos, depois de horas de
+    // desmontagem a mao.
+    let mut watch_valores: Vec<u32> = watch_mem
+        .iter()
+        .map(|&a| bus.read32::<BusRead>(a))
+        .collect();
     let mut pad_state = RELEASED;
     if !pad.is_empty() {
         bus.sio_mut().set_buttons(pad_state);
     }
     let mut deliver_event_pc: Option<u32> = None;
     while steps < max_steps {
+        let pc_antes = cpu.pc;
         cpu.step(bus);
         steps += 1;
+
+        for (idx, &addr) in watch_mem.iter().enumerate() {
+            let agora = bus.read32::<BusRead>(addr);
+            if agora != watch_valores[idx] {
+                eprintln!(
+                    "watch {:08X}: passo={} pc=0x{:08X} de=0x{:08X} para=0x{:08X}",
+                    addr, steps, pc_antes, watch_valores[idx], agora
+                );
+                watch_valores[idx] = agora;
+            }
+        }
 
         if !pad.is_empty() {
             let desejado = pad.buttons_at(steps as u64);
@@ -200,6 +220,7 @@ fn main() {
     let mut disc_arg: Option<String> = None;
     let mut max_steps: Option<usize> = None;
     let mut trace_pcs: HashSet<u32> = HashSet::new();
+    let mut watch_mem: Vec<u32> = Vec::new();
     let mut dump_mem: Vec<(u32, usize)> = Vec::new();
     let mut dump_vram: Option<String> = None;
     let mut sample_pcs: Option<(usize, usize, usize)> = None;
@@ -243,6 +264,22 @@ fn main() {
                     std::process::exit(1);
                 }
             },
+            "--watch-mem" if i + 1 < args.len() => {
+                for piece in args[i + 1].split(',') {
+                    let piece = piece.trim();
+                    match u32::from_str_radix(piece.trim_start_matches("0x"), 16) {
+                        Ok(addr) => watch_mem.push(addr & !3),
+                        Err(e) => {
+                            eprintln!(
+                                "Erro: '--watch-mem' espera enderecos hex, '{}': {}",
+                                piece, e
+                            );
+                            std::process::exit(1);
+                        }
+                    }
+                }
+                i += 2;
+            }
             "--trace-pcs" if i + 1 < args.len() => {
                 for piece in args[i + 1].split(',') {
                     let piece = piece.trim();
@@ -327,7 +364,7 @@ fn main() {
                 eprintln!("Erro: '--press' requer BOTAO@PASSO[:DURACAO]");
                 std::process::exit(1);
             }
-            "--max-steps" | "--trace-pcs" | "--dump-vram" | "--sample-pcs" => {
+            "--max-steps" | "--trace-pcs" | "--dump-vram" | "--sample-pcs" | "--watch-mem" => {
                 eprintln!("Erro: '{}' requer um valor", args[i]);
                 std::process::exit(1);
             }
@@ -411,6 +448,7 @@ fn main() {
                 &trace_pcs,
                 sample_pcs,
                 &pad_script,
+                &watch_mem,
             );
 
             let tty = bus.take_tty();
@@ -481,6 +519,7 @@ fn main() {
                 &trace_pcs,
                 sample_pcs,
                 &pad_script,
+                &watch_mem,
             );
 
             let tty = bus.take_tty();

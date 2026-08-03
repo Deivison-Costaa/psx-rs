@@ -1,0 +1,87 @@
+# Manifesto de mutacao da iteracao 0183 — observador de escrita por PC
+formato: 1
+iteracao: 0183
+item: 0183.1
+alvo: crates/psx-cli/src/main.rs
+teste: watch_mem
+
+mutante: m1
+rotulo: nunca compara, e nenhuma escrita e observada
+ocorrencias: 1
+@@DE
+            if agora != watch_valores[idx] {
+@@PARA
+            if false {
+@@FIM
+
+mutante: m2
+rotulo: observa sempre, e reporta escrita onde nao houve
+ocorrencias: 1
+@@DE
+            if agora != watch_valores[idx] {
+@@PARA
+            if true {
+@@FIM
+
+mutante: m3
+rotulo: esquece de atualizar o valor lembrado, e repete a mesma escrita para sempre
+ocorrencias: 1
+@@DE
+                watch_valores[idx] = agora;
+@@PARA
+                watch_valores[idx] = watch_valores[idx];
+@@FIM
+
+mutante: m4
+rotulo: reporta o PC da instrucao seguinte em vez da que escreveu
+ocorrencias: 1
+@@DE
+                    addr, steps, pc_antes, watch_valores[idx], agora
+@@PARA
+                    addr, steps, cpu.pc, watch_valores[idx], agora
+@@FIM
+
+mutante: m5
+rotulo: endereco invalido passa em silencio em vez de reprovar
+ocorrencias: 1
+@@DE
+                        Err(e) => {
+                            eprintln!(
+                                "Erro: '--watch-mem' espera enderecos hex, '{}': {}",
+                                piece, e
+                            );
+                            std::process::exit(1);
+                        }
+@@PARA
+                        Err(_) => {}
+@@FIM
+
+mutante: m6
+rotulo: o valor inicial nasce zerado e a primeira escrita vira falso positivo
+ocorrencias: 1
+@@DE
+        .map(|&a| bus.read32::<BusRead>(a))
+@@PARA
+        .map(|_a| 0u32)
+@@FIM
+
+controle: c1
+rotulo: nomear o valor lido antes de comparar nao muda comportamento
+ocorrencias: 1
+@@DE
+            let agora = bus.read32::<BusRead>(addr);
+            if agora != watch_valores[idx] {
+@@PARA
+            let agora = bus.read32::<BusRead>(addr);
+            let mudou = agora != watch_valores[idx];
+            if mudou {
+@@FIM
+
+controle: c2
+rotulo: comparacao espelhada da mudanca (cosmetico)
+ocorrencias: 1
+@@DE
+            if agora != watch_valores[idx] {
+@@PARA
+            if watch_valores[idx] != agora {
+@@FIM

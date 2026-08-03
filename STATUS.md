@@ -7,13 +7,14 @@
 
 ## Última iteração concluída
 
-**0183** — **o achado 0182.2 era comportamento correto; fechado como refutado.** Instrumentei o
-`sw` e 345 de 348 acks do bit 0 de `I_STAT` vem de `pc=0x00004A20`, codigo da BIOS (o `0x4A1C` do
-achado 10.80), sempre ANTES do despachante do jogo. Registrei isso como defeito; nao e.
-§ Priority Chains (L1484-1502) de docs/reference/13-kernel-bios.md poe `VblankIrq` na prioridade 1,
-e § B(19h) - HookEntryInt (L1476-1479) diz que o hook do jogo e **pulado** quando um handler chama
-`ReturnFromException`. O jogo recebe VBlank pelo caminho certo: `DeliverEvent(F0000001)` 1723x e o
-contador dele chega a 1469. O `VSync: timeout` e da PSY-Q linkada no jogo, nao da BIOS.
+**0183** — **`--watch-mem`: quem escreveu neste endereço, e de que instrução.** Na 0182 gastei
+horas desmontando RAM a mao; a comparacao antes/depois de cada passo deu a mesma resposta em dois
+minutos. Virou flag do `psx-cli`, generica — serve para qualquer jogo e para as suites do oraculo.
+**Quatro dos seis mutantes sobreviveram na primeira bateria**: reportar sempre, nao atualizar o
+valor lembrado, culpar o PC seguinte, baseline zero. Instrumento que mente fecha a pergunta com
+resposta errada, entao as quatro lacunas viraram assercoes (ruido limitado, ROM nao reporta nada,
+o PC culpado tem de conter um `store`). 6/6 e 2/2 depois. Bateria rodada a mao: o script recusa
+alvo fora do `psx-core` (10.58).
 
 ## Próxima tarefa
 
@@ -50,7 +51,7 @@ Invariantes relevantes: nenhuma.
 
 ## Placar de testes
 
-Workspace: **1024** testes.
+Workspace: **1029** testes.
 - **NUNCA rodar `cargo test` nem a bateria de mutação junto com o oráculo**: a disputa de CPU faz
   o `Start-Process` ler stdout antes do flush e reportar `sem-saida` falso. Derrubou 16/21 numa
   medição da 0170; rodada limpa deu 21/21.

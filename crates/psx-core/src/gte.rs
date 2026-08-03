@@ -202,14 +202,7 @@ impl Gte {
     }
 
     // Cauda comum: modula pelo RGBC, interpola com o far color, desloca e empurra na FIFO.
-    fn finaliza_cor(
-        &mut self,
-        sf: u32,
-        lm: u32,
-        modula: Modulacao,
-        fc: FarColor,
-        flag: &mut u32,
-    ) {
+    fn finaliza_cor(&mut self, sf: u32, lm: u32, modula: Modulacao, fc: FarColor, flag: &mut u32) {
         if modula == Modulacao::Rgbc {
             self.modula_por_rgbc(flag);
         }

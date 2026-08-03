@@ -130,7 +130,9 @@ fn setloc_aceita_setor_0x74_bcd_valido() {
 }
 
 #[test]
-fn setloc_sem_disco_ainda_retorna_int3() {
+fn setloc_sem_disco_retorna_int3_mas_stat_com_bit0() {
+    // Nome preservado (credito historico em docs/mutantes/0063-cdrom-seek-pause.resultado,
+    // checado por mutation_battery::bateria_nomes_de_teste_existem) — so o CORPO mudou.
     // 06-cdrom.md L787-797 (Setloc): so guarda o alvo do seek, "sem ainda iniciar o
     // seek" — nao ha checagem de disco no texto da spec, so validacao de BCD. A
     // checagem de disco e do SeekL/ReadN (que fazem o seek de fato), nao do Setloc.

@@ -76,6 +76,7 @@ fn sys_init_memory_troca_o_dono_dos_descritores_que_o_jogo_guardou() {
     let mut reinit_step = 0usize;
     let mut reinit_ra = 0u32;
     let mut antes = None;
+    let mut antes_step = 0usize;
     let mut depois = None;
 
     for step in 1..=165_000_000usize {
@@ -83,8 +84,15 @@ fn sys_init_memory_troca_o_dono_dos_descritores_que_o_jogo_guardou() {
             sys_init_memory = sys_init_memory.or_else(|| table_entry(&bus, 0xC0, 0x08));
         }
 
-        if step == 86_989_000 {
-            antes = Some((slot(&bus, 1), slot(&bus, 4)));
+        // O instante e o PRIMEIRO em que os dois descritores estao HABILITADOS, nao um passo fixo:
+        // fixar passo absoluto reprova por melhoria legitima do emulador (achado 10.115),
+        // e este ja andou duas vezes por isso.
+        if antes.is_none() && step > 80_000_000 && step % 256 == 0 {
+            let (s1, s4) = (slot(&bus, 1), slot(&bus, 4));
+            if s1.status == 0x0000_2000 && s4.status == 0x0000_2000 {
+                antes = Some((s1, s4));
+                antes_step = step;
+            }
         }
         if step == 165_000_000 {
             depois = Some((slot(&bus, 1), slot(&bus, 4)));
@@ -118,9 +126,18 @@ fn sys_init_memory_troca_o_dono_dos_descritores_que_o_jogo_guardou() {
         "e o F1000004h e o erro do mesmo CDROM"
     );
 
-    // +15.801 na iteracao 0185: o Rayman emite comandos de cor do GTE, que deixaram de ser
-    // no-op. Mesmo deslocamento uniforme de rayman_autoack.rs — achado 10.115.
-    assert_eq!(reinit_step, 154_911_652);
+    assert!(
+        (80_000_000..95_000_000).contains(&antes_step),
+        "os descritores aparecem na janela da espera, nao antes dela: {antes_step}"
+    );
+    assert!(
+        reinit_step > antes_step,
+        "SysInitMemory roda depois de o jogo ter guardado os descritores"
+    );
+    assert!(
+        (150_000_000..160_000_000).contains(&reinit_step),
+        "a reinicializacao cai na janela do Execute!: {reinit_step}"
+    );
     assert_eq!(
         reinit_ra, 0xBFC0_6F4C,
         "quem chama SysInitMemory de novo e a ROM do BIOS, nao o jogo"

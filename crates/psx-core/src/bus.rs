@@ -208,6 +208,18 @@ impl Bus {
         }
     }
 
+    pub fn spu(&self) -> &Spu {
+        &self.spu
+    }
+
+    pub fn spu_mut(&mut self) -> &mut Spu {
+        &mut self.spu
+    }
+
+    pub fn drain_audio(&mut self) -> Vec<(i16, i16)> {
+        self.spu.drain_output()
+    }
+
     pub fn irq(&self) -> &Irq {
         &self.irq
     }

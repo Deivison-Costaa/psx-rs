@@ -1,5 +1,6 @@
 #![forbid(unsafe_code)]
 
+pub mod audio;
 pub mod bus;
 pub mod cdrom;
 pub mod cdrom_bin_cue;

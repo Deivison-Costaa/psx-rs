@@ -1,3 +1,6 @@
+mod audio;
+
+use audio::AudioOut;
 use psx_core::bus::{Bios, Bus, Ram};
 use psx_core::cpu::Cpu;
 
@@ -6,6 +9,7 @@ struct PsxDesktop {
     bus: Bus,
     texture: Option<egui::ColorImage>,
     steps_per_frame: usize,
+    audio: AudioOut,
 }
 
 impl PsxDesktop {
@@ -25,6 +29,7 @@ impl PsxDesktop {
             bus,
             texture: None,
             steps_per_frame,
+            audio: AudioOut::new(),
         })
     }
 
@@ -72,6 +77,8 @@ impl eframe::App for PsxDesktop {
         for _step in 0..self.steps_per_frame {
             self.cpu.step(&mut self.bus);
         }
+        let quadros = self.bus.drain_audio();
+        self.audio.push(&quadros);
         self.update_texture();
         egui::CentralPanel::default().show(ctx, |ui| {
             if let Some(ref texture) = self.texture {
@@ -83,6 +90,11 @@ impl eframe::App for PsxDesktop {
                 ui.image(&handle);
             } else {
                 ui.label("Display desligado");
+            }
+            if self.audio.ativo() {
+                ui.label(format!("Audio: {} Hz", self.audio.device_hz()));
+            } else {
+                ui.label("Audio desligado (sem dispositivo de saida)");
             }
         });
         ctx.request_repaint();

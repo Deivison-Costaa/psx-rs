@@ -1,4 +1,26 @@
 use psx_core::app::config::{Config, ESCALA_MAX, ESCALA_MIN, SLOT_MAX, VOLUME_MAX};
+use psx_core::app::sessao::Recentes;
+
+#[test]
+fn ajustada_preserva_recentes_e_filtro() {
+    let c = Config {
+        filtro_linear: true,
+        recentes: Recentes::default().registra("SLUS-00005", "RAYMAN", 60, 500),
+        ..Config::default()
+    };
+    let a = c.ajustada();
+    assert_eq!(a.recentes, c.recentes);
+    assert!(a.filtro_linear);
+}
+
+#[test]
+fn ganho_grampeia_volume_acima_do_maximo() {
+    let c = Config {
+        volume: 250,
+        ..Config::default()
+    };
+    assert_eq!(c.ganho(), 1.0);
+}
 
 #[test]
 fn padrao_e_utilizavel_sem_editar_nada() {
@@ -127,6 +149,8 @@ fn config_sobrevive_a_ida_e_volta_por_serializacao() {
         volume: 33,
         audio_ligado: false,
         slot_inicial: 7,
+        filtro_linear: true,
+        recentes: Recentes::default().registra("SCUS-94900", "CRASH", 90, 1000),
         ..Config::default()
     };
     let bytes = bincode::serde::encode_to_vec(&c, bincode::config::standard()).expect("gravar");

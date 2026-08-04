@@ -7,33 +7,28 @@
 
 ## Última iteração concluída
 
-**0193 (duas, em paralelo — colisão de número registrada no diário)** e **0194-0198**.
-
-- **0193-desktop-disco** (sessão de jogo com o usuário): `.cue` + `insert_disc` no app,
-  pacing por tempo real, escala 4:3, slider. Abriu os achados **0193.1-0193.7**: jogo 2×
-  rápido (1 ciclo/instrução sem custo de memória), HUD invisível (10.11), mixer sem
-  headroom, display 24bpp ausente. **Exceção de executor autorizada pelo usuário: o
-  orquestrador implementa a escada de correção diretamente** (`docs/orquestracao.md`).
-- **0193-biblioteca a 0198 (M9 inteiro, rodada paralela)** — o app virou aplicativo:
-  identidade do disco por ISO 9660 (Crash = SCUS-94900), save state serde/bincode (3,6 MB;
-  `serde`/`bincode` na allowlist do `purity.rs`) com F5/F8 + 10 slots, `.mcd` por serial
-  (F9), gilrs + perfis (F10), `psx-rs.toml` (F11), fast-forward 1/2/4/8× (F12), recentes e
-  tempo de jogo emulado. **Na fusão, o loop do M9 (passos fixos por repaint) foi religado
-  ao pacing por tempo real da 0193-desktop-disco.**
+**0199 — diffvram no scoreboard (fechou 10.23).** `psx-cli --vram-to-png` + comparação
+com os `vram.png` de hardware; scoreboard foi de 2 para **20 suítes com veredito**.
+`clipping` deu **vram-ok 0px** (pixel-perfeito, valida a conversão `<<3`); `rectangles`
+diverge 11.560px (é o 10.11), `lines` 518px; `clut-cache`/`texture-flip`/`mdec` 524.288px
+(VRAM inteira). Bateria manual do conversor: 5/5 + 2/2. Antes dela: as duas 0193 em
+paralelo (colisão no diário) e o M9 inteiro (0194-0198) fundido com revisão adversarial
+(3 defeitos consertados na fusão, achados 0198.1-0198.6). **Exceção de executor vigente:
+o orquestrador implementa a escada diretamente** (`docs/orquestracao.md`).
 
 ## Próxima tarefa
 
-**Achado 10.23 — diffvram no scoreboard.** Conversor VRAM crua→PNG no `psx-cli` +
-`scoreboard.ps1` compara com os `vram.png` de hardware via
-`tests/exes/ps1-tests/tools/diffvram/`; coluna de veredito no CSV. Teste-antes:
-`ci_diffvram.rs` + conversão sintética no psx-cli.
+**Achado 10.11 — retângulos texturizados na GPU (o HUD do Crash).** `gpu.rs` descarta
+todo rect com textura (dispatch ~966-1016 vira `vram_state=Idle` sem desenhar;
+`render_rect` só pinta cor chapada). Escopo: raw 15bpp + CLUT 4/8bpp com texpage E1,
+texture window E2 e mask bits; **modulação fica para o 10.13**. Ler `03-gpu.md` (seção de
+retângulos/sprites) ANTES (R1). Teste-antes: `gpu_rect_textured.rs` (textura via GP0(A0),
+sprite desenhado, halfwords conferidos). Régua: suíte `rectangles` hoje em **11.560px**
+no scoreboard — tem de cair; `clipping` tem de seguir 0px.
 
-Depois, na ordem (escada da 0193, plano com o usuário): Achado 10.11 (retângulos
-texturizados — HUD do Crash), Achado 10.115 (âncoras relativas nos rayman_*), Achado
-0193.4 (custo de ciclo de memória; oráculo `cpu/access-time`), Achados 0193.5, 0193.3 e
-0189.1 (áudio), Achado 0193.2 (display 24bpp), Achado 10.13 (modulação). Depois da
-escada: ROADMAP 11.2 (gráficos), 11.3 (demo), remedir Amidog `psxtest_cpu` e o lote do
-oráculo de TTY (parado desde a 0186).
+Depois, na ordem: Achado 10.115 (âncoras relativas nos rayman_*), 0193.4 (custo de ciclo
+de memória; oráculo `cpu/access-time`), 0193.5/0193.3/0189.1 (áudio), 0193.2 (24bpp),
+10.13 (modulação). Depois: ROADMAP 11.2, 11.3, remedir Amidog e lote do oráculo TTY.
 
 Rodar Crash: `--bios bios/SCPH1001.BIN --disc "../roms/extraido/Crash Bandicoot (USA).cue"
 --max-steps 1200000000 --pad --press start@330000000 --press cross@700000000`.
@@ -65,7 +60,7 @@ Invariantes relevantes: nenhuma.
 
 ## Placar de testes
 
-Workspace: **1228** testes.
+Workspace: **1235** testes.
 - **NUNCA rodar `cargo test`/`nextest` nem a bateria de mutação junto com o oráculo**: a
   disputa de CPU faz o `Start-Process` ler stdout antes do flush e reportar `sem-saida`
   falso. Derrubou 16/21 numa medição da 0170; rodada limpa deu 21/21.

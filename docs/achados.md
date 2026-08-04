@@ -34,7 +34,6 @@
 - [ ] 10.24 Job `scoreboard` da CI sai VERDE medindo zero (0072)
 - [ ] 10.26 Nenhum dos 9 testes de `ci_scoreboard.rs` afirma que o job mede algo
 - [ ] 10.27 Placar local (gitignored) e o unico com veredito real e nao e versionado
-- [ ] 10.23 45/51 suites do scoreboard sem veredito (VRAM); TTY 2/21, falta VRAM
 - [ ] 10.18 Nada torna `arquivada:` caro: 0052 e 0059 largaram 17 registros, 12 casavam
 - [ ] 10.33 `mutantes.ps1` so roda `cargo test -p psx-core` (L290); outros crates a mao
 - [ ] 10.34 Nenhum meta-teste reprova `#[test]` sem assercao (T10 da 0080 passou assim)

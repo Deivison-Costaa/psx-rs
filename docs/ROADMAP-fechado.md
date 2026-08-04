@@ -220,3 +220,4 @@ da escada valer so para o que FALTA. Narrativa de cada item continua em
 - [x] 9.4 Controles PS/Xbox (gilrs) + tela de mapeamento + perfis (iter 0196)
 - [x] 9.5 Tela de configurações (BIOS, vídeo, áudio, pasta) em TOML (iter 0197)
 - [x] 9.6 Fast-forward + recentes + tempo de jogo (iter 0198)
+- [x] 10.23 Scoreboard com veredito de VRAM via diffvram: 13 suítes ganharam veredito gráfico (iter 0199)

@@ -1,13 +1,13 @@
 # gerado por scripts/mutantes.ps1 — NAO editar a mao
-# commit: 7fc2fb134da3c5f3250a5744a81aae9f75690593
-# rodado_em: 2026-08-03T21:03:46-03:00
-m1,mutante,morreu,morreu,0.5,anel_cheio_descarta_o_quadro_mais_antigo
-m2,mutante,morreu,morreu,0.5,anel_cheio_descarta_o_quadro_mais_antigo;anel_entrega_os_quadros_na_ordem_em_que_entraram;escala_usa_32768_para_o_minimo_bater_em_menos_um;falta_de_quadros_vira_silencio_e_conta_como_underrun
+# commit: 13953b2e6723f01a6157520a116f9d0a42f47443
+# rodado_em: 2026-08-03T21:04:13-03:00
+m1,mutante,morreu,morreu,0.4,anel_cheio_descarta_o_quadro_mais_antigo
+m2,mutante,morreu,morreu,0.4,anel_cheio_descarta_o_quadro_mais_antigo;anel_entrega_os_quadros_na_ordem_em_que_entraram;escala_usa_32768_para_o_minimo_bater_em_menos_um;falta_de_quadros_vira_silencio_e_conta_como_underrun
 m3,mutante,morreu,morreu,0.4,falta_de_quadros_vira_silencio_e_conta_como_underrun
-m4,mutante,morreu,morreu,0.5,anel_entrega_os_quadros_na_ordem_em_que_entraram;escala_usa_32768_para_o_minimo_bater_em_menos_um;falta_de_quadros_vira_silencio_e_conta_como_underrun
+m4,mutante,morreu,morreu,0.4,anel_entrega_os_quadros_na_ordem_em_que_entraram;escala_usa_32768_para_o_minimo_bater_em_menos_um;falta_de_quadros_vira_silencio_e_conta_como_underrun
 m5,mutante,morreu,morreu,0.5,anel_converte_a_taxa_do_spu_para_a_taxa_do_dispositivo
-m6,mutante,morreu,morreu,0.5,anel_cheio_descarta_o_quadro_mais_antigo
+m6,mutante,morreu,morreu,0.4,anel_cheio_descarta_o_quadro_mais_antigo
 m7,mutante,morreu,morreu,0.8,barramento_produz_um_quadro_a_cada_768_ciclos
-m8,mutante,morreu,sobreviveu,0.9,
+m8,mutante,morreu,morreu,0.9,barramento_produz_um_quadro_a_cada_768_ciclos
 c1,controle,sobreviveu,sobreviveu,0.7,
 c2,controle,sobreviveu,sobreviveu,0.6,

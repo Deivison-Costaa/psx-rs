@@ -52,7 +52,7 @@ do pad" está coberta.
 
 ## Decisões e notas
 
-- **`psx-core` não conhece gilrs.** `Entrada` é um vocabulário próprio (Sul, Leste, L1,
+- **`psx-core` não conhece gilrs.** `Entrada` é um vocabulário próprio (Sul, Leste, ombros,
   DpadCima, EixoNegativo(n)…) e o frontend traduz `gilrs::Button` para ele. R3 mantido, e a
   camada que decide o que cada botão faz fica testável sem controle plugado.
 - **Remapear devolve perfil novo** (`liga`/`desliga` recebem `&self`). O perfil em edição

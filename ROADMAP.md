@@ -9,22 +9,6 @@ Itens fechados saem daqui para `docs/ROADMAP-fechado.md`; a escada mantém só o
 iteração que o achou (`NNNN.k`). A escada é o que construir; os achados são o que consertar.
 Regra imposta por `roadmap_arquivo.rs`.
 
-## M4 — CDROM
-- [ ] 4.5 1o frame: rollback do init do LIBSN; poll orfao do TMR2 (diag 0137-0147)
-
-## M5 — GTE
-- [ ] 5.5 Flags de saturação/overflow completos (por parcela, nao no total — ver 0185.1)
-- [ ] 5.6 Amidog psxtest_gte no scoreboard → jogo 3D jogável
-
-## M6 — SIO: controle e memory card
-- [ ] 6.3 Memory card (.mcd)
-
-## M7 — SPU
-- [ ] 7.1 Regs de voz + ADPCM
-- [ ] 7.2 Pitch/ADSR/volume + mixer
-- [ ] 7.3 Saída cpal + ring buffer
-- [ ] 7.4 Reverb + noise + CD-DA/XA
-
 ## M9 — App desktop
 - [ ] 9.1 Biblioteca: scan BIN/CUE, título/serial/região, lista
 - [ ] 9.2 Snapshot do core (serde) → save states F5/F8 + slots

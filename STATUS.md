@@ -7,85 +7,80 @@
 
 ## Última iteração concluída
 
-**0186** — **O Crash joga N. Sanity Beach.** Dois defeitos em serie, os dois achados por
-instrumentacao e nao por leitura de codigo. **(1)** `execute_linked_list` tinha teto de 4096
-nos; instrumentado com deteccao de ciclo, ele reportou `ciclo_em=None, nos=4097` — a cadeia do
-Crash so e **maior**, e o teto a cortava, deixando o canal ocupado (era o `GPU timeout`, 0185.2).
-O teto certo e `ram.len()/4`: cadeia com mais nos do que palavras na RAM repetiu endereco por
-casa dos pombos, logo tem ciclo, e ciclo nunca completa (`dma/chain-looping`). **(2)** Os dois
-bytes de switches do pad saiam **trocados**: em `docs/reference/10-controllers-memcards.md`,
-§ Controller Transfer (L546-549) manda `swlo` (bit0-7, onde mora Start) primeiro. Start chegava ao jogo na posicao do **R1** — nenhum menu
-respondia, em jogo nenhum. O teste antigo pinava a ordem errada, e a 0092 tinha o mesmo vicio
-no manifesto. Baterias: 8/8 e 7/7, 2/2 cada; 0092, 0129 e 0076 refeitas.
+**0187-0192** — **M4, M5, M6 e M7 fechados numa rodada só** (o usuário autorizou cruzar
+itens; a regra de 1 item por PR ficou suspensa para este lote).
 
-**O meta-teste da bateria casava `.mut` com `.resultado` so pelo prefixo da iteracao**: com dois
-manifestos por iteracao ele conferia o placar de um contra o resultado do outro. Agora casa pelo
-nome exato — o que destapou um `.resultado` da 0076 envelhecido desde julho.
+- **0187/0188 (7.1, 7.2, 7.4)** — SPU de verdade: 24 vozes com ADPCM, contador de pitch
+  com interpolação gaussiana, envoltória ADSR, sweep de volume, mixer estéreo a 44,1 kHz
+  pelo scheduler (768 ciclos), reverb completo a 22,05 kHz, ruído por voz (NON), EON e
+  entrada de CD-DA/XA-ADPCM. Fechou 10.101 e 10.112.
+- **0189 (7.3)** — anel puro no `psx-core` com conversão de taxa por acumulador de fase,
+  e stream `cpal` no app desktop. Sem placa de som o app roda com vídeo e avisa na tela.
+- **0190 (5.5, 5.6)** — GTE de **889/1100 para 1100/1100** contra o `gte-fuzz` do
+  ps1-tests (22 comandos × 50 casos, os 64 registradores comparados). GPF e GPL **não
+  existiam**; MVMVA usava o vetor de translação errado; SZ3 saía do MAC3 truncado.
+- **0191 (6.3)** — memory card de 128 KiB no endereço 81h, comandos R/W/S, imagem `.mcd`
+  crua carregada e regravada só quando o jogo escreve.
+- **0192 (4.5)** — fechado **por medição**: o observável ("o Crash carrega 954 KB de WAD e
+  não desenha frame") não existe mais. As duas hipóteses que nomearam o item (rollback do
+  LIBSN, poll órfão do TMR2) seguem refutadas pelas 0141 e 0147.
 
 ## Próxima tarefa
 
-**ROADMAP 7.1 — SPU: regs de voz + ADPCM.** O Crash joga mudo; som e o buraco maior agora.
-Antes, um teste barato de 10 min: **remedir o Rayman com a ordem de switches corrigida** — ele
-nunca recebeu Start de verdade, e parte do que se atribuiu a "o jogo nao chega a ler o controle"
-(10.79-10.87) pode ser isto. Use a nova `--dump-vram-every N PREFIXO`, que da a linha do tempo
-inteira numa execucao so (2,5 G passos em 5m30).
+**ROADMAP 9.2 — Snapshot do core (serde) → save states F5/F8 + slots.** É o item que
+desbloqueia o resto do M9 (9.3 depende de save/estado por serial). `serde` vai precisar
+entrar na allowlist de `purity.rs` no mesmo PR, com justificativa no doc da iteração — o
+próprio teste diz isso na mensagem de falha.
+
+Antes, um teste barato: **medir o Amidog `psxtest_cpu`** de novo. Ele parava em
+`Result: 00000101` na 0166 e o GTE mudou muito desde então.
 
 Rodar Crash: `--bios bios/SCPH1001.BIN --disc "../roms/extraido/Crash Bandicoot (USA).cue"
---max-steps 1200000000 --pad --press start@330000000 --press cross@700000000`; o menu esta em
-330 M, a ilha em 600 M e o nivel em 720 M. Dump de VRAM e cru 1024x512x16bpp, nao PNG.
+--max-steps 1200000000 --pad --press start@330000000 --press cross@700000000`.
 **Rayman: sempre `--pad` e o `.cue` MULTI-TRILHA**, 1200000000.
+Flags novas do runner: `--memcard <a.mcd>`, `--dump-audio <a.raw>` (PCM s16le 44100 Hz,
+ouvir com `ffplay -f s16le -ar 44100 -ch_layout stereo`), `--dump-vram-every N PREFIXO`.
 
-Achados abertos em `docs/achados.md`. Pendencias do lote A: 10.112 (SPU sem estado) e o resto de
-`cpu/io-access-bitwidth`. Lotes do oraculo: tarefa-modelo em
+Achados abertos em `docs/achados.md`. Lotes do oráculo: tarefa-modelo em
 `logs/orquestrador/task-lote-oraculo.txt`.
 
-`K/M` no CSV e **K linhas divergentes de M**. `timers` tem jitter real e nunca dara `identico`.
-**Antes de medir CD-ROM, monte disco** (10.108).
+`K/M` no CSV é **K linhas divergentes de M**. `timers` tem jitter real e nunca dará
+`identico`. **Antes de medir CD-ROM, monte disco** (10.108).
 
 Invariantes relevantes: nenhuma.
 
 ## Repositório
 
-- `main` protegida a partir da iter 0004; 1 PR por item; merge commit (nunca squash);
+- `main` protegida a partir da iter 0004; merge commit (nunca squash);
   commits test→feat→docs; título de PR validado pela CI.
 - **Escopo de commit é UM único identificador `[a-z0-9-]`.** `feat(bus,cpu)` reprova no
   `commit-lint`; quando a mudança toca dois módulos, escolha o principal e cite o outro no
   resumo. Custou uma reescrita de 4 mensagens no PR #36 (ver `0022-scratchpad-isc.md`).
-- Iterações são cronológicas e nem sempre na ordem dos itens (0003↔item 0.5, p.ex.);
-  o vínculo real está no título do PR e no doc da iteração.
-- **`ROADMAP.md` estava a 3 bytes do teto na 0121.** As linhas ja fechadas do 4.4 foram
-  comprimidas (o contexto mora em `docs/iterations/`), sobrando ~470 bytes. Encurtar, nunca apagar.
+- **Use `cargo nextest run --workspace`, não `cargo test`**: 55 s contra vários minutos.
+  A CI já usa nextest desde a 0072; a bancada local não estava usando.
+- Iterações são cronológicas e nem sempre na ordem dos itens; o vínculo real está no
+  título do PR e no doc da iteração.
 
 ## Placar de testes
 
-Workspace: **1059** testes.
-- **NUNCA rodar `cargo test` nem a bateria de mutação junto com o oráculo**: a disputa de CPU faz
-  o `Start-Process` ler stdout antes do flush e reportar `sem-saida` falso. Derrubou 16/21 numa
-  medição da 0170; rodada limpa deu 21/21.
-- **4.4 Boot de jogo**: o motor 4.4ad agora avanca setores sequencialmente; a fronteira
-  seguinte medida no Rayman foi o caminho hook -> incremento. Imagens de disco ficam fora do
-  repositorio, em `.../Programacao com agentes/roms/extraido/`.
+Workspace: **1135** testes.
+- **NUNCA rodar `cargo test`/`nextest` nem a bateria de mutação junto com o oráculo**: a
+  disputa de CPU faz o `Start-Process` ler stdout antes do flush e reportar `sem-saida`
+  falso. Derrubou 16/21 numa medição da 0170; rodada limpa deu 21/21.
+- **GTE: 1100/1100 no `gte_valid_0xc0ffee_50.log`** (gitignored, em
+  `tests/exes/ps1-tests/gte-fuzz/`). É o oráculo mais barato do projeto: 0,4 s e placar por
+  registrador. Sem o arquivo o teste se ignora sozinho.
+- **Crash e Rayman animam e soam** (medido na 0192): 8 dumps de VRAM cada, nenhum intervalo
+  sem pixel mudando; 3,0 M e 3,4 M quadros de áudio, 94% e 78% de amostras não-zero.
+- **Passo absoluto em teste de Rayman reprova por melhoria legítima (10.115).** Nesta rodada
+  cinco deles andaram +6.372 porque o SPUSTAT passou a espelhar o SPUCNT e as esperas do
+  kernel terminam. O `rayman_evcb_descritores` deixou de fixar passo: dispara no primeiro
+  instante em que os dois descritores estão habilitados.
+- **`mutantes.ps1` herda o último `teste:` visto (10.71)**: declare `teste:` em TODO
+  registro do manifesto, não só no cabeçalho. Custou uma rodada de 9/18 falsos na 0187.
+- Imagens de disco ficam fora do repositório, em `.../Programacao com agentes/roms/extraido/`.
   **Nunca commitar imagem de disco.**
-- **10.79/10.80/10.81 são diagnóstico, não correção**: `CAUSE.ExcCode=00h` em 1029 hooks; nos
-  458 intervalos sem ack o `I_STAT` só tinha bit 2 (CDROM) ou 3 (DMA).
-- **10.85 (0159)**: o laço final do Rayman é `0x801B9574`, esperando `[0x801CF2CC] >= 2`. A espera
-  do memory card NÃO é o bloqueio: termina sozinha em 166.321.383 com `F4000001h,0100h`.
-- **Oraculo de hardware disponivel (0164)**: 51 EXEs em `tests/exes/` (gitignored). Amidog CPU
-  em `Result: 00000101` (0166; era `00000109`). Depurar o CPU contra ele custa menos que
-  inferir de jogo.
-- **Rayman: a CPU nao era a causa (0167) e a BIOS tambem nao (0178)**. O jogo tem driver de CD
-  proprio, falando direto com `0x1F801800..03`. Toda investigacao de handler de BIOS (10.79-10.87)
-  olhava para o lado errado desta parte.
-- **Janela util do Rayman: depois do passo 164.000.000** (`Execute !`); o executavel ocupa
+- **Oraculo de hardware disponivel (0164)**: 51 EXEs em `tests/exes/` (gitignored). Amidog
+  CPU em `Result: 00000101` (0166; era `00000109`).
+- **Janela útil do Rayman: depois do passo 164.000.000** (`Execute !`); o executável ocupa
   `0x80125000..0x801CF800`.
-- **10.88/10.89 fechados como premissa refutada (0162/0163)**: os descritores no momento da
-  espera eram de CDROM (não card); o 2o `KERNEL SETUP` e do bootstrap.
-- **10.87 fechado sem correção (0161)**: o auto-ack de IRQ0 no handler de Pad/Card é do BIOS, e
-  quem religa depois do `ChangeClearPAD(0)` do jogo é o próprio `StartPAD2`. Não procurar defeito aí.
-- **Duas correções de SIO0 (0159, 0160) são da spec e NÃO mexeram no boot** — o histograma de PC
-  dos últimos 20 M passos é idêntico byte a byte. Não gastar rodada nova no SIO0 esperando boot.
-- **10.83 diagnóstico (0158)**: a ativação 0 não visita `0x4A1C`; ele estava fora das cadeias,
-  não pulado.
-- **Premissa refutada:** o slot `$v1+0x18` não muda entre boots (0147). O defeito não está
-  no valor do slot mas no encaixe temporal entre `SysInitMemory` e o enfileiramento dos
-  handlers do jogo.

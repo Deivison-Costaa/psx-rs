@@ -1,4 +1,5 @@
 # Manifesto de mutação da iteração 0047 — semi-transparência
+arquivada: iter 0200 corrigiu o blend para preservar o bit 15 do texel (03-gpu.md L585); a linha ancorada por m5 nao existe mais
 formato: 1
 iteracao: 0047
 item: 2.6a

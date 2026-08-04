@@ -7,28 +7,25 @@
 
 ## Última iteração concluída
 
-**0199 — diffvram no scoreboard (fechou 10.23).** `psx-cli --vram-to-png` + comparação
-com os `vram.png` de hardware; scoreboard foi de 2 para **20 suítes com veredito**.
-`clipping` deu **vram-ok 0px** (pixel-perfeito, valida a conversão `<<3`); `rectangles`
-diverge 11.560px (é o 10.11), `lines` 518px; `clut-cache`/`texture-flip`/`mdec` 524.288px
-(VRAM inteira). Bateria manual do conversor: 5/5 + 2/2. Antes dela: as duas 0193 em
-paralelo (colisão no diário) e o M9 inteiro (0194-0198) fundido com revisão adversarial
-(3 defeitos consertados na fusão, achados 0198.1-0198.6). **Exceção de executor vigente:
-o orquestrador implementa a escada diretamente** (`docs/orquestracao.md`).
+**0200 — retângulos texturizados (fechou 10.11).** `render_rect_textured`: raw 15bpp +
+CLUT, texel 0 transparente, STP, wrap de 256, clip; e o blend passou a escrever o bit 15
+do texel (03-gpu.md L585 — t1-t4 antigos fixavam o defeito e foram atualizados). Régua:
+`rectangles` 11.560px → **7.265px** (resto é modulação 10.13/flip 0193.7);
+`texture-overflow` → **vram-ok 0px**; `vram-to-vram-overlap` 14.474 → 7.557px. Bateria
+6/6 + 2/2 (m5 sobreviveu na 1ª rodada por texel transparente no teste — endurecido e
+reexecutada). Manifestos 0042/0047 arquivados (âncoras envelhecidas). **Exceção de
+executor vigente: o orquestrador implementa a escada** (`docs/orquestracao.md`).
 
 ## Próxima tarefa
 
-**Achado 10.11 — retângulos texturizados na GPU (o HUD do Crash).** `gpu.rs` descarta
-todo rect com textura (dispatch ~966-1016 vira `vram_state=Idle` sem desenhar;
-`render_rect` só pinta cor chapada). Escopo: raw 15bpp + CLUT 4/8bpp com texpage E1,
-texture window E2 e mask bits; **modulação fica para o 10.13**. Ler `03-gpu.md` (seção de
-retângulos/sprites) ANTES (R1). Teste-antes: `gpu_rect_textured.rs` (textura via GP0(A0),
-sprite desenhado, halfwords conferidos). Régua: suíte `rectangles` hoje em **11.560px**
-no scoreboard — tem de cair; `clipping` tem de seguir 0px.
+**Achado 10.115 — âncoras relativas nos rayman_*.** Converter os ~97 literais de passo
+absoluto nos 10 `rayman_*.rs` para gatilhos por evento (modelo: `rayman_evcb_descritores`
+dispara na primeira condição válida), com tetos frouxos de guarda. PR só de testes —
+pré-requisito da iteração de timing (0193.4), que sem isso quebra as âncoras em lote.
 
-Depois, na ordem: Achado 10.115 (âncoras relativas nos rayman_*), 0193.4 (custo de ciclo
-de memória; oráculo `cpu/access-time`), 0193.5/0193.3/0189.1 (áudio), 0193.2 (24bpp),
-10.13 (modulação). Depois: ROADMAP 11.2, 11.3, remedir Amidog e lote do oráculo TTY.
+Depois, na ordem: 0193.4 (custo de ciclo de memória; oráculo `cpu/access-time`),
+0193.5/0193.3/0189.1 (áudio), 0193.2 (24bpp), 10.13 (modulação — deve zerar boa parte
+dos 7.265px do `rectangles`). Depois: ROADMAP 11.2, 11.3, remedir Amidog e lote TTY.
 
 Rodar Crash: `--bios bios/SCPH1001.BIN --disc "../roms/extraido/Crash Bandicoot (USA).cue"
 --max-steps 1200000000 --pad --press start@330000000 --press cross@700000000`.
@@ -60,7 +57,7 @@ Invariantes relevantes: nenhuma.
 
 ## Placar de testes
 
-Workspace: **1235** testes.
+Workspace: **1242** testes.
 - **NUNCA rodar `cargo test`/`nextest` nem a bateria de mutação junto com o oráculo**: a
   disputa de CPU faz o `Start-Process` ler stdout antes do flush e reportar `sem-saida`
   falso. Derrubou 16/21 numa medição da 0170; rodada limpa deu 21/21.

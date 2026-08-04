@@ -980,6 +980,14 @@ impl Gpu {
                                 stage: RectStage::AwaitDims,
                             });
                         } else {
+                            self.render_rect_textured(
+                                size,
+                                vertex,
+                                uv,
+                                width,
+                                height,
+                                semi_transparent,
+                            );
                             self.stat.set(self.stat.get() | (1 << 26));
                             self.vram_state.set(VramState::Idle);
                         }
@@ -1007,6 +1015,14 @@ impl Gpu {
                     width = (val & 0xFFFF) as u16;
                     height = ((val >> 16) & 0xFFFF) as u16;
                     if textured {
+                        self.render_rect_textured(
+                            size,
+                            vertex,
+                            uv,
+                            width,
+                            height,
+                            semi_transparent,
+                        );
                         self.stat.set(self.stat.get() | (1 << 26));
                         self.vram_state.set(VramState::Idle);
                         return;
@@ -1197,7 +1213,7 @@ impl Gpu {
                 ),
                 _ => (r_f, g_f, b_f),
             };
-            self.vram[idx] = r | (g << 5) | (b << 10);
+            self.vram[idx] = r | (g << 5) | (b << 10) | (pixel & 0x8000);
         } else {
             self.vram[idx] = pixel;
         }
@@ -1655,6 +1671,56 @@ impl Gpu {
         for py in draw_y0..draw_y1 {
             for px in draw_x0..draw_x1 {
                 self.write_pixel(py as usize * 1024 + px as usize, pixel, semi_transparent);
+            }
+        }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn render_rect_textured(
+        &mut self,
+        size: u8,
+        vertex: (i16, i16),
+        uv: u32,
+        w: u16,
+        h: u16,
+        semi_transparent: bool,
+    ) {
+        let (w_actual, h_actual) = match size {
+            0 => (w as u32, h as u32),
+            1 => (1, 1),
+            2 => (8, 8),
+            3 => (16, 16),
+            _ => return,
+        };
+        if w_actual == 0 || h_actual == 0 {
+            return;
+        }
+
+        self.clut_attribute.set(((uv >> 16) & 0xFFFF) as u16);
+        let u_base = (uv & 0xFF) as i32;
+        let v_base = ((uv >> 8) & 0xFF) as i32;
+        let x_start = vertex.0 as i32;
+        let y_start = vertex.1 as i32;
+
+        let area_x1 = self.drawing_x1.get() as i32;
+        let area_y1 = self.drawing_y1.get() as i32;
+        let area_x2 = self.drawing_x2.get() as i32;
+        let area_y2 = self.drawing_y2.get() as i32;
+
+        let draw_x0 = x_start.max(area_x1).max(0);
+        let draw_x1 = (x_start + w_actual as i32).min(area_x2 + 1).min(1024);
+        let draw_y0 = y_start.max(area_y1).max(0);
+        let draw_y1 = (y_start + h_actual as i32).min(area_y2 + 1).min(512);
+
+        for py in draw_y0..draw_y1 {
+            let v = (v_base + (py - y_start)) & 0xFF;
+            for px in draw_x0..draw_x1 {
+                let u = (u_base + (px - x_start)) & 0xFF;
+                let texel = self.sample_texel(u, v);
+                if texel == 0 {
+                    continue;
+                }
+                self.write_pixel(py as usize * 1024 + px as usize, texel, semi_transparent);
             }
         }
     }

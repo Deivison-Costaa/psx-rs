@@ -35,8 +35,8 @@ fn t1_modo_0_media_back_e_front() {
 
     espera_idle(&mut gpu);
     assert_eq!(
-        gpu.vram_pixel(10, 10), 0x000C,
-        "T1 modo 0: back R=16, front R=8, B/2+F/2 → R=(16/2)+(8/2)=8+4=12=0x000C",
+        gpu.vram_pixel(10, 10), 0x800C,
+        "T1 modo 0: back R=16, front R=8, B/2+F/2 → R=12; bit 15 do texel escrito no VRAM (03-gpu.md L585)",
     );
 }
 
@@ -64,8 +64,8 @@ fn t2_modo_1_aditivo_com_clamp() {
 
     espera_idle(&mut gpu);
     assert_eq!(
-        gpu.vram_pixel(10, 10), 0x001F,
-        "T2 modo 1: back R=24, front R=24, B+F → R=min(31,24+24)=31, esperado 0x001F",
+        gpu.vram_pixel(10, 10), 0x801F,
+        "T2 modo 1: back R=24, front R=24, B+F → R=31; bit 15 do texel escrito no VRAM (03-gpu.md L585)",
     );
 }
 
@@ -93,8 +93,8 @@ fn t3_modo_2_subtrativo_com_clamp_zero() {
 
     espera_idle(&mut gpu);
     assert_eq!(
-        gpu.vram_pixel(10, 10), 0x0000,
-        "T3 modo 2: back R=8, front R=24, B-F → R=max(0,8-24)=0, esperado 0x0000",
+        gpu.vram_pixel(10, 10), 0x8000,
+        "T3 modo 2: back R=8, front R=24, B-F → R=0; bit 15 do texel escrito no VRAM (03-gpu.md L585)",
     );
 }
 
@@ -122,8 +122,8 @@ fn t4_modo_3_back_mais_um_quarto_de_front() {
 
     espera_idle(&mut gpu);
     assert_eq!(
-        gpu.vram_pixel(10, 10), 0x0016,
-        "T4 modo 3: back R=16, front R=24, B+F/4 → R=min(31,16+(24/4))=22, esperado 0x0016 (R=22)",
+        gpu.vram_pixel(10, 10), 0x8016,
+        "T4 modo 3: back R=16, front R=24, B+F/4 → R=22; bit 15 do texel escrito no VRAM (03-gpu.md L585)",
     );
 }
 

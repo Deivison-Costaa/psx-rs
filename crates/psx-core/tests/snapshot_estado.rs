@@ -230,3 +230,62 @@ fn disco_e_bios_sobrevivem_a_restauracao() {
         "a BIOS nao pode sumir na restauracao"
     );
 }
+
+fn caminho<'a>(candidatos: &'a [&'a str]) -> Option<&'a str> {
+    candidatos
+        .iter()
+        .copied()
+        .find(|p| std::path::Path::new(p).exists())
+}
+
+/// Prova em maquina de verdade — BIOS e disco reais, nao a sintetica dos outros testes.
+/// Se ignora sozinho sem os arquivos (sao gitignored), entao NAO conta para a bateria:
+/// quem cobre os mutantes da 0194 sao os testes acima.
+#[test]
+fn save_state_de_maquina_real_leva_ao_mesmo_lugar() {
+    let Some(bios_path) = caminho(&["bios/SCPH1001.BIN", "../../bios/SCPH1001.BIN"]) else {
+        return;
+    };
+    let Some(cue) = caminho(&[
+        "../roms/extraido/Crash Bandicoot (USA).cue",
+        "../../roms/extraido/Crash Bandicoot (USA).cue",
+        "../../../roms/extraido/Crash Bandicoot (USA).cue",
+    ]) else {
+        return;
+    };
+    let bios = Bios::from_bytes(std::fs::read(bios_path).expect("ler BIOS")).expect("BIOS valida");
+    let mut bus = Bus::new(Ram::new(), bios);
+    let mut layout =
+        psx_core::cdrom_bin_cue::parse_cue(&std::fs::read_to_string(cue).expect("cue"));
+    let pasta = std::path::Path::new(cue).parent().expect("pasta do cue");
+    let mut setores = Vec::new();
+    let mut bin = Vec::new();
+    for arquivo in layout.arquivos_em_ordem() {
+        let dados = std::fs::read(pasta.join(&arquivo)).expect("ler bin");
+        setores.push((dados.len() / 2352) as u32);
+        bin.extend_from_slice(&dados);
+    }
+    layout.atribui_lbas_absolutos(&setores);
+    bus.inject_disc(layout, bin);
+    bus.cdrom_mut().insert_disc();
+
+    let mut cpu = Cpu::new();
+    for _ in 0..20_000_000 {
+        cpu.step(&mut bus);
+    }
+    let estado = snapshot::salva(&cpu, &bus, "SCUS-94900");
+    for _ in 0..2_000_000 {
+        cpu.step(&mut bus);
+    }
+    let esperado = snapshot::salva(&cpu, &bus, "SCUS-94900");
+
+    snapshot::carrega(&mut cpu, &mut bus, &estado, "SCUS-94900").expect("carregar");
+    for _ in 0..2_000_000 {
+        cpu.step(&mut bus);
+    }
+    assert_eq!(
+        snapshot::salva(&cpu, &bus, "SCUS-94900"),
+        esperado,
+        "2 M passos a partir do estado restaurado tem de dar a MESMA maquina"
+    );
+}

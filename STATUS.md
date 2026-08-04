@@ -7,39 +7,40 @@
 
 ## Última iteração concluída
 
-**0187-0192** — **M4, M5, M6 e M7 fechados numa rodada só** (o usuário autorizou cruzar
-itens; a regra de 1 item por PR ficou suspensa para este lote).
+**0193-0198** — **M9 inteiro numa rodada só** (o usuário pediu "todo o tópico 9"; a regra de
+1 item por PR ficou suspensa para este lote). O app desktop deixou de ser uma janela com a
+BIOS e virou aplicativo.
 
-- **0187/0188 (7.1, 7.2, 7.4)** — SPU de verdade: 24 vozes com ADPCM, contador de pitch
-  com interpolação gaussiana, envoltória ADSR, sweep de volume, mixer estéreo a 44,1 kHz
-  pelo scheduler (768 ciclos), reverb completo a 22,05 kHz, ruído por voz (NON), EON e
-  entrada de CD-DA/XA-ADPCM. Fechou 10.101 e 10.112.
-- **0189 (7.3)** — anel puro no `psx-core` com conversão de taxa por acumulador de fase,
-  e stream `cpal` no app desktop. Sem placa de som o app roda com vídeo e avisa na tela.
-- **0190 (5.5, 5.6)** — GTE de **889/1100 para 1100/1100** contra o `gte-fuzz` do
-  ps1-tests (22 comandos × 50 casos, os 64 registradores comparados). GPF e GPL **não
-  existiam**; MVMVA usava o vetor de translação errado; SZ3 saía do MAC3 truncado.
-- **0191 (6.3)** — memory card de 128 KiB no endereço 81h, comandos R/W/S, imagem `.mcd`
-  crua carregada e regravada só quando o jogo escreve.
-- **0192 (4.5)** — fechado **por medição**: o observável ("o Crash carrega 954 KB de WAD e
-  não desenha frame") não existe mais. As duas hipóteses que nomearam o item (rollback do
-  LIBSN, poll órfão do TMR2) seguem refutadas pelas 0141 e 0147.
+- **0193 (9.1)** — identidade do disco por ISO 9660 (licença no setor 4, PVD no 16, raiz,
+  `SYSTEM.CNF`). Medido: Crash = SCUS-94900, Rayman = SLUS-00005. Tela de biblioteca.
+- **0194 (9.2)** — save state do core inteiro em serde/bincode, 3,6 MB fixos, com mágico,
+  versão e serial. **`serde` e `bincode` entraram na allowlist do `purity.rs`** — as duas
+  primeiras dependências do `psx-core`. F5/F8 + 10 slots.
+- **0195 (9.3)** — um `.mcd` por jogo, nome derivado do serial (com filtro contra travessia
+  de diretório), e tela que lê o diretório do cartão (F9).
+- **0196 (9.4)** — gilrs no desktop, `Entrada` pura no core, perfis remapeáveis em
+  `controles.txt`, tela F10.
+- **0197 (9.5)** — `psx-rs.toml`: BIOS, pastas, escala, filtro, volume. `toml` no
+  `psx-desktop` (não no core). Tela F11.
+- **0198 (9.6)** — fast-forward F12 (1/2/4/8×), recentes e tempo de jogo em segundos
+  **emulados**, gravados no próprio TOML.
 
 ## Próxima tarefa
 
-**ROADMAP 9.2 — Snapshot do core (serde) → save states F5/F8 + slots.** É o item que
-desbloqueia o resto do M9 (9.3 depende de save/estado por serial). `serde` vai precisar
-entrar na allowlist de `purity.rs` no mesmo PR, com justificativa no doc da iteração — o
-próprio teste diz isso na mensagem de falha.
+**ROADMAP 11.2 — Gráficos de metricas.csv + scoreboard-data.** É o que resta na escada
+junto com 11.3 (roteiro de demo); todo o resto virou achado em `docs/achados.md`.
 
-Antes, um teste barato: **medir o Amidog `psxtest_cpu`** de novo. Ele parava em
-`Result: 00000101` na 0166 e o GTE mudou muito desde então.
+Dois testes baratos antes: **medir o Amidog `psxtest_cpu`** de novo (parava em
+`Result: 00000101` na 0166 e o GTE foi a 1100/1100 desde então) e **rodar o lote do oráculo
+de TTY**, que não roda desde a 0186.
 
 Rodar Crash: `--bios bios/SCPH1001.BIN --disc "../roms/extraido/Crash Bandicoot (USA).cue"
 --max-steps 1200000000 --pad --press start@330000000 --press cross@700000000`.
 **Rayman: sempre `--pad` e o `.cue` MULTI-TRILHA**, 1200000000.
-Flags novas do runner: `--memcard <a.mcd>`, `--dump-audio <a.raw>` (PCM s16le 44100 Hz,
-ouvir com `ffplay -f s16le -ar 44100 -ch_layout stereo`), `--dump-vram-every N PREFIXO`.
+Flags do runner: `--memcard <a.mcd>`, `--dump-audio <a.raw>` (PCM s16le 44100 Hz),
+`--dump-vram-every N PREFIXO`, `--disc-info <cue>`.
+App desktop: `./target/release/psx-desktop`, configurado por `psx-rs.toml` (ver
+`docs/como-rodar.md`).
 
 Achados abertos em `docs/achados.md`. Lotes do oráculo: tarefa-modelo em
 `logs/orquestrador/task-lote-oraculo.txt`.
@@ -63,7 +64,7 @@ Invariantes relevantes: nenhuma.
 
 ## Placar de testes
 
-Workspace: **1223** testes.
+Workspace: **1224** testes.
 - **NUNCA rodar `cargo test`/`nextest` nem a bateria de mutação junto com o oráculo**: a
   disputa de CPU faz o `Start-Process` ler stdout antes do flush e reportar `sem-saida`
   falso. Derrubou 16/21 numa medição da 0170; rodada limpa deu 21/21.
@@ -78,6 +79,12 @@ Workspace: **1223** testes.
   instante em que os dois descritores estão habilitados.
 - **`mutantes.ps1` herda o último `teste:` visto (10.71)**: declare `teste:` em TODO
   registro do manifesto, não só no cabeçalho. Custou uma rodada de 9/18 falsos na 0187.
+- **Ele maiúsculo seguido de dígito é lido como citação de spec** pelo `spec_citations`
+  (é a forma de citar linha). Nomear os ombros do controle assim em doc reprova; escreva em
+  minúscula. Custou duas correções: `docs/como-rodar.md` e o doc da 0196.
+- **Lógica pura de frontend mora em `crates/psx-core/src/app/`** (biblioteca, saves, perfil
+  de controle, config, sessão). Não é capricho: `mutantes.ps1` só roda `-p psx-core`, então
+  código testável fora dele não teria bateria.
 - Imagens de disco ficam fora do repositório, em `.../Programacao com agentes/roms/extraido/`.
   **Nunca commitar imagem de disco.**
 - **Oraculo de hardware disponivel (0164)**: 51 EXEs em `tests/exes/` (gitignored). Amidog

@@ -25,8 +25,21 @@
 | spu/gauss | `crates/psx-core/src/spu/gauss.rs` | tabela de 512 entradas e interpolacao de 4 pontos | `TABLE`, `interpolate` |
 | cdrom_xa | `crates/psx-core/src/cdrom_xa.rs` | XA-ADPCM, quadros de CD-DA e reamostragem para 44,1 kHz | `decode_sector`, `decode_28_nibbles`, `cdda_frames`, `resample_to_44100` |
 | mdec | `crates/psx-core/src/mdec.rs` | decodificador de macroblocos | (vazio — M8) |
-| psx-cli | `crates/psx-cli/src/main.rs` | runner headless, sideload de EXE, TTY, scoreboard | stub |
-| psx-desktop | `crates/psx-desktop/src/main.rs` | app egui: biblioteca, emulação, saves, controles, config | stub |
+| app/library | `crates/psx-core/src/app/library.rs` | ISO 9660: PVD, diretorio raiz, SYSTEM.CNF, serial e regiao | `identifica`, `raiz_do_pvd`, `procura_no_diretorio`, `serial_do_boot`, `dados_do_setor` |
+| app/saves | `crates/psx-core/src/app/saves.rs` | diretorio do memory card e nome de cartao por serial | `lista`, `nome_do_cartao` |
+| app/input_map | `crates/psx-core/src/app/input_map.rs` | vocabulario de entrada, perfis e palavra do pad | `Entrada`, `Perfil`, `palavra`, `para_texto`, `de_texto` |
+| app/config | `crates/psx-core/src/app/config.rs` | configuracao do app: padroes, faixas, validacao, ganho | `Config`, `ajustada`, `valida`, `ganho` |
+| app/sessao | `crates/psx-core/src/app/sessao.rs` | recentes, tempo de jogo e multiplicador de velocidade | `Recentes`, `passos_por_quadro`, `proxima_velocidade`, `formata_tempo` |
+| snapshot | `crates/psx-core/src/snapshot.rs` | save state: estado do core em bincode, com magico/versao/serial | `salva`, `carrega`, `serial_de`, `SnapshotError` |
+| serde_grande | `crates/psx-core/src/serde_grande.rs` | (de)serializacao de `[T; N]` com N > 32, que o serde nao cobre | `serialize`, `deserialize`, `em_cell` |
+| psx-cli | `crates/psx-cli/src/main.rs` | runner headless, sideload de EXE, TTY, scoreboard, `--disc-info` | `main`, `run`, `imprime_identidade` |
+| psx-desktop | `crates/psx-desktop/src/main.rs` | app egui: estado, argumentos, maquina de telas | `App`, `Tela`, `inicia`, `encerra_partida` |
+| psx-desktop/telas | `crates/psx-desktop/src/telas.rs` | as cinco telas (biblioteca, jogando, saves, controles, ajustes) | `tela_biblioteca`, `tela_jogando`, `tela_ajustes` |
+| psx-desktop/emulador | `crates/psx-desktop/src/emulador.rs` | maquina em execucao: quadro, entrada, save state, cartao | `Emulador`, `quadro`, `entrada`, `salva_estado` |
+| psx-desktop/disco | `crates/psx-desktop/src/disco.rs` | carga do BIN/CUE e identificacao por seek | `carrega`, `identifica` |
+| psx-desktop/biblioteca | `crates/psx-desktop/src/biblioteca.rs` | varredura da pasta de jogos | `varre`, `Jogo` |
+| psx-desktop/gamepad | `crates/psx-desktop/src/gamepad.rs` | gilrs -> `Entrada`, com zona morta | `Gamepads`, `pressionados` |
+| psx-desktop/ajustes | `crates/psx-desktop/src/ajustes.rs` | leitura e gravacao do `psx-rs.toml` | `carrega`, `grava` |
 
 ## Testes
 

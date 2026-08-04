@@ -29,15 +29,24 @@ jogo fica jogável.
 ## Jogar (app desktop)
 
 ```
-./target/release/psx-desktop bios/SCPH1001.BIN cartao.mcd
+./target/release/psx-desktop
 ```
 
-O segundo argumento é opcional. Se você passar um caminho de memory card que ainda não
-existe, o app cria um cartão zerado de 128 KiB e só grava no arquivo quando o jogo
-escrever de verdade — um jogo que apenas lê nunca toca o arquivo.
+Na primeira vez ele abre na biblioteca sem nada configurado. Clique em **Ajustes**, aponte:
 
-Sem placa de som o app **não quebra**: escreve `Audio desligado (sem dispositivo de saida)`
-na tela e segue com vídeo.
+- **BIOS** — o arquivo da BIOS do seu console;
+- **Pasta de jogos** — onde estão os `.cue`;
+
+e clique em **Gravar**. Isso cria um `psx-rs.toml` na pasta de onde o app foi aberto. Da
+próxima vez ele já sobe pronto. Para apontar outro arquivo de configuração use
+`--config <arquivo>`; para sobrepor só a BIOS numa execução, `--bios <arquivo>`.
+
+A biblioteca lista os `.cue` da pasta com **serial**, **região** e tempo já jogado. O serial
+sai de dentro do disco (`SYSTEM.CNF`), lendo quatro setores por seek — a varredura não lê a
+imagem inteira, então uma pasta com dezenas de jogos abre rápido.
+
+Sem placa de som o app **não quebra**: escreve `audio desligado (sem dispositivo de saida)`
+e segue com vídeo.
 
 ### Teclas
 
@@ -51,15 +60,38 @@ na tela e segue com vídeo.
 
 Os ombros aparecem em minúsculas porque é assim que o `--press` do runner os nomeia.
 
-### Limitação atual
+Controle de PlayStation, Xbox ou genérico é detectado sozinho (gilrs) e vale **junto** com o
+teclado. Para remapear, tela de **Controles** (`F10`); o perfil grava em `controles.txt`.
 
-O app desktop ainda **não tem tela de carregar disco** — ele sobe a BIOS e para no menu do
-console. Carregar um jogo é o item 9.1 do `ROADMAP.md`. Até lá, para ver um jogo rodando
-use o runner headless abaixo.
+### Teclas de função, durante o jogo
+
+| Tecla | O que faz |
+|---|---|
+| `Esc` | volta para a biblioteca (grava o tempo jogado) |
+| `F5` / `F8` | salva / carrega o save state do slot atual |
+| `F6` / `F7` | slot anterior / próximo (0 a 9) |
+| `F9` | tela do memory card |
+| `F10` | tela de controles |
+| `F11` | tela de ajustes |
+| `F12` | velocidade: 1× → 2× → 4× → 8× → 1× |
+
+**Save states** vão para `saves/<serial>-<slot>.state`, ~3,6 MB cada, e só carregam no jogo
+de que saíram — o serial vai gravado no arquivo. Eles **não** substituem o memory card: são
+coisas diferentes, e um save state de outra versão do emulador é recusado, não aplicado pela
+metade.
+
+**Memory card** é automático, um por jogo, em `cartoes/<serial>.mcd`. O arquivo só é criado
+quando o jogo grava de verdade. `F9` mostra o que há dentro dele.
 
 ## Rodar um jogo de verdade (runner headless)
 
 O `psx-cli` roda sem janela e grava o resultado em arquivo. É com ele que o projeto mede.
+
+Antes disso, para saber quem é um disco sem bootá-lo:
+
+```
+./target/release/psx-cli --disc-info "../roms/extraido/Crash Bandicoot (USA).cue"
+```
 
 ```
 ./target/release/psx-cli \
@@ -93,7 +125,8 @@ Para o Rayman, troque o disco, mantenha `--pad` e **tire os `--press`**:
 | `--max-steps <N>` | quantas instruções executar antes de parar |
 | `--pad` | liga um controle digital no slot 1 |
 | `--press BOTAO@PASSO[:DURACAO]` | aperta um botão num passo dado; pode repetir |
-| `--memcard <arquivo.mcd>` | memory card de 128 KiB, criado se faltar |
+| `--memcard <arquivo.mcd>` | memory card de 128 KiB, criado se faltar (no app é automático) |
+| `--disc-info <arquivo.cue>` | imprime serial, região e trilhas, sem bootar |
 | `--dump-audio <arquivo.raw>` | grava o som produzido |
 | `--dump-vram <arquivo>` | um retrato da VRAM no fim |
 | `--dump-vram-every N <prefixo>` | uma linha do tempo de retratos |
@@ -143,6 +176,8 @@ de alguns milhares significa que ele está desenhando.
 | `BIOS invalida` | arquivo truncado ou não é uma BIOS de PS1 |
 | Save não persiste | faltou `--memcard`; sem ele o cartão nem é conectado |
 | Som picotado sob carga | esperado: o anel de áudio ainda não tem controle de fluxo |
+| Som picotado em fast-forward | esperado: em 8× o SPU produz 8× mais do que a placa consome |
+| Save state não carrega | é de outro jogo ou de outra versão do formato; a mensagem diz qual |
 | Voz de cutscene áspera | esperado: XA reamostrado por vizinho mais próximo |
 
 Os dois últimos estão registrados como achados abertos (`0189.1` e `0188.1`) em

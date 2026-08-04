@@ -428,7 +428,8 @@ impl Gte {
         self.regs[63] |= flag;
     }
 
-    // § COP2 190003Dh - GPF (L678) e 1A0003Eh - GPL (L679) de docs/reference/07-gte.md.
+    // § COP2 190003Dh - 5 Cycles - GPF(sf,lm) - General purpose Interpolation (L641) de
+    // docs/reference/07-gte.md.
     fn interpolacao_geral(&mut self, sf: u32, lm: u32, com_base: bool) {
         let mut flag: u32 = 0;
         let shift = sf * 12;
@@ -516,7 +517,7 @@ impl Gte {
             2 => 48,
             _ => 0,
         };
-        // § COP2 0400012h - MVMVA (L578) de docs/reference/07-gte.md: o vetor de
+        // § COP2 0400012h - 8 Cycles - MVMVA(sf,mx,v,cv,lm) (L550) de docs/reference/07-gte.md: o vetor de
         // translacao e escolhido por `cv`, nao pela matriz.
         let base_tr = match cv {
             0 => 37,
@@ -768,7 +769,8 @@ impl Gte {
             sy2
         };
 
-        // § COP2 0280030h - RTPT (L491) de docs/reference/07-gte.md: o RTPT repete o
+        // § COP2 0280030h - 23 Cycles - RTPT - Perspective Transformation (triple) (L482) de
+        // docs/reference/07-gte.md: o RTPT repete o
         // RTPS, mas o cue de profundidade so e calculado no ultimo vertice — as flags
         // dos vertices intermediarios nao existem no hardware.
         if ultimo {

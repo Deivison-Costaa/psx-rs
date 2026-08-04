@@ -3,10 +3,10 @@ formato: 1
 iteracao: 0190
 item: 5.5
 alvo: crates/psx-core/src/gte.rs
-teste: gte_fuzz_hardware
+teste: gte_fuzz_embutido
 
 mutante: m1
-teste: gte_fuzz_hardware
+teste: gte_fuzz_embutido
 rotulo: overflow do MAC conferido so no total, nao a cada parcela
 ocorrencias: 1
 @@DE
@@ -27,7 +27,7 @@ ocorrencias: 1
 @@FIM
 
 mutante: m2
-teste: gte_fuzz_hardware
+teste: gte_fuzz_embutido
 rotulo: acumulador nao trunca em 44 bits com sinal entre as parcelas
 ocorrencias: 1
 @@DE
@@ -40,7 +40,7 @@ ocorrencias: 1
 @@FIM
 
 mutante: m3
-teste: gte_fuzz_hardware
+teste: gte_fuzz_embutido
 rotulo: vetor de translacao do MVMVA escolhido pela matriz, nao pelo cv
 ocorrencias: 1
 @@DE
@@ -58,7 +58,7 @@ ocorrencias: 1
 @@FIM
 
 mutante: m4
-teste: gte_fuzz_hardware
+teste: gte_fuzz_embutido
 rotulo: far color do MVMVA entra no resultado em vez de ser descartado
 ocorrencias: 1
 @@DE
@@ -78,7 +78,7 @@ ocorrencias: 1
 @@FIM
 
 mutante: m6
-teste: gte_fuzz_hardware
+teste: gte_fuzz_embutido
 rotulo: SZ3 do RTPS lido do MAC3 ja truncado em 32 bits
 ocorrencias: 1
 @@DE
@@ -88,7 +88,7 @@ ocorrencias: 1
 @@FIM
 
 mutante: m7
-teste: gte_fuzz_hardware
+teste: gte_fuzz_embutido
 rotulo: RTPT calcula o cue de profundidade em todos os tres vertices
 ocorrencias: 1
 @@DE
@@ -106,7 +106,7 @@ ocorrencias: 1
 @@FIM
 
 mutante: m8
-teste: gte_fuzz_hardware
+teste: gte_fuzz_embutido
 rotulo: AVSZ soma os SZ de 32 bits em vez dos 16 bits do registrador
 ocorrencias: 2
 @@DE
@@ -120,7 +120,7 @@ ocorrencias: 2
 @@FIM
 
 mutante: m9
-teste: gte_fuzz_hardware
+teste: gte_fuzz_embutido
 rotulo: AVSZ3 sem a flag de overflow do MAC0
 ocorrencias: 1
 @@DE
@@ -131,7 +131,7 @@ ocorrencias: 1
 @@FIM
 
 mutante: m10
-teste: gte_fuzz_hardware
+teste: gte_fuzz_embutido
 rotulo: GPL nao desloca a base antes de somar o produto
 ocorrencias: 1
 @@DE
@@ -141,7 +141,7 @@ ocorrencias: 1
 @@FIM
 
 mutante: m11
-teste: gte_fuzz_hardware
+teste: gte_fuzz_embutido
 rotulo: GPF parte do MAC anterior em vez de zero
 ocorrencias: 1
 @@DE
@@ -159,7 +159,7 @@ ocorrencias: 1
 @@FIM
 
 mutante: m12
-teste: gte_fuzz_hardware
+teste: gte_fuzz_embutido
 rotulo: interpolacao geral multiplica por IR1 em vez de IR0
 ocorrencias: 1
 @@DE
@@ -173,7 +173,7 @@ ocorrencias: 1
 @@FIM
 
 controle: c1
-teste: gte_fuzz_hardware
+teste: gte_fuzz_embutido
 rotulo: acumulador escrito com fold em vez de laco, mesmo resultado
 ocorrencias: 1
 @@DE
@@ -187,7 +187,7 @@ ocorrencias: 1
 @@FIM
 
 controle: c2
-teste: gte_fuzz_hardware
+teste: gte_fuzz_embutido
 rotulo: mascara de SZ3 escrita como conversao para u16, mesmo resultado
 ocorrencias: 2
 @@DE

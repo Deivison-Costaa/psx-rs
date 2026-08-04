@@ -100,12 +100,20 @@ fn maquina_restaurada_continua_executando_igual() {
         cpu.step(&mut bus);
     }
     let depois = retrato(&cpu, &bus);
+    let estado_depois = salvo(&cpu, &bus);
 
     snapshot::carrega(&mut cpu, &mut bus, &estado, SERIAL).expect("carregar");
     for _ in 0..5000 {
         cpu.step(&mut bus);
     }
     assert_eq!(retrato(&cpu, &bus), depois);
+    assert_eq!(
+        salvo(&cpu, &bus),
+        estado_depois,
+        "rodar os mesmos 5000 passos a partir do estado restaurado tem de levar a maquina \
+         INTEIRA ao mesmo lugar — inclusive a fila de eventos do scheduler, que nenhum \
+         retrato de doze valores enxerga"
+    );
 }
 
 #[test]

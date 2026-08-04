@@ -83,8 +83,8 @@ fn rect_1x1_desenha_um_unico_pixel() {
 fn rect_variavel_respeita_largura_e_altura() {
     let mut gpu = Gpu::new();
     aplica_e1h(&mut gpu, E1_15BPP);
-    for u in 0..3u16 {
-        for v in 0..2u16 {
+    for u in 0..8u16 {
+        for v in 0..8u16 {
             escreve_vram_halfword(&mut gpu, u, v, 0x4000 | (v << 4) | u);
         }
     }

@@ -233,3 +233,31 @@ fn primeira_divergencia_por_comando() {
         }
     }
 }
+
+/// § Details on "MAC+(FC-MAC)*IR0" (L688) de docs/reference/07-gte.md: a saturacao do
+/// trecho intermediario vale "como se lm=0", mesmo com lm=1 no comando. O log de fuzz
+/// nao tem nenhum caso que separe as duas leituras — este separa.
+#[test]
+fn far_color_do_mvmva_satura_o_trecho_descartado_como_se_lm_fosse_zero() {
+    let mut gte = Gte::new();
+    // RT11 = -1 e RT12 = +1; V0 = (1000h, 2000h, 0); far color zerado.
+    gte.write_control(0, 0x0001_FFFF);
+    gte.write_data(0, 0x2000_1000);
+    gte.write_data(1, 0);
+    // MVMVA(sf=0, mx=0=RT, v=0=V0, cv=2=FC, lm=1)
+    gte.execute_command(0x12 | (1 << 10) | (2 << 13));
+
+    assert_eq!(
+        gte.read_data(9),
+        8192,
+        "o MAC guarda so as duas ultimas parcelas: RT12*VY0 = 2000h"
+    );
+    let flag = gte.read_control(31);
+    assert_eq!(
+        flag & (1 << 24),
+        0,
+        "o trecho descartado vale -1000h: negativo satura so com lm=0, e a spec diz \
+         que essa leitura ignora o lm do comando"
+    );
+    assert_eq!(flag & (1 << 23), 0, "MAC2 ficou em zero");
+}

@@ -1,0 +1,17 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: b53d6e44b3104afe89819a4e13f4238c48fa389b
+# rodado_em: 2026-08-03T21:17:44-03:00
+m1,mutante,morreu,morreu,0.8,placar_do_fuzz_de_hardware_do_gte
+m2,mutante,morreu,morreu,0.7,placar_do_fuzz_de_hardware_do_gte
+m3,mutante,morreu,morreu,0.7,placar_do_fuzz_de_hardware_do_gte
+m4,mutante,morreu,morreu,0.7,placar_do_fuzz_de_hardware_do_gte
+m5,mutante,morreu,sobreviveu,0.7,
+m6,mutante,morreu,morreu,0.7,placar_do_fuzz_de_hardware_do_gte
+m7,mutante,morreu,morreu,0.7,placar_do_fuzz_de_hardware_do_gte
+m8,mutante,morreu,morreu,0.7,placar_do_fuzz_de_hardware_do_gte
+m9,mutante,morreu,morreu,0.8,placar_do_fuzz_de_hardware_do_gte
+m10,mutante,morreu,morreu,0.8,placar_do_fuzz_de_hardware_do_gte
+m11,mutante,morreu,morreu,0.7,placar_do_fuzz_de_hardware_do_gte
+m12,mutante,morreu,morreu,0.7,placar_do_fuzz_de_hardware_do_gte
+c1,controle,sobreviveu,sobreviveu,0.7,
+c2,controle,sobreviveu,sobreviveu,0.7,

@@ -60,7 +60,7 @@ impl App {
                 return;
             }
         };
-        if let Err(e) = emu.insere_disco(&jogo.cue) {
+        if let Err(e) = emu.insere_disco(&jogo.cue, jogo.serial()) {
             self.erro = Some(e);
             return;
         }
@@ -115,6 +115,7 @@ impl App {
             return;
         };
         emu.teclado(ctx);
+        Self::atalhos_de_estado(ctx, emu);
         emu.quadro();
 
         match emu.textura() {
@@ -136,13 +137,41 @@ impl App {
             } else {
                 ui.small("audio desligado (sem dispositivo de saida)");
             }
-            ui.small("Esc: biblioteca");
+            let marca = if emu.slot_existe(emu.slot) { "*" } else { "" };
+            ui.small(format!("slot {}{marca}", emu.slot));
+            ui.small("Esc: biblioteca · F5/F8: salvar/carregar · F6/F7: slot");
         });
+        if let Some(aviso) = &emu.aviso {
+            ui.small(aviso.clone());
+        }
 
         if ctx.input(|i| i.key_pressed(egui::Key::Escape)) {
             self.emulador = None;
             self.em_execucao = None;
             self.tela = Tela::Biblioteca;
+        }
+    }
+
+    fn atalhos_de_estado(ctx: &egui::Context, emu: &mut Emulador) {
+        let (f5, f6, f7, f8) = ctx.input(|i| {
+            (
+                i.key_pressed(egui::Key::F5),
+                i.key_pressed(egui::Key::F6),
+                i.key_pressed(egui::Key::F7),
+                i.key_pressed(egui::Key::F8),
+            )
+        });
+        if f6 {
+            emu.slot = (emu.slot + emulador::SLOTS - 1) % emulador::SLOTS;
+        }
+        if f7 {
+            emu.slot = (emu.slot + 1) % emulador::SLOTS;
+        }
+        if f5 {
+            emu.salva_estado();
+        }
+        if f8 {
+            emu.carrega_estado();
         }
     }
 }

@@ -10,7 +10,7 @@ const POS: [i32; 4] = [0, 60, 115, 98];
 const NEG: [i32; 4] = [0, 0, -52, -55];
 
 /// § Old/Older Values (L1119) de docs/reference/15-cdrom-format.md: atravessam o setor.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct XaState {
     pub old_left: i32,
     pub older_left: i32,

@@ -1,5 +1,5 @@
 /// Taxa de envoltoria: passo (0..3), shift (0..1Fh), modo e direcao.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
 pub struct Rate {
     pub step: u8,
     pub shift: u8,
@@ -14,7 +14,7 @@ impl Rate {
     }
 }
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Envelope {
     pub level: i32,
     pub counter: i32,

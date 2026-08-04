@@ -2,7 +2,10 @@ mod support;
 
 use std::fs;
 
-const ALLOWED_DEPENDENCIES: &[&str] = &[];
+// Entraram na 0194 (item 9.2, save states). As duas sao puras: `serde` so gera codigo de
+// (de)serializacao e `bincode` so troca esse codigo por bytes — nenhuma das duas abre
+// arquivo, soquete ou relogio. Quem grava o `.state` e o frontend.
+const ALLOWED_DEPENDENCIES: &[&str] = &["serde", "bincode"];
 
 #[test]
 fn psx_core_sem_dependencias_fora_da_allowlist() {

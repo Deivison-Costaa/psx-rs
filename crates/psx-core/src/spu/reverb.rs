@@ -34,7 +34,7 @@ const M_RAPF2: usize = 0x1D;
 const V_LIN: usize = 0x1E;
 const V_RIN: usize = 0x1F;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Reverb {
     pub regs: [u16; REG_COUNT],
     pub vlout: u16,

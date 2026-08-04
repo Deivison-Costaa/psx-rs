@@ -1,0 +1,166 @@
+# Manifesto de mutacao da iteracao 0194 — snapshot do core e save states
+formato: 1
+iteracao: 0194
+item: 9.2
+alvo: crates/psx-core/src/snapshot.rs
+teste: snapshot_estado
+
+mutante: m1
+teste: snapshot_estado
+rotulo: RAM de 2 MiB fica de fora da restauracao
+ocorrencias: 1
+@@DE
+    bus.ram = estado.ram;
+@@PARA
+    let _ = estado.ram;
+@@FIM
+
+mutante: m2
+teste: snapshot_estado
+rotulo: GPU (VRAM inclusa) fica de fora da restauracao
+ocorrencias: 1
+@@DE
+    bus.gpu = estado.gpu;
+@@PARA
+    let _ = estado.gpu;
+@@FIM
+
+mutante: m3
+teste: snapshot_estado
+rotulo: SPU fica de fora da restauracao
+ocorrencias: 1
+@@DE
+    bus.spu = estado.spu;
+@@PARA
+    let _ = estado.spu;
+@@FIM
+
+mutante: m4
+teste: snapshot_estado
+rotulo: fila de eventos do scheduler fica de fora da restauracao
+ocorrencias: 1
+@@DE
+    bus.scheduler = estado.scheduler;
+@@PARA
+    let _ = estado.scheduler;
+@@FIM
+
+mutante: m5
+teste: snapshot_estado
+rotulo: relogio mestre nao volta ao valor salvo
+ocorrencias: 1
+@@DE
+    bus.total_cycles = estado.total_cycles;
+@@PARA
+    let _ = estado.total_cycles;
+@@FIM
+
+mutante: m6
+teste: snapshot_estado
+rotulo: registradores do GTE ficam de fora da restauracao
+ocorrencias: 1
+@@DE
+    bus.gte = estado.gte;
+@@PARA
+    let _ = estado.gte;
+@@FIM
+
+mutante: m7
+teste: snapshot_estado
+rotulo: timers ficam de fora da restauracao
+ocorrencias: 1
+@@DE
+    bus.timers = estado.timers;
+@@PARA
+    let _ = estado.timers;
+@@FIM
+
+mutante: m8
+teste: snapshot_estado
+rotulo: I_STAT/I_MASK ficam de fora da restauracao
+ocorrencias: 1
+@@DE
+    bus.irq = estado.irq;
+@@PARA
+    let _ = estado.irq;
+@@FIM
+
+mutante: m9
+teste: snapshot_estado
+rotulo: SIO (pad e memory card) fica de fora da restauracao
+ocorrencias: 1
+@@DE
+    bus.sio = estado.sio;
+@@PARA
+    let _ = estado.sio;
+@@FIM
+
+mutante: m10
+teste: snapshot_estado
+rotulo: save state de outro jogo passa a ser aceito
+ocorrencias: 1
+@@DE
+    if estado.serial != serial {
+@@PARA
+    if false {
+@@FIM
+
+mutante: m11
+teste: snapshot_estado
+rotulo: magico deixa de ser conferido
+ocorrencias: 1
+@@DE
+    if &bytes[0..8] != MAGICO {
+        return Err(SnapshotError::Magico);
+    }
+@@PARA
+    if bytes.len() < 8 {
+        return Err(SnapshotError::Magico);
+    }
+@@FIM
+
+mutante: m12
+teste: snapshot_estado
+rotulo: versao do formato deixa de ser conferida
+ocorrencias: 1
+@@DE
+    if versao != VERSAO {
+        return Err(SnapshotError::Versao(versao));
+    }
+@@PARA
+    if versao == u32::MAX {
+        return Err(SnapshotError::Versao(versao));
+    }
+@@FIM
+
+mutante: m13
+teste: snapshot_estado
+rotulo: corpo comeca um byte antes do fim do cabecalho
+ocorrencias: 1
+@@DE
+const CABECALHO: usize = 12;
+@@PARA
+const CABECALHO: usize = 11;
+@@FIM
+
+controle: c1
+teste: snapshot_estado
+rotulo: cabecalho montado sem reservar capacidade
+ocorrencias: 1
+@@DE
+    let mut fora = Vec::with_capacity(CABECALHO);
+@@PARA
+    let mut fora = Vec::new();
+@@FIM
+
+controle: c2
+teste: snapshot_estado
+rotulo: versao lida por copy_from_slice em vez de indices soltos
+ocorrencias: 1
+@@DE
+    let versao = u32::from_le_bytes([bytes[8], bytes[9], bytes[10], bytes[11]]);
+@@PARA
+    let mut quatro = [0u8; 4];
+    quatro.copy_from_slice(&bytes[8..12]);
+    let versao = u32::from_le_bytes(quatro);
+@@FIM

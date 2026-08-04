@@ -1,7 +1,7 @@
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct EventId(pub u32);
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ScheduleKey {
     pub tick: u64,
 }
@@ -12,7 +12,7 @@ impl ScheduleKey {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Scheduler {
     events: Vec<(ScheduleKey, EventId)>,
     current_tick: u64,

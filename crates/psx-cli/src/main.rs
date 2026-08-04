@@ -1,5 +1,5 @@
-use psx_core::bus::{Bios, Bus, BusRead, Ram};
 use psx_core::app::library;
+use psx_core::bus::{Bios, Bus, BusRead, Ram};
 use psx_core::cdrom_bin_cue::{DiscLayout, parse_cue};
 use psx_core::cpu::Cpu;
 use psx_core::pad_script::{PadScript, RELEASED};
@@ -284,7 +284,9 @@ fn imprime_identidade(disc_path: &str) {
             std::process::exit(1);
         }
     };
-    let pasta = caminho.parent().unwrap_or_else(|| std::path::Path::new("."));
+    let pasta = caminho
+        .parent()
+        .unwrap_or_else(|| std::path::Path::new("."));
     let Some(primeiro) = layout.arquivos_em_ordem().first().map(|a| pasta.join(a)) else {
         eprintln!("Erro: CUE sem FILE: '{disc_path}'");
         std::process::exit(1);

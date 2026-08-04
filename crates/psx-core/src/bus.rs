@@ -12,7 +12,7 @@ use crate::timers::Timers;
 
 const SCRATCHPAD_SIZE: usize = 1024;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Ram {
     data: Vec<u8>,
 }
@@ -31,8 +31,9 @@ impl Default for Ram {
     }
 }
 
-#[derive(Debug, Clone)]
-struct Scratchpad {
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub(crate) struct Scratchpad {
+    #[serde(with = "crate::serde_grande")]
     data: [u8; SCRATCHPAD_SIZE],
 }
 
@@ -57,8 +58,8 @@ impl Scratchpad {
     }
 }
 
-#[derive(Debug, Clone)]
-struct MemCtrl {
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub(crate) struct MemCtrl {
     regs: [u32; 10],
 }
 
@@ -83,8 +84,8 @@ impl MemCtrl {
     }
 }
 
-#[derive(Debug, Clone)]
-struct Bcc(u32);
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub(crate) struct Bcc(u32);
 
 impl Bcc {
     fn new() -> Self {
@@ -126,25 +127,25 @@ const SIO_ACK_DELAY_CYCLES: u64 = 338;
 
 #[derive(Debug)]
 pub struct Bus {
-    ram: Ram,
+    pub(crate) ram: Ram,
     bios: Bios,
-    gpu: Gpu,
-    gte: Gte,
-    irq: Irq,
-    dma: Dma,
-    cdrom: Cdrom,
+    pub(crate) gpu: Gpu,
+    pub(crate) gte: Gte,
+    pub(crate) irq: Irq,
+    pub(crate) dma: Dma,
+    pub(crate) cdrom: Cdrom,
     disc_layout: Option<DiscLayout>,
     disc_bin: Option<Vec<u8>>,
-    timers: Timers,
-    sio: Sio,
-    mdec: Mdec,
-    spu: Spu,
-    scratchpad: Scratchpad,
-    mem_ctrl: MemCtrl,
-    bcc: Bcc,
-    tty_buffer: Vec<u8>,
-    scheduler: Scheduler,
-    total_cycles: u64,
+    pub(crate) timers: Timers,
+    pub(crate) sio: Sio,
+    pub(crate) mdec: Mdec,
+    pub(crate) spu: Spu,
+    pub(crate) scratchpad: Scratchpad,
+    pub(crate) mem_ctrl: MemCtrl,
+    pub(crate) bcc: Bcc,
+    pub(crate) tty_buffer: Vec<u8>,
+    pub(crate) scheduler: Scheduler,
+    pub(crate) total_cycles: u64,
 }
 
 impl Bus {
@@ -206,6 +207,14 @@ impl Bus {
             scheduler,
             total_cycles: 0,
         }
+    }
+
+    pub fn tem_disco(&self) -> bool {
+        self.disc_bin.is_some()
+    }
+
+    pub fn bios_size(&self) -> usize {
+        self.bios.size()
     }
 
     pub fn spu(&self) -> &Spu {

@@ -1,9 +1,12 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use psx_core::bus::{Bios, Bus, Ram};
 use psx_core::cpu::Cpu;
+use psx_core::snapshot;
 
 use crate::audio::AudioOut;
+
+pub const SLOTS: u8 = 10;
 
 const TECLAS: [(egui::Key, u32); 14] = [
     (egui::Key::ArrowUp, 4),
@@ -29,6 +32,10 @@ pub struct Emulador {
     textura: Option<egui::ColorImage>,
     passos_por_quadro: usize,
     memcard: Option<String>,
+    serial: String,
+    pasta_de_saves: PathBuf,
+    pub slot: u8,
+    pub aviso: Option<String>,
 }
 
 impl Emulador {
@@ -53,14 +60,61 @@ impl Emulador {
             textura: None,
             passos_por_quadro,
             memcard,
+            serial: String::new(),
+            pasta_de_saves: PathBuf::from("saves"),
+            slot: 0,
+            aviso: None,
         })
     }
 
-    pub fn insere_disco(&mut self, cue: &Path) -> Result<(), String> {
+    pub fn insere_disco(&mut self, cue: &Path, serial: &str) -> Result<(), String> {
         let (layout, bin) = crate::disco::carrega(cue)?;
         self.bus.inject_disc(layout, bin);
         self.bus.cdrom_mut().insert_disc();
+        self.serial = serial.to_string();
         Ok(())
+    }
+
+    pub fn caminho_do_slot(&self, slot: u8) -> PathBuf {
+        self.pasta_de_saves
+            .join(format!("{}-{slot}.state", self.serial))
+    }
+
+    /// F5. Um slot por arquivo: sobrescrever o anterior e o comportamento esperado, mas
+    /// perder o save por falta da pasta nao e — por isso a pasta e criada aqui.
+    pub fn salva_estado(&mut self) {
+        let caminho = self.caminho_do_slot(self.slot);
+        if let Some(pai) = caminho.parent() {
+            if let Err(e) = std::fs::create_dir_all(pai) {
+                self.aviso = Some(format!("nao consegui criar '{}': {e}", pai.display()));
+                return;
+            }
+        }
+        let bytes = snapshot::salva(&self.cpu, &self.bus, &self.serial);
+        self.aviso = Some(match std::fs::write(&caminho, &bytes) {
+            Ok(()) => format!("slot {} salvo ({} KiB)", self.slot, bytes.len() / 1024),
+            Err(e) => format!("nao consegui gravar o slot {}: {e}", self.slot),
+        });
+    }
+
+    /// F8. Estado recusado nao mexe na maquina: o `carrega` decodifica tudo antes de
+    /// escrever qualquer campo.
+    pub fn carrega_estado(&mut self) {
+        let caminho = self.caminho_do_slot(self.slot);
+        let Ok(bytes) = std::fs::read(&caminho) else {
+            self.aviso = Some(format!("slot {} vazio", self.slot));
+            return;
+        };
+        self.aviso = Some(
+            match snapshot::carrega(&mut self.cpu, &mut self.bus, &bytes, &self.serial) {
+                Ok(()) => format!("slot {} carregado", self.slot),
+                Err(e) => format!("slot {}: {e}", self.slot),
+            },
+        );
+    }
+
+    pub fn slot_existe(&self, slot: u8) -> bool {
+        self.caminho_do_slot(slot).exists()
     }
 
     pub fn teclado(&mut self, ctx: &egui::Context) {

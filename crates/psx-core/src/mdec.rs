@@ -9,7 +9,7 @@ const ZAGZIG: [u8; 64] = [
     52, 45, 38, 31, 39, 46, 53, 60, 61, 54, 47, 55, 62, 63,
 ];
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 enum Command {
     None,
     Decode,
@@ -20,7 +20,7 @@ enum Command {
 /// Decodificador de macroblocos (MDEC): regs 1F801820h/1F801824h, tabelas de
 /// quantizacao/escala e os caminhos monocromatico (4/8 bit) e colorido (24/15 bit).
 /// § MDEC I/O Ports e MDEC Commands (L61-168) de docs/reference/09-mdec.md.
-#[derive(Debug)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Mdec {
     enable_data_in: bool,
     enable_data_out: bool,
@@ -32,14 +32,19 @@ pub struct Mdec {
     quant_color: bool,
     param_bytes: Vec<u8>,
     param_bytes_needed: usize,
+    #[serde(with = "crate::serde_grande")]
     iq_y: [u8; 64],
+    #[serde(with = "crate::serde_grande")]
     iq_uv: [u8; 64],
+    #[serde(with = "crate::serde_grande")]
     scale_table: [i32; 64],
     output: RefCell<Vec<u32>>,
     pending: Vec<u16>,
     words_left: usize,
     block_index: usize,
+    #[serde(with = "crate::serde_grande")]
     cr: [i32; 64],
+    #[serde(with = "crate::serde_grande")]
     cb: [i32; 64],
     current_block: u8,
     dma_pos: Cell<usize>,

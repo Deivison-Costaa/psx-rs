@@ -23,7 +23,6 @@
 - [ ] 10.7 Mask GP0(E6h) em CPU->VRAM e VRAM->VRAM (`docs/reference/03-gpu.md` L590)
 - [ ] 10.8 SWL/SWR fazem read-modify-write e leem portas de I/O de leitura destrutiva
 - [ ] 10.10 Drawing Area GP0(E3h/E4h) e Offset GP0(E5h) sem suite que os meça
-- [ ] 10.11 Textura e Texpage de retângulos (hoje UV consumido e ignorado)
 - [ ] 10.28 Tabela por registro nos docs vs `.resultado`: 0071 errou 3/9, 0038 inflou 2
 - [ ] 10.29 `dma_dpcr_gate.rs:141`: `assert_ne!` como unica assercao de uma correcao
 - [ ] 10.30 Habilitar canal no DPCR nao dispara transferencia pendente (so no CHCR)

@@ -1,0 +1,11 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: e531b1dd5d5e635e9a49ae8bd2f0936f27998e10
+# rodado_em: 2026-08-04T10:10:03-03:00
+m1,mutante,morreu,morreu,1.2,texel_zero_e_transparente_e_preserva_o_fundo
+m2,mutante,morreu,morreu,1.2,uv_acima_de_255_da_volta_na_janela_de_256
+m3,mutante,morreu,morreu,1.1,clut_4bpp_vem_do_uv_word_do_rect
+m4,mutante,morreu,morreu,1.2,rect_15bpp_raw_copia_texels_da_pagina;rect_variavel_respeita_largura_e_altura
+m5,mutante,morreu,morreu,1.1,rect_variavel_respeita_largura_e_altura
+m6,mutante,morreu,morreu,1.2,semi_transparencia_obedece_o_bit_stp_do_texel
+c1,controle,sobreviveu,sobreviveu,1.1,
+c2,controle,sobreviveu,sobreviveu,1.1,

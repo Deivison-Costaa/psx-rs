@@ -1,0 +1,172 @@
+# Manifesto de mutacao da iteracao 0197 — configuracao do app em TOML
+formato: 1
+iteracao: 0197
+item: 9.5
+alvo: crates/psx-core/src/app/config.rs
+teste: config_app
+
+mutante: m1
+teste: config_app
+rotulo: escala grampeada so por cima, deixando passar zero
+ocorrencias: 1
+@@DE
+            escala: self.escala.clamp(ESCALA_MIN, ESCALA_MAX),
+@@PARA
+            escala: self.escala.min(ESCALA_MAX),
+@@FIM
+
+mutante: m2
+teste: config_app
+rotulo: volume acima de 100 passa sem grampear
+ocorrencias: 1
+@@DE
+            volume: self.volume.min(VOLUME_MAX),
+@@PARA
+            volume: self.volume,
+@@FIM
+
+mutante: m3
+teste: config_app
+rotulo: slot inicial acima de 9 passa sem grampear
+ocorrencias: 1
+@@DE
+            slot_inicial: self.slot_inicial.min(SLOT_MAX),
+@@PARA
+            slot_inicial: self.slot_inicial,
+@@FIM
+
+mutante: m4
+teste: config_app
+rotulo: pasta vazia vira caminho vazio em vez do padrao
+ocorrencias: 1
+@@DE
+    if valor.trim().is_empty() {
+        padrao.to_string()
+    } else {
+        valor.to_string()
+    }
+@@PARA
+    let _ = padrao;
+    valor.to_string()
+@@FIM
+
+mutante: m5
+teste: config_app
+rotulo: pasta so de espacos passa a ser aceita como caminho
+ocorrencias: 1
+@@DE
+    if valor.trim().is_empty() {
+@@PARA
+    if valor.is_empty() {
+@@FIM
+
+mutante: m6
+teste: config_app
+rotulo: BIOS vazia deixa de ser reclamada
+ocorrencias: 1
+@@DE
+        if self.bios.trim().is_empty() {
+@@PARA
+        if false {
+@@FIM
+
+mutante: m7
+teste: config_app
+rotulo: validacao usa a faixa ja grampeada, nunca reclamando de escala
+ocorrencias: 1
+@@DE
+        if !(ESCALA_MIN..=ESCALA_MAX).contains(&self.escala) {
+@@PARA
+        if !(ESCALA_MIN..=ESCALA_MAX).contains(&self.escala.clamp(ESCALA_MIN, ESCALA_MAX)) {
+@@FIM
+
+mutante: m8
+teste: config_app
+rotulo: volume fora de faixa vira aviso so acima de 255
+ocorrencias: 1
+@@DE
+        if self.volume > VOLUME_MAX {
+@@PARA
+        if self.volume > u8::MAX {
+@@FIM
+
+mutante: m9
+teste: config_app
+rotulo: audio desligado deixa de zerar o ganho
+ocorrencias: 1
+@@DE
+        if !self.audio_ligado {
+            return 0.0;
+        }
+@@PARA
+        if false {
+            return 0.0;
+        }
+@@FIM
+
+mutante: m10
+teste: config_app
+rotulo: ganho dividido pela escala errada
+ocorrencias: 1
+@@DE
+        f32::from(self.volume.min(VOLUME_MAX)) / f32::from(VOLUME_MAX)
+@@PARA
+        f32::from(self.volume.min(VOLUME_MAX)) / f32::from(u8::MAX)
+@@FIM
+
+mutante: m11
+teste: config_app
+rotulo: escala padrao sobe para 3
+ocorrencias: 1
+@@DE
+            escala: 2,
+@@PARA
+            escala: 3,
+@@FIM
+
+mutante: m12
+teste: config_app
+rotulo: audio nasce desligado
+ocorrencias: 1
+@@DE
+            audio_ligado: true,
+@@PARA
+            audio_ligado: false,
+@@FIM
+
+controle: c1
+teste: config_app
+rotulo: grampeamento do volume escrito com comparacao explicita
+ocorrencias: 1
+@@DE
+            volume: self.volume.min(VOLUME_MAX),
+            audio_ligado: self.audio_ligado,
+@@PARA
+            volume: if self.volume > VOLUME_MAX {
+                VOLUME_MAX
+            } else {
+                self.volume
+            },
+            audio_ligado: self.audio_ligado,
+@@FIM
+
+controle: c2
+teste: config_app
+rotulo: pasta padrao escolhida por match em vez de if
+ocorrencias: 1
+@@DE
+fn ou_padrao(valor: &str, padrao: &str) -> String {
+    if valor.trim().is_empty() {
+        padrao.to_string()
+    } else {
+        valor.to_string()
+    }
+}
+@@PARA
+fn ou_padrao(valor: &str, padrao: &str) -> String {
+    match valor.trim() {
+        "" => padrao.to_string(),
+        _ => valor.to_string(),
+    }
+}
+@@FIM

@@ -1,5 +1,6 @@
 use std::path::{Path, PathBuf};
 
+use psx_core::app::config::Config;
 use psx_core::app::input_map::{Entrada, Perfil};
 use psx_core::app::saves::{self, Save};
 use psx_core::bus::{Bios, Bus, Ram};
@@ -43,17 +44,13 @@ pub struct Emulador {
 impl Emulador {
     /// Um cartao por jogo: `cartoes/<serial>.mcd`, criado zerado na primeira vez. Cartao
     /// unico compartilhado enche com 15 blocos e obriga o usuario a apagar save alheio.
-    pub fn novo(
-        bios_bytes: Vec<u8>,
-        serial: &str,
-        pasta_de_cartoes: &Path,
-    ) -> Result<Self, String> {
+    pub fn novo(bios_bytes: Vec<u8>, serial: &str, config: &Config) -> Result<Self, String> {
         let bios = Bios::from_bytes(bios_bytes).map_err(|e| format!("BIOS invalida: {e:?}"))?;
         let mut bus = Bus::new(Ram::new(), bios);
         let passos_por_quadro = bus.gpu().frame_cycles() as usize;
         bus.sio_mut().connect_digital_pad(true);
 
-        let memcard = pasta_de_cartoes.join(saves::nome_do_cartao(serial));
+        let memcard = Path::new(&config.pasta_de_cartoes).join(saves::nome_do_cartao(serial));
         let bytes =
             std::fs::read(&memcard).unwrap_or_else(|_| vec![0u8; psx_core::memcard::CARD_BYTES]);
         bus.sio_mut()
@@ -68,8 +65,8 @@ impl Emulador {
             passos_por_quadro,
             memcard,
             serial: serial.to_string(),
-            pasta_de_saves: PathBuf::from("saves"),
-            slot: 0,
+            pasta_de_saves: PathBuf::from(&config.pasta_de_saves),
+            slot: config.slot_inicial,
             aviso: None,
         })
     }
@@ -144,12 +141,12 @@ impl Emulador {
         self.bus.sio_mut().set_buttons(botoes);
     }
 
-    pub fn quadro(&mut self) {
+    pub fn quadro(&mut self, ganho: f32) {
         for _ in 0..self.passos_por_quadro {
             self.cpu.step(&mut self.bus);
         }
         let quadros = self.bus.drain_audio();
-        self.audio.push(&quadros);
+        self.audio.push(&quadros, ganho);
         self.salva_memcard();
         self.atualiza_textura();
     }

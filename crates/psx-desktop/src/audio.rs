@@ -82,7 +82,9 @@ impl AudioOut {
         }
     }
 
-    pub fn push(&self, quadros: &[(i16, i16)]) {
+    /// O ganho e aplicado aqui, antes do anel: mexer no volume nao pode exigir refazer
+    /// o stream do cpal, e o SPU nao tem nocao de volume de aplicativo.
+    pub fn push(&self, quadros: &[(i16, i16)], ganho: f32) {
         if quadros.is_empty() {
             return;
         }
@@ -90,7 +92,20 @@ impl AudioOut {
             Ok(a) => a,
             Err(envenenado) => envenenado.into_inner(),
         };
-        anel.push_frames(quadros);
+        if (ganho - 1.0).abs() < f32::EPSILON {
+            anel.push_frames(quadros);
+            return;
+        }
+        let escalados: Vec<(i16, i16)> = quadros
+            .iter()
+            .map(|(e, d)| {
+                (
+                    (f32::from(*e) * ganho) as i16,
+                    (f32::from(*d) * ganho) as i16,
+                )
+            })
+            .collect();
+        anel.push_frames(&escalados);
     }
 
     pub fn device_hz(&self) -> u32 {

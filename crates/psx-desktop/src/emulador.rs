@@ -1,5 +1,6 @@
 use std::path::{Path, PathBuf};
 
+use psx_core::app::saves::{self, Save};
 use psx_core::bus::{Bios, Bus, Ram};
 use psx_core::cpu::Cpu;
 use psx_core::snapshot;
@@ -31,7 +32,7 @@ pub struct Emulador {
     audio: AudioOut,
     textura: Option<egui::ColorImage>,
     passos_por_quadro: usize,
-    memcard: Option<String>,
+    memcard: PathBuf,
     serial: String,
     pasta_de_saves: PathBuf,
     pub slot: u8,
@@ -39,19 +40,24 @@ pub struct Emulador {
 }
 
 impl Emulador {
-    pub fn novo(bios_bytes: Vec<u8>, memcard: Option<String>) -> Result<Self, String> {
+    /// Um cartao por jogo: `cartoes/<serial>.mcd`, criado zerado na primeira vez. Cartao
+    /// unico compartilhado enche com 15 blocos e obriga o usuario a apagar save alheio.
+    pub fn novo(
+        bios_bytes: Vec<u8>,
+        serial: &str,
+        pasta_de_cartoes: &Path,
+    ) -> Result<Self, String> {
         let bios = Bios::from_bytes(bios_bytes).map_err(|e| format!("BIOS invalida: {e:?}"))?;
         let mut bus = Bus::new(Ram::new(), bios);
         let passos_por_quadro = bus.gpu().frame_cycles() as usize;
         bus.sio_mut().connect_digital_pad(true);
 
-        if let Some(caminho) = memcard.as_deref() {
-            let bytes =
-                std::fs::read(caminho).unwrap_or_else(|_| vec![0u8; psx_core::memcard::CARD_BYTES]);
-            bus.sio_mut()
-                .load_memory_card(&bytes)
-                .map_err(|e| format!("memory card invalido: {e:?}"))?;
-        }
+        let memcard = pasta_de_cartoes.join(saves::nome_do_cartao(serial));
+        let bytes =
+            std::fs::read(&memcard).unwrap_or_else(|_| vec![0u8; psx_core::memcard::CARD_BYTES]);
+        bus.sio_mut()
+            .load_memory_card(&bytes)
+            .map_err(|e| format!("memory card invalido: {e:?}"))?;
 
         Ok(Emulador {
             cpu: Cpu::new(),
@@ -60,18 +66,25 @@ impl Emulador {
             textura: None,
             passos_por_quadro,
             memcard,
-            serial: String::new(),
+            serial: serial.to_string(),
             pasta_de_saves: PathBuf::from("saves"),
             slot: 0,
             aviso: None,
         })
     }
 
-    pub fn insere_disco(&mut self, cue: &Path, serial: &str) -> Result<(), String> {
+    pub fn caminho_do_cartao(&self) -> &Path {
+        &self.memcard
+    }
+
+    pub fn saves_do_cartao(&self) -> Vec<Save> {
+        saves::lista(&self.bus.sio().memory_card_image())
+    }
+
+    pub fn insere_disco(&mut self, cue: &Path) -> Result<(), String> {
         let (layout, bin) = crate::disco::carrega(cue)?;
         self.bus.inject_disc(layout, bin);
         self.bus.cdrom_mut().insert_disc();
-        self.serial = serial.to_string();
         Ok(())
     }
 
@@ -138,12 +151,13 @@ impl Emulador {
     }
 
     fn salva_memcard(&mut self) {
-        let Some(caminho) = self.memcard.clone() else {
+        if !self.bus.sio().memory_card_dirty() {
             return;
-        };
-        if self.bus.sio().memory_card_dirty() {
-            let _ = std::fs::write(caminho, self.bus.sio().memory_card_image());
         }
+        if let Some(pai) = self.memcard.parent() {
+            let _ = std::fs::create_dir_all(pai);
+        }
+        let _ = std::fs::write(&self.memcard, self.bus.sio().memory_card_image());
     }
 
     fn atualiza_textura(&mut self) {

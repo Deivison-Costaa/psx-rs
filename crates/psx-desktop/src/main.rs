@@ -12,11 +12,12 @@ use emulador::Emulador;
 enum Tela {
     Biblioteca,
     Jogando,
+    Saves,
 }
 
 struct Argumentos {
     bios: String,
-    memcard: Option<String>,
+    cartoes: PathBuf,
     jogos: PathBuf,
 }
 
@@ -53,14 +54,14 @@ impl App {
                 return;
             }
         };
-        let mut emu = match Emulador::novo(bios, self.args.memcard.clone()) {
+        let mut emu = match Emulador::novo(bios, jogo.serial(), &self.args.cartoes) {
             Ok(e) => e,
             Err(e) => {
                 self.erro = Some(e);
                 return;
             }
         };
-        if let Err(e) = emu.insere_disco(&jogo.cue, jogo.serial()) {
+        if let Err(e) = emu.insere_disco(&jogo.cue) {
             self.erro = Some(e);
             return;
         }
@@ -139,16 +140,56 @@ impl App {
             }
             let marca = if emu.slot_existe(emu.slot) { "*" } else { "" };
             ui.small(format!("slot {}{marca}", emu.slot));
-            ui.small("Esc: biblioteca · F5/F8: salvar/carregar · F6/F7: slot");
+            ui.small("Esc: biblioteca · F5/F8: slot · F6/F7: trocar · F9: cartao");
         });
         if let Some(aviso) = &emu.aviso {
             ui.small(aviso.clone());
         }
 
+        if ctx.input(|i| i.key_pressed(egui::Key::F9)) {
+            self.tela = Tela::Saves;
+        }
         if ctx.input(|i| i.key_pressed(egui::Key::Escape)) {
             self.emulador = None;
             self.em_execucao = None;
             self.tela = Tela::Biblioteca;
+        }
+    }
+
+    fn tela_saves(&mut self, ui: &mut egui::Ui) {
+        ui.heading("Memory card");
+        let Some(emu) = self.emulador.as_ref() else {
+            self.tela = Tela::Biblioteca;
+            return;
+        };
+        ui.small(format!("Arquivo: {}", emu.caminho_do_cartao().display()));
+        let saves = emu.saves_do_cartao();
+        let ocupados: u8 = saves.iter().map(|s| s.blocos).sum();
+        ui.label(format!(
+            "{} arquivo(s), {ocupados} de 15 blocos usados",
+            saves.len()
+        ));
+        ui.separator();
+        if saves.is_empty() {
+            ui.label("Cartao vazio. O jogo precisa gravar uma vez para o arquivo aparecer.");
+        }
+        egui::ScrollArea::vertical().show(ui, |ui| {
+            for save in &saves {
+                let titulo = if save.titulo.is_empty() {
+                    "(sem titulo)"
+                } else {
+                    &save.titulo
+                };
+                ui.strong(titulo);
+                ui.small(format!(
+                    "{} · bloco {} · {} bloco(s)",
+                    save.nome, save.bloco, save.blocos
+                ));
+                ui.separator();
+            }
+        });
+        if ui.button("Voltar ao jogo").clicked() {
+            self.tela = Tela::Jogando;
         }
     }
 
@@ -181,6 +222,7 @@ impl eframe::App for App {
         egui::CentralPanel::default().show(ctx, |ui| match self.tela {
             Tela::Biblioteca => self.tela_biblioteca(ui),
             Tela::Jogando => self.tela_jogando(ctx, ui),
+            Tela::Saves => self.tela_saves(ui),
         });
         if self.tela == Tela::Jogando {
             ctx.request_repaint();
@@ -192,11 +234,16 @@ fn argumentos() -> Result<Argumentos, String> {
     let brutos: Vec<String> = std::env::args().skip(1).collect();
     let mut posicionais = Vec::new();
     let mut jogos = None;
+    let mut cartoes = None;
     let mut i = 0;
     while i < brutos.len() {
         match brutos[i].as_str() {
             "--jogos" if i + 1 < brutos.len() => {
                 jogos = Some(PathBuf::from(&brutos[i + 1]));
+                i += 2;
+            }
+            "--cartoes" if i + 1 < brutos.len() => {
+                cartoes = Some(PathBuf::from(&brutos[i + 1]));
                 i += 2;
             }
             outro => {
@@ -205,13 +252,12 @@ fn argumentos() -> Result<Argumentos, String> {
             }
         }
     }
-    let bios = posicionais
-        .first()
-        .cloned()
-        .ok_or_else(|| "Uso: psx-desktop <BIOS.bin> [cartao.mcd] [--jogos <pasta>]".to_string())?;
+    let bios = posicionais.first().cloned().ok_or_else(|| {
+        "Uso: psx-desktop <BIOS.bin> [--jogos <pasta>] [--cartoes <pasta>]".to_string()
+    })?;
     Ok(Argumentos {
         bios,
-        memcard: posicionais.get(1).cloned(),
+        cartoes: cartoes.unwrap_or_else(|| PathBuf::from("cartoes")),
         jogos: jogos.unwrap_or_else(|| PathBuf::from(".")),
     })
 }

@@ -1,142 +1,204 @@
 mod audio;
+mod biblioteca;
+mod disco;
+mod emulador;
 
-use audio::AudioOut;
-use psx_core::bus::{Bios, Bus, Ram};
-use psx_core::cpu::Cpu;
+use std::path::PathBuf;
 
-struct PsxDesktop {
-    cpu: Cpu,
-    bus: Bus,
-    texture: Option<egui::ColorImage>,
-    steps_per_frame: usize,
-    audio: AudioOut,
-    memcard: Option<String>,
+use biblioteca::Jogo;
+use emulador::Emulador;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Tela {
+    Biblioteca,
+    Jogando,
 }
 
-impl PsxDesktop {
-    fn new(bios_path: &str) -> Result<Self, String> {
-        let bios_data = std::fs::read(bios_path)
-            .map_err(|e| format!("Erro lendo BIOS '{}': {}", bios_path, e))?;
-        let bios = Bios::from_bytes(bios_data).map_err(|e| format!("BIOS invalida: {:?}", e))?;
-        let ram = Ram::new();
-        let mut bus = Bus::new(ram, bios);
-        let cpu = Cpu::new();
-        let steps_per_frame = bus.gpu().frame_cycles() as usize;
+struct Argumentos {
+    bios: String,
+    memcard: Option<String>,
+    jogos: PathBuf,
+}
 
-        bus.sio_mut().connect_digital_pad(true);
-        let memcard = std::env::args().nth(2);
-        if let Some(caminho) = memcard.as_deref() {
-            let bytes =
-                std::fs::read(caminho).unwrap_or_else(|_| vec![0u8; psx_core::memcard::CARD_BYTES]);
-            if let Err(e) = bus.sio_mut().load_memory_card(&bytes) {
-                return Err(format!("memory card invalido: {e:?}"));
-            }
+struct App {
+    tela: Tela,
+    args: Argumentos,
+    jogos: Vec<Jogo>,
+    emulador: Option<Emulador>,
+    erro: Option<String>,
+    em_execucao: Option<String>,
+}
+
+impl App {
+    fn novo(args: Argumentos) -> Self {
+        let jogos = biblioteca::varre(&args.jogos);
+        App {
+            tela: Tela::Biblioteca,
+            args,
+            jogos,
+            emulador: None,
+            erro: None,
+            em_execucao: None,
         }
-
-        Ok(PsxDesktop {
-            cpu,
-            bus,
-            texture: None,
-            steps_per_frame,
-            audio: AudioOut::new(),
-            memcard,
-        })
     }
 
-    fn poll_input(&mut self, ctx: &egui::Context) {
-        let mut buttons: u16 = 0xFFFF;
-        for (key, bit) in [
-            (egui::Key::ArrowUp, 4u32),
-            (egui::Key::ArrowDown, 6),
-            (egui::Key::ArrowLeft, 7),
-            (egui::Key::ArrowRight, 5),
-            (egui::Key::Z, 14),
-            (egui::Key::Space, 13),
-            (egui::Key::A, 15),
-            (egui::Key::S, 12),
-            (egui::Key::Enter, 3),
-            (egui::Key::Tab, 0),
-            (egui::Key::D, 10),
-            (egui::Key::F, 11),
-            (egui::Key::E, 8),
-            (egui::Key::R, 9),
-        ] {
-            if ctx.input(|i| i.key_down(key)) {
-                buttons &= !(1u16 << bit);
-            }
-        }
-        self.bus.sio_mut().set_buttons(buttons);
-    }
-
-    fn salva_memcard(&mut self) {
-        let Some(caminho) = self.memcard.clone() else {
+    fn inicia(&mut self, indice: usize) {
+        let Some(jogo) = self.jogos.get(indice).cloned() else {
             return;
         };
-        if self.bus.sio().memory_card_dirty() {
-            let _ = std::fs::write(caminho, self.bus.sio().memory_card_image());
-        }
-    }
-
-    fn update_texture(&mut self) {
-        let fb = match self.bus.gpu().framebuffer_for_display() {
-            Some(fb) => fb,
-            None => {
-                self.texture = None;
+        let bios = match std::fs::read(&self.args.bios) {
+            Ok(b) => b,
+            Err(e) => {
+                self.erro = Some(format!("lendo BIOS '{}': {e}", self.args.bios));
                 return;
             }
         };
-        let size = [fb.width as usize, fb.height as usize];
-        self.texture = Some(egui::ColorImage::from_rgba_unmultiplied(size, &fb.data));
+        let mut emu = match Emulador::novo(bios, self.args.memcard.clone()) {
+            Ok(e) => e,
+            Err(e) => {
+                self.erro = Some(e);
+                return;
+            }
+        };
+        if let Err(e) = emu.insere_disco(&jogo.cue) {
+            self.erro = Some(e);
+            return;
+        }
+        self.em_execucao = Some(jogo.titulo.clone());
+        self.emulador = Some(emu);
+        self.erro = None;
+        self.tela = Tela::Jogando;
+    }
+
+    fn tela_biblioteca(&mut self, ui: &mut egui::Ui) {
+        ui.heading("Biblioteca");
+        ui.label(format!("Pasta: {}", self.args.jogos.display()));
+        ui.horizontal(|ui| {
+            if ui.button("Atualizar").clicked() {
+                self.jogos = biblioteca::varre(&self.args.jogos);
+            }
+            ui.label(format!("{} jogo(s)", self.jogos.len()));
+        });
+        if let Some(erro) = &self.erro {
+            ui.colored_label(egui::Color32::RED, erro);
+        }
+        ui.separator();
+
+        if self.jogos.is_empty() {
+            ui.label("Nenhum .cue encontrado. Use --jogos <pasta> para apontar a biblioteca.");
+            return;
+        }
+
+        let mut escolhido = None;
+        egui::ScrollArea::vertical().show(ui, |ui| {
+            for (i, jogo) in self.jogos.iter().enumerate() {
+                ui.horizontal(|ui| {
+                    if ui.button("Jogar").clicked() {
+                        escolhido = Some(i);
+                    }
+                    ui.vertical(|ui| {
+                        ui.strong(&jogo.titulo);
+                        ui.small(jogo.detalhe());
+                    });
+                });
+                ui.separator();
+            }
+        });
+        if let Some(i) = escolhido {
+            self.inicia(i);
+        }
+    }
+
+    fn tela_jogando(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
+        let Some(emu) = self.emulador.as_mut() else {
+            self.tela = Tela::Biblioteca;
+            return;
+        };
+        emu.teclado(ctx);
+        emu.quadro();
+
+        match emu.textura() {
+            Some(imagem) => {
+                let handle =
+                    ctx.load_texture("framebuffer", imagem.clone(), egui::TextureOptions::NEAREST);
+                ui.image(&handle);
+            }
+            None => {
+                ui.label("Display desligado");
+            }
+        }
+        ui.horizontal(|ui| {
+            if let Some(titulo) = &self.em_execucao {
+                ui.small(titulo);
+            }
+            if emu.audio_ativo() {
+                ui.small(format!("audio {} Hz", emu.audio_hz()));
+            } else {
+                ui.small("audio desligado (sem dispositivo de saida)");
+            }
+            ui.small("Esc: biblioteca");
+        });
+
+        if ctx.input(|i| i.key_pressed(egui::Key::Escape)) {
+            self.emulador = None;
+            self.em_execucao = None;
+            self.tela = Tela::Biblioteca;
+        }
     }
 }
 
-impl eframe::App for PsxDesktop {
+impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        self.poll_input(ctx);
-        for _step in 0..self.steps_per_frame {
-            self.cpu.step(&mut self.bus);
-        }
-        let quadros = self.bus.drain_audio();
-        self.audio.push(&quadros);
-        self.salva_memcard();
-        self.update_texture();
-        egui::CentralPanel::default().show(ctx, |ui| {
-            if let Some(ref texture) = self.texture {
-                let handle = ctx.load_texture(
-                    "framebuffer",
-                    texture.clone(),
-                    egui::TextureOptions::NEAREST,
-                );
-                ui.image(&handle);
-            } else {
-                ui.label("Display desligado");
-            }
-            if self.audio.ativo() {
-                ui.label(format!("Audio: {} Hz", self.audio.device_hz()));
-            } else {
-                ui.label("Audio desligado (sem dispositivo de saida)");
-            }
+        egui::CentralPanel::default().show(ctx, |ui| match self.tela {
+            Tela::Biblioteca => self.tela_biblioteca(ui),
+            Tela::Jogando => self.tela_jogando(ctx, ui),
         });
-        ctx.request_repaint();
+        if self.tela == Tela::Jogando {
+            ctx.request_repaint();
+        }
     }
+}
+
+fn argumentos() -> Result<Argumentos, String> {
+    let brutos: Vec<String> = std::env::args().skip(1).collect();
+    let mut posicionais = Vec::new();
+    let mut jogos = None;
+    let mut i = 0;
+    while i < brutos.len() {
+        match brutos[i].as_str() {
+            "--jogos" if i + 1 < brutos.len() => {
+                jogos = Some(PathBuf::from(&brutos[i + 1]));
+                i += 2;
+            }
+            outro => {
+                posicionais.push(outro.to_string());
+                i += 1;
+            }
+        }
+    }
+    let bios = posicionais
+        .first()
+        .cloned()
+        .ok_or_else(|| "Uso: psx-desktop <BIOS.bin> [cartao.mcd] [--jogos <pasta>]".to_string())?;
+    Ok(Argumentos {
+        bios,
+        memcard: posicionais.get(1).cloned(),
+        jogos: jogos.unwrap_or_else(|| PathBuf::from(".")),
+    })
 }
 
 fn main() -> Result<(), eframe::Error> {
-    let bios_path = std::env::args().nth(1).unwrap_or_else(|| {
-        eprintln!("Uso: psx-desktop <BIOS.bin> [cartao.mcd]");
-        std::process::exit(1);
-    });
-
-    let app = match PsxDesktop::new(&bios_path) {
+    let args = match argumentos() {
         Ok(a) => a,
         Err(e) => {
-            eprintln!("{}", e);
+            eprintln!("{e}");
             std::process::exit(1);
         }
     };
 
+    let app = App::novo(args);
     let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default().with_inner_size([640.0, 480.0]),
+        viewport: egui::ViewportBuilder::default().with_inner_size([720.0, 560.0]),
         ..Default::default()
     };
     eframe::run_native("psx-rs", options, Box::new(move |_cc| Ok(Box::new(app))))

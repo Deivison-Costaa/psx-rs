@@ -1,0 +1,84 @@
+# Manifesto de mutacao da iteracao 0199 — conversor VRAM crua -> PNG do psx-cli
+# Alvo fora do psx-core: bateria executada A MAO (invariante 29), resultado colado
+# em 0199-diffvram-scoreboard.resultado. O wiring do scoreboard.ps1 nao tem mutante
+# aqui: alvo .ps1 e pulado pelo portao e os meta-testes de ci_diffvram.rs cobrem texto.
+formato: 1
+iteracao: 0199
+item: 10.23
+alvo: crates/psx-cli/src/main.rs
+teste: vram_png
+
+mutante: m1
+rotulo: canal vermelho na escala errada (<<2)
+ocorrencias: 1
+teste: vram_png
+@@DE
+        rgb.push(((px & 0x1F) << 3) as u8);
+@@PARA
+        rgb.push(((px & 0x1F) << 2) as u8);
+@@FIM
+
+mutante: m2
+rotulo: vermelho e azul trocados
+ocorrencias: 1
+teste: vram_png
+@@DE
+        rgb.push(((px & 0x1F) << 3) as u8);
+@@PARA
+        rgb.push((((px >> 10) & 0x1F) << 3) as u8);
+@@FIM
+
+mutante: m3
+rotulo: dimensoes trocadas no cabecalho do PNG
+ocorrencias: 1
+teste: vram_png
+@@DE
+    let mut codificador = png::Encoder::new(std::io::BufWriter::new(arquivo), 1024, 512);
+@@PARA
+    let mut codificador = png::Encoder::new(std::io::BufWriter::new(arquivo), 512, 1024);
+@@FIM
+
+mutante: m4
+rotulo: aceita raw de qualquer tamanho
+ocorrencias: 1
+teste: vram_png
+@@DE
+    if crua.len() != ESPERADO {
+@@PARA
+    if false {
+@@FIM
+
+mutante: m5
+rotulo: halfword lido em big-endian
+ocorrencias: 1
+teste: vram_png
+@@DE
+        let px = u16::from_le_bytes([par[0], par[1]]);
+@@PARA
+        let px = u16::from_be_bytes([par[0], par[1]]);
+@@FIM
+
+controle: c1
+rotulo: nomear os canais antes do push nao muda comportamento
+ocorrencias: 1
+teste: vram_png
+@@DE
+        rgb.push(((px & 0x1F) << 3) as u8);
+        rgb.push((((px >> 5) & 0x1F) << 3) as u8);
+        rgb.push((((px >> 10) & 0x1F) << 3) as u8);
+@@PARA
+        let (r, g, b) = (px & 0x1F, (px >> 5) & 0x1F, (px >> 10) & 0x1F);
+        rgb.push((r << 3) as u8);
+        rgb.push((g << 3) as u8);
+        rgb.push((b << 3) as u8);
+@@FIM
+
+controle: c2
+rotulo: capacidade do vetor nao e comportamento
+ocorrencias: 1
+teste: vram_png
+@@DE
+    let mut rgb = Vec::with_capacity(1024 * 512 * 3);
+@@PARA
+    let mut rgb = Vec::new();
+@@FIM

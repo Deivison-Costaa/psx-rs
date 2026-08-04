@@ -37,6 +37,13 @@ if (Test-Path "target/release/psx-cli.exe") {
 
 $haveBios = Test-Path $BiosPath
 
+$diffDir = "tests/exes/ps1-tests/tools/diffvram"
+$diffBin = if ($IsWindows) { "$diffDir/diffvram-windows-amd64.exe" }
+elseif ($IsMacOS) { "$diffDir/diffvram-darwin-amd64" }
+else { "$diffDir/diffvram-linux-amd64" }
+$haveDiff = Test-Path $diffBin
+New-Item -ItemType Directory -Force "$OutDir/diffvram" | Out-Null
+
 $ts = Get-Date -Format "yyyy-MM-ddTHH:mm:sszzz"
 $commit = (git rev-parse --short HEAD).Trim()
 
@@ -72,7 +79,13 @@ foreach ($candidate in $candidateFiles) {
     }
 
     try {
+        $vramRef = Join-Path $candidate.Directory.FullName "vram.png"
+        $temGabarito = $haveDiff -and (Test-Path $vramRef)
         $argString = "--bios `"$BiosPath`" --exe `"$($candidate.FullName)`""
+        if ($temGabarito) {
+            Remove-Item "logs/tmp_vram.raw", "logs/tmp_vram.png" -ErrorAction SilentlyContinue
+            $argString += " --dump-vram `"logs/tmp_vram.raw`""
+        }
         $proc = Start-Process -FilePath $cliBin -ArgumentList $argString -NoNewWindow -PassThru -RedirectStandardOutput "logs/tmp_stdout.txt" -RedirectStandardError "logs/tmp_stderr.txt"
         $finished = $proc.WaitForExit($TimeoutSec * 1000)
 
@@ -96,9 +109,25 @@ foreach ($candidate in $candidateFiles) {
         $failCount = @($veredictLines | Where-Object { $_ -match '^fail - ' }).Count
 
         if ($passCount -gt 0 -or $failCount -gt 0) {
+            # veredito textual tem prioridade sobre o grafico: o proprio EXE julgou.
             $status = if ($failCount -gt 0) { 'fail' } else { 'pass' }
             $detalhe = "${passCount}p/${failCount}f"
             $rows += "$ts,$commit,$suite,$($candidate.Name),$status,$detalhe"
+        } elseif ($temGabarito -and (Test-Path "logs/tmp_vram.raw")) {
+            & $cliBin --vram-to-png "logs/tmp_vram.raw" "logs/tmp_vram.png" 2>$null
+            if ($LASTEXITCODE -ne 0 -or -not (Test-Path "logs/tmp_vram.png")) {
+                $rows += "$ts,$commit,$suite,$($candidate.Name),vram-erro,conversao"
+            } else {
+                $diffPng = "$OutDir/diffvram/$($candidate.BaseName).png"
+                $diffOut = (& $diffBin $vramRef "logs/tmp_vram.png" $diffPng 2>&1) | Out-String
+                if ($LASTEXITCODE -eq 0) {
+                    $rows += "$ts,$commit,$suite,$($candidate.Name),vram-ok,0px"
+                } elseif ($diffOut -match '\((\d+) pixels\)') {
+                    $rows += "$ts,$commit,$suite,$($candidate.Name),vram-diff,$($Matches[1])px"
+                } else {
+                    $rows += "$ts,$commit,$suite,$($candidate.Name),vram-erro,diffvram"
+                }
+            }
         } else {
             $stderr = Get-Content "logs/tmp_stderr.txt" -Raw -ErrorAction SilentlyContinue
             if ($stderr -match "Runner: (\d+) passos, TTY: (\d+) bytes") {
@@ -123,6 +152,7 @@ foreach ($candidate in $candidateFiles) {
 
 Remove-Item "logs/tmp_stdout.txt" -ErrorAction SilentlyContinue
 Remove-Item "logs/tmp_stderr.txt" -ErrorAction SilentlyContinue
+Remove-Item "logs/tmp_vram.raw", "logs/tmp_vram.png" -ErrorAction SilentlyContinue
 
 if (-not (Test-Path $OutFile)) {
     Set-Content $OutFile "ts,commit,suite,exe,status,detalhe"
@@ -132,7 +162,9 @@ $total = @($rows).Count
 $tty = @($rows | Where-Object { $_ -match ",tty," }).Count
 $pass = @($rows | Where-Object { $_ -match ",pass," }).Count
 $fail = @($rows | Where-Object { $_ -match ",fail," }).Count
-$comVeredito = $pass + $fail
+$vramOk = @($rows | Where-Object { $_ -match ",vram-ok," }).Count
+$vramDiff = @($rows | Where-Object { $_ -match ",vram-diff," }).Count
+$comVeredito = $pass + $fail + $vramOk + $vramDiff
 $semSaida = @($rows | Where-Object { $_ -match ",sem-saida," }).Count
 $outros = $total - $tty - $comVeredito - $semSaida
-Write-Host "scoreboard: $comVeredito com veredito ($($pass)p/$($fail)f), $tty so com saida, $semSaida sem saida, $outros nao avaliados, de $total arquivos (commit $commit, bios=$haveBios) -> $OutFile"
+Write-Host "scoreboard: $comVeredito com veredito ($($pass)p/$($fail)f textual, $vramOk vram-ok/$vramDiff vram-diff), $tty so com saida, $semSaida sem saida, $outros nao avaliados, de $total arquivos (commit $commit, bios=$haveBios) -> $OutFile"

@@ -1,0 +1,17 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: a77a3d23d1370a133a481b8e0fbf30037306b976
+# rodado_em: 2026-08-03T21:30:13-03:00
+m1,mutante,morreu,morreu,0.6,bit3_do_flag_cai_na_escrita_e_nao_na_leitura;cartao_vazio_tem_1024_quadros_de_128_bytes;comando_invalido_aborta_logo_depois_do_byte_de_comando;get_id_devolve_a_sequencia_fixa_da_spec;leitura_segue_a_sequencia_de_bytes_da_spec;sio_encaminha_o_endereco_81h_para_o_cartao_e_o_01h_para_o_pad
+m2,mutante,morreu,morreu,0.6,leitura_segue_a_sequencia_de_bytes_da_spec
+m3,mutante,morreu,morreu,0.6,leitura_segue_a_sequencia_de_bytes_da_spec;setor_acima_de_3ffh_devolve_ffffh_e_aborta
+m4,mutante,morreu,morreu,0.6,escrita_em_setor_invalido_devolve_ffh;setor_acima_de_3ffh_devolve_ffffh_e_aborta
+m5,mutante,morreu,morreu,0.6,escrita_com_checksum_errado_devolve_4eh_e_nao_grava
+m6,mutante,morreu,morreu,0.6,bit3_do_flag_cai_na_escrita_e_nao_na_leitura
+m7,mutante,morreu,morreu,0.6,ack_cai_no_ultimo_byte_da_leitura
+m8,mutante,morreu,morreu,0.6,comando_invalido_aborta_logo_depois_do_byte_de_comando
+m9,mutante,morreu,morreu,0.6,imagem_crua_de_128_kib_e_aceita_e_devolvida_igual
+m10,mutante,morreu,morreu,0.6,escrita_grava_o_setor_e_devolve_47h
+m11,mutante,morreu,morreu,0.6,get_id_devolve_a_sequencia_fixa_da_spec
+m12,mutante,morreu,morreu,0.6,sio_encaminha_o_endereco_81h_para_o_cartao_e_o_01h_para_o_pad
+c1,controle,sobreviveu,sobreviveu,0.6,
+c2,controle,sobreviveu,sobreviveu,0.6,

@@ -6,21 +6,21 @@ alvo: ROADMAP.md
 teste: roadmap_arquivo
 
 mutante: m1
-rotulo: M6 fica 100% fechado e continua ocupando bytes da escada
+rotulo: M11 fica 100% fechado e continua ocupando bytes da escada
 @@DE
-- [ ] 6.3 Memory card (.mcd)
+- [ ] 11.2 Gráficos de metricas.csv + scoreboard-data
+- [ ] 11.3 Roteiro de demo
 @@PARA
-- [x] 6.3 Memory card (.mcd)
+- [x] 11.2 Gráficos de metricas.csv + scoreboard-data
+- [x] 11.3 Roteiro de demo
 @@FIM
 
 mutante: m2
-rotulo: M5 fica 100% fechado e continua ocupando bytes da escada
+rotulo: item da escada marcado como fechado sem sair para o historico
 @@DE
-- [ ] 5.5 Flags de saturação/overflow completos (por parcela, nao no total — ver 0185.1)
-- [ ] 5.6 Amidog psxtest_gte no scoreboard → jogo 3D jogável
+- [ ] 9.2 Snapshot do core (serde) → save states F5/F8 + slots
 @@PARA
-- [x] 5.5 Flags de saturação/overflow completos (por parcela, nao no total — ver 0185.1)
-- [x] 5.6 Amidog psxtest_gte no scoreboard → jogo 3D jogável
+- [x] 9.2 Snapshot do core (serde) → save states F5/F8 + slots
 @@FIM
 
 mutante: m3
@@ -34,25 +34,25 @@ Itens fechados saem daqui para outro lugar; a escada mantém só o que FALTA.
 mutante: m4
 rotulo: item reaparece na escada com id que ja vive no arquivo de historico
 @@DE
-- [ ] 6.3 Memory card (.mcd)
+- [ ] 9.1 Biblioteca: scan BIN/CUE, título/serial/região, lista
 @@PARA
-- [ ] 0.1 Memory card (.mcd)
+- [ ] 0.1 Biblioteca: scan BIN/CUE, título/serial/região, lista
 @@FIM
 
 mutante: m5
 rotulo: segundo id repetido entre escada e historico, por outro caminho
 @@DE
-- [ ] 5.5 Flags de saturação/overflow completos (por parcela, nao no total — ver 0185.1)
+- [ ] 9.5 Tela de configurações (BIOS, vídeo, áudio, pasta) em TOML
 @@PARA
-- [ ] 0.2 Flags de saturação/overflow completos (por parcela, nao no total — ver 0185.1)
+- [ ] 0.2 Tela de configurações (BIOS, vídeo, áudio, pasta) em TOML
 @@FIM
 
 controle: c1
 rotulo: rotulo de item aberto reescrito sem mudar id nem estado (cosmetico)
 @@DE
-- [ ] 6.3 Memory card (.mcd)
+- [ ] 11.3 Roteiro de demo
 @@PARA
-- [ ] 6.3 Memory card (arquivo .mcd)
+- [ ] 11.3 Roteiro da demo
 @@FIM
 
 controle: c2

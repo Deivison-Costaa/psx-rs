@@ -1,0 +1,197 @@
+# Manifesto de mutacao da iteracao 0190 — flags por parcela, GPF/GPL e bug do far color
+formato: 1
+iteracao: 0190
+item: 5.5
+alvo: crates/psx-core/src/gte.rs
+teste: gte_fuzz_embutido
+
+mutante: m1
+teste: gte_fuzz_embutido
+rotulo: overflow do MAC conferido so no total, nao a cada parcela
+ocorrencias: 1
+@@DE
+    let mut acc = inicial;
+    for p in parcelas {
+        acc += p;
+        check_mac_43bit_overflow(acc, pos_bit, neg_bit, flag);
+        acc = sinal44(acc);
+    }
+    acc
+@@PARA
+    let mut acc = inicial;
+    for p in parcelas {
+        acc += p;
+    }
+    check_mac_43bit_overflow(acc, pos_bit, neg_bit, flag);
+    sinal44(acc)
+@@FIM
+
+mutante: m2
+teste: gte_fuzz_embutido
+rotulo: acumulador nao trunca em 44 bits com sinal entre as parcelas
+ocorrencias: 1
+@@DE
+        acc = sinal44(acc);
+    }
+    acc
+@@PARA
+    }
+    acc
+@@FIM
+
+mutante: m3
+teste: gte_fuzz_embutido
+rotulo: vetor de translacao do MVMVA escolhido pela matriz, nao pelo cv
+ocorrencias: 1
+@@DE
+        let base_tr = match cv {
+            0 => 37,
+            1 => 45,
+            _ => FC,
+        };
+@@PARA
+        let base_tr = match mx {
+            0 => 37,
+            1 => 45,
+            _ => FC,
+        };
+@@FIM
+
+mutante: m4
+teste: gte_fuzz_embutido
+rotulo: far color do MVMVA entra no resultado em vez de ser descartado
+ocorrencias: 1
+@@DE
+                brutos[i] = acumula_mac(0, [0, parcelas[1], parcelas[2]], pos, neg, &mut flag);
+@@PARA
+                brutos[i] = acumula_mac(t * 0x1000, parcelas, pos, neg, &mut flag);
+@@FIM
+
+mutante: m5
+teste: gte_fuzz_hardware
+rotulo: flag de IR do trecho descartado respeita o lm em vez de forcar lm=0
+ocorrencias: 1
+@@DE
+                saturate_ir(descartado >> shift, 0, bit, &mut flag);
+@@PARA
+                saturate_ir(descartado >> shift, lm, bit, &mut flag);
+@@FIM
+
+mutante: m6
+teste: gte_fuzz_embutido
+rotulo: SZ3 do RTPS lido do MAC3 ja truncado em 32 bits
+ocorrencias: 1
+@@DE
+        let sz3_raw = raw3 >> 12;
+@@PARA
+        let sz3_raw = mac3 as i64 >> 12;
+@@FIM
+
+mutante: m7
+teste: gte_fuzz_embutido
+rotulo: RTPT calcula o cue de profundidade em todos os tres vertices
+ocorrencias: 1
+@@DE
+    fn rtpt(&mut self, sf: u32, lm: u32) {
+        self.exec_rtps_vertex(0, sf, lm, false);
+        self.exec_rtps_vertex(1, sf, lm, false);
+        self.exec_rtps_vertex(2, sf, lm, true);
+    }
+@@PARA
+    fn rtpt(&mut self, sf: u32, lm: u32) {
+        self.exec_rtps_vertex(0, sf, lm, true);
+        self.exec_rtps_vertex(1, sf, lm, true);
+        self.exec_rtps_vertex(2, sf, lm, true);
+    }
+@@FIM
+
+mutante: m8
+teste: gte_fuzz_embutido
+rotulo: AVSZ soma os SZ de 32 bits em vez dos 16 bits do registrador
+ocorrencias: 2
+@@DE
+        let sz1 = (self.regs[17] & 0xFFFF) as i64;
+        let sz2 = (self.regs[18] & 0xFFFF) as i64;
+        let sz3 = (self.regs[19] & 0xFFFF) as i64;
+@@PARA
+        let sz1 = self.regs[17] as i64;
+        let sz2 = self.regs[18] as i64;
+        let sz3 = self.regs[19] as i64;
+@@FIM
+
+mutante: m9
+teste: gte_fuzz_embutido
+rotulo: AVSZ3 sem a flag de overflow do MAC0
+ocorrencias: 1
+@@DE
+        let mac0 = zsf3 * (sz1 + sz2 + sz3);
+        check_mac0_overflow(mac0, &mut flag);
+@@PARA
+        let mac0 = zsf3 * (sz1 + sz2 + sz3);
+@@FIM
+
+mutante: m10
+teste: gte_fuzz_embutido
+rotulo: GPL nao desloca a base antes de somar o produto
+ocorrencias: 1
+@@DE
+            let acc = (base[i] << shift) + ir[i] * ir0;
+@@PARA
+            let acc = base[i] + ir[i] * ir0;
+@@FIM
+
+mutante: m11
+teste: gte_fuzz_embutido
+rotulo: GPF parte do MAC anterior em vez de zero
+ocorrencias: 1
+@@DE
+        let base = if com_base {
+            let (m1, m2, m3) = self.le_mac();
+            [m1, m2, m3]
+        } else {
+            [0; 3]
+        };
+@@PARA
+        let base = {
+            let (m1, m2, m3) = self.le_mac();
+            [m1, m2, m3]
+        };
+@@FIM
+
+mutante: m12
+teste: gte_fuzz_embutido
+rotulo: interpolacao geral multiplica por IR1 em vez de IR0
+ocorrencias: 1
+@@DE
+        let ir0 = self.regs[8] as i16 as i64;
+        let ir = self.le_ir();
+        let base = if com_base {
+@@PARA
+        let ir0 = self.regs[9] as i16 as i64;
+        let ir = self.le_ir();
+        let base = if com_base {
+@@FIM
+
+controle: c1
+teste: gte_fuzz_embutido
+rotulo: acumulador escrito com fold em vez de laco, mesmo resultado
+ocorrencias: 1
+@@DE
+    let mut acc = inicial;
+    for p in parcelas {
+        acc += p;
+@@PARA
+    let mut acc = inicial;
+    for p in parcelas.into_iter() {
+        acc += p;
+@@FIM
+
+controle: c2
+teste: gte_fuzz_embutido
+rotulo: mascara de SZ3 escrita como conversao para u16, mesmo resultado
+ocorrencias: 2
+@@DE
+        let sz3 = (self.regs[19] & 0xFFFF) as i64;
+@@PARA
+        let sz3 = (self.regs[19] as u16) as i64;
+@@FIM

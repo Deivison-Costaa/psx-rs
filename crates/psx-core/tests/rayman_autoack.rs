@@ -106,21 +106,21 @@ fn start_pad_reabilita_o_auto_ack_que_o_jogo_tinha_desligado() {
         .find(|c| c.arg == 0 && c.ra >= 0x8010_0000)
         .copied()
         .expect("o jogo deve desligar o auto-ack antes de instalar o proprio handler");
-    // Os quatro passos absolutos abaixo andaram +15.801 na iteracao 0185, quando os doze
-    // comandos de cor do GTE deixaram de ser no-op: o Rayman tambem os emite, entao o jogo
-    // passou a gastar ciclos que antes nao gastava. `arg` e `ra` ficaram identicos — a
-    // sequencia e a mesma, so mais tarde. E o achado 10.115 em acao (prova que fixa passo
-    // absoluto reprova por melhoria legitima); o que o teste mede de verdade sao a ordem e
-    // os enderecos, checados nos `assert!` abaixo.
-    assert_eq!(desliga.step, 164_124_806);
+    // Os quatro passos absolutos abaixo ja andaram duas vezes por melhoria legitima:
+    // +15.801 na 0185 (comandos de cor do GTE) e +6.372 na 0187 (o SPUSTAT passou a
+    // espelhar o SPUCNT, entao as esperas do kernel terminam em vez de girar). `arg` e
+    // `ra` ficaram identicos nas duas — a sequencia e a mesma, so mais tarde. E o achado
+    // 10.115 em acao; o que o teste mede de verdade sao a ordem e os enderecos, checados
+    // nos `assert!` abaixo.
+    assert_eq!(desliga.step, 164_131_178);
     assert_eq!(desliga.ra, 0x801B_8BC0);
     assert!(
         desliga.step < hook_install_step,
         "o jogo desliga o auto-ack antes de instalar o hook"
     );
-    assert_eq!(hook_install_step, 164_125_553);
+    assert_eq!(hook_install_step, 164_131_925);
 
-    assert_eq!(start_pad_step, 164_137_593);
+    assert_eq!(start_pad_step, 164_143_965);
     assert!(
         start_pad_step > desliga.step,
         "StartPAD2 vem depois do desligamento"
@@ -134,7 +134,7 @@ fn start_pad_reabilita_o_auto_ack_que_o_jogo_tinha_desligado() {
     assert_eq!(
         religa,
         Chamada {
-            step: 164_138_070,
+            step: 164_144_442,
             arg: 1,
             ra: 0x0000_4BEC,
         },

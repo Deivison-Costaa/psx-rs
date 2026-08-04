@@ -213,12 +213,14 @@ fn caminhada_da_cadeia_muda_antes_do_quarto_hook() {
     let posterior = &activations[3];
     // Os quatro passos abaixo andaram +15.801 na 0185 (comandos de cor do GTE deixaram de ser
     // no-op e o Rayman os emite). Deslocamento uniforme, mesma sequencia — achado 10.115.
-    assert_eq!(inicial.vector_step, 164_125_747);
-    assert_eq!(inicial.hook_step, 164_126_577);
+    // Segundo deslocamento uniforme de +6.372 na 0187: com o SPU vivo o SPUSTAT passou a
+    // espelhar o SPUCNT e as esperas do kernel terminam em vez de girar (achado 10.115).
+    assert_eq!(inicial.vector_step, 164_132_119);
+    assert_eq!(inicial.hook_step, 164_132_949);
     assert_eq!(inicial.vector_stat & 1, 1);
     assert_eq!(inicial.hook_stat & 1, 1);
-    assert_eq!(posterior.vector_step, 164_168_101);
-    assert_eq!(posterior.hook_step, 164_172_203);
+    assert_eq!(posterior.vector_step, 164_174_473);
+    assert_eq!(posterior.hook_step, 164_178_575);
     assert_eq!(posterior.vector_stat & 1, 1);
     assert_eq!(posterior.hook_stat & 1, 0);
 

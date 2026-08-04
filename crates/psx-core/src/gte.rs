@@ -121,6 +121,8 @@ impl Gte {
             0x2D => self.avsz3(),
             0x2E => self.avsz4(),
             0x28 => self.sqr(sf),
+            0x3D => self.interpolacao_geral(sf, lm, false),
+            0x3E => self.interpolacao_geral(sf, lm, true),
             0x0C => self.op(sf, lm),
             0x12 => self.mvmva(sf, mx, v, cv, lm),
             0x1E => self.normal_color(0, sf, lm, Modulacao::Nenhuma, FarColor::Nao),
@@ -340,13 +342,13 @@ impl Gte {
     }
 
     fn rtps(&mut self, sf: u32, lm: u32) {
-        self.exec_rtps_vertex(0, sf, lm);
+        self.exec_rtps_vertex(0, sf, lm, true);
     }
 
     fn rtpt(&mut self, sf: u32, lm: u32) {
-        self.exec_rtps_vertex(0, sf, lm);
-        self.exec_rtps_vertex(1, sf, lm);
-        self.exec_rtps_vertex(2, sf, lm);
+        self.exec_rtps_vertex(0, sf, lm, false);
+        self.exec_rtps_vertex(1, sf, lm, false);
+        self.exec_rtps_vertex(2, sf, lm, true);
     }
 
     fn nclip(&mut self) {
@@ -375,14 +377,15 @@ impl Gte {
         let mut flag: u32 = 0;
 
         let zsf3 = self.regs[61] as i16 as i64;
-        let sz1 = self.regs[17] as i64;
-        let sz2 = self.regs[18] as i64;
-        let sz3 = self.regs[19] as i64;
+        let sz1 = (self.regs[17] & 0xFFFF) as i64;
+        let sz2 = (self.regs[18] & 0xFFFF) as i64;
+        let sz3 = (self.regs[19] & 0xFFFF) as i64;
 
         let mac0 = zsf3 * (sz1 + sz2 + sz3);
+        check_mac0_overflow(mac0, &mut flag);
         self.regs[24] = mac0 as u32;
 
-        let otz = mac0 / 0x1000;
+        let otz = mac0 >> 12;
         let otz_clamped = if otz > 0xFFFF {
             flag |= 1 << 18;
             0xFFFFu32
@@ -401,15 +404,16 @@ impl Gte {
         let mut flag: u32 = 0;
 
         let zsf4 = self.regs[62] as i16 as i64;
-        let sz0 = self.regs[16] as i64;
-        let sz1 = self.regs[17] as i64;
-        let sz2 = self.regs[18] as i64;
-        let sz3 = self.regs[19] as i64;
+        let sz0 = (self.regs[16] & 0xFFFF) as i64;
+        let sz1 = (self.regs[17] & 0xFFFF) as i64;
+        let sz2 = (self.regs[18] & 0xFFFF) as i64;
+        let sz3 = (self.regs[19] & 0xFFFF) as i64;
 
         let mac0 = zsf4 * (sz0 + sz1 + sz2 + sz3);
+        check_mac0_overflow(mac0, &mut flag);
         self.regs[24] = mac0 as u32;
 
-        let otz = mac0 / 0x1000;
+        let otz = mac0 >> 12;
         let otz_clamped = if otz > 0xFFFF {
             flag |= 1 << 18;
             0xFFFFu32
@@ -421,6 +425,30 @@ impl Gte {
         };
 
         self.regs[7] = otz_clamped;
+        self.regs[63] |= flag;
+    }
+
+    // § COP2 190003Dh - 5 Cycles - GPF(sf,lm) - General purpose Interpolation (L641) de
+    // docs/reference/07-gte.md.
+    fn interpolacao_geral(&mut self, sf: u32, lm: u32, com_base: bool) {
+        let mut flag: u32 = 0;
+        let shift = sf * 12;
+        let ir0 = self.regs[8] as i16 as i64;
+        let ir = self.le_ir();
+        let base = if com_base {
+            let (m1, m2, m3) = self.le_mac();
+            [m1, m2, m3]
+        } else {
+            [0; 3]
+        };
+        let mut macs = [0i64; 3];
+        for (i, mac) in macs.iter_mut().enumerate() {
+            let acc = (base[i] << shift) + ir[i] * ir0;
+            check_mac_43bit_overflow(acc, 30 - i as u32, 27 - i as u32, &mut flag);
+            *mac = sinal44(acc) >> shift;
+        }
+        self.escreve_mac(macs[0], macs[1], macs[2]);
+        self.empurra_cor(lm, &mut flag);
         self.regs[63] |= flag;
     }
 
@@ -483,11 +511,18 @@ impl Gte {
     fn mvmva(&mut self, sf: u32, mx: u32, v: u32, cv: u32, lm: u32) {
         let mut flag: u32 = 0;
 
-        let (base_mat, base_tr) = match (mx, cv) {
-            (0, _) => (32, 37),
-            (1, _) => (40, 45),
-            (2, _) => (48, 53),
-            _ => (0, 0),
+        let base_mat = match mx {
+            0 => 32,
+            1 => 40,
+            2 => 48,
+            _ => 0,
+        };
+        // § COP2 0400012h - 8 Cycles - MVMVA(sf,mx,v,cv,lm) (L550) de docs/reference/07-gte.md: o vetor de
+        // translacao e escolhido por `cv`, nao pela matriz.
+        let base_tr = match cv {
+            0 => 37,
+            1 => 45,
+            _ => FC,
         };
 
         let m11: i32;
@@ -547,7 +582,7 @@ impl Gte {
             ),
         };
 
-        let (tx, ty, tz): (i64, i64, i64) = if cv == 2 || cv == 3 {
+        let (tx, ty, tz): (i64, i64, i64) = if cv == 3 {
             (0, 0, 0)
         } else {
             let t = base_tr;
@@ -558,34 +593,49 @@ impl Gte {
             )
         };
 
-        let raw1: i64;
-        let raw2: i64;
-        let raw3: i64;
-
-        if cv == 2 {
-            raw1 = (m12 as i64) * (vy as i64) + (m13 as i64) * (vz as i64);
-            raw2 = (m22 as i64) * (vy as i64) + (m23 as i64) * (vz as i64);
-            raw3 = (m32 as i64) * (vy as i64) + (m33 as i64) * (vz as i64);
-        } else {
-            raw1 = tx * 0x1000
-                + (m11 as i64) * (vx as i64)
-                + (m12 as i64) * (vy as i64)
-                + (m13 as i64) * (vz as i64);
-            raw2 = ty * 0x1000
-                + (m21 as i64) * (vx as i64)
-                + (m22 as i64) * (vy as i64)
-                + (m23 as i64) * (vz as i64);
-            raw3 = tz * 0x1000
-                + (m31 as i64) * (vx as i64)
-                + (m32 as i64) * (vy as i64)
-                + (m33 as i64) * (vz as i64);
-        }
-
-        check_mac_43bit_overflow(raw1, 30, 27, &mut flag);
-        check_mac_43bit_overflow(raw2, 29, 26, &mut flag);
-        check_mac_43bit_overflow(raw3, 28, 25, &mut flag);
-
+        let (vx, vy, vz) = (vx as i64, vy as i64, vz as i64);
+        let linhas: [(i64, [i64; 3], u32, u32); 3] = [
+            (
+                tx,
+                [m11 as i64 * vx, m12 as i64 * vy, m13 as i64 * vz],
+                30,
+                27,
+            ),
+            (
+                ty,
+                [m21 as i64 * vx, m22 as i64 * vy, m23 as i64 * vz],
+                29,
+                26,
+            ),
+            (
+                tz,
+                [m31 as i64 * vx, m32 as i64 * vy, m33 as i64 * vz],
+                28,
+                25,
+            ),
+        ];
         let shift = sf * 12;
+        let mut brutos = [0i64; 3];
+        for (i, (t, parcelas, pos, neg)) in linhas.into_iter().enumerate() {
+            let bit = 24 - i as u32;
+            if cv == 2 {
+                // Bug do far color: a primeira parcela e somada, confere as flags e o
+                // acumulador e JOGADO FORA; so as duas ultimas sobram no MAC. As flags de
+                // saturacao de IR saem como se a conta inteira tivesse rodado — tanto a do
+                // trecho descartado (sempre como lm=0) quanto a do total.
+                let descartado = sinal44(t * 0x1000 + parcelas[0]);
+                check_mac_43bit_overflow(t * 0x1000 + parcelas[0], pos, neg, &mut flag);
+                saturate_ir(descartado >> shift, 0, bit, &mut flag);
+                let mut lixo = 0u32;
+                let completo = acumula_mac(t * 0x1000, parcelas, pos, neg, &mut lixo);
+                saturate_ir((completo >> shift) as i32 as i64, lm, bit, &mut flag);
+                brutos[i] = acumula_mac(0, [0, parcelas[1], parcelas[2]], pos, neg, &mut flag);
+            } else {
+                brutos[i] = acumula_mac(t * 0x1000, parcelas, pos, neg, &mut flag);
+            }
+        }
+        let (raw1, raw2, raw3) = (brutos[0], brutos[1], brutos[2]);
+
         let mac1 = (raw1 >> shift) as i32;
         let mac2 = (raw2 >> shift) as i32;
         let mac3 = (raw3 >> shift) as i32;
@@ -594,18 +644,14 @@ impl Gte {
         self.regs[26] = mac2 as u32;
         self.regs[27] = mac3 as u32;
 
-        let ir1 = saturate_ir(mac1 as i64, lm, 24, &mut flag);
-        let ir2 = saturate_ir(mac2 as i64, lm, 23, &mut flag);
-        let ir3 = saturate_ir(mac3 as i64, lm, 22, &mut flag);
-
-        self.regs[9] = ir1 as u32;
-        self.regs[10] = ir2 as u32;
-        self.regs[11] = ir3 as u32;
+        self.regs[9] = saturate_ir(mac1 as i64, lm, 24, &mut flag) as u32;
+        self.regs[10] = saturate_ir(mac2 as i64, lm, 23, &mut flag) as u32;
+        self.regs[11] = saturate_ir(mac3 as i64, lm, 22, &mut flag) as u32;
 
         self.regs[63] |= flag;
     }
 
-    fn exec_rtps_vertex(&mut self, vi: usize, sf: u32, lm: u32) {
+    fn exec_rtps_vertex(&mut self, vi: usize, sf: u32, lm: u32, ultimo: bool) {
         let mut flag: u32 = 0;
 
         let vx = self.regs[vi * 2] as i16 as i32;
@@ -626,22 +672,28 @@ impl Gte {
         let try_ = self.regs[38] as i32;
         let trz = self.regs[39] as i32;
 
-        let raw1 = (trx as i64) * 0x1000
-            + (rt11 as i64) * (vx as i64)
-            + (rt12 as i64) * (vy as i64)
-            + (rt13 as i64) * (vz as i64);
-        let raw2 = (try_ as i64) * 0x1000
-            + (rt21 as i64) * (vx as i64)
-            + (rt22 as i64) * (vy as i64)
-            + (rt23 as i64) * (vz as i64);
-        let raw3 = (trz as i64) * 0x1000
-            + (rt31 as i64) * (vx as i64)
-            + (rt32 as i64) * (vy as i64)
-            + (rt33 as i64) * (vz as i64);
-
-        check_mac_43bit_overflow(raw1, 30, 27, &mut flag);
-        check_mac_43bit_overflow(raw2, 29, 26, &mut flag);
-        check_mac_43bit_overflow(raw3, 28, 25, &mut flag);
+        let (vx, vy, vz) = (vx as i64, vy as i64, vz as i64);
+        let raw1 = acumula_mac(
+            (trx as i64) * 0x1000,
+            [rt11 as i64 * vx, rt12 as i64 * vy, rt13 as i64 * vz],
+            30,
+            27,
+            &mut flag,
+        );
+        let raw2 = acumula_mac(
+            (try_ as i64) * 0x1000,
+            [rt21 as i64 * vx, rt22 as i64 * vy, rt23 as i64 * vz],
+            29,
+            26,
+            &mut flag,
+        );
+        let raw3 = acumula_mac(
+            (trz as i64) * 0x1000,
+            [rt31 as i64 * vx, rt32 as i64 * vy, rt33 as i64 * vz],
+            28,
+            25,
+            &mut flag,
+        );
 
         let shift = sf * 12;
         let mac1 = (raw1 >> shift) as i32;
@@ -665,7 +717,9 @@ impl Gte {
         self.regs[10] = ir2 as u32;
         self.regs[11] = ir3 as u32;
 
-        let sz3_raw = mac3 as i64 >> (12 - shift);
+        // SZ3 = MAC3 SAR ((1-sf)*12) sobre o acumulador de 44 bits, nao sobre o MAC3
+        // ja truncado em 32: com sf=0 o truncamento inverte o sinal de valores grandes.
+        let sz3_raw = raw3 >> 12;
         let sz3 = if sz3_raw > 0xFFFF {
             flag |= 1 << 18;
             0xFFFFu32
@@ -715,21 +769,26 @@ impl Gte {
             sy2
         };
 
-        let mac0_3 = n as i64 * dqa as i64 + dqb as i64;
-        check_mac0_overflow(mac0_3, &mut flag);
-        let ir0 = (mac0_3 >> 12) as i32;
-        let ir0_clamped = if ir0 > 0x1000 {
-            flag |= 1 << 12;
-            0x1000
-        } else if ir0 < 0 {
-            flag |= 1 << 12;
-            0
-        } else {
-            ir0
-        };
-
-        self.regs[24] = mac0_3 as u32;
-        self.regs[8] = ir0_clamped as u32;
+        // § COP2 0280030h - 23 Cycles - RTPT - Perspective Transformation (triple) (L482) de
+        // docs/reference/07-gte.md: o RTPT repete o
+        // RTPS, mas o cue de profundidade so e calculado no ultimo vertice — as flags
+        // dos vertices intermediarios nao existem no hardware.
+        if ultimo {
+            let mac0_3 = n as i64 * dqa as i64 + dqb as i64;
+            check_mac0_overflow(mac0_3, &mut flag);
+            let ir0 = (mac0_3 >> 12) as i32;
+            let ir0_clamped = if ir0 > 0x1000 {
+                flag |= 1 << 12;
+                0x1000
+            } else if ir0 < 0 {
+                flag |= 1 << 12;
+                0
+            } else {
+                ir0
+            };
+            self.regs[24] = mac0_3 as u32;
+            self.regs[8] = ir0_clamped as u32;
+        }
 
         self.regs[12] = self.regs[13];
         self.regs[13] = self.regs[14];
@@ -772,6 +831,24 @@ fn lm_range(lm: u32) -> (i64, i64) {
 
 // O acumulador interno do GTE tem 44 bits com sinal e da a volta em vez de saturar; o
 // que o proximo passo enxerga e a extensao de sinal a partir do bit 43.
+/// Acumula parcela a parcela: o hardware decide a flag de overflow do MAC a cada soma
+/// e trunca o acumulador em 44 bits com sinal antes da proxima.
+fn acumula_mac(
+    inicial: i64,
+    parcelas: [i64; 3],
+    pos_bit: u32,
+    neg_bit: u32,
+    flag: &mut u32,
+) -> i64 {
+    let mut acc = inicial;
+    for p in parcelas {
+        acc += p;
+        check_mac_43bit_overflow(acc, pos_bit, neg_bit, flag);
+        acc = sinal44(acc);
+    }
+    acc
+}
+
 fn sinal44(val: i64) -> i64 {
     (val << 20) >> 20
 }

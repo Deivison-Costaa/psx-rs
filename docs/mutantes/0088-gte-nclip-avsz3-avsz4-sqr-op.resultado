@@ -1,12 +1,12 @@
 # gerado por scripts/mutantes.ps1 — NAO editar a mao
-# commit: b938440de71a2be04b0d7dda29556110057bddf2
-# rodado_em: 2026-08-03T17:11:21-03:00
+# commit: 65975e05e1266a55a7d0f74e8c14e1166a81fe04
+# rodado_em: 2026-08-03T21:16:14-03:00
 m1,mutante,morreu,morreu,0.7,nclip_poligono_anti_horario_mac0_negativo;nclip_poligono_horario_mac0_positivo
 m2,mutante,morreu,morreu,0.7,avsz3_media_ponderada_de_tres_z;avsz4_media_ponderada_de_quatro_z
-m3,mutante,morreu,morreu,0.6,avsz4_media_ponderada_de_quatro_z
+m3,mutante,morreu,morreu,0.7,avsz4_media_ponderada_de_quatro_z
 m4,mutante,morreu,morreu,0.7,sqr_sf1_desloca_12_bits_para_direita
 m5,mutante,morreu,morreu,0.7,op_produto_vetorial_sf0_lm0
-m6,mutante,morreu,morreu,0.6,nclip_colinear_mac0_zero;nclip_poligono_horario_mac0_positivo
-m7,mutante,morreu,morreu,0.6,avsz3_otz_saturado_em_maximo
-c1,controle,sobreviveu,sobreviveu,0.6,
-c2,controle,sobreviveu,sobreviveu,0.6,
+m6,mutante,morreu,morreu,0.7,nclip_colinear_mac0_zero;nclip_poligono_horario_mac0_positivo
+m7,mutante,morreu,morreu,0.7,avsz3_otz_saturado_em_maximo
+c1,controle,sobreviveu,sobreviveu,0.7,
+c2,controle,sobreviveu,sobreviveu,0.7,

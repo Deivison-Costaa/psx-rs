@@ -5,6 +5,7 @@
 
 | Módulo | Arquivo(s) | Responsabilidade | Entradas principais |
 |---|---|---|---|
+| audio | `crates/psx-core/src/audio.rs` | anel de quadros entre o SPU e o frontend, com conversao de taxa | `Ring`, `push_frames`, `fill_interleaved` |
 | bus | `crates/psx-core/src/bus.rs` | mapa de memória, RAM 2MB, BIOS, roteamento KUSEG/KSEG0/KSEG1 | `Bus`, `Ram`, `Bios`, `read32`, `write32`, `to_physical` |
 | scheduler | `crates/psx-core/src/scheduler.rs` | fila de eventos por timestamp, relógio mestre | `Scheduler`, `EventId`, `ScheduleKey`, `schedule`, `advance_to`, `pending_events` |
 | cpu | `crates/psx-core/src/cpu.rs` | R3000A: decode, ALU, delay slots, COP0 | (vazio — item 1.2) |
@@ -14,8 +15,15 @@
 | irq | `crates/psx-core/src/irq.rs` | I_STAT/I_MASK | (vazio — M3) |
 | timers | `crates/psx-core/src/timers.rs` | timers 0/1/2 | (vazio — M3) |
 | cdrom | `crates/psx-core/src/cdrom.rs` | controller, comandos, BIN/CUE | (vazio — M4) |
-| sio | `crates/psx-core/src/sio.rs` | pad e memory card | (vazio — M6) |
-| spu | `crates/psx-core/src/spu.rs` | vozes ADPCM, mixer, reverb | (vazio — M7) |
+| sio | `crates/psx-core/src/sio.rs` | JOY_*, pad digital, roteamento por endereco e /ACK | `Sio`, `send_byte`, `deliver_ack`, `connect_memory_card`, `load_memory_card` |
+| memcard | `crates/psx-core/src/memcard.rs` | cartao de 128 KiB, comandos R/W/S e byte FLAG | `MemoryCard`, `exchange`, `begin`, `from_bytes`, `data` |
+| spu | `crates/psx-core/src/spu.rs` | registradores, RAM de 512 KiB, transferencia, mixer de 44,1 kHz | `Spu`, `read16`, `write16`, `tick`, `drain_output`, `set_cd_audio` |
+| spu/voice | `crates/psx-core/src/spu/voice.rs` | estado das 24 vozes, pitch, key on/off, ENDX | `Voice`, `Volume`, `Phase`, `step` |
+| spu/adpcm | `crates/psx-core/src/spu/adpcm.rs` | bloco de 16 bytes -> 28 amostras | `decode_block`, `Flags` |
+| spu/envelope | `crates/psx-core/src/spu/envelope.rs` | envoltoria de ADSR e de sweep | `Envelope`, `Rate` |
+| spu/reverb | `crates/psx-core/src/spu/reverb.rs` | 32 registradores, formula de reverb a 22,05 kHz | `Reverb`, `run`, `advance`, `set_mbase` |
+| spu/gauss | `crates/psx-core/src/spu/gauss.rs` | tabela de 512 entradas e interpolacao de 4 pontos | `TABLE`, `interpolate` |
+| cdrom_xa | `crates/psx-core/src/cdrom_xa.rs` | XA-ADPCM, quadros de CD-DA e reamostragem para 44,1 kHz | `decode_sector`, `decode_28_nibbles`, `cdda_frames`, `resample_to_44100` |
 | mdec | `crates/psx-core/src/mdec.rs` | decodificador de macroblocos | (vazio — M8) |
 | psx-cli | `crates/psx-cli/src/main.rs` | runner headless, sideload de EXE, TTY, scoreboard | stub |
 | psx-desktop | `crates/psx-desktop/src/main.rs` | app egui: biblioteca, emulação, saves, controles, config | stub |

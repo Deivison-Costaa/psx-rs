@@ -1,0 +1,188 @@
+# Manifesto de mutacao da iteracao 0191 — memory card de 128 KiB no endereco 81h
+formato: 1
+iteracao: 0191
+item: 6.3
+alvo: crates/psx-core/src/memcard.rs
+teste: sio_memory_card
+
+mutante: m1
+teste: sio_memory_card
+rotulo: FLAG inicial em zero em vez de 08h
+ocorrencias: 1
+@@DE
+const FLAG_INICIAL: u8 = 0x08;
+@@PARA
+const FLAG_INICIAL: u8 = 0x00;
+@@FIM
+
+mutante: m2
+teste: sio_memory_card
+rotulo: checksum de leitura sem os dois bytes de endereco
+ocorrencias: 1
+@@DE
+    fn checksum_do_quadro(&self) -> u8 {
+        let inicial = (self.endereco >> 8) as u8 ^ self.endereco as u8;
+@@PARA
+    fn checksum_do_quadro(&self) -> u8 {
+        let inicial = 0u8;
+@@FIM
+
+mutante: m3
+teste: sio_memory_card
+rotulo: endereco montado com MSB e LSB trocados
+ocorrencias: 1
+@@DE
+            4 => {
+                self.endereco = u16::from(entrada) << 8;
+                (0x00, true)
+            }
+            5 => {
+                self.endereco |= u16::from(entrada);
+                (self.anterior, true)
+            }
+            6 => (0x5C, true),
+@@PARA
+            4 => {
+                self.endereco = u16::from(entrada);
+                (0x00, true)
+            }
+            5 => {
+                self.endereco |= u16::from(entrada) << 8;
+                (self.anterior, true)
+            }
+            6 => (0x5C, true),
+@@FIM
+
+mutante: m4
+teste: sio_memory_card
+rotulo: setor fora de 0..3FFh passa a ser aceito
+ocorrencias: 1
+@@DE
+        (self.endereco as usize) < FRAMES
+@@PARA
+        true
+@@FIM
+
+mutante: m5
+teste: sio_memory_card
+rotulo: escrita aceita qualquer checksum
+ocorrencias: 1
+@@DE
+        if checksum != self.checksum_recebido() {
+            self.resultado = 0x4E;
+            return;
+        }
+@@PARA
+        if false {
+            self.resultado = 0x4E;
+            return;
+        }
+@@FIM
+
+mutante: m6
+teste: sio_memory_card
+rotulo: bit3 do FLAG cai tambem na leitura
+ocorrencias: 1
+@@DE
+            (Modo::Read, _) => self.passo_de_leitura(passo, entrada),
+@@PARA
+            (Modo::Read, _) => {
+                self.flag &= !FLAG_DIRETORIO_NAO_LIDA;
+                self.passo_de_leitura(passo, entrada)
+            }
+@@FIM
+
+mutante: m7
+teste: sio_memory_card
+rotulo: ultimo byte da leitura ainda pede /ACK
+ocorrencias: 1
+@@DE
+            p if p == DADOS + FRAME_BYTES + 1 => (0x47, false),
+@@PARA
+            p if p == DADOS + FRAME_BYTES + 1 => (0x47, true),
+@@FIM
+
+mutante: m8
+teste: sio_memory_card
+rotulo: comando invalido segue respondendo como se fosse valido
+ocorrencias: 1
+@@DE
+                (self.flag, self.modo != Modo::Abortado)
+@@PARA
+                (self.flag, true)
+@@FIM
+
+mutante: m9
+teste: sio_memory_card
+rotulo: imagem de tamanho errado e aceita
+ocorrencias: 1
+@@DE
+        if bytes.len() != CARD_BYTES {
+            return Err(MemoryCardError::TamanhoInvalido(bytes.len()));
+        }
+@@PARA
+        if false {
+            return Err(MemoryCardError::TamanhoInvalido(bytes.len()));
+        }
+@@FIM
+
+mutante: m10
+teste: sio_memory_card
+rotulo: escrita nao marca a imagem como suja
+ocorrencias: 1
+@@DE
+        self.dirty = true;
+        self.resultado = 0x47;
+@@PARA
+        self.resultado = 0x47;
+@@FIM
+
+mutante: m11
+teste: sio_memory_card
+rotulo: Get ID responde 80h no lugar de 04h
+ocorrencias: 1
+@@DE
+            6 => (0x04, true),
+            7 => (0x00, true),
+            8 => (0x00, true),
+            9 => (0x80, false),
+@@PARA
+            6 => (0x80, true),
+            7 => (0x00, true),
+            8 => (0x00, true),
+            9 => (0x04, false),
+@@FIM
+
+mutante: m12
+teste: sio_memory_card
+arquivo: crates/psx-core/src/sio.rs
+rotulo: endereco 81h deixa de ser encaminhado ao cartao
+ocorrencias: 1
+@@DE
+            memcard::ADDRESS => self.memcard_connected.get(),
+            _ => false,
+@@PARA
+            _ => false,
+@@FIM
+
+controle: c1
+teste: sio_memory_card
+rotulo: validade do setor escrita com comparacao invertida, mesmo resultado
+ocorrencias: 1
+@@DE
+        (self.endereco as usize) < FRAMES
+@@PARA
+        !((self.endereco as usize) >= FRAMES)
+@@FIM
+
+controle: c2
+teste: sio_memory_card
+rotulo: base do quadro calculada com multiplicacao explicita de usize
+ocorrencias: 1
+@@DE
+    fn quadro(&self) -> &[u8] {
+        let base = (self.endereco as usize) * FRAME_BYTES;
+@@PARA
+    fn quadro(&self) -> &[u8] {
+        let base = FRAME_BYTES * (self.endereco as usize);
+@@FIM

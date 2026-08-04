@@ -8,10 +8,10 @@ teste: sio_ack_dispositivo
 mutante: m1
 rotulo: qualquer endereco passa a ter dispositivo presente, o defeito original em outra forma
 @@DE
-            ADDRESS_CONTROLLER => self.pad_connected.get(),
+            memcard::ADDRESS => self.memcard_connected.get(),
             _ => false,
 @@PARA
-            ADDRESS_CONTROLLER => self.pad_connected.get(),
+            memcard::ADDRESS => self.memcard_connected.get(),
             _ => true,
 @@FIM
 
@@ -28,17 +28,17 @@ rotulo: o endereco nunca e latchado, entao nenhum dispositivo e reconhecido
 @@DE
         if count == 0 {
             self.address.set(val);
-        }
+            if val == memcard::ADDRESS {
 @@PARA
         if count == 0 {
             self.address.set(0);
-        }
+            if val == memcard::ADDRESS {
 @@FIM
 
 mutante: m4
 rotulo: volta a acender /ACK e IRQ7 mesmo sem periferico enderecado presente
 @@DE
-        if present {
+        if ack {
             self.ack_requested.set(true);
 @@PARA
         if true {
@@ -48,9 +48,11 @@ rotulo: volta a acender /ACK e IRQ7 mesmo sem periferico enderecado presente
 mutante: m5
 rotulo: o controle volta a responder ID e botoes a qualquer endereco, inclusive 81h
 @@DE
-        let response = if count == 0 || !present {
+        } else if count == 0 || !present {
+            (0xFF, present)
 @@PARA
-        let response = if count == 0 {
+        } else if count == 0 {
+            (0xFF, present)
 @@FIM
 
 mutante: m6
@@ -82,7 +84,9 @@ rotulo: escrever o bit 7 do STAT por deslocamento e o mesmo valor da constante h
 controle: c3
 rotulo: inverter a ordem das duas condicoes da resposta ociosa preserva o resultado
 @@DE
-        let response = if count == 0 || !present {
+        } else if count == 0 || !present {
+            (0xFF, present)
 @@PARA
-        let response = if !present || count == 0 {
+        } else if !present || count == 0 {
+            (0xFF, present)
 @@FIM

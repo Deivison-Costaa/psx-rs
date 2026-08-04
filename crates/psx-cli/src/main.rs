@@ -56,6 +56,7 @@ struct Sondas<'a> {
     sample_pcs: Option<(usize, usize, usize)>,
     watch_mem: &'a [u32],
     vram_timeline: Option<(usize, &'a str)>,
+    audio_dump: Option<&'a str>,
 }
 
 fn run(cpu: &mut Cpu, bus: &mut Bus, max_steps: usize, pad: &PadScript, sondas: &Sondas) -> usize {
@@ -64,6 +65,7 @@ fn run(cpu: &mut Cpu, bus: &mut Bus, max_steps: usize, pad: &PadScript, sondas: 
         sample_pcs,
         watch_mem,
         vram_timeline,
+        audio_dump,
     } = *sondas;
     let mut steps = 0;
     // Comparar antes/depois de cada passo atribui a escrita ao PC exato que a fez. Foi assim
@@ -78,6 +80,8 @@ fn run(cpu: &mut Cpu, bus: &mut Bus, max_steps: usize, pad: &PadScript, sondas: 
         bus.sio_mut().set_buttons(pad_state);
     }
     let mut deliver_event_pc: Option<u32> = None;
+    // Quadros PCM crus (i16 L/R little-endian, 44100 Hz) para provar que o jogo soa.
+    let mut audio_pcm: Vec<u8> = Vec::new();
     while steps < max_steps {
         let pc_antes = cpu.pc;
         cpu.step(bus);
@@ -105,6 +109,13 @@ fn run(cpu: &mut Cpu, bus: &mut Bus, max_steps: usize, pad: &PadScript, sondas: 
         if let Some((cada, prefixo)) = vram_timeline {
             if steps % cada == 0 {
                 write_vram_dump(&format!("{prefixo}-{}.vram", steps / cada), bus);
+            }
+        }
+
+        if audio_dump.is_some() && steps % 4096 == 0 {
+            for (e, d) in bus.drain_audio() {
+                audio_pcm.extend_from_slice(&e.to_le_bytes());
+                audio_pcm.extend_from_slice(&d.to_le_bytes());
             }
         }
 
@@ -159,6 +170,17 @@ fn run(cpu: &mut Cpu, bus: &mut Bus, max_steps: usize, pad: &PadScript, sondas: 
                 bus.read32::<BusRead>(cpu.regs[17].wrapping_mul(4)),
             );
             let _ = std::io::stderr().flush();
+        }
+    }
+    if let Some(caminho) = audio_dump {
+        let nao_silencio = audio_pcm.chunks_exact(2).filter(|q| q != &[0, 0]).count();
+        eprintln!(
+            "# AUDIO quadros={} amostras-nao-zero={}",
+            audio_pcm.len() / 4,
+            nao_silencio
+        );
+        if let Err(e) = std::fs::write(caminho, &audio_pcm) {
+            eprintln!("Erro: nao consegui gravar o audio '{caminho}': {e}");
         }
     }
     steps
@@ -221,6 +243,35 @@ fn load_disc(disc_path: &str) -> (DiscLayout, Vec<u8>) {
     (layout, bin_data)
 }
 
+/// Carrega a imagem `.mcd` (criando uma zerada de 128 KiB se nao existir) e liga o
+/// cartao no slot 1.
+fn monta_memory_card(bus: &mut Bus, caminho: Option<&str>) {
+    let Some(caminho) = caminho else {
+        return;
+    };
+    let bytes = std::fs::read(caminho).unwrap_or_else(|_| vec![0u8; psx_core::memcard::CARD_BYTES]);
+    match bus.sio_mut().load_memory_card(&bytes) {
+        Ok(()) => {}
+        Err(e) => {
+            eprintln!("Erro: memory card '{caminho}' invalido: {e:?}");
+            std::process::exit(1);
+        }
+    }
+}
+
+/// Regrava o `.mcd` se o jogo escreveu nele durante a execucao.
+fn salva_memory_card(bus: &Bus, caminho: Option<&str>) {
+    let Some(caminho) = caminho else {
+        return;
+    };
+    if !bus.sio().memory_card_dirty() {
+        return;
+    }
+    if let Err(e) = std::fs::write(caminho, bus.sio().memory_card_image()) {
+        eprintln!("Erro: nao consegui gravar o memory card '{caminho}': {e}");
+    }
+}
+
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     if args.len() == 1 || (args.len() == 2 && args[1] == "--version") {
@@ -237,8 +288,10 @@ fn main() {
     let mut dump_mem: Vec<(u32, usize)> = Vec::new();
     let mut dump_vram: Option<String> = None;
     let mut vram_timeline: Option<(usize, String)> = None;
+    let mut audio_dump: Option<String> = None;
     let mut sample_pcs: Option<(usize, usize, usize)> = None;
     let mut pad_connected = false;
+    let mut memcard_arg: Option<String> = None;
     let mut press_specs: Vec<String> = Vec::new();
     let mut i = 1;
     while i < args.len() {
@@ -254,6 +307,14 @@ fn main() {
             "--pad" => {
                 pad_connected = true;
                 i += 1;
+            }
+            "--dump-audio" if i + 1 < args.len() => {
+                audio_dump = Some(args[i + 1].clone());
+                i += 2;
+            }
+            "--memcard" if i + 1 < args.len() => {
+                memcard_arg = Some(args[i + 1].clone());
+                i += 2;
             }
             "--press" if i + 1 < args.len() => {
                 press_specs.push(args[i + 1].clone());
@@ -466,6 +527,7 @@ fn main() {
             if pad_connected {
                 bus.sio_mut().connect_digital_pad(true);
             }
+            monta_memory_card(&mut bus, memcard_arg.as_deref());
             let steps = run(
                 &mut cpu,
                 &mut bus,
@@ -476,9 +538,11 @@ fn main() {
                     sample_pcs,
                     watch_mem: &watch_mem,
                     vram_timeline: vram_timeline.as_ref().map(|(n, p)| (*n, p.as_str())),
+                    audio_dump: audio_dump.as_deref(),
                 },
             );
 
+            salva_memory_card(&bus, memcard_arg.as_deref());
             let tty = bus.take_tty();
             if !tty.is_empty() {
                 let _ = std::io::stdout().write_all(&tty);
@@ -540,6 +604,7 @@ fn main() {
             if pad_connected {
                 bus.sio_mut().connect_digital_pad(true);
             }
+            monta_memory_card(&mut bus, memcard_arg.as_deref());
             let steps = run(
                 &mut cpu,
                 &mut bus,
@@ -550,9 +615,11 @@ fn main() {
                     sample_pcs,
                     watch_mem: &watch_mem,
                     vram_timeline: vram_timeline.as_ref().map(|(n, p)| (*n, p.as_str())),
+                    audio_dump: audio_dump.as_deref(),
                 },
             );
 
+            salva_memory_card(&bus, memcard_arg.as_deref());
             let tty = bus.take_tty();
             if !tty.is_empty() {
                 let _ = std::io::stdout().write_all(&tty);

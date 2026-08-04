@@ -1,0 +1,239 @@
+# Manifesto de mutacao da iteracao 0187 — vozes, ADPCM, envoltoria ADSR e mixer do SPU
+formato: 1
+iteracao: 0187
+item: 7.1
+alvo: crates/psx-core/src/spu/adpcm.rs
+teste: spu_vozes_adpcm
+
+mutante: m1
+teste: spu_vozes_adpcm
+rotulo: coeficiente negativo do filtro perde o sinal e o preditor diverge
+ocorrencias: 1
+@@DE
+const NEG: [i32; 5] = [0, 0, -52, -55, -60];
+@@PARA
+const NEG: [i32; 5] = [0, 0, 52, 55, 60];
+@@FIM
+
+mutante: m2
+teste: spu_vozes_adpcm
+rotulo: predicao sem o arredondamento de +32 antes do SAR 6
+ocorrencias: 1
+@@DE
+        let bruto = ((t << 12) >> shift) + ((p1 * f0 + p2 * f1 + 32) >> 6);
+@@PARA
+        let bruto = ((t << 12) >> shift) + ((p1 * f0 + p2 * f1) >> 6);
+@@FIM
+
+mutante: m3
+teste: spu_vozes_adpcm
+rotulo: nibble de 8h a Fh deixa de ser negativo
+ocorrencias: 1
+@@DE
+        let t = i32::from(nibble) - if nibble >= 8 { 16 } else { 0 };
+@@PARA
+        let t = i32::from(nibble);
+@@FIM
+
+mutante: m4
+teste: spu_vozes_adpcm
+rotulo: amostra nao satura em 16 bits com sinal e da a volta
+ocorrencias: 1
+@@DE
+        let amostra = bruto.clamp(-0x8000, 0x7FFF);
+@@PARA
+        let amostra = bruto as i16 as i32;
+@@FIM
+
+mutante: m5
+teste: spu_vozes_adpcm
+rotulo: shift do cabecalho ignorado: toda amostra vira nibble SHL 12
+ocorrencias: 1
+@@DE
+    let shift = (header & 0x0F) as u32;
+@@PARA
+    let shift = 0u32;
+@@FIM
+
+mutante: m6
+teste: spu_vozes_adpcm
+arquivo: crates/psx-core/src/spu/voice.rs
+rotulo: repeat e marcado pelo loop-end em vez do loop-start
+ocorrencias: 1
+@@DE
+        if self.flags.loop_start {
+            self.repeat_address = (self.current_address / 8) as u16;
+        }
+@@PARA
+        if self.flags.loop_end {
+            self.repeat_address = (self.current_address / 8) as u16;
+        }
+@@FIM
+
+mutante: m7
+teste: spu_vozes_adpcm
+arquivo: crates/psx-core/src/spu/voice.rs
+rotulo: End+Mute e End+Repeat trocados: quem repete e que emudece
+ocorrencias: 1
+@@DE
+            if !terminou.loop_repeat {
+                self.phase = Phase::Release;
+                self.adsr_env.level = 0;
+                self.adsr_env.counter = 0;
+            }
+@@PARA
+            if terminou.loop_repeat {
+                self.phase = Phase::Release;
+                self.adsr_env.level = 0;
+                self.adsr_env.counter = 0;
+            }
+@@FIM
+
+mutante: m8
+teste: spu_vozes_adpcm
+arquivo: crates/psx-core/src/spu/voice.rs
+rotulo: loop-end nao salta para o repeat e cai no bloco seguinte
+ocorrencias: 1
+@@DE
+        if terminou.loop_end {
+            self.current_address = (u32::from(self.repeat_address) * 8) & ram_mask(ram);
+@@PARA
+        if false {
+            self.current_address = (u32::from(self.repeat_address) * 8) & ram_mask(ram);
+@@FIM
+
+mutante: m9
+teste: spu_vozes_adpcm
+arquivo: crates/psx-core/src/spu/voice.rs
+rotulo: key on nao zera a envoltoria e a voz comeca no nivel anterior
+ocorrencias: 1
+@@DE
+        self.adsr_env = Envelope::default();
+        self.phase = Phase::Attack;
+@@PARA
+        self.adsr_env.counter = 0;
+        self.phase = Phase::Attack;
+@@FIM
+
+mutante: m10
+teste: spu_adsr_mixer
+arquivo: crates/psx-core/src/spu/envelope.rs
+rotulo: direcao e fase invertidas: passo decrescente vira crescente
+ocorrencias: 1
+@@DE
+        if rate.decreasing != rate.phase_negative {
+@@PARA
+        if rate.decreasing == rate.phase_negative {
+@@FIM
+
+mutante: m11
+teste: spu_adsr_mixer
+arquivo: crates/psx-core/src/spu/envelope.rs
+rotulo: queda exponencial vira linear: o passo deixa de escalar com o nivel
+ocorrencias: 1
+@@DE
+            step = ((i64::from(step) * i64::from(self.level)) >> 15) as i32;
+@@PARA
+            step = step;
+@@FIM
+
+mutante: m12
+teste: spu_adsr_mixer
+arquivo: crates/psx-core/src/spu/envelope.rs
+rotulo: taxa com todos os bits em um passa a receber o incremento minimo de 1
+ocorrencias: 1
+@@DE
+        if !rate.todos_os_bits() {
+            incremento = incremento.max(1);
+        }
+@@PARA
+        incremento = incremento.max(1);
+@@FIM
+
+mutante: m13
+teste: spu_adsr_mixer
+arquivo: crates/psx-core/src/spu/envelope.rs
+rotulo: ataque exponencial nao desacelera acima de 6000h
+ocorrencias: 1
+@@DE
+        if rate.exponential && !rate.decreasing && self.level > 0x6000 {
+@@PARA
+        if false {
+@@FIM
+
+mutante: m14
+teste: spu_adsr_mixer
+arquivo: crates/psx-core/src/spu/voice.rs
+rotulo: pitch acima de 3FFFh deixa de ser limitado a 4000h
+ocorrencias: 1
+@@DE
+        if step > 0x3FFF { PITCH_MAXIMO } else { step }
+@@PARA
+        step
+@@FIM
+
+mutante: m15
+teste: spu_adsr_mixer
+arquivo: crates/psx-core/src/spu/voice.rs
+rotulo: PMON sem o deslocamento de 8000h: o fator vira negativo
+ocorrencias: 1
+@@DE
+            let fator = i32::from(anterior) + 0x8000;
+@@PARA
+            let fator = i32::from(anterior);
+@@FIM
+
+mutante: m16
+teste: spu_adsr_mixer
+arquivo: crates/psx-core/src/spu/voice.rs
+rotulo: volume fixo deixa de valer o dobro do campo de 14 bits
+ocorrencias: 1
+@@DE
+            self.env.level = i32::from((val << 1) as i16);
+@@PARA
+            self.env.level = i32::from(val as i16);
+@@FIM
+
+mutante: m17
+teste: spu_adsr_mixer
+arquivo: crates/psx-core/src/spu/gauss.rs
+rotulo: janela gaussiana com a amostra nova e a mais velha trocadas
+ocorrencias: 1
+@@DE
+    let mut out = (TABLE[0xFF - i] * i32::from(oldest)) >> 15;
+@@PARA
+    let mut out = (TABLE[0xFF - i] * i32::from(new)) >> 15;
+@@FIM
+
+mutante: m18
+teste: spu_adsr_mixer
+arquivo: crates/psx-core/src/spu.rs
+rotulo: mudo do SPUCNT ignorado: o bit14 deixa de silenciar a saida
+ocorrencias: 1
+@@DE
+        let habilitado = self.cnt & (1 << 15) != 0 && self.cnt & (1 << 14) != 0;
+@@PARA
+        let habilitado = self.cnt & (1 << 15) != 0;
+@@FIM
+
+controle: c1
+teste: spu_vozes_adpcm
+rotulo: laco de decodificacao escrito com indice explicito, mesmo resultado
+ocorrencias: 1
+@@DE
+        let nibble = if i % 2 == 0 { byte & 0x0F } else { byte >> 4 };
+@@PARA
+        let nibble = if i % 2 == 1 { byte >> 4 } else { byte & 0x0F };
+@@FIM
+
+controle: c2
+teste: spu_adsr_mixer
+arquivo: crates/psx-core/src/spu/envelope.rs
+rotulo: incremento inicial escrito com shl explicito em vez de shr do teto
+ocorrencias: 1
+@@DE
+        let mut incremento = 0x8000i32 >> u32::from(rate.shift).saturating_sub(11);
+@@PARA
+        let deslocamento = u32::from(rate.shift).saturating_sub(11);
+        let mut incremento = 0x8000i32 >> deslocamento;
+@@FIM

@@ -1,5 +1,7 @@
 use std::cell::{Cell, RefCell};
 
+use crate::memcard::{self, MemoryCard, MemoryCardError};
+
 const ADDRESS_CONTROLLER: u8 = 0x01;
 
 #[derive(Debug)]
@@ -17,6 +19,8 @@ pub struct Sio {
     irq7_pending: Cell<bool>,
     ack_scheduled: Cell<bool>,
     ack_requested: Cell<bool>,
+    memcard: RefCell<MemoryCard>,
+    memcard_connected: Cell<bool>,
 }
 
 impl Sio {
@@ -35,11 +39,32 @@ impl Sio {
             irq7_pending: Cell::new(false),
             ack_scheduled: Cell::new(false),
             ack_requested: Cell::new(false),
+            memcard: RefCell::new(MemoryCard::new()),
+            memcard_connected: Cell::new(false),
         }
     }
 
     pub fn connect_digital_pad(&self, connected: bool) {
         self.pad_connected.set(connected);
+    }
+
+    pub fn connect_memory_card(&self, connected: bool) {
+        self.memcard_connected.set(connected);
+    }
+
+    pub fn load_memory_card(&self, bytes: &[u8]) -> Result<(), MemoryCardError> {
+        let cartao = MemoryCard::from_bytes(bytes)?;
+        *self.memcard.borrow_mut() = cartao;
+        self.memcard_connected.set(true);
+        Ok(())
+    }
+
+    pub fn memory_card_image(&self) -> Vec<u8> {
+        self.memcard.borrow().data().to_vec()
+    }
+
+    pub fn memory_card_dirty(&self) -> bool {
+        self.memcard.borrow_mut().take_dirty()
     }
 
     pub fn set_buttons(&self, buttons: u16) {
@@ -103,6 +128,7 @@ impl Sio {
     fn addressed_device_present(&self) -> bool {
         match self.address.get() {
             ADDRESS_CONTROLLER => self.pad_connected.get(),
+            memcard::ADDRESS => self.memcard_connected.get(),
             _ => false,
         }
     }
@@ -113,24 +139,30 @@ impl Sio {
         let count = self.byte_count.get();
         if count == 0 {
             self.address.set(val);
+            if val == memcard::ADDRESS {
+                self.memcard.borrow_mut().begin();
+            }
         }
 
         let present = self.addressed_device_present();
-        let response = if count == 0 || !present {
-            0xFF
+        let (response, ack) = if self.address.get() == memcard::ADDRESS && present {
+            self.memcard.borrow_mut().exchange(val)
+        } else if count == 0 || !present {
+            (0xFF, present)
         } else {
-            match count {
+            let r = match count {
                 1 => 0x41,
                 2 => 0x5A,
                 3 => (self.button_state.get() & 0xFF) as u8,
                 4 => (self.button_state.get() >> 8) as u8,
                 _ => 0xFF,
-            }
+            };
+            (r, true)
         };
 
         self.rx_fifo.borrow_mut().push(response);
         self.byte_count.set(count + 1);
-        if present {
+        if ack {
             self.ack_requested.set(true);
             self.ack_scheduled.set(true);
         }
@@ -169,6 +201,7 @@ impl Sio {
             self.address.set(0);
             self.ack_scheduled.set(false);
             self.ack_requested.set(false);
+            self.memcard.borrow_mut().begin();
             self.rx_fifo.borrow_mut().clear();
             let mut s = self.stat.get();
             s &= !0x02;

@@ -7,7 +7,7 @@ use crate::irq::Irq;
 use crate::mdec::Mdec;
 use crate::scheduler::{EventId, ScheduleKey, Scheduler};
 use crate::sio::Sio;
-use crate::spu::Spu;
+use crate::spu::{self, Spu};
 use crate::timers::Timers;
 
 const SCRATCHPAD_SIZE: usize = 1024;
@@ -115,6 +115,7 @@ const VBLANK_EXIT: u32 = 1;
 const CDROM_RESPONSE: u32 = 2;
 const CDROM_SECOND: u32 = 3;
 const SIO_ACK: u32 = 4;
+const SPU_TICK: u32 = 5;
 
 // Atraso do /ACK depois do ULTIMO pulso de SCK. § Address byte (01h) being sent (L379-386) de
 // docs/reference/10-controllers-memcards.md: o driver do kernel ignora pulsos nos primeiros
@@ -176,6 +177,10 @@ impl Bus {
         let mut scheduler = Scheduler::new();
         scheduler.schedule(ScheduleKey::new(vblank_exit_offset), EventId(VBLANK_EXIT));
         scheduler.schedule(ScheduleKey::new(vblank_enter_offset), EventId(VBLANK_ENTER));
+        scheduler.schedule(
+            ScheduleKey::new(spu::CPU_CYCLES_PER_SAMPLE),
+            EventId(SPU_TICK),
+        );
 
         // Raster starts at scanline 0, which is in top blanking (0 < y1)
         gpu.enter_vblank();
@@ -203,6 +208,18 @@ impl Bus {
         }
     }
 
+    pub fn spu(&self) -> &Spu {
+        &self.spu
+    }
+
+    pub fn spu_mut(&mut self) -> &mut Spu {
+        &mut self.spu
+    }
+
+    pub fn drain_audio(&mut self) -> Vec<(i16, i16)> {
+        self.spu.drain_output()
+    }
+
     pub fn irq(&self) -> &Irq {
         &self.irq
     }
@@ -228,6 +245,10 @@ impl Bus {
         &mut self.timers
     }
 
+    pub fn sio(&self) -> &Sio {
+        &self.sio
+    }
+
     pub fn sio_mut(&mut self) -> &mut Sio {
         &mut self.sio
     }
@@ -239,6 +260,12 @@ impl Bus {
     fn service_sio_irq(&mut self) {
         if self.sio.take_irq7() {
             self.irq.raise(7);
+        }
+    }
+
+    fn service_spu_irq(&mut self) {
+        if self.spu.take_irq9() {
+            self.irq.raise(9);
         }
     }
 
@@ -322,6 +349,18 @@ impl Bus {
                     self.scheduler.schedule(
                         ScheduleKey::new(self.total_cycles + frame),
                         EventId(VBLANK_EXIT),
+                    );
+                }
+                SPU_TICK => {
+                    let (cd_l, cd_r) = self.cdrom.take_audio_frame().unwrap_or((0, 0));
+                    self.spu.set_cd_audio(cd_l, cd_r);
+                    self.spu.tick();
+                    if self.spu.take_irq9() {
+                        self.irq.raise(9);
+                    }
+                    self.scheduler.schedule(
+                        ScheduleKey::new(self.total_cycles + spu::CPU_CYCLES_PER_SAMPLE),
+                        EventId(SPU_TICK),
                     );
                 }
                 SIO_ACK => {
@@ -418,6 +457,9 @@ impl Bus {
                 Some(b0 | (b1 << 8) | (b2 << 16) | (b3 << 24))
             }
             0x1F80_1820 | 0x1F80_1824 => Some(self.mdec.read32(phys - 0x1F80_1820)),
+            0x1F80_1C00..=0x1F80_1E7F => Some(
+                u32::from(self.spu.read16(phys)) | (u32::from(self.spu.read16(phys + 2)) << 16),
+            ),
             0x1F80_1024..=0x1F80_103F
             | 0x1F80_1041..=0x1F80_1043
             | 0x1F80_1045..=0x1F80_105F
@@ -529,6 +571,12 @@ impl Bus {
                 self.service_cdrom_irq();
                 true
             }
+            0x1F80_1C00..=0x1F80_1E7F => {
+                self.spu.write16(phys, val as u16);
+                self.spu.write16(phys + 2, (val >> 16) as u16);
+                self.service_spu_irq();
+                true
+            }
             0x1F80_1024..=0x1F80_103F
             | 0x1F80_1041..=0x1F80_105F
             | 0x1F80_1061..=0x1F80_10FF
@@ -582,7 +630,7 @@ impl Bus {
                 let byte_index = ((phys & 3) + offset) & 3;
                 Some(((val >> (byte_index * 8)) & 0xFF) as u8)
             }
-            0x1F80_1DA6..=0x1F80_1DAF => {
+            0x1F80_1C00..=0x1F80_1E7F => {
                 let base = phys & !1;
                 let val = self.spu.read16(base);
                 let byte_index = ((phys & 1) + offset) & 1;
@@ -640,7 +688,7 @@ impl Bus {
                 self.timers.write32(base, novo);
                 true
             }
-            0x1F80_1DA6..=0x1F80_1DAF => {
+            0x1F80_1C00..=0x1F80_1E7F => {
                 let base = phys & !1;
                 let old = self.spu.read16(base);
                 let byte_index = ((phys & 1) + offset) & 1;
@@ -720,7 +768,7 @@ impl Bus {
             0x1F80_1072 => return ((self.irq.read_stat() >> 16) & 0xFFFF) as u16,
             0x1F80_1074 => return (self.irq.read_mask() & 0xFFFF) as u16,
             0x1F80_1076 => return ((self.irq.read_mask() >> 16) & 0xFFFF) as u16,
-            0x1F80_1DA6..=0x1F80_1DAF => return self.spu.read16(phys),
+            0x1F80_1C00..=0x1F80_1E7F => return self.spu.read16(phys),
             _ => {}
         }
         if let (Some(lo), Some(hi)) = (
@@ -766,11 +814,12 @@ impl Bus {
                 self.irq.write_mask_half(phys - 0x1F80_1074, val);
                 return;
             }
-            0x1F80_1DA6..=0x1F80_1DAF => {
+            0x1F80_1C00..=0x1F80_1E7F => {
                 // Rota direta (nao via par de region_write_byte): o registrador
                 // de fifo manual (1F801DA8h) e escrita-apenas e um push por
                 // meia-palavra — compor a partir de dois bytes o duplicaria.
                 self.spu.write16(phys, val);
+                self.service_spu_irq();
                 return;
             }
             _ => {}

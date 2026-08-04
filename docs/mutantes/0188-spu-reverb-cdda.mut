@@ -1,0 +1,219 @@
+# Manifesto de mutacao da iteracao 0188 — reverb, ruido e entrada de CD-DA/XA
+formato: 1
+iteracao: 0188
+item: 7.4
+alvo: crates/psx-core/src/spu/reverb.rs
+teste: spu_reverb_ruido
+
+mutante: m1
+teste: spu_reverb_ruido
+rotulo: produto de volume dividido por 4000h em vez de 8000h
+ocorrencias: 1
+@@DE
+    ((i64::from(amostra) * i64::from(volume)) >> 15) as i32
+@@PARA
+    ((i64::from(amostra) * i64::from(volume)) >> 14) as i32
+@@FIM
+
+mutante: m2
+teste: spu_reverb_ruido
+rotulo: endereco de reverb sem enrolar dentro de mBASE..7FFFEh
+ocorrencias: 1
+@@DE
+        (base + (bruto - base).rem_euclid(tamanho)) as u32
+@@PARA
+        bruto as u32
+@@FIM
+
+mutante: m3
+teste: spu_reverb_ruido
+rotulo: reflexao le [mLSAME] em vez de [mLSAME-2]
+ocorrencias: 1
+@@DE
+            let anterior = Self::le(ram, self.addr(i64::from(self.regs[dst]) * 8 - 2));
+@@PARA
+            let anterior = Self::le(ram, self.addr(i64::from(self.regs[dst]) * 8));
+@@FIM
+
+mutante: m4
+teste: spu_reverb_ruido
+rotulo: volume de entrada vLIN ignorado: Lin passa cru
+ocorrencias: 1
+@@DE
+        let l_in = mul(lin, self.vol(V_LIN));
+@@PARA
+        let l_in = lin;
+@@FIM
+
+mutante: m5
+teste: spu_reverb_ruido
+rotulo: APF le o atrasado somando o deslocamento em vez de subtrair
+ocorrencias: 1
+@@DE
+                let atrasado = Self::le(ram, self.addr(i64::from(self.regs[reg]) * 8 - d));
+@@PARA
+                let atrasado = Self::le(ram, self.addr(i64::from(self.regs[reg]) * 8 + d));
+@@FIM
+
+mutante: m6
+teste: spu_reverb_ruido
+rotulo: bit7 do SPUCNT deixa de cortar a escrita no buffer
+ocorrencias: 1
+@@DE
+        if !escrever {
+            return;
+        }
+@@PARA
+        if false {
+            return;
+        }
+@@FIM
+
+mutante: m7
+teste: spu_reverb_ruido
+rotulo: endereco corrente nao respeita o piso de mBASE ao dar a volta
+ocorrencias: 1
+@@DE
+        self.current = proximo.max(base);
+@@PARA
+        self.current = proximo;
+@@FIM
+
+mutante: m8
+teste: spu_reverb_ruido
+arquivo: crates/psx-core/src/spu.rs
+rotulo: reverb roda a 44,1 kHz em vez de 22,05 kHz
+ocorrencias: 1
+@@DE
+        if !self.reverb_fase {
+            return (0, 0);
+        }
+@@PARA
+        if false {
+            return (0, 0);
+        }
+@@FIM
+
+mutante: m9
+teste: spu_reverb_ruido
+arquivo: crates/psx-core/src/spu.rs
+rotulo: paridade do ruido sem o xor 1 final
+ocorrencias: 1
+@@DE
+            let paridade = ((n >> 15) ^ (n >> 12) ^ (n >> 11) ^ (n >> 10) ^ 1) & 1;
+@@PARA
+            let paridade = ((n >> 15) ^ (n >> 12) ^ (n >> 11) ^ (n >> 10)) & 1;
+@@FIM
+
+mutante: m10
+teste: spu_reverb_ruido
+arquivo: crates/psx-core/src/spu.rs
+rotulo: passo do ruido fixo em 4, ignorando os bits 9-8 do SPUCNT
+ocorrencias: 1
+@@DE
+        let passo = 4 + i32::from((self.cnt >> 8) & 0x3);
+@@PARA
+        let passo = 4;
+@@FIM
+
+mutante: m11
+teste: spu_reverb_ruido
+arquivo: crates/psx-core/src/spu.rs
+rotulo: EON manda toda voz ao reverb, nao so as marcadas
+ocorrencias: 1
+@@DE
+            if self.eon & bit != 0 {
+@@PARA
+            if true {
+@@FIM
+
+mutante: m12
+teste: spu_reverb_ruido
+arquivo: crates/psx-core/src/spu.rs
+rotulo: entrada de CD entra no mixer mesmo com o bit0 do SPUCNT zerado
+ocorrencias: 1
+@@DE
+        if self.cnt & 1 != 0 {
+            let cd_e = (i32::from(self.cd_left) * volume_de_16_bits(self.cd_volume_left)) >> 15;
+@@PARA
+        if true {
+            let cd_e = (i32::from(self.cd_left) * volume_de_16_bits(self.cd_volume_left)) >> 15;
+@@FIM
+
+mutante: m13
+teste: cdrom_audio_xa
+arquivo: crates/psx-core/src/cdrom_xa.rs
+rotulo: shift do XA e o campo cru, nao 12 menos o campo
+ocorrencias: 1
+@@DE
+    let shift = 12u32.saturating_sub(u32::from(par & 0x0F));
+@@PARA
+    let shift = u32::from(par & 0x0F);
+@@FIM
+
+mutante: m14
+teste: cdrom_audio_xa
+arquivo: crates/psx-core/src/cdrom_xa.rs
+rotulo: nibble alto do XA lido do lugar do baixo
+ocorrencias: 1
+@@DE
+        let bruto = (byte >> (nibble * 4)) & 0x0F;
+@@PARA
+        let bruto = byte & 0x0F;
+@@FIM
+
+mutante: m15
+teste: cdrom_audio_xa
+arquivo: crates/psx-core/src/cdrom_xa.rs
+rotulo: quadro de CD-DA com os canais trocados
+ocorrencias: 1
+@@DE
+                i16::from_le_bytes([q[0], q[1]]),
+                i16::from_le_bytes([q[2], q[3]]),
+@@PARA
+                i16::from_le_bytes([q[2], q[3]]),
+                i16::from_le_bytes([q[0], q[1]]),
+@@FIM
+
+mutante: m16
+teste: cdrom_audio_xa
+arquivo: crates/psx-core/src/cdrom_xa.rs
+rotulo: reamostragem invertida: 44100 vira o divisor
+ocorrencias: 1
+@@DE
+    let total = frames.len() as u64 * u64::from(OUTPUT_HZ) / u64::from(source_hz);
+@@PARA
+    let total = frames.len() as u64 * u64::from(source_hz) / u64::from(OUTPUT_HZ);
+@@FIM
+
+mutante: m17
+teste: cdrom_audio_xa
+arquivo: crates/psx-core/src/cdrom_xa.rs
+rotulo: taxa de amostragem do XA sempre 37800, ignorando o bit2 do coding
+ocorrencias: 1
+@@DE
+    if coding & 0x04 == 0 { 37800 } else { 18900 }
+@@PARA
+    37800
+@@FIM
+
+controle: c1
+teste: spu_reverb_ruido
+rotulo: piso do endereco escrito com if explicito em vez de max
+ocorrencias: 1
+@@DE
+        self.current = proximo.max(base);
+@@PARA
+        self.current = if proximo < base { base } else { proximo };
+@@FIM
+
+controle: c2
+teste: cdrom_audio_xa
+arquivo: crates/psx-core/src/cdrom_xa.rs
+rotulo: extensao de sinal do nibble escrita com wrapping_sub
+ocorrencias: 1
+@@DE
+        let t = i32::from(bruto) - if bruto >= 8 { 16 } else { 0 };
+@@PARA
+        let t = i32::from(bruto).wrapping_sub(if bruto >= 8 { 16 } else { 0 });
+@@FIM

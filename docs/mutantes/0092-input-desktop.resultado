@@ -1,10 +1,10 @@
 # gerado por scripts/mutantes.ps1 — NAO editar a mao
-# commit: ca662019af85775c83a48bef6604997992c688a1
-# rodado_em: 2026-08-03T18:54:24-03:00
+# commit: c2f5b3023ae2ae534cbb4bac19d8307825673610
+# rodado_em: 2026-08-03T21:29:14-03:00
 m1,mutante,morreu,morreu,0.6,botoes_pressionados_aparecem_na_resposta_42h;start_sozinho_sai_no_primeiro_byte_de_switches
-m2,mutante,morreu,morreu,0.5,botoes_pressionados_aparecem_na_resposta_42h;start_sozinho_sai_no_primeiro_byte_de_switches
-m3,mutante,morreu,morreu,0.5,botoes_pressionados_aparecem_na_resposta_42h;start_sozinho_sai_no_primeiro_byte_de_switches
-m4,mutante,morreu,morreu,0.5,pad_digital_responde_5a41_ffff_ao_comando_42h
-m5,mutante,morreu,morreu,0.5,botoes_pressionados_aparecem_na_resposta_42h;botoes_soltos_retornam_ff;pad_digital_responde_5a41_ffff_ao_comando_42h;start_sozinho_sai_no_primeiro_byte_de_switches
-c1,controle,sobreviveu,sobreviveu,0.5,
+m2,mutante,morreu,morreu,0.6,botoes_pressionados_aparecem_na_resposta_42h;start_sozinho_sai_no_primeiro_byte_de_switches
+m3,mutante,morreu,morreu,0.6,botoes_pressionados_aparecem_na_resposta_42h;start_sozinho_sai_no_primeiro_byte_de_switches
+m4,mutante,morreu,morreu,0.6,pad_digital_responde_5a41_ffff_ao_comando_42h
+m5,mutante,morreu,morreu,0.6,botoes_pressionados_aparecem_na_resposta_42h;botoes_soltos_retornam_ff;pad_digital_responde_5a41_ffff_ao_comando_42h;start_sozinho_sai_no_primeiro_byte_de_switches
+c1,controle,sobreviveu,sobreviveu,0.6,
 c2,controle,sobreviveu,sobreviveu,0.6,

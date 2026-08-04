@@ -1,17 +1,17 @@
 # gerado por scripts/mutantes.ps1 — NAO editar a mao
-# commit: 0cea439699afedb813b888413d2fe5c7312da5f6
-# rodado_em: 2026-08-03T21:18:46-03:00
-m1,mutante,morreu,morreu,0.7,placar_do_fuzz_de_hardware_do_gte
-m2,mutante,morreu,morreu,0.7,placar_do_fuzz_de_hardware_do_gte
-m3,mutante,morreu,morreu,0.7,placar_do_fuzz_de_hardware_do_gte
-m4,mutante,morreu,morreu,0.7,far_color_do_mvmva_satura_o_trecho_descartado_como_se_lm_fosse_zero;placar_do_fuzz_de_hardware_do_gte
+# commit: 5ccba1ee6f063a097b738a7b8b8e2877eccb9141
+# rodado_em: 2026-08-03T21:52:27-03:00
+m1,mutante,morreu,sobreviveu,0.7,
+m2,mutante,morreu,sobreviveu,0.7,
+m3,mutante,morreu,morreu,0.7,casos_embutidos_batem_com_o_hardware_em_todos_os_registradores
+m4,mutante,morreu,morreu,0.7,casos_embutidos_batem_com_o_hardware_em_todos_os_registradores
 m5,mutante,morreu,morreu,0.7,far_color_do_mvmva_satura_o_trecho_descartado_como_se_lm_fosse_zero
-m6,mutante,morreu,morreu,0.7,placar_do_fuzz_de_hardware_do_gte
-m7,mutante,morreu,morreu,0.7,placar_do_fuzz_de_hardware_do_gte
-m8,mutante,morreu,morreu,0.7,placar_do_fuzz_de_hardware_do_gte
-m9,mutante,morreu,morreu,0.7,placar_do_fuzz_de_hardware_do_gte
-m10,mutante,morreu,morreu,0.7,placar_do_fuzz_de_hardware_do_gte
-m11,mutante,morreu,morreu,0.7,placar_do_fuzz_de_hardware_do_gte
-m12,mutante,morreu,morreu,0.7,placar_do_fuzz_de_hardware_do_gte
+m6,mutante,morreu,morreu,0.7,casos_embutidos_batem_com_o_hardware_em_todos_os_registradores
+m7,mutante,morreu,sobreviveu,0.7,
+m8,mutante,morreu,morreu,0.7,casos_embutidos_batem_com_o_hardware_em_todos_os_registradores
+m9,mutante,morreu,sobreviveu,0.7,
+m10,mutante,morreu,sobreviveu,0.7,
+m11,mutante,morreu,morreu,0.7,casos_embutidos_batem_com_o_hardware_em_todos_os_registradores
+m12,mutante,morreu,morreu,0.7,casos_embutidos_batem_com_o_hardware_em_todos_os_registradores
 c1,controle,sobreviveu,sobreviveu,0.7,
 c2,controle,sobreviveu,sobreviveu,0.7,

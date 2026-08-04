@@ -317,6 +317,35 @@ fn imprime_identidade(disc_path: &str) {
     println!("trilhas: {}", layout.tracks.len());
 }
 
+fn vram_para_png(entrada: &str, saida: &str) -> Result<(), String> {
+    const ESPERADO: usize = 1024 * 512 * 2;
+    let crua = std::fs::read(entrada).map_err(|e| format!("nao li '{entrada}': {e}"))?;
+    if crua.len() != ESPERADO {
+        return Err(format!(
+            "'{entrada}' tem {} bytes; uma VRAM crua tem {ESPERADO} bytes (1024x512 halfwords)",
+            crua.len()
+        ));
+    }
+    let mut rgb = Vec::with_capacity(1024 * 512 * 3);
+    for par in crua.chunks_exact(2) {
+        let px = u16::from_le_bytes([par[0], par[1]]);
+        rgb.push(((px & 0x1F) << 3) as u8);
+        rgb.push((((px >> 5) & 0x1F) << 3) as u8);
+        rgb.push((((px >> 10) & 0x1F) << 3) as u8);
+    }
+    let arquivo = std::fs::File::create(saida).map_err(|e| format!("nao criei '{saida}': {e}"))?;
+    let mut codificador = png::Encoder::new(std::io::BufWriter::new(arquivo), 1024, 512);
+    codificador.set_color(png::ColorType::Rgb);
+    codificador.set_depth(png::BitDepth::Eight);
+    let mut escritor = codificador
+        .write_header()
+        .map_err(|e| format!("cabecalho png: {e}"))?;
+    escritor
+        .write_image_data(&rgb)
+        .map_err(|e| format!("dados png: {e}"))?;
+    Ok(())
+}
+
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     if args.len() == 1 || (args.len() == 2 && args[1] == "--version") {
@@ -325,6 +354,17 @@ fn main() {
     }
     if args.len() == 3 && args[1] == "--disc-info" {
         imprime_identidade(&args[2]);
+        return;
+    }
+    if args.get(1).map(String::as_str) == Some("--vram-to-png") {
+        if args.len() != 4 {
+            eprintln!("Uso: psx-cli --vram-to-png <entrada.vram> <saida.png>");
+            std::process::exit(1);
+        }
+        if let Err(e) = vram_para_png(&args[2], &args[3]) {
+            eprintln!("Erro: {e}");
+            std::process::exit(1);
+        }
         return;
     }
 

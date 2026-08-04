@@ -9,3 +9,7 @@ repository.workspace = true
 [dependencies]
 psx-core = { path = "../psx-core" }
 sha2 = "0.10"
+png = "0.18"
+
+[dev-dependencies]
+png = "0.18"

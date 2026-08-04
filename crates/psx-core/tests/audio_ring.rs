@@ -66,15 +66,20 @@ fn escala_usa_32768_para_o_minimo_bater_em_menos_um() {
 
 #[test]
 fn barramento_produz_um_quadro_a_cada_768_ciclos() {
+    assert_eq!(
+        CPU_CYCLES_PER_SAMPLE, 768,
+        "33.868.800 Hz / 44.100 Hz = 768; 300h ciclos por amostra"
+    );
     let mut bus = Bus::new(Ram::new(), Bios::from_bytes(vec![0u8; 512 * 1024]).unwrap());
-    let ciclos = 100u32;
-    for _ in 0..ciclos {
-        bus.tick_timers(CPU_CYCLES_PER_SAMPLE as u32);
+    // Numero literal de proposito: usar CPU_CYCLES_PER_SAMPLE aqui faria o teste andar
+    // junto com o periodo e nao mediria nada.
+    for _ in 0..100 {
+        bus.tick_timers(768);
     }
     let quadros = bus.drain_audio();
     assert_eq!(
         quadros.len(),
-        ciclos as usize,
+        100,
         "o SPU anda por evento do scheduler, um quadro por 768 ciclos"
     );
     assert!(

@@ -1,16 +1,16 @@
 # gerado por scripts/mutantes.ps1 — NAO editar a mao
-# commit: 5ccba1ee6f063a097b738a7b8b8e2877eccb9141
-# rodado_em: 2026-08-03T21:52:27-03:00
-m1,mutante,morreu,sobreviveu,0.7,
-m2,mutante,morreu,sobreviveu,0.7,
+# commit: e8e6573f912c8cd71fa3d693f35b6cf3fad09517
+# rodado_em: 2026-08-03T21:54:53-03:00
+m1,mutante,morreu,morreu,0.7,casos_embutidos_batem_com_o_hardware_em_todos_os_registradores
+m2,mutante,morreu,morreu,0.7,casos_embutidos_batem_com_o_hardware_em_todos_os_registradores
 m3,mutante,morreu,morreu,0.7,casos_embutidos_batem_com_o_hardware_em_todos_os_registradores
 m4,mutante,morreu,morreu,0.7,casos_embutidos_batem_com_o_hardware_em_todos_os_registradores
 m5,mutante,morreu,morreu,0.7,far_color_do_mvmva_satura_o_trecho_descartado_como_se_lm_fosse_zero
 m6,mutante,morreu,morreu,0.7,casos_embutidos_batem_com_o_hardware_em_todos_os_registradores
-m7,mutante,morreu,sobreviveu,0.7,
+m7,mutante,morreu,morreu,0.7,casos_embutidos_batem_com_o_hardware_em_todos_os_registradores
 m8,mutante,morreu,morreu,0.7,casos_embutidos_batem_com_o_hardware_em_todos_os_registradores
-m9,mutante,morreu,sobreviveu,0.7,
-m10,mutante,morreu,sobreviveu,0.7,
+m9,mutante,morreu,morreu,0.7,casos_embutidos_batem_com_o_hardware_em_todos_os_registradores
+m10,mutante,morreu,morreu,0.7,casos_embutidos_batem_com_o_hardware_em_todos_os_registradores
 m11,mutante,morreu,morreu,0.7,casos_embutidos_batem_com_o_hardware_em_todos_os_registradores
 m12,mutante,morreu,morreu,0.7,casos_embutidos_batem_com_o_hardware_em_todos_os_registradores
 c1,controle,sobreviveu,sobreviveu,0.7,

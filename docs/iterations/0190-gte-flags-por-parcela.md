@@ -45,6 +45,7 @@ inclusive o FLAG. Sem o arquivo o teste se ignora sozinho.
 | 3 | flags | Que o RTPT calcula o cue de profundidade nos tres vertices | O MAC0/IR0 de DQA/DQB sai so no ultimo; as flags dos vertices intermediarios nao existem no hardware | Um unico bit de diferenca (FLAG.12) em 3 dos 50 casos de RTPT |
 | 4 | flags | Que o bug do far color do MVMVA era so "descartar as duas primeiras parcelas" | A conta descartada AINDA levanta flag de overflow do MAC e de saturacao de IR — esta ultima sempre como se lm=0 — e a saturacao do total tambem entra | Tres modelos diferentes medidos contra o log: so-descartado deu 45/50, so-total deu 48/50, os dois juntos deram 50/50 |
 | 5 | endereçamento | Que o vetor de translacao do MVMVA vinha da matriz escolhida | § MVMVA (L550) de docs/reference/07-gte.md: `Tx` e escolhido por `cv`, `Mx` por `mx`. Com mx=2 e cv=0 o codigo usava far color no lugar de TR | Achado ao reescrever o laco; o log confirmou |
+| 7 | nenhum | Que apontar a bateria de mutacao para o teste do placar bastava | O log e gitignored: na CI o teste se ignora sozinho e TODO mutante sobrevive. A bateria deu 12/12 aqui e 2/12 la | O job `mutantes` do PR reprovou. 21 casos do log foram embutidos em `gte_fuzz_embutido.rs` (5 deles escolhidos por medicao, um para cada mutante que a amostra inicial nao separava) |
 | 6 | nenhum | Que o log de fuzz cobria todo o comportamento | Nenhum dos 50 casos de MVMVA tem cv=2 com lm=1 e trecho descartado negativo — a regra "como se lm=0" fica invisivel | Mutante m5 sobreviveu. Teste dedicado, montado a partir da spec, separa as duas leituras |
 
 ## Bateria de mutação
@@ -66,12 +67,18 @@ Placar da bateria: 12/12 mutantes mortos, 2/2 controles verdes, 0 equivalente �
 | m11 | GPF parte do MAC anterior | idem |
 | m12 | interpolacao usa IR1 em vez de IR0 | idem |
 
+A bateria roda contra `gte_fuzz_embutido.rs` — 21 casos do log copiados para dentro do
+teste — porque o log inteiro e gitignored e nao existe na CI. O placar completo
+(`gte_fuzz_hardware.rs`, 1100 casos) continua sendo a medicao de verdade, e se ignora
+sozinho quando o arquivo falta. Unica excecao: m5 e creditado ao teste dedicado do far
+color, que mora no arquivo do placar.
+
 A bateria 0088 foi reexecutada (7/7, 2/2) depois de renovar duas ancoras que
 envelheceram com a mascara dos SZ.
 
 ## Placar antes → depois
 
-Workspace: 310 → 313 testes. O placar do GTE contra hardware saiu de 80,8% para 100%.
+Workspace: 310 → 315 testes. O placar do GTE contra hardware saiu de 80,8% para 100%.
 
 ## Revisão cruzada (orquestrador)
 

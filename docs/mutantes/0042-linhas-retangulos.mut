@@ -1,4 +1,5 @@
 # Manifesto de mutação da iteração 0042 — linhas e retângulos
+arquivada: iter 0200 (rect texturizado) duplicou o bloco de clip em render_rect_textured; ancoras m5/m11 deixaram de ser unicas
 formato: 1
 iteracao: 0042
 item: 2.4

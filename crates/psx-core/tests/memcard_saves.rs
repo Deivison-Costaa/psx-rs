@@ -57,7 +57,7 @@ fn cartao() -> Vec<u8> {
         0xFFFF,
         b"BASLUS-00005RAY01",
     );
-    frame_de_titulo(&mut imagem, 1, &titulo_16bits("RAYMAN"));
+    frame_de_titulo(&mut imagem, 1, &titulo_16bits("RAYMAN 2 fase"));
 
     entrada(&mut imagem, 2, PRIMEIRO, 0x4000, 2, b"BASCUS-94900CRASH");
     frame_de_titulo(&mut imagem, 2, b"CRASH BANDICOOT\0");
@@ -108,7 +108,10 @@ fn tamanho_em_blocos_sai_do_filesize() {
 #[test]
 fn titulo_em_shift_jis_de_16_bits_vira_texto() {
     let saves = saves::lista(&cartao());
-    assert_eq!(saves[0].titulo, "RAYMAN");
+    assert_eq!(
+        saves[0].titulo, "RAYMAN 2 fase",
+        "as quatro faixas do Shift-JIS de 16 bits: espaco, digito, maiuscula e minuscula"
+    );
 }
 
 #[test]
@@ -131,7 +134,14 @@ fn bloco_sem_assinatura_sc_fica_sem_titulo() {
 #[test]
 fn cartao_de_tamanho_errado_nao_lista_nada() {
     assert_eq!(saves::lista(&[]), Vec::<Save>::new());
-    assert_eq!(saves::lista(&vec![0u8; 1000]), Vec::<Save>::new());
+    let mut cortado = cartao();
+    cortado.truncate(CARTAO / 2);
+    assert_eq!(
+        saves::lista(&cortado),
+        Vec::<Save>::new(),
+        "o diretorio inteiro cabe nos primeiros 2 KiB: sem conferir o tamanho, meio cartao \
+         listaria arquivos cujos blocos de dados nao existem no arquivo"
+    );
 }
 
 #[test]

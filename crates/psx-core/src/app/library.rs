@@ -128,7 +128,9 @@ pub fn procura_no_diretorio(dir: &[u8], nome: &str) -> Option<Extensao> {
 
 pub fn caminho_de_boot(texto: &str) -> Option<String> {
     for linha in texto.lines() {
-        let (chave, valor) = linha.split_once('=')?;
+        let Some((chave, valor)) = linha.split_once('=') else {
+            continue;
+        };
         if !chave.trim().eq_ignore_ascii_case("BOOT") {
             continue;
         }

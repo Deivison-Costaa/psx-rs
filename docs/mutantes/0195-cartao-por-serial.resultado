@@ -1,17 +1,17 @@
 # gerado por scripts/mutantes.ps1 — NAO editar a mao
-# commit: 21c470571b13672bf3c9c5890bb5bcd4693fbafa
-# rodado_em: 2026-08-03T22:49:39-03:00
-m1,mutante,morreu,morreu,1.1,arquivo_apagado_nao_aparece;bloco_de_continuacao_nao_vira_arquivo_proprio;cartao_zerado_nao_lista_nada;lista_so_os_arquivos_vivos_do_diretorio
+# commit: 2cfa05eb2ceaed510c6eb12df1dc6ce83a947f7a
+# rodado_em: 2026-08-03T22:50:29-03:00
+m1,mutante,morreu,morreu,0.8,arquivo_apagado_nao_aparece;bloco_de_continuacao_nao_vira_arquivo_proprio;cartao_zerado_nao_lista_nada;lista_so_os_arquivos_vivos_do_diretorio
 m2,mutante,morreu,morreu,0.8,arquivo_apagado_nao_aparece;lista_so_os_arquivos_vivos_do_diretorio;tamanho_em_blocos_sai_do_filesize;titulo_em_ascii_de_8_bits_tambem_e_aceito;titulo_em_shift_jis_de_16_bits_vira_texto
 m3,mutante,morreu,morreu,0.8,bloco_sem_assinatura_sc_fica_sem_titulo;lista_so_os_arquivos_vivos_do_diretorio;tamanho_em_blocos_sai_do_filesize;titulo_em_ascii_de_8_bits_tambem_e_aceito;titulo_em_shift_jis_de_16_bits_vira_texto
 m4,mutante,morreu,morreu,0.8,lista_so_os_arquivos_vivos_do_diretorio
 m5,mutante,morreu,morreu,0.8,tamanho_em_blocos_sai_do_filesize
 m6,mutante,morreu,morreu,0.8,bloco_sem_assinatura_sc_fica_sem_titulo
-m7,mutante,morreu,sobreviveu,0.8,
+m7,mutante,morreu,morreu,0.8,titulo_em_shift_jis_de_16_bits_vira_texto
 m8,mutante,morreu,morreu,0.8,titulo_em_shift_jis_de_16_bits_vira_texto
 m9,mutante,morreu,morreu,0.8,titulo_em_ascii_de_8_bits_tambem_e_aceito
-m10,mutante,morreu,sobreviveu,0.8,
-m11,mutante,morreu,morreu,2.3,serial_com_caminho_nao_escapa_da_pasta;serial_vazio_cai_num_cartao_padrao
+m10,mutante,morreu,morreu,0.8,cartao_de_tamanho_errado_nao_lista_nada
+m11,mutante,morreu,morreu,2.2,serial_com_caminho_nao_escapa_da_pasta;serial_vazio_cai_num_cartao_padrao
 m12,mutante,morreu,morreu,2.3,serial_vazio_cai_num_cartao_padrao
 c1,controle,sobreviveu,sobreviveu,2.3,
 c2,controle,sobreviveu,sobreviveu,2.3,

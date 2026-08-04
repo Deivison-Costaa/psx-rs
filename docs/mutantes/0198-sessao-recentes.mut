@@ -1,0 +1,172 @@
+# Manifesto de mutacao da iteracao 0198 — fast-forward, recentes e tempo de jogo
+formato: 1
+iteracao: 0198
+item: 9.6
+alvo: crates/psx-core/src/app/sessao.rs
+teste: sessao_recentes
+
+mutante: m1
+teste: sessao_recentes
+rotulo: jogo registrado nao chega a entrar na lista
+ocorrencias: 1
+@@DE
+        let mut itens = vec![Recente {
+@@PARA
+        let mut itens: Vec<Recente> = Vec::new();
+        let novo = vec![Recente {
+@@FIM
+
+mutante: m2
+teste: sessao_recentes
+rotulo: tempo da sessao substitui o acumulado em vez de somar
+ocorrencias: 1
+@@DE
+        let acumulado = self.tempo_de(serial) + segundos;
+@@PARA
+        let acumulado = segundos;
+@@FIM
+
+mutante: m3
+teste: sessao_recentes
+rotulo: entrada antiga do mesmo jogo nao e removida, virando duplicata
+ocorrencias: 1
+@@DE
+                .filter(|i| i.serial != serial)
+@@PARA
+                .filter(|i| !i.serial.is_empty())
+@@FIM
+
+mutante: m4
+teste: sessao_recentes
+rotulo: lista cresce sem limite
+ocorrencias: 1
+@@DE
+                .take(LIMITE_DE_RECENTES - 1)
+@@PARA
+                .take(LIMITE_DE_RECENTES + 1)
+@@FIM
+
+mutante: m5
+teste: sessao_recentes
+rotulo: jogo sem serial passa a entrar na lista
+ocorrencias: 1
+@@DE
+        if serial.is_empty() {
+            return self.clone();
+        }
+@@PARA
+        if false {
+            return self.clone();
+        }
+@@FIM
+
+mutante: m6
+teste: sessao_recentes
+rotulo: multiplicador zero congela o emulador
+ocorrencias: 1
+@@DE
+    base * multiplicador.max(1) as usize
+@@PARA
+    base * multiplicador as usize
+@@FIM
+
+mutante: m7
+teste: sessao_recentes
+rotulo: velocidade avanca duas casas por vez
+ocorrencias: 1
+@@DE
+    VELOCIDADES[(i + 1) % VELOCIDADES.len()]
+@@PARA
+    VELOCIDADES[(i + 2) % VELOCIDADES.len()]
+@@FIM
+
+mutante: m8
+teste: sessao_recentes
+rotulo: velocidade desconhecida vira a mais alta em vez de 1x
+ocorrencias: 1
+@@DE
+        return VELOCIDADES[0];
+@@PARA
+        return VELOCIDADE_MAX;
+@@FIM
+
+mutante: m9
+teste: sessao_recentes
+rotulo: minuto exato ainda e mostrado em segundos
+ocorrencias: 1
+@@DE
+    if segundos < SEGUNDOS_POR_MINUTO {
+@@PARA
+    if segundos <= SEGUNDOS_POR_MINUTO {
+@@FIM
+
+mutante: m10
+teste: sessao_recentes
+rotulo: hora exata ainda e mostrada em minutos
+ocorrencias: 1
+@@DE
+    if segundos < SEGUNDOS_POR_HORA {
+@@PARA
+    if segundos <= SEGUNDOS_POR_HORA {
+@@FIM
+
+mutante: m11
+teste: sessao_recentes
+rotulo: minutos da hora sem o resto, mostrando o total
+ocorrencias: 1
+@@DE
+    let minutos = (segundos % SEGUNDOS_POR_HORA) / SEGUNDOS_POR_MINUTO;
+@@PARA
+    let minutos = segundos / SEGUNDOS_POR_MINUTO;
+@@FIM
+
+mutante: m12
+teste: sessao_recentes
+rotulo: tempo de jogo de serial desconhecido vira o do primeiro da lista
+ocorrencias: 1
+@@DE
+            .find(|i| i.serial == serial)
+@@PARA
+            .find(|i| !i.serial.is_empty())
+@@FIM
+
+mutante: m13
+teste: sessao_recentes
+rotulo: lista de velocidades pula o 4x
+ocorrencias: 1
+@@DE
+pub const VELOCIDADES: [u32; 4] = [1, 2, 4, 8];
+@@PARA
+pub const VELOCIDADES: [u32; 4] = [1, 2, 6, 8];
+@@FIM
+
+controle: c1
+teste: sessao_recentes
+rotulo: tempo por serial buscado com laco explicito
+ocorrencias: 1
+@@DE
+        self.itens
+            .iter()
+            .find(|i| i.serial == serial)
+            .map(|i| i.segundos)
+            .unwrap_or(0)
+@@PARA
+        for item in &self.itens {
+            if item.serial == serial {
+                return item.segundos;
+            }
+        }
+        0
+@@FIM
+
+controle: c2
+teste: sessao_recentes
+rotulo: minutos formatados com aritmetica equivalente
+ocorrencias: 1
+@@DE
+    let minutos = (segundos % SEGUNDOS_POR_HORA) / SEGUNDOS_POR_MINUTO;
+    format!("{horas} h {minutos:02} min")
+@@PARA
+    let minutos = segundos / SEGUNDOS_POR_MINUTO - horas * 60;
+    format!("{horas} h {minutos:02} min")
+@@FIM

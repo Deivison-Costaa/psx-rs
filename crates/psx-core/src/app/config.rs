@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::app::sessao::Recentes;
+
 pub const ESCALA_MIN: u32 = 1;
 pub const ESCALA_MAX: u32 = 6;
 pub const VOLUME_MAX: u8 = 100;
@@ -21,6 +23,8 @@ pub struct Config {
     pub volume: u8,
     pub audio_ligado: bool,
     pub slot_inicial: u8,
+    #[serde(default)]
+    pub recentes: Recentes,
 }
 
 impl Default for Config {
@@ -35,6 +39,7 @@ impl Default for Config {
             volume: VOLUME_MAX,
             audio_ligado: true,
             slot_inicial: 0,
+            recentes: Recentes::default(),
         }
     }
 }
@@ -61,6 +66,7 @@ impl Config {
             volume: self.volume.min(VOLUME_MAX),
             audio_ligado: self.audio_ligado,
             slot_inicial: self.slot_inicial.min(SLOT_MAX),
+            recentes: self.recentes.clone(),
         }
     }
 

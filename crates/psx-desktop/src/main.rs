@@ -13,6 +13,7 @@ use emulador::Emulador;
 use gamepad::Gamepads;
 use psx_core::app::config::Config;
 use psx_core::app::input_map::Perfil;
+use psx_core::app::sessao::Recentes;
 
 const PERFIL_DE_CONTROLE: &str = "controles.txt";
 
@@ -113,6 +114,38 @@ impl App {
         self.emulador = Some(emu);
         self.erro = None;
         self.tela = Tela::Jogando;
+    }
+
+    /// Segundos desde a epoca. Fica no frontend porque o `psx-core` nao le relogio (R3).
+    pub(crate) fn agora() -> u64 {
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0)
+    }
+
+    /// Chamado ao sair do jogo: acumula o tempo jogado e grava, para a lista de recentes
+    /// sobreviver a fechar o app.
+    pub(crate) fn encerra_partida(&mut self) {
+        let Some(emu) = self.emulador.take() else {
+            return;
+        };
+        let titulo = self.em_execucao.clone().unwrap_or_default();
+        let novas = self.config.recentes.registra(
+            emu.serial(),
+            &titulo,
+            emu.segundos_jogados(),
+            Self::agora(),
+        );
+        if novas != self.config.recentes {
+            self.config.recentes = novas;
+            let _ = ajustes::grava(&self.config_caminho, &self.config);
+        }
+        self.em_execucao = None;
+    }
+
+    pub(crate) fn recentes(&self) -> &Recentes {
+        &self.config.recentes
     }
 
     pub(crate) fn volta_do_menu(&mut self) {

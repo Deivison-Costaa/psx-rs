@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 use psx_core::app::config::Config;
 use psx_core::app::input_map::{Entrada, Perfil};
 use psx_core::app::saves::{self, Save};
+use psx_core::app::sessao;
 use psx_core::bus::{Bios, Bus, Ram};
 use psx_core::cpu::Cpu;
 use psx_core::snapshot;
@@ -39,6 +40,8 @@ pub struct Emulador {
     pasta_de_saves: PathBuf,
     pub slot: u8,
     pub aviso: Option<String>,
+    pub velocidade: u32,
+    quadros: u64,
 }
 
 impl Emulador {
@@ -68,7 +71,13 @@ impl Emulador {
             pasta_de_saves: PathBuf::from(&config.pasta_de_saves),
             slot: config.slot_inicial,
             aviso: None,
+            velocidade: 1,
+            quadros: 0,
         })
+    }
+
+    pub fn serial(&self) -> &str {
+        &self.serial
     }
 
     pub fn caminho_do_cartao(&self) -> &Path {
@@ -142,9 +151,11 @@ impl Emulador {
     }
 
     pub fn quadro(&mut self, ganho: f32) {
-        for _ in 0..self.passos_por_quadro {
+        let passos = sessao::passos_por_quadro(self.passos_por_quadro, self.velocidade);
+        for _ in 0..passos {
             self.cpu.step(&mut self.bus);
         }
+        self.quadros += 1;
         let quadros = self.bus.drain_audio();
         self.audio.push(&quadros, ganho);
         self.salva_memcard();
@@ -180,5 +191,15 @@ impl Emulador {
 
     pub fn audio_hz(&self) -> u32 {
         self.audio.device_hz()
+    }
+
+    /// Tempo de jogo em segundos EMULADOS: conta quadros a 60 Hz, nao relogio de parede.
+    /// Uma hora em fast-forward 8x continua sendo uma hora de jogo para quem jogou.
+    pub fn segundos_jogados(&self) -> u64 {
+        self.quadros / 60
+    }
+
+    pub fn troca_velocidade(&mut self) {
+        self.velocidade = sessao::proxima_velocidade(self.velocidade);
     }
 }

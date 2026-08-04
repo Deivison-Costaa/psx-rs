@@ -1,5 +1,6 @@
 use psx_core::app::config::{ESCALA_MAX, ESCALA_MIN, VOLUME_MAX};
 use psx_core::app::input_map::{self, Entrada, Perfil};
+use psx_core::app::sessao::formata_tempo;
 use psx_core::pad_script;
 
 use crate::emulador::{self, Emulador};
@@ -32,6 +33,16 @@ impl App {
             return;
         }
 
+        let recentes = self.recentes().clone();
+        if let Some(topo) = recentes.itens().first() {
+            ui.small(format!(
+                "Ultimo jogado: {} ({})",
+                topo.titulo,
+                formata_tempo(topo.segundos)
+            ));
+            ui.separator();
+        }
+
         let mut escolhido = None;
         egui::ScrollArea::vertical().show(ui, |ui| {
             for (i, jogo) in self.jogos.iter().enumerate() {
@@ -41,7 +52,16 @@ impl App {
                     }
                     ui.vertical(|ui| {
                         ui.strong(&jogo.titulo);
-                        ui.small(jogo.detalhe());
+                        let tempo = recentes.tempo_de(jogo.serial());
+                        if tempo > 0 {
+                            ui.small(format!(
+                                "{} · jogado {}",
+                                jogo.detalhe(),
+                                formata_tempo(tempo)
+                            ));
+                        } else {
+                            ui.small(jogo.detalhe());
+                        }
                     });
                 });
                 ui.separator();
@@ -102,12 +122,21 @@ impl App {
             }
             let marca = if emu.slot_existe(emu.slot) { "*" } else { "" };
             ui.small(format!("slot {}{marca}", emu.slot));
+            if emu.velocidade > 1 {
+                ui.small(format!("{}x", emu.velocidade));
+            }
+            ui.small(formata_tempo(emu.segundos_jogados()));
         });
-        ui.small("Esc: sair · F5/F8: salvar/carregar · F6/F7: slot · F9: cartao · F10: controles · F11: ajustes");
+        ui.small(
+            "Esc: sair · F5/F8: salvar/carregar · F6/F7: slot · F9: cartao · F10: controles              · F11: ajustes · F12: velocidade",
+        );
         if let Some(aviso) = &emu.aviso {
             ui.small(aviso.clone());
         }
 
+        if ctx.input(|i| i.key_pressed(egui::Key::F12)) {
+            emu.troca_velocidade();
+        }
         let (f9, f10, f11, esc) = ctx.input(|i| {
             (
                 i.key_pressed(egui::Key::F9),
@@ -126,8 +155,7 @@ impl App {
             self.tela = Tela::Ajustes;
         }
         if esc {
-            self.emulador = None;
-            self.em_execucao = None;
+            self.encerra_partida();
             self.tela = Tela::Biblioteca;
         }
     }

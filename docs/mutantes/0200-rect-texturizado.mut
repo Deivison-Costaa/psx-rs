@@ -1,0 +1,112 @@
+# Manifesto de mutacao da iteracao 0200 — retangulos texturizados na GPU
+formato: 1
+iteracao: 0200
+item: 10.11
+alvo: crates/psx-core/src/gpu.rs
+teste: gpu_rect_textured
+
+mutante: m1
+rotulo: texel 0 deixa de ser transparente e pinta o fundo
+ocorrencias: 1
+teste: gpu_rect_textured
+@@DE
+                let u = (u_base + (px - x_start)) & 0xFF;
+                let texel = self.sample_texel(u, v);
+                if texel == 0 {
+@@PARA
+                let u = (u_base + (px - x_start)) & 0xFF;
+                let texel = self.sample_texel(u, v);
+                if false {
+@@FIM
+
+mutante: m2
+rotulo: wrap de U em 128 em vez de 256
+ocorrencias: 1
+teste: gpu_rect_textured
+@@DE
+                let u = (u_base + (px - x_start)) & 0xFF;
+@@PARA
+                let u = (u_base + (px - x_start)) & 0x7F;
+@@FIM
+
+mutante: m3
+rotulo: CLUT do rect ignorada
+ocorrencias: 1
+teste: gpu_rect_textured
+@@DE
+        self.clut_attribute.set(((uv >> 16) & 0xFFFF) as u16);
+@@PARA
+        self.clut_attribute.set(0);
+@@FIM
+
+mutante: m4
+rotulo: V congelado na primeira linha
+ocorrencias: 1
+teste: gpu_rect_textured
+@@DE
+            let v = (v_base + (py - y_start)) & 0xFF;
+@@PARA
+            let v = v_base & 0xFF;
+@@FIM
+
+mutante: m5
+rotulo: tamanho variavel vira 8x8 fixo
+ocorrencias: 1
+teste: gpu_rect_textured
+@@DE
+        uv: u32,
+        w: u16,
+        h: u16,
+        semi_transparent: bool,
+    ) {
+        let (w_actual, h_actual) = match size {
+            0 => (w as u32, h as u32),
+@@PARA
+        uv: u32,
+        w: u16,
+        h: u16,
+        semi_transparent: bool,
+    ) {
+        let (w_actual, h_actual) = match size {
+            0 => (8, 8),
+@@FIM
+
+mutante: m6
+rotulo: blend volta a descartar o bit 15 do texel
+ocorrencias: 1
+teste: gpu_rect_textured
+@@DE
+            self.vram[idx] = r | (g << 5) | (b << 10) | (pixel & 0x8000);
+@@PARA
+            self.vram[idx] = r | (g << 5) | (b << 10);
+@@FIM
+
+controle: c1
+rotulo: renomear o texel amostrado nao muda comportamento
+ocorrencias: 1
+teste: gpu_rect_textured
+@@DE
+                let texel = self.sample_texel(u, v);
+                if texel == 0 {
+                    continue;
+                }
+                self.write_pixel(py as usize * 1024 + px as usize, texel, semi_transparent);
+@@PARA
+                let amostra = self.sample_texel(u, v);
+                if amostra == 0 {
+                    continue;
+                }
+                self.write_pixel(py as usize * 1024 + px as usize, amostra, semi_transparent);
+@@FIM
+
+controle: c2
+rotulo: ordem das declaracoes de u_base e v_base nao importa
+ocorrencias: 1
+teste: gpu_rect_textured
+@@DE
+        let u_base = (uv & 0xFF) as i32;
+        let v_base = ((uv >> 8) & 0xFF) as i32;
+@@PARA
+        let v_base = ((uv >> 8) & 0xFF) as i32;
+        let u_base = (uv & 0xFF) as i32;
+@@FIM

@@ -41,7 +41,13 @@ Placar da bateria: 13/13 mutantes mortos, 2/2 controles verdes, 0 equivalente �
 
 ## Placar antes → depois
 
-Workspace: 1152 → 1163 testes.
+Workspace: 1152 → 1164 testes.
+
+**A bateria foi rodada de novo com a BIOS e os discos escondidos**, simulando o clone limpo
+da CI: 13/13 do mesmo jeito. Era a armadilha da 0190 — lá o `gte_fuzz_hardware` se ignorava
+sozinho sem o log e todo mutante sobrevivia na CI. Aqui quem mata os mutantes são os testes
+de máquina sintética; o `save_state_de_maquina_real_leva_ao_mesmo_lugar` é prova extra, não
+cobertura, e a coluna de testes do `.resultado` mostra isso registro por registro.
 
 Tamanho do estado, medido: **3.809.483 bytes** (3,63 MiB) — RAM 2 MiB + VRAM 1 MiB +
 RAM do SPU 512 KiB + o resto. Constante, por causa do inteiro de tamanho fixo. Dez slots
@@ -71,3 +77,5 @@ por jogo custam 36 MiB de disco.
 - Cabeçalho: `PSXRS-ST` + versão `u32` little-endian. O serial mora no corpo, não no
   cabeçalho — quem quiser saber de que jogo é um `.state` chama `serial_de`.
 - Teclas: **F5** salva, **F8** carrega, **F6/F7** trocam o slot (0..9), `saves/<serial>-<n>.state`.
+- **Medido em máquina de verdade:** BIOS + Crash, 20 M passos → snapshot → +2 M → restaura →
+  +2 M ⇒ estado byte a byte idêntico.

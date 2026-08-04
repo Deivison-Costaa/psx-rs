@@ -14,7 +14,10 @@ fn aplica_e1h(gpu: &mut Gpu, param: u32) {
 fn rect_texturizado(gpu: &mut Gpu, cmd: u32, x: i16, y: i16, u: u8, v: u8, clut_attr: u16) {
     gpu.write32(0, cmd);
     gpu.write32(0, ((y as u16 as u32) << 16) | (x as u16 as u32));
-    gpu.write32(0, ((clut_attr as u32) << 16) | ((v as u32) << 8) | (u as u32));
+    gpu.write32(
+        0,
+        ((clut_attr as u32) << 16) | ((v as u32) << 8) | (u as u32),
+    );
 }
 
 const E1_15BPP: u32 = 2 << 7;
@@ -34,8 +37,16 @@ fn rect_15bpp_raw_copia_texels_da_pagina() {
     rect_texturizado(&mut gpu, RECT_8X8_RAW, 100, 100, 0, 0, 0);
 
     assert_eq!(gpu.vram_pixel(100, 100), 0x7C1F, "texel (0,0) no canto");
-    assert_eq!(gpu.vram_pixel(107, 100), 0x03E0, "texel (7,0) na borda direita");
-    assert_eq!(gpu.vram_pixel(107, 107), 0x1234, "texel (7,7) no canto oposto");
+    assert_eq!(
+        gpu.vram_pixel(107, 100),
+        0x03E0,
+        "texel (7,0) na borda direita"
+    );
+    assert_eq!(
+        gpu.vram_pixel(107, 107),
+        0x1234,
+        "texel (7,7) no canto oposto"
+    );
 }
 
 #[test]
@@ -87,8 +98,16 @@ fn rect_variavel_respeita_largura_e_altura() {
 
     assert_eq!(gpu.vram_pixel(300, 300), 0x4000, "texel (0,0)");
     assert_eq!(gpu.vram_pixel(302, 301), 0x4012, "texel (2,1)");
-    assert_eq!(gpu.vram_pixel(303, 300), 0x0FED, "fora da largura 3: intocado");
-    assert_eq!(gpu.vram_pixel(300, 302), 0x0ABC, "fora da altura 2: intocado");
+    assert_eq!(
+        gpu.vram_pixel(303, 300),
+        0x0FED,
+        "fora da largura 3: intocado"
+    );
+    assert_eq!(
+        gpu.vram_pixel(300, 302),
+        0x0ABC,
+        "fora da altura 2: intocado"
+    );
 }
 
 #[test]

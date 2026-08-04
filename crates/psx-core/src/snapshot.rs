@@ -1,4 +1,4 @@
-use bincode::config::Configuration;
+use bincode::config::Config;
 use serde::{Deserialize, Serialize};
 
 use crate::bus::{Bcc, Bus, MemCtrl, Ram, Scratchpad};
@@ -71,8 +71,10 @@ struct Estado {
     total_cycles: u64,
 }
 
-fn config() -> Configuration {
-    bincode::config::standard()
+// Inteiro de tamanho fixo, nao varint: o save state fica do mesmo tamanho toda vez
+// (a VRAM ocupa 1 MiB, nao "1 a 3 MiB conforme o que o jogo desenhou") e codifica mais rapido.
+fn config() -> impl Config {
+    bincode::config::standard().with_fixed_int_encoding()
 }
 
 fn cabecalho() -> Vec<u8> {

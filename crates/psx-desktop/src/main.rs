@@ -2,29 +2,55 @@ mod audio;
 
 use audio::AudioOut;
 use psx_core::bus::{Bios, Bus, Ram};
+use psx_core::cdrom_bin_cue::{DiscLayout, parse_cue};
 use psx_core::cpu::Cpu;
+
+const CPU_HZ: f64 = 33_868_800.0;
 
 struct PsxDesktop {
     cpu: Cpu,
     bus: Bus,
     texture: Option<egui::ColorImage>,
-    steps_per_frame: usize,
+    ultimo: std::time::Instant,
+    velocidade: f64,
     audio: AudioOut,
     memcard: Option<String>,
 }
 
+fn load_disc(disc_path: &str) -> Result<(DiscLayout, Vec<u8>), String> {
+    let cue_text = std::fs::read_to_string(disc_path)
+        .map_err(|e| format!("Erro lendo CUE '{}': {}", disc_path, e))?;
+    let mut layout = parse_cue(&cue_text);
+    let cue_dir = std::path::Path::new(disc_path)
+        .parent()
+        .unwrap_or_else(|| std::path::Path::new("."));
+    let mut setores: Vec<u32> = Vec::new();
+    let mut bin_data: Vec<u8> = Vec::new();
+    for arquivo in layout.arquivos_em_ordem() {
+        let bin_path = cue_dir.join(&arquivo);
+        let d = std::fs::read(&bin_path)
+            .map_err(|e| format!("Erro lendo BIN '{}': {}", bin_path.display(), e))?;
+        setores.push((d.len() / 2352) as u32);
+        bin_data.extend_from_slice(&d);
+    }
+    layout.atribui_lbas_absolutos(&setores);
+    Ok((layout, bin_data))
+}
+
 impl PsxDesktop {
-    fn new(bios_path: &str) -> Result<Self, String> {
+    fn new(
+        bios_path: &str,
+        disc_path: Option<&str>,
+        memcard: Option<String>,
+    ) -> Result<Self, String> {
         let bios_data = std::fs::read(bios_path)
             .map_err(|e| format!("Erro lendo BIOS '{}': {}", bios_path, e))?;
         let bios = Bios::from_bytes(bios_data).map_err(|e| format!("BIOS invalida: {:?}", e))?;
         let ram = Ram::new();
         let mut bus = Bus::new(ram, bios);
         let cpu = Cpu::new();
-        let steps_per_frame = bus.gpu().frame_cycles() as usize;
 
         bus.sio_mut().connect_digital_pad(true);
-        let memcard = std::env::args().nth(2);
         if let Some(caminho) = memcard.as_deref() {
             let bytes =
                 std::fs::read(caminho).unwrap_or_else(|_| vec![0u8; psx_core::memcard::CARD_BYTES]);
@@ -32,12 +58,18 @@ impl PsxDesktop {
                 return Err(format!("memory card invalido: {e:?}"));
             }
         }
+        if let Some(cue) = disc_path {
+            let (layout, bin_data) = load_disc(cue)?;
+            bus.inject_disc(layout, bin_data);
+            bus.cdrom_mut().insert_disc();
+        }
 
         Ok(PsxDesktop {
             cpu,
             bus,
             texture: None,
-            steps_per_frame,
+            ultimo: std::time::Instant::now(),
+            velocidade: 1.0,
             audio: AudioOut::new(),
             memcard,
         })
@@ -93,13 +125,35 @@ impl PsxDesktop {
 impl eframe::App for PsxDesktop {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.poll_input(ctx);
-        for _step in 0..self.steps_per_frame {
+        let agora = std::time::Instant::now();
+        let dt = (agora - self.ultimo).as_secs_f64().min(0.05);
+        self.ultimo = agora;
+        let alvo = self.bus.total_cycles() + (dt * CPU_HZ * self.velocidade) as u64;
+        while self.bus.total_cycles() < alvo {
             self.cpu.step(&mut self.bus);
         }
         let quadros = self.bus.drain_audio();
         self.audio.push(&quadros);
         self.salva_memcard();
         self.update_texture();
+        egui::TopBottomPanel::bottom("status").show(ctx, |ui| {
+            ui.horizontal(|ui| {
+                if self.audio.ativo() {
+                    ui.label(format!("Audio: {} Hz", self.audio.device_hz()));
+                } else {
+                    ui.label("Audio desligado (sem dispositivo de saida)");
+                }
+                if let Some(ref texture) = self.texture {
+                    let [w, h] = texture.size;
+                    ui.label(format!("Video: {}x{}", w, h));
+                }
+                ui.add(
+                    egui::Slider::new(&mut self.velocidade, 0.25..=2.0)
+                        .text("Velocidade")
+                        .fixed_decimals(2),
+                );
+            });
+        });
         egui::CentralPanel::default().show(ctx, |ui| {
             if let Some(ref texture) = self.texture {
                 let handle = ctx.load_texture(
@@ -107,14 +161,16 @@ impl eframe::App for PsxDesktop {
                     texture.clone(),
                     egui::TextureOptions::NEAREST,
                 );
-                ui.image(&handle);
+                let livre = ui.available_size();
+                let lado = (livre.x / 4.0).min(livre.y / 3.0).max(1.0);
+                ui.centered_and_justified(|ui| {
+                    ui.add(
+                        egui::Image::new(&handle)
+                            .fit_to_exact_size(egui::vec2(lado * 4.0, lado * 3.0)),
+                    );
+                });
             } else {
                 ui.label("Display desligado");
-            }
-            if self.audio.ativo() {
-                ui.label(format!("Audio: {} Hz", self.audio.device_hz()));
-            } else {
-                ui.label("Audio desligado (sem dispositivo de saida)");
             }
         });
         ctx.request_repaint();
@@ -122,12 +178,24 @@ impl eframe::App for PsxDesktop {
 }
 
 fn main() -> Result<(), eframe::Error> {
-    let bios_path = std::env::args().nth(1).unwrap_or_else(|| {
-        eprintln!("Uso: psx-desktop <BIOS.bin> [cartao.mcd]");
+    let mut bios_path: Option<String> = None;
+    let mut disc: Option<String> = None;
+    let mut memcard: Option<String> = None;
+    for arg in std::env::args().skip(1) {
+        if arg.to_lowercase().ends_with(".cue") {
+            disc = Some(arg);
+        } else if bios_path.is_none() {
+            bios_path = Some(arg);
+        } else {
+            memcard = Some(arg);
+        }
+    }
+    let bios_path = bios_path.unwrap_or_else(|| {
+        eprintln!("Uso: psx-desktop <BIOS.bin> [jogo.cue] [cartao.mcd]");
         std::process::exit(1);
     });
 
-    let app = match PsxDesktop::new(&bios_path) {
+    let app = match PsxDesktop::new(&bios_path, disc.as_deref(), memcard) {
         Ok(a) => a,
         Err(e) => {
             eprintln!("{}", e);

@@ -7,33 +7,27 @@
 
 ## Última iteração concluída
 
-**0187-0192** — **M4, M5, M6 e M7 fechados numa rodada só** (o usuário autorizou cruzar
-itens; a regra de 1 item por PR ficou suspensa para este lote).
-
-- **0187/0188 (7.1, 7.2, 7.4)** — SPU de verdade: 24 vozes com ADPCM, contador de pitch
-  com interpolação gaussiana, envoltória ADSR, sweep de volume, mixer estéreo a 44,1 kHz
-  pelo scheduler (768 ciclos), reverb completo a 22,05 kHz, ruído por voz (NON), EON e
-  entrada de CD-DA/XA-ADPCM. Fechou 10.101 e 10.112.
-- **0189 (7.3)** — anel puro no `psx-core` com conversão de taxa por acumulador de fase,
-  e stream `cpal` no app desktop. Sem placa de som o app roda com vídeo e avisa na tela.
-- **0190 (5.5, 5.6)** — GTE de **889/1100 para 1100/1100** contra o `gte-fuzz` do
-  ps1-tests (22 comandos × 50 casos, os 64 registradores comparados). GPF e GPL **não
-  existiam**; MVMVA usava o vetor de translação errado; SZ3 saía do MAC3 truncado.
-- **0191 (6.3)** — memory card de 128 KiB no endereço 81h, comandos R/W/S, imagem `.mcd`
-  crua carregada e regravada só quando o jogo escreve.
-- **0192 (4.5)** — fechado **por medição**: o observável ("o Crash carrega 954 KB de WAD e
-  não desenha frame") não existe mais. As duas hipóteses que nomearam o item (rollback do
-  LIBSN, poll órfão do TMR2) seguem refutadas pelas 0141 e 0147.
+**0193** — primeira sessão de jogo real no app desktop (Crash, pelo usuário): o app ganhou
+carga de `.cue` + `insert_disc` (semente do ROADMAP 9.1), pacing por tempo real
+(`total_cycles` a 33,8688 MHz), escala 4:3 e slider de velocidade. A sessão diagnosticou
+e registrou os achados **0193.1-0193.7**: jogo 2× rápido (1 ciclo/instrução sem custo de
+memória), HUD invisível (retângulo texturizado nunca desenhado, 10.11), mixer sem
+headroom, filas de áudio com descarte silencioso, display 24bpp ausente.
+**Exceção de executor autorizada pelo usuário para a escada 0194+: o orquestrador
+implementa diretamente** (registrada em `docs/orquestracao.md`).
 
 ## Próxima tarefa
 
-**ROADMAP 9.2 — Snapshot do core (serde) → save states F5/F8 + slots.** É o item que
-desbloqueia o resto do M9 (9.3 depende de save/estado por serial). `serde` vai precisar
-entrar na allowlist de `purity.rs` no mesmo PR, com justificativa no doc da iteração — o
-próprio teste diz isso na mensagem de falha.
+**Achado 10.23 — diffvram no scoreboard.** Conversor VRAM crua→PNG no `psx-cli` +
+`scoreboard.ps1` compara com os `vram.png` de hardware via
+`tests/exes/ps1-tests/tools/diffvram/`; coluna de veredito no CSV. Teste-antes:
+`ci_diffvram.rs` + conversão sintética no psx-cli.
 
-Antes, um teste barato: **medir o Amidog `psxtest_cpu`** de novo. Ele parava em
-`Result: 00000101` na 0166 e o GTE mudou muito desde então.
+Depois, na ordem (escada da 0193, plano com o usuário): Achado 10.11 (retângulos
+texturizados — HUD do Crash), Achado 10.115 (âncoras relativas nos rayman_*), Achado
+0193.4 (custo de ciclo de memória; oráculo `cpu/access-time`), Achados 0193.5, 0193.3 e
+0189.1 (áudio), Achado 0193.2 (display 24bpp), Achado 10.13 (modulação). **ROADMAP 9.2
+(save states) fica para depois da escada.**
 
 Rodar Crash: `--bios bios/SCPH1001.BIN --disc "../roms/extraido/Crash Bandicoot (USA).cue"
 --max-steps 1200000000 --pad --press start@330000000 --press cross@700000000`.

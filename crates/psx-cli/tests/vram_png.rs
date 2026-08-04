@@ -1,5 +1,5 @@
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 const LARGURA: usize = 1024;
@@ -30,7 +30,7 @@ fn vram_crua_com_cantos() -> Vec<u8> {
     crua
 }
 
-fn converte(crua: &[u8], dir: &PathBuf) -> (std::process::Output, PathBuf) {
+fn converte(crua: &[u8], dir: &Path) -> (std::process::Output, PathBuf) {
     let entrada = dir.join("tela.vram");
     let saida = dir.join("tela.png");
     fs::write(&entrada, crua).expect("escrever raw");
@@ -43,7 +43,7 @@ fn converte(crua: &[u8], dir: &PathBuf) -> (std::process::Output, PathBuf) {
     (out, saida)
 }
 
-fn decodifica(png_path: &PathBuf) -> (u32, u32, Vec<u8>) {
+fn decodifica(png_path: &Path) -> (u32, u32, Vec<u8>) {
     let arquivo = std::io::BufReader::new(fs::File::open(png_path).expect("abrir png"));
     let decoder = png::Decoder::new(arquivo);
     let mut reader = decoder.read_info().expect("ler cabecalho png");

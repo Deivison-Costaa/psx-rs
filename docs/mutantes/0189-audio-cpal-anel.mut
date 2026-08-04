@@ -1,0 +1,143 @@
+# Manifesto de mutacao da iteracao 0189 — anel de saida de audio e stream cpal
+formato: 1
+iteracao: 0189
+item: 7.3
+alvo: crates/psx-core/src/audio.rs
+teste: audio_ring
+
+mutante: m1
+teste: audio_ring
+rotulo: anel cheio descarta o quadro novo em vez do mais antigo
+ocorrencias: 1
+@@DE
+                if self.frames.len() == self.capacity {
+                    self.frames.pop_front();
+                    self.dropped += 1;
+                }
+                self.frames.push_back(*f);
+@@PARA
+                if self.frames.len() == self.capacity {
+                    self.dropped += 1;
+                    continue;
+                }
+                self.frames.push_back(*f);
+@@FIM
+
+mutante: m2
+teste: audio_ring
+rotulo: escala de 16 bits para float usa 32767 e o minimo passa de -1,0
+ocorrencias: 1
+@@DE
+pub const FULL_SCALE: f32 = 32768.0;
+@@PARA
+pub const FULL_SCALE: f32 = 32767.0;
+@@FIM
+
+mutante: m3
+teste: audio_ring
+rotulo: underrun deixa o buffer do dispositivo com o lixo anterior
+ocorrencias: 1
+@@DE
+                None => {
+                    self.underruns += 1;
+                    for amostra in par.iter_mut() {
+                        *amostra = 0.0;
+                    }
+                }
+@@PARA
+                None => {
+                    self.underruns += 1;
+                }
+@@FIM
+
+mutante: m4
+teste: audio_ring
+rotulo: canais trocados na saida intercalada
+ocorrencias: 1
+@@DE
+                    par[0] = f32::from(l) / FULL_SCALE;
+                    if par.len() > 1 {
+                        par[1] = f32::from(r) / FULL_SCALE;
+                    }
+@@PARA
+                    par[0] = f32::from(r) / FULL_SCALE;
+                    if par.len() > 1 {
+                        par[1] = f32::from(l) / FULL_SCALE;
+                    }
+@@FIM
+
+mutante: m5
+teste: audio_ring
+rotulo: conversao de taxa invertida: 48 kHz encolhe em vez de esticar
+ocorrencias: 1
+@@DE
+            self.fase += self.output_hz;
+            while self.fase >= SOURCE_HZ {
+                self.fase -= SOURCE_HZ;
+@@PARA
+            self.fase += SOURCE_HZ;
+            while self.fase >= self.output_hz {
+                self.fase -= self.output_hz;
+@@FIM
+
+mutante: m6
+teste: audio_ring
+rotulo: teto do anel em amostras, nao em quadros
+ocorrencias: 1
+@@DE
+            capacity: capacity_frames.max(1),
+@@PARA
+            capacity: capacity_frames.max(1) * 2,
+@@FIM
+
+mutante: m7
+teste: audio_ring
+arquivo: crates/psx-core/src/spu.rs
+rotulo: drenar o anel do SPU copia em vez de esvaziar
+ocorrencias: 1
+@@DE
+    pub fn drain_output(&mut self) -> Vec<(i16, i16)> {
+        std::mem::take(&mut self.output)
+    }
+@@PARA
+    pub fn drain_output(&mut self) -> Vec<(i16, i16)> {
+        self.output.clone()
+    }
+@@FIM
+
+mutante: m8
+teste: audio_ring
+arquivo: crates/psx-core/src/spu.rs
+rotulo: periodo do evento do SPU dobrado: metade dos quadros
+ocorrencias: 1
+@@DE
+pub const CPU_CYCLES_PER_SAMPLE: u64 = 768;
+@@PARA
+pub const CPU_CYCLES_PER_SAMPLE: u64 = 1536;
+@@FIM
+
+controle: c1
+teste: audio_ring
+rotulo: acumulador de fase escrito com laco for em vez de while
+ocorrencias: 1
+@@DE
+            self.fase += self.output_hz;
+            while self.fase >= SOURCE_HZ {
+@@PARA
+            self.fase = self.fase.wrapping_add(self.output_hz);
+            while self.fase >= SOURCE_HZ {
+@@FIM
+
+controle: c2
+teste: audio_ring
+rotulo: disponibilidade lida por is_empty invertido, mesmo resultado
+ocorrencias: 1
+@@DE
+    pub fn frames_available(&self) -> usize {
+        self.frames.len()
+    }
+@@PARA
+    pub fn frames_available(&self) -> usize {
+        self.frames.iter().count()
+    }
+@@FIM

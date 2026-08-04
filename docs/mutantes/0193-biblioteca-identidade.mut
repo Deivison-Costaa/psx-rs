@@ -1,0 +1,170 @@
+# Manifesto de mutacao da iteracao 0193 — identidade do disco (ISO 9660) e biblioteca
+formato: 1
+iteracao: 0193
+item: 9.1
+alvo: crates/psx-core/src/app/library.rs
+teste: library_identidade
+
+mutante: m1
+teste: library_identidade
+rotulo: licenca lida do inicio do setor em vez do offset 20h
+ocorrencias: 1
+@@DE
+    let Some(linha) = setor.get(0x20..0x46) else {
+@@PARA
+    let Some(linha) = setor.get(0x00..0x26) else {
+@@FIM
+
+mutante: m2
+teste: library_identidade
+rotulo: PVD aceito sem conferir a assinatura CD001
+ocorrencias: 1
+@@DE
+    pvd.first() == Some(&0x01) && pvd.get(0x01..0x06) == Some(ASSINATURA)
+@@PARA
+    pvd.first() == Some(&0x01)
+@@FIM
+
+mutante: m3
+teste: library_identidade
+rotulo: raiz do PVD com LBA e tamanho trocados de lugar
+ocorrencias: 1
+@@DE
+        lba: u32_le(registro, 0x02)?,
+        tamanho: u32_le(registro, 0x0A)?,
+    })
+@@PARA
+        lba: u32_le(registro, 0x0A)?,
+        tamanho: u32_le(registro, 0x02)?,
+    })
+@@FIM
+
+mutante: m4
+teste: library_identidade
+rotulo: diretorio avanca 33+LEN_FI em vez de LEN_DR
+ocorrencias: 1
+@@DE
+        em += len_dr;
+@@PARA
+        em += 33 + len_fi;
+@@FIM
+
+mutante: m5
+teste: library_identidade
+rotulo: registro de tamanho zero deixa de encerrar o diretorio
+ocorrencias: 1
+@@DE
+        if len_dr == 0 {
+            return None;
+        }
+@@PARA
+        if len_dr == 0 {
+            em += 1;
+            continue;
+        }
+@@FIM
+
+mutante: m6
+teste: library_identidade
+rotulo: setor bruto sempre lido como Mode1, ignorando o subheader do Mode2
+ocorrencias: 1
+@@DE
+        let inicio = if bruto[0x0F] == 0x02 { 0x18 } else { 0x10 };
+@@PARA
+        let inicio = 0x10;
+@@FIM
+
+mutante: m7
+teste: library_identidade
+rotulo: serial mantem o sublinhado do nome do arquivo de boot
+ocorrencias: 1
+@@DE
+                '-'
+@@PARA
+                '_'
+@@FIM
+
+mutante: m8
+teste: library_identidade
+rotulo: serial mantem o ponto do nome 8.3
+ocorrencias: 1
+@@DE
+        .filter(|c| *c != '.')
+@@PARA
+        .filter(|c| *c != ',')
+@@FIM
+
+mutante: m9
+teste: library_identidade
+rotulo: primeira linha com '=' vira BOOT, seja qual for a chave
+ocorrencias: 1
+@@DE
+        if !chave.trim().eq_ignore_ascii_case("BOOT") {
+            continue;
+        }
+@@PARA
+        if chave.is_empty() {
+            continue;
+        }
+@@FIM
+
+mutante: m10
+teste: library_identidade
+rotulo: contagem de setores por divisao truncada, nao arredondada para cima
+ocorrencias: 1
+@@DE
+        .div_ceil(BYTES_POR_SETOR as u32)
+@@PARA
+        .wrapping_div(BYTES_POR_SETOR as u32)
+@@FIM
+
+mutante: m11
+teste: library_identidade
+rotulo: busca do SYSTEM.CNF para no primeiro setor do diretorio raiz
+ocorrencias: 1
+@@DE
+    for i in 0..setores_de(raiz.tamanho) {
+@@PARA
+    for i in 0..1u32 {
+@@FIM
+
+mutante: m12
+teste: library_identidade
+rotulo: PVD procurado no setor 17 (o terminador) em vez do 16
+ocorrencias: 1
+@@DE
+pub const SETOR_PVD: u32 = 16;
+@@PARA
+pub const SETOR_PVD: u32 = 17;
+@@FIM
+
+controle: c1
+teste: library_identidade
+rotulo: busca de substring escrita com position().is_some()
+ocorrencias: 1
+@@DE
+    palheiro.windows(agulha.len()).any(|j| j == agulha)
+@@PARA
+    palheiro
+        .windows(agulha.len())
+        .position(|j| j == agulha)
+        .is_some()
+@@FIM
+
+controle: c2
+teste: library_identidade
+rotulo: teto de setores escrito com if explicito em vez de min
+ocorrencias: 1
+@@DE
+fn setores_de(tamanho: u32) -> u32 {
+    tamanho
+        .max(1)
+        .div_ceil(BYTES_POR_SETOR as u32)
+        .min(MAX_SETORES)
+}
+@@PARA
+fn setores_de(tamanho: u32) -> u32 {
+    let bruto = tamanho.max(1).div_ceil(BYTES_POR_SETOR as u32);
+    if bruto > MAX_SETORES { MAX_SETORES } else { bruto }
+}
+@@FIM

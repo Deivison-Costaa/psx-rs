@@ -1,0 +1,171 @@
+# Manifesto de mutacao da iteracao 0196 — perfil de controle e mapeamento
+formato: 1
+iteracao: 0196
+item: 9.4
+alvo: crates/psx-core/src/app/input_map.rs
+teste: input_perfil
+
+mutante: m1
+teste: input_perfil
+rotulo: palavra do pad montada ligando bit em vez de apagando (polaridade invertida)
+ocorrencias: 1
+@@DE
+                palavra &= !(1u16 << bit);
+@@PARA
+                palavra |= 1u16 << bit;
+@@FIM
+
+mutante: m2
+teste: input_perfil
+rotulo: religar uma entrada soma outra ligacao em vez de substituir
+ocorrencias: 1
+@@DE
+        let mut ligacoes: Vec<(Entrada, u8)> = self
+            .ligacoes
+            .iter()
+            .copied()
+            .filter(|(e, _)| *e != entrada)
+            .collect();
+@@PARA
+        let mut ligacoes: Vec<(Entrada, u8)> = self.ligacoes.to_vec();
+@@FIM
+
+mutante: m3
+teste: input_perfil
+rotulo: liga devolve copia do perfil antigo, perdendo a ligacao nova
+ocorrencias: 1
+@@DE
+        ligacoes.push((entrada, bit));
+        Ok(Perfil {
+            nome: self.nome.clone(),
+            ligacoes,
+        })
+@@PARA
+        ligacoes.push((entrada, bit));
+        Ok(self.clone())
+@@FIM
+
+mutante: m4
+teste: input_perfil
+rotulo: desligar uma entrada apaga o perfil inteiro
+ocorrencias: 1
+@@DE
+            ligacoes: self
+                .ligacoes
+                .iter()
+                .copied()
+                .filter(|(e, _)| *e != entrada)
+                .collect(),
+@@PARA
+            ligacoes: Vec::new(),
+@@FIM
+
+mutante: m5
+teste: input_perfil
+rotulo: perfil de faces trocadas fica identico ao padrao
+ocorrencias: 1
+@@DE
+        Self::com_faces("Faces trocadas (estilo Nintendo)", "circle", "cross")
+@@PARA
+        Self::com_faces("Faces trocadas (estilo Nintendo)", "cross", "circle")
+@@FIM
+
+mutante: m6
+teste: input_perfil
+rotulo: eixo vertical do analogico invertido
+ocorrencias: 1
+@@DE
+    (Entrada::EixoNegativo(1), "down"),
+    (Entrada::EixoPositivo(1), "up"),
+@@PARA
+    (Entrada::EixoNegativo(1), "up"),
+    (Entrada::EixoPositivo(1), "down"),
+@@FIM
+
+mutante: m7
+teste: input_perfil
+rotulo: nome de eixo deixa de ser reconhecido na volta
+ocorrencias: 1
+@@DE
+        let numero = texto.strip_prefix("eixo-")?;
+@@PARA
+        let numero = texto.strip_prefix("eixo+")?;
+@@FIM
+
+mutante: m8
+teste: input_perfil
+rotulo: perfil gravado com o numero do bit em vez do nome do botao
+ocorrencias: 1
+@@DE
+                crate::pad_script::button_name(*bit).map(|b| format!("{} = {b}", e.nome()))
+@@PARA
+                crate::pad_script::button_name(*bit).map(|_| format!("{} = {bit}", e.nome()))
+@@FIM
+
+mutante: m9
+teste: input_perfil
+rotulo: comentario deixa de ser cortado antes de ler a linha
+ocorrencias: 1
+@@DE
+            let sem_comentario = linha.split('#').next().unwrap_or("");
+@@PARA
+            let sem_comentario = linha;
+@@FIM
+
+mutante: m10
+teste: input_perfil
+rotulo: nome da entrada lido com o espaco em volta
+ocorrencias: 1
+@@DE
+            let Some(entrada) = Entrada::de_nome(esquerda.trim()) else {
+@@PARA
+            let Some(entrada) = Entrada::de_nome(esquerda) else {
+@@FIM
+
+mutante: m11
+teste: input_perfil
+rotulo: palavra do pad comeca zerada, como se tudo estivesse apertado
+ocorrencias: 1
+@@DE
+        let mut palavra = SOLTO;
+@@PARA
+        let mut palavra = 0;
+@@FIM
+
+mutante: m12
+teste: input_perfil
+rotulo: perfil padrao sai sem as ligacoes do analogico
+ocorrencias: 1
+@@DE
+        ligacoes.extend_from_slice(&ANALOGICO);
+@@PARA
+        let _ = &ANALOGICO;
+@@FIM
+
+controle: c1
+teste: input_perfil
+rotulo: busca da ligacao escrita com laco explicito
+ocorrencias: 1
+@@DE
+        self.ligacoes
+            .iter()
+            .find(|(e, _)| *e == entrada)
+            .map(|(_, b)| *b)
+@@PARA
+        for (e, b) in &self.ligacoes {
+            if *e == entrada {
+                return Some(*b);
+            }
+        }
+        None
+@@FIM
+
+controle: c2
+teste: input_perfil
+rotulo: SOLTO escrito como literal em vez de reexportar RELEASED
+ocorrencias: 1
+@@DE
+pub const SOLTO: u16 = RELEASED;
+@@PARA
+pub const SOLTO: u16 = 0xFFFF;
+@@FIM

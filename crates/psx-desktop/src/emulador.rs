@@ -1,5 +1,6 @@
 use std::path::{Path, PathBuf};
 
+use psx_core::app::input_map::{Entrada, Perfil};
 use psx_core::app::saves::{self, Save};
 use psx_core::bus::{Bios, Bus, Ram};
 use psx_core::cpu::Cpu;
@@ -130,13 +131,16 @@ impl Emulador {
         self.caminho_do_slot(slot).exists()
     }
 
-    pub fn teclado(&mut self, ctx: &egui::Context) {
+    /// Teclado e controle valem ao mesmo tempo: o pad do PS1 recebe a UNIAO dos dois,
+    /// que e o que um jogador que larga o controle e pega o teclado espera.
+    pub fn entrada(&mut self, ctx: &egui::Context, perfil: &Perfil, do_controle: &[Entrada]) {
         let mut botoes: u16 = 0xFFFF;
         for (tecla, bit) in TECLAS {
             if ctx.input(|i| i.key_down(tecla)) {
                 botoes &= !(1u16 << bit);
             }
         }
+        botoes &= perfil.palavra(do_controle);
         self.bus.sio_mut().set_buttons(botoes);
     }
 

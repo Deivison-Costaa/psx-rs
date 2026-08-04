@@ -6,6 +6,10 @@ const BUTTONS: [&str; 16] = [
     "triangle", "circle", "cross", "square",
 ];
 
+pub fn button_name(bit: u8) -> Option<&'static str> {
+    BUTTONS.get(bit as usize).copied()
+}
+
 pub fn button_bit(name: &str) -> Option<u8> {
     let lower = name.to_ascii_lowercase();
     BUTTONS.iter().position(|b| *b == lower).map(|i| i as u8)

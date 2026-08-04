@@ -2,17 +2,22 @@ mod audio;
 mod biblioteca;
 mod disco;
 mod emulador;
+mod gamepad;
 
 use std::path::PathBuf;
 
 use biblioteca::Jogo;
 use emulador::Emulador;
+use gamepad::Gamepads;
+use psx_core::app::input_map::{self, Entrada, Perfil};
+use psx_core::pad_script;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Tela {
     Biblioteca,
     Jogando,
     Saves,
+    Controles,
 }
 
 struct Argumentos {
@@ -28,11 +33,19 @@ struct App {
     emulador: Option<Emulador>,
     erro: Option<String>,
     em_execucao: Option<String>,
+    gamepads: Gamepads,
+    perfil: Perfil,
+    perfil_arquivo: PathBuf,
 }
 
 impl App {
     fn novo(args: Argumentos) -> Self {
         let jogos = biblioteca::varre(&args.jogos);
+        let perfil_arquivo = args.cartoes.with_file_name("controles.txt");
+        let perfil = match std::fs::read_to_string(&perfil_arquivo) {
+            Ok(texto) => Perfil::de_texto("Do arquivo", &texto),
+            Err(_) => Perfil::padrao(),
+        };
         App {
             tela: Tela::Biblioteca,
             args,
@@ -40,6 +53,18 @@ impl App {
             emulador: None,
             erro: None,
             em_execucao: None,
+            gamepads: Gamepads::novo(),
+            perfil,
+            perfil_arquivo,
+        }
+    }
+
+    fn grava_perfil(&mut self) {
+        if let Some(pai) = self.perfil_arquivo.parent() {
+            let _ = std::fs::create_dir_all(pai);
+        }
+        if let Err(e) = std::fs::write(&self.perfil_arquivo, self.perfil.para_texto()) {
+            self.erro = Some(format!("gravando perfil de controle: {e}"));
         }
     }
 
@@ -111,11 +136,15 @@ impl App {
     }
 
     fn tela_jogando(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
-        let Some(emu) = self.emulador.as_mut() else {
+        if self.emulador.is_none() {
             self.tela = Tela::Biblioteca;
             return;
+        }
+        let do_controle = self.gamepads.pressionados();
+        let Some(emu) = self.emulador.as_mut() else {
+            return;
         };
-        emu.teclado(ctx);
+        emu.entrada(ctx, &self.perfil, &do_controle);
         Self::atalhos_de_estado(ctx, emu);
         emu.quadro();
 
@@ -140,7 +169,7 @@ impl App {
             }
             let marca = if emu.slot_existe(emu.slot) { "*" } else { "" };
             ui.small(format!("slot {}{marca}", emu.slot));
-            ui.small("Esc: biblioteca · F5/F8: slot · F6/F7: trocar · F9: cartao");
+            ui.small("Esc: sair · F5/F8: slot · F6/F7: trocar · F9: cartao · F10: controles");
         });
         if let Some(aviso) = &emu.aviso {
             ui.small(aviso.clone());
@@ -148,6 +177,9 @@ impl App {
 
         if ctx.input(|i| i.key_pressed(egui::Key::F9)) {
             self.tela = Tela::Saves;
+        }
+        if ctx.input(|i| i.key_pressed(egui::Key::F10)) {
+            self.tela = Tela::Controles;
         }
         if ctx.input(|i| i.key_pressed(egui::Key::Escape)) {
             self.emulador = None;
@@ -193,6 +225,82 @@ impl App {
         }
     }
 
+    fn tela_controles(&mut self, ui: &mut egui::Ui) {
+        ui.heading("Controles");
+        let nomes = self.gamepads.nomes();
+        if nomes.is_empty() {
+            ui.label("Nenhum controle detectado. O teclado continua valendo.");
+        } else {
+            ui.label(format!("Conectado(s): {}", nomes.join(", ")));
+        }
+        ui.horizontal(|ui| {
+            ui.label(format!("Perfil: {}", self.perfil.nome));
+            if ui.button("Padrao").clicked() {
+                self.perfil = Perfil::padrao();
+            }
+            if ui.button("Faces trocadas").clicked() {
+                self.perfil = Perfil::faces_trocadas();
+            }
+            if ui.button("Gravar").clicked() {
+                self.grava_perfil();
+            }
+        });
+        ui.small(format!("Arquivo: {}", self.perfil_arquivo.display()));
+        ui.separator();
+
+        let mut mudanca: Option<(Entrada, Option<&'static str>)> = None;
+        egui::ScrollArea::vertical().show(ui, |ui| {
+            for entrada in Self::entradas_mapeaveis() {
+                let atual = self.perfil.nome_do_botao(entrada);
+                ui.horizontal(|ui| {
+                    ui.label(entrada.nome());
+                    egui::ComboBox::from_id_salt(entrada.nome())
+                        .selected_text(atual.unwrap_or("(nenhum)"))
+                        .show_ui(ui, |ui| {
+                            if ui.selectable_label(atual.is_none(), "(nenhum)").clicked() {
+                                mudanca = Some((entrada, None));
+                            }
+                            for bit in 0..16u8 {
+                                let Some(nome) = pad_script::button_name(bit) else {
+                                    continue;
+                                };
+                                if ui.selectable_label(atual == Some(nome), nome).clicked() {
+                                    mudanca = Some((entrada, Some(nome)));
+                                }
+                            }
+                        });
+                });
+            }
+        });
+
+        match mudanca {
+            Some((entrada, Some(nome))) => {
+                if let Ok(novo) = self.perfil.liga(entrada, nome) {
+                    self.perfil = novo;
+                }
+            }
+            Some((entrada, None)) => self.perfil = self.perfil.desliga(entrada),
+            None => {}
+        }
+
+        if ui.button("Voltar").clicked() {
+            self.tela = if self.emulador.is_some() {
+                Tela::Jogando
+            } else {
+                Tela::Biblioteca
+            };
+        }
+    }
+
+    fn entradas_mapeaveis() -> Vec<Entrada> {
+        let mut fora = input_map::TODAS_FIXAS.to_vec();
+        for n in 0..2u8 {
+            fora.push(Entrada::EixoNegativo(n));
+            fora.push(Entrada::EixoPositivo(n));
+        }
+        fora
+    }
+
     fn atalhos_de_estado(ctx: &egui::Context, emu: &mut Emulador) {
         let (f5, f6, f7, f8) = ctx.input(|i| {
             (
@@ -223,6 +331,7 @@ impl eframe::App for App {
             Tela::Biblioteca => self.tela_biblioteca(ui),
             Tela::Jogando => self.tela_jogando(ctx, ui),
             Tela::Saves => self.tela_saves(ui),
+            Tela::Controles => self.tela_controles(ui),
         });
         if self.tela == Tela::Jogando {
             ctx.request_repaint();

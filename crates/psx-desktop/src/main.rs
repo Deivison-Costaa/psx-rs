@@ -38,7 +38,11 @@ fn load_disc(disc_path: &str) -> Result<(DiscLayout, Vec<u8>), String> {
 }
 
 impl PsxDesktop {
-    fn new(bios_path: &str, disc_path: Option<&str>, memcard: Option<String>) -> Result<Self, String> {
+    fn new(
+        bios_path: &str,
+        disc_path: Option<&str>,
+        memcard: Option<String>,
+    ) -> Result<Self, String> {
         let bios_data = std::fs::read(bios_path)
             .map_err(|e| format!("Erro lendo BIOS '{}': {}", bios_path, e))?;
         let bios = Bios::from_bytes(bios_data).map_err(|e| format!("BIOS invalida: {:?}", e))?;

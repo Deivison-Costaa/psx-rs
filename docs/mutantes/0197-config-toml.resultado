@@ -1,0 +1,17 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: 56a3e6ada2b880d3b216ceeac8f7060ca8c4bb6b
+# rodado_em: 2026-08-03T23:07:25-03:00
+m1,mutante,morreu,morreu,0.8,escala_fora_da_faixa_e_grampeada_nas_pontas
+m2,mutante,morreu,morreu,0.8,volume_e_slot_fora_da_faixa_sao_grampeados
+m3,mutante,morreu,morreu,0.8,volume_e_slot_fora_da_faixa_sao_grampeados
+m4,mutante,morreu,morreu,0.8,pasta_vazia_cai_no_padrao_em_vez_de_virar_raiz
+m5,mutante,morreu,morreu,0.8,pasta_vazia_cai_no_padrao_em_vez_de_virar_raiz
+m6,mutante,morreu,morreu,0.8,valida_aponta_a_bios_faltando
+m7,mutante,morreu,morreu,0.8,valida_reclama_de_faixa_antes_de_grampear
+m8,mutante,morreu,morreu,0.8,valida_reclama_de_faixa_antes_de_grampear
+m9,mutante,morreu,morreu,0.9,audio_desligado_zera_o_ganho_seja_qual_for_o_volume
+m10,mutante,morreu,morreu,0.9,volume_vira_ganho_linear_entre_zero_e_um
+m11,mutante,morreu,morreu,0.8,padrao_e_utilizavel_sem_editar_nada
+m12,mutante,morreu,morreu,0.8,padrao_e_utilizavel_sem_editar_nada;volume_vira_ganho_linear_entre_zero_e_um
+c1,controle,sobreviveu,sobreviveu,0.8,
+c2,controle,sobreviveu,sobreviveu,0.8,

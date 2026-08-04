@@ -10,7 +10,7 @@ iteração que o achou (`NNNN.k`). A escada é o que construir; os achados são 
 Regra imposta por `roadmap_arquivo.rs`.
 
 ## M9 — App desktop
-- [x] 9.1 Biblioteca: scan BIN/CUE, título/serial/região, lista (iter 0193)
+- [ ] 9.1 Biblioteca: scan BIN/CUE, título/serial/região, lista
 - [ ] 9.2 Snapshot do core (serde) → save states F5/F8 + slots
 - [ ] 9.3 Memory cards automáticos por serial + tela de saves
 - [ ] 9.4 Controles PS/Xbox (gilrs) + tela de mapeamento + perfis

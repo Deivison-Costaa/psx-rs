@@ -429,3 +429,36 @@ O teste sintético pego (`gabarito_ausente_nao_e_confundido_com_diferenca`) devo
 vez de `sem-gabarito`. Correção: remover a anotação de tipo do parâmetro (deixar sem tipo) — sem
 conversão declarada, `$null` chega como `$null` de verdade. Categoria nova para o campo "Erros de
 primeira tentativa" dos docs de iteração: **API-PowerShell**, ao lado de API-Rust.
+
+## 2026-08-03 — exceção de executor: o orquestrador implementa a escada da 0193
+
+Primeira sessão de jogo real do projeto (Crash Bandicoot no `psx-desktop`, jogado pelo
+usuário) produziu quatro sintomas: jogo ~2× rápido, áudio estourado, HUD/sprites
+invisíveis e artefatos. A exploração fechou as causas (achados 0193.1-0193.7) e derrubou
+uma hipótese no caminho: não há auto-ack nem hack de vblank no core — o vblank dispara a
+59,82 Hz; o acelerador real é a CPU cobrar 1 ciclo/instrução sem custo de memória, com a
+GPU desenhando em 0 ciclos (0193.4).
+
+**Decisão do usuário, perguntada explicitamente:** a escada de correção (texturas →
+velocidade → áudio → 24bpp/modulação) será implementada **diretamente pelo orquestrador**,
+não pelo trabalhador. É exceção à divisão de papéis deste documento e vale só para a
+escada; o protocolo (teste-antes, 1 item por PR, spec antes de hardware, bateria de
+mutação no psx-core) continua o mesmo. Registrado porque o dado empírico "quem codificou"
+muda a leitura das métricas dessas iterações no relatório final. Prioridade escolhida
+pelo usuário: texturas primeiro.
+
+## 2026-08-04 — colisão de numeração 0193 entre sessões paralelas
+
+Duas frentes rodaram na mesma noite sem se ver: a sessão de jogo com o usuário produziu a
+**0193-desktop-disco** (PR #207, mergeado primeiro) e a rodada paralela do M9 produziu a
+**0193-biblioteca-identidade** (PR #208, aberto 8 minutos depois do merge). O esquema
+`NNNN.k` dos achados prometia que "com o número da iteração isso é impossível por
+construção" — vale para ACHADOS (só a 0193-desktop-disco abriu achados 0193.x), mas o
+número de ITERAÇÃO em si colidiu. Resolução: nenhuma renumeração (os slugs distinguem, e
+renumerar 6 docs + 6 manifestos custaria mais que o ganho); o lote paralelo segue como
+0193-0198 e a escada do orquestrador continua de 0199 em diante. Regra nova: **sessão que
+vai abrir iteração reserva o número no STATUS.md antes de começar** — o handoff é o mutex.
+Na fusão do #208, um achado de revisão: o loop do M9 tinha voltado a rodar por passos fixos
+por repaint; o pacing por tempo real da 0193-desktop-disco foi portado para o
+`Emulador::quadro` (fast-forward vira multiplicador do alvo de ciclos) e o tempo de jogo
+passou a contar relógio real.

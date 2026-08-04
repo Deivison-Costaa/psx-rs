@@ -55,6 +55,22 @@ por jogo custam 36 MiB de disco.
 
 ## Revisão cruzada (orquestrador)
 
+Feita na fusão do PR #208 (2026-08-04), com dois revisores headless de briefs disjuntos.
+Consertado na própria branch:
+
+- `snapshot::salva` engolia falha do bincode com `unwrap_or_default()` e produzia arquivo
+  de 12 bytes reportado como "salvo (0 KiB)". Virou `Result` com `SnapshotError::Codificacao`.
+- A bateria da 0194 só mutou a **restauração**; mutantes de "campo removido do `Estado`"
+  (scratchpad, timers, sio, mdec, cdrom, mem_ctrl, bcc, tty_buffer — 8 de 18 campos)
+  ficavam verdes porque o roundtrip compara a implementação com ela mesma. Armadura nova:
+  `estado_codificado_tem_tamanho_fixo_conhecido` (3.809.483 bytes ancorados) mata a classe
+  inteira, e `retrato()` passou a ler scratchpad e TIMER1.
+- `serde`/`bincode` ganharam `default-features = false`: a promessa da allowlist ("não abre
+  arquivo") passou a ser imposta pelo manifesto, não só pelo uso atual.
+
+Registrado para depois (achados 0198.4, 0198.6): o teste com BIOS real não roda na CI e a
+máquina sintética executa só NOPs.
+
 ## Decisões e notas
 
 - **`serde` e `bincode` entraram na allowlist do `purity.rs`** — as duas primeiras

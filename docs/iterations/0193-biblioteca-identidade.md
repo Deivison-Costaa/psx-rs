@@ -58,6 +58,13 @@ dão a mesma identidade, que é o esperado: a identidade mora na trilha 1.
 
 ## Revisão cruzada (orquestrador)
 
+Feita na fusão do PR #208 (2026-08-04). Um defeito real de produção consertado na branch:
+`caminho_de_boot` abortava no primeiro `\n` sem `=` (`split_once('=')?` dentro do laço) —
+SYSTEM.CNF com linha em branco ou comentário antes do `BOOT` devolvia serial nenhum e o
+jogo caía no `sem-serial.mcd`. Teste `linha_sem_igual_e_pulada_e_nao_aborta_o_parser`
+escrito antes (falhou), fix de `?` para `continue`. Registrado como achado: `saves::lista`
+não confere o mágico `MC` (0198.5).
+
 ## Decisões e notas
 
 - **`app/` dentro do `psx-core`.** A lógica pura de frontend (biblioteca, e nos itens

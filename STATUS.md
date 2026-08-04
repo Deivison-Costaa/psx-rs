@@ -7,32 +7,33 @@
 
 ## Última iteração concluída
 
-**0193-0198** — **M9 inteiro numa rodada só** (o usuário pediu "todo o tópico 9"; a regra de
-1 item por PR ficou suspensa para este lote). O app desktop deixou de ser uma janela com a
-BIOS e virou aplicativo.
+**0193 (duas, em paralelo — colisão de número registrada no diário)** e **0194-0198**.
 
-- **0193 (9.1)** — identidade do disco por ISO 9660 (licença no setor 4, PVD no 16, raiz,
-  `SYSTEM.CNF`). Medido: Crash = SCUS-94900, Rayman = SLUS-00005. Tela de biblioteca.
-- **0194 (9.2)** — save state do core inteiro em serde/bincode, 3,6 MB fixos, com mágico,
-  versão e serial. **`serde` e `bincode` entraram na allowlist do `purity.rs`** — as duas
-  primeiras dependências do `psx-core`. F5/F8 + 10 slots.
-- **0195 (9.3)** — um `.mcd` por jogo, nome derivado do serial (com filtro contra travessia
-  de diretório), e tela que lê o diretório do cartão (F9).
-- **0196 (9.4)** — gilrs no desktop, `Entrada` pura no core, perfis remapeáveis em
-  `controles.txt`, tela F10.
-- **0197 (9.5)** — `psx-rs.toml`: BIOS, pastas, escala, filtro, volume. `toml` no
-  `psx-desktop` (não no core). Tela F11.
-- **0198 (9.6)** — fast-forward F12 (1/2/4/8×), recentes e tempo de jogo em segundos
-  **emulados**, gravados no próprio TOML.
+- **0193-desktop-disco** (sessão de jogo com o usuário): `.cue` + `insert_disc` no app,
+  pacing por tempo real, escala 4:3, slider. Abriu os achados **0193.1-0193.7**: jogo 2×
+  rápido (1 ciclo/instrução sem custo de memória), HUD invisível (10.11), mixer sem
+  headroom, display 24bpp ausente. **Exceção de executor autorizada pelo usuário: o
+  orquestrador implementa a escada de correção diretamente** (`docs/orquestracao.md`).
+- **0193-biblioteca a 0198 (M9 inteiro, rodada paralela)** — o app virou aplicativo:
+  identidade do disco por ISO 9660 (Crash = SCUS-94900), save state serde/bincode (3,6 MB;
+  `serde`/`bincode` na allowlist do `purity.rs`) com F5/F8 + 10 slots, `.mcd` por serial
+  (F9), gilrs + perfis (F10), `psx-rs.toml` (F11), fast-forward 1/2/4/8× (F12), recentes e
+  tempo de jogo emulado. **Na fusão, o loop do M9 (passos fixos por repaint) foi religado
+  ao pacing por tempo real da 0193-desktop-disco.**
 
 ## Próxima tarefa
 
-**ROADMAP 11.2 — Gráficos de metricas.csv + scoreboard-data.** É o que resta na escada
-junto com 11.3 (roteiro de demo); todo o resto virou achado em `docs/achados.md`.
+**Achado 10.23 — diffvram no scoreboard.** Conversor VRAM crua→PNG no `psx-cli` +
+`scoreboard.ps1` compara com os `vram.png` de hardware via
+`tests/exes/ps1-tests/tools/diffvram/`; coluna de veredito no CSV. Teste-antes:
+`ci_diffvram.rs` + conversão sintética no psx-cli.
 
-Dois testes baratos antes: **medir o Amidog `psxtest_cpu`** de novo (parava em
-`Result: 00000101` na 0166 e o GTE foi a 1100/1100 desde então) e **rodar o lote do oráculo
-de TTY**, que não roda desde a 0186.
+Depois, na ordem (escada da 0193, plano com o usuário): Achado 10.11 (retângulos
+texturizados — HUD do Crash), Achado 10.115 (âncoras relativas nos rayman_*), Achado
+0193.4 (custo de ciclo de memória; oráculo `cpu/access-time`), Achados 0193.5, 0193.3 e
+0189.1 (áudio), Achado 0193.2 (display 24bpp), Achado 10.13 (modulação). Depois da
+escada: ROADMAP 11.2 (gráficos), 11.3 (demo), remedir Amidog `psxtest_cpu` e o lote do
+oráculo de TTY (parado desde a 0186).
 
 Rodar Crash: `--bios bios/SCPH1001.BIN --disc "../roms/extraido/Crash Bandicoot (USA).cue"
 --max-steps 1200000000 --pad --press start@330000000 --press cross@700000000`.
@@ -64,7 +65,7 @@ Invariantes relevantes: nenhuma.
 
 ## Placar de testes
 
-Workspace: **1224** testes.
+Workspace: **1228** testes.
 - **NUNCA rodar `cargo test`/`nextest` nem a bateria de mutação junto com o oráculo**: a
   disputa de CPU faz o `Start-Process` ler stdout antes do flush e reportar `sem-saida`
   falso. Derrubou 16/21 numa medição da 0170; rodada limpa deu 21/21.

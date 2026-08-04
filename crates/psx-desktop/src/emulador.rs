@@ -29,19 +29,21 @@ const TECLAS: [(egui::Key, u32); 14] = [
     (egui::Key::R, 9),
 ];
 
+const CPU_HZ: f64 = 33_868_800.0;
+
 pub struct Emulador {
     cpu: Cpu,
     bus: Bus,
     audio: AudioOut,
     textura: Option<egui::ColorImage>,
-    passos_por_quadro: usize,
     memcard: PathBuf,
     serial: String,
     pasta_de_saves: PathBuf,
     pub slot: u8,
     pub aviso: Option<String>,
     pub velocidade: u32,
-    quadros: u64,
+    ultimo: std::time::Instant,
+    jogado: f64,
 }
 
 impl Emulador {
@@ -50,7 +52,6 @@ impl Emulador {
     pub fn novo(bios_bytes: Vec<u8>, serial: &str, config: &Config) -> Result<Self, String> {
         let bios = Bios::from_bytes(bios_bytes).map_err(|e| format!("BIOS invalida: {e:?}"))?;
         let mut bus = Bus::new(Ram::new(), bios);
-        let passos_por_quadro = bus.gpu().frame_cycles() as usize;
         bus.sio_mut().connect_digital_pad(true);
 
         let memcard = Path::new(&config.pasta_de_cartoes).join(saves::nome_do_cartao(serial));
@@ -65,14 +66,14 @@ impl Emulador {
             bus,
             audio: AudioOut::new(),
             textura: None,
-            passos_por_quadro,
             memcard,
             serial: serial.to_string(),
             pasta_de_saves: PathBuf::from(&config.pasta_de_saves),
             slot: config.slot_inicial,
             aviso: None,
             velocidade: 1,
-            quadros: 0,
+            ultimo: std::time::Instant::now(),
+            jogado: 0.0,
         })
     }
 
@@ -151,11 +152,15 @@ impl Emulador {
     }
 
     pub fn quadro(&mut self, ganho: f32) {
-        let passos = sessao::passos_por_quadro(self.passos_por_quadro, self.velocidade);
-        for _ in 0..passos {
+        let agora = std::time::Instant::now();
+        let dt = (agora - self.ultimo).as_secs_f64().min(0.05);
+        self.ultimo = agora;
+        self.jogado += dt;
+        let alvo =
+            self.bus.total_cycles() + (dt * CPU_HZ * f64::from(self.velocidade.max(1))) as u64;
+        while self.bus.total_cycles() < alvo {
             self.cpu.step(&mut self.bus);
         }
-        self.quadros += 1;
         let quadros = self.bus.drain_audio();
         self.audio.push(&quadros, ganho);
         self.salva_memcard();
@@ -193,10 +198,9 @@ impl Emulador {
         self.audio.device_hz()
     }
 
-    /// Tempo de jogo em segundos EMULADOS: conta quadros a 60 Hz, nao relogio de parede.
-    /// Uma hora em fast-forward 8x continua sendo uma hora de jogo para quem jogou.
+    /// Tempo REAL com o jogo aberto; fast-forward 8x por uma hora conta uma hora.
     pub fn segundos_jogados(&self) -> u64 {
-        self.quadros / 60
+        self.jogado as u64
     }
 
     pub fn troca_velocidade(&mut self) {

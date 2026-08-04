@@ -194,6 +194,18 @@ fn system_cnf_sem_boot_nao_produz_serial() {
 }
 
 #[test]
+fn linha_sem_igual_e_pulada_e_nao_aborta_o_parser() {
+    assert_eq!(
+        serial_do_boot("\nBOOT = cdrom:\\SLUS_007.27;1\n").as_deref(),
+        Some("SLUS-00727")
+    );
+    assert_eq!(
+        serial_do_boot("; config\r\nTCB = 4\nBOOT = cdrom:\\SCUS_949.00;1\n").as_deref(),
+        Some("SCUS-94900")
+    );
+}
+
+#[test]
 fn identifica_o_disco_inteiro_a_partir_dos_setores() {
     let disco = disco_falso();
     let id = identifica(|lba| disco.get(&lba).cloned());

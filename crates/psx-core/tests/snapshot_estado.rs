@@ -7,6 +7,8 @@ const RAM_ALVO: u32 = 0x0010_0000;
 const GP0: u32 = 0x1F80_1810;
 const GP1: u32 = 0x1F80_1814;
 const TIMER1_CONTADOR: u32 = 0x1F80_1110;
+const SCRATCHPAD: u32 = 0x1F80_0000;
+const TAMANHO_DO_ESTADO: usize = 3_809_483;
 const SPU_VOZ0_VOL: u32 = 0x1F80_1C00;
 const I_MASK: u32 = 0x1F80_1074;
 const DMA6_MADR: u32 = 0x1F80_10E0;
@@ -40,6 +42,7 @@ fn suja(cpu: &mut Cpu, bus: &mut Bus, semente: u32) {
     bus.gte_mut().write_control(5, 0x0BAD_0000 | semente);
     bus.sio().set_buttons(!(semente as u16 & 0x00FF));
     bus.write32::<BusWrite>(GP0, 0xE100_0000 | (semente & 0x7FF));
+    bus.write32::<BusWrite>(SCRATCHPAD, 0xBEEF_0000 | semente);
 }
 
 fn retrato(cpu: &Cpu, bus: &Bus) -> Vec<u32> {
@@ -56,11 +59,24 @@ fn retrato(cpu: &Cpu, bus: &Bus) -> Vec<u32> {
         bus.gte().read_control(5),
         bus.gpu().stat(),
         bus.total_cycles() as u32,
+        bus.read32::<BusRead>(SCRATCHPAD),
+        bus.read32::<BusRead>(TIMER1_CONTADOR),
     ]
 }
 
+#[test]
+fn estado_codificado_tem_tamanho_fixo_conhecido() {
+    let (cpu, bus) = maquina();
+    assert_eq!(
+        salvo(&cpu, &bus).len(),
+        TAMANHO_DO_ESTADO,
+        "campo tirado (ou posto) no Estado muda o tamanho; se a mudanca e legitima, \
+         atualize a constante e o doc da iteracao"
+    );
+}
+
 fn salvo(cpu: &Cpu, bus: &Bus) -> Vec<u8> {
-    snapshot::salva(cpu, bus, SERIAL)
+    snapshot::salva(cpu, bus, SERIAL).expect("codificar")
 }
 
 #[test]
@@ -273,18 +289,18 @@ fn save_state_de_maquina_real_leva_ao_mesmo_lugar() {
     for _ in 0..20_000_000 {
         cpu.step(&mut bus);
     }
-    let estado = snapshot::salva(&cpu, &bus, "SCUS-94900");
+    let estado = snapshot::salva(&cpu, &bus, "SCUS-94900").expect("codificar");
     for _ in 0..2_000_000 {
         cpu.step(&mut bus);
     }
-    let esperado = snapshot::salva(&cpu, &bus, "SCUS-94900");
+    let esperado = snapshot::salva(&cpu, &bus, "SCUS-94900").expect("codificar");
 
     snapshot::carrega(&mut cpu, &mut bus, &estado, "SCUS-94900").expect("carregar");
     for _ in 0..2_000_000 {
         cpu.step(&mut bus);
     }
     assert_eq!(
-        snapshot::salva(&cpu, &bus, "SCUS-94900"),
+        snapshot::salva(&cpu, &bus, "SCUS-94900").expect("codificar"),
         esperado,
         "2 M passos a partir do estado restaurado tem de dar a MESMA maquina"
     );

@@ -111,7 +111,13 @@ impl Emulador {
                 return;
             }
         }
-        let bytes = snapshot::salva(&self.cpu, &self.bus, &self.serial);
+        let bytes = match snapshot::salva(&self.cpu, &self.bus, &self.serial) {
+            Ok(b) => b,
+            Err(e) => {
+                self.aviso = Some(format!("slot {}: {e}", self.slot));
+                return;
+            }
+        };
         self.aviso = Some(match std::fs::write(&caminho, &bytes) {
             Ok(()) => format!("slot {} salvo ({} KiB)", self.slot, bytes.len() / 1024),
             Err(e) => format!("nao consegui gravar o slot {}: {e}", self.slot),

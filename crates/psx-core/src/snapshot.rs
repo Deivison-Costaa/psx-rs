@@ -24,6 +24,7 @@ pub enum SnapshotError {
     Magico,
     Versao(u32),
     Corrompido,
+    Codificacao,
     Serial { esperado: String, achado: String },
 }
 
@@ -38,6 +39,7 @@ impl std::fmt::Display for SnapshotError {
                 )
             }
             SnapshotError::Corrompido => write!(f, "save state truncado ou corrompido"),
+            SnapshotError::Codificacao => write!(f, "falha ao codificar o estado da maquina"),
             SnapshotError::Serial { esperado, achado } => {
                 write!(f, "save state e do jogo {achado}, nao do {esperado}")
             }
@@ -84,7 +86,7 @@ fn cabecalho() -> Vec<u8> {
     fora
 }
 
-pub fn salva(cpu: &Cpu, bus: &Bus, serial: &str) -> Vec<u8> {
+pub fn salva(cpu: &Cpu, bus: &Bus, serial: &str) -> Result<Vec<u8>, SnapshotError> {
     let estado = Estado {
         serial: serial.to_string(),
         cpu: cpu.clone(),
@@ -105,10 +107,11 @@ pub fn salva(cpu: &Cpu, bus: &Bus, serial: &str) -> Vec<u8> {
         scheduler: bus.scheduler.clone(),
         total_cycles: bus.total_cycles,
     };
+    let corpo =
+        bincode::serde::encode_to_vec(&estado, config()).map_err(|_| SnapshotError::Codificacao)?;
     let mut fora = cabecalho();
-    let corpo = bincode::serde::encode_to_vec(&estado, config()).unwrap_or_default();
     fora.extend_from_slice(&corpo);
-    fora
+    Ok(fora)
 }
 
 fn corpo(bytes: &[u8]) -> Result<&[u8], SnapshotError> {

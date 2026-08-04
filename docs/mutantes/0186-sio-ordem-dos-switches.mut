@@ -58,11 +58,11 @@ rotulo: ID high vira 0xA5 em vez de 0x5A
 mutante: m7
 rotulo: porta sem periferico responde 0x00 em vez de HiZ (0xFF)
 @@DE
-        let response = if count == 0 || !present {
-            0xFF
+        } else if count == 0 || !present {
+            (0xFF, present)
 @@PARA
-        let response = if count == 0 || !present {
-            0x00
+        } else if count == 0 || !present {
+            (0x00, present)
 @@FIM
 
 controle: c1

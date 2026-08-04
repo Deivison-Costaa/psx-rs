@@ -11,6 +11,7 @@ pub mod gpu;
 pub mod gte;
 pub mod irq;
 pub mod mdec;
+pub mod memcard;
 pub mod pad_script;
 pub mod psexe;
 pub mod scheduler;

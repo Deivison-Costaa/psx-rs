@@ -245,6 +245,10 @@ impl Bus {
         &mut self.timers
     }
 
+    pub fn sio(&self) -> &Sio {
+        &self.sio
+    }
+
     pub fn sio_mut(&mut self) -> &mut Sio {
         &mut self.sio
     }

@@ -221,6 +221,35 @@ fn load_disc(disc_path: &str) -> (DiscLayout, Vec<u8>) {
     (layout, bin_data)
 }
 
+/// Carrega a imagem `.mcd` (criando uma zerada de 128 KiB se nao existir) e liga o
+/// cartao no slot 1.
+fn monta_memory_card(bus: &mut Bus, caminho: Option<&str>) {
+    let Some(caminho) = caminho else {
+        return;
+    };
+    let bytes = std::fs::read(caminho).unwrap_or_else(|_| vec![0u8; psx_core::memcard::CARD_BYTES]);
+    match bus.sio_mut().load_memory_card(&bytes) {
+        Ok(()) => {}
+        Err(e) => {
+            eprintln!("Erro: memory card '{caminho}' invalido: {e:?}");
+            std::process::exit(1);
+        }
+    }
+}
+
+/// Regrava o `.mcd` se o jogo escreveu nele durante a execucao.
+fn salva_memory_card(bus: &Bus, caminho: Option<&str>) {
+    let Some(caminho) = caminho else {
+        return;
+    };
+    if !bus.sio().memory_card_dirty() {
+        return;
+    }
+    if let Err(e) = std::fs::write(caminho, bus.sio().memory_card_image()) {
+        eprintln!("Erro: nao consegui gravar o memory card '{caminho}': {e}");
+    }
+}
+
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     if args.len() == 1 || (args.len() == 2 && args[1] == "--version") {
@@ -239,6 +268,7 @@ fn main() {
     let mut vram_timeline: Option<(usize, String)> = None;
     let mut sample_pcs: Option<(usize, usize, usize)> = None;
     let mut pad_connected = false;
+    let mut memcard_arg: Option<String> = None;
     let mut press_specs: Vec<String> = Vec::new();
     let mut i = 1;
     while i < args.len() {
@@ -254,6 +284,10 @@ fn main() {
             "--pad" => {
                 pad_connected = true;
                 i += 1;
+            }
+            "--memcard" if i + 1 < args.len() => {
+                memcard_arg = Some(args[i + 1].clone());
+                i += 2;
             }
             "--press" if i + 1 < args.len() => {
                 press_specs.push(args[i + 1].clone());
@@ -466,6 +500,7 @@ fn main() {
             if pad_connected {
                 bus.sio_mut().connect_digital_pad(true);
             }
+            monta_memory_card(&mut bus, memcard_arg.as_deref());
             let steps = run(
                 &mut cpu,
                 &mut bus,
@@ -479,6 +514,7 @@ fn main() {
                 },
             );
 
+            salva_memory_card(&bus, memcard_arg.as_deref());
             let tty = bus.take_tty();
             if !tty.is_empty() {
                 let _ = std::io::stdout().write_all(&tty);
@@ -540,6 +576,7 @@ fn main() {
             if pad_connected {
                 bus.sio_mut().connect_digital_pad(true);
             }
+            monta_memory_card(&mut bus, memcard_arg.as_deref());
             let steps = run(
                 &mut cpu,
                 &mut bus,
@@ -553,6 +590,7 @@ fn main() {
                 },
             );
 
+            salva_memory_card(&bus, memcard_arg.as_deref());
             let tty = bus.take_tty();
             if !tty.is_empty() {
                 let _ = std::io::stdout().write_all(&tty);

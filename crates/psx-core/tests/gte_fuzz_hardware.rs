@@ -152,8 +152,8 @@ fn mede(casos: &[Caso]) -> Placar {
         e.1 += 1;
         e.0 += usize::from(ok);
         if !ok {
-            for i in 0..64 {
-                if medido[i] != caso.saida[i] {
+            for (i, (m, e)) in medido.iter().zip(caso.saida.iter()).enumerate() {
+                if m != e {
                     *placar.divergencias.entry(i).or_insert(0) += 1;
                 }
             }
@@ -223,12 +223,9 @@ fn primeira_divergencia_por_comando() {
             "# DIVERGE {} (palavra {:#010x})",
             caso.comando, caso.palavra
         );
-        for i in 0..64 {
-            if medido[i] != caso.saida[i] {
-                eprintln!(
-                    "#   r[{i}] esperado {:#010x} medido {:#010x}",
-                    caso.saida[i], medido[i]
-                );
+        for (i, (m, e)) in medido.iter().zip(caso.saida.iter()).enumerate() {
+            if m != e {
+                eprintln!("#   r[{i}] esperado {e:#010x} medido {m:#010x}");
             }
         }
     }

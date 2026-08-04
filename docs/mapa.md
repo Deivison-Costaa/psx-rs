@@ -5,6 +5,7 @@
 
 | Módulo | Arquivo(s) | Responsabilidade | Entradas principais |
 |---|---|---|---|
+| audio | `crates/psx-core/src/audio.rs` | anel de quadros entre o SPU e o frontend, com conversao de taxa | `Ring`, `push_frames`, `fill_interleaved` |
 | bus | `crates/psx-core/src/bus.rs` | mapa de memória, RAM 2MB, BIOS, roteamento KUSEG/KSEG0/KSEG1 | `Bus`, `Ram`, `Bios`, `read32`, `write32`, `to_physical` |
 | scheduler | `crates/psx-core/src/scheduler.rs` | fila de eventos por timestamp, relógio mestre | `Scheduler`, `EventId`, `ScheduleKey`, `schedule`, `advance_to`, `pending_events` |
 | cpu | `crates/psx-core/src/cpu.rs` | R3000A: decode, ALU, delay slots, COP0 | (vazio — item 1.2) |
@@ -14,7 +15,8 @@
 | irq | `crates/psx-core/src/irq.rs` | I_STAT/I_MASK | (vazio — M3) |
 | timers | `crates/psx-core/src/timers.rs` | timers 0/1/2 | (vazio — M3) |
 | cdrom | `crates/psx-core/src/cdrom.rs` | controller, comandos, BIN/CUE | (vazio — M4) |
-| sio | `crates/psx-core/src/sio.rs` | pad e memory card | (vazio — M6) |
+| sio | `crates/psx-core/src/sio.rs` | JOY_*, pad digital, roteamento por endereco e /ACK | `Sio`, `send_byte`, `deliver_ack`, `connect_memory_card`, `load_memory_card` |
+| memcard | `crates/psx-core/src/memcard.rs` | cartao de 128 KiB, comandos R/W/S e byte FLAG | `MemoryCard`, `exchange`, `begin`, `from_bytes`, `data` |
 | spu | `crates/psx-core/src/spu.rs` | registradores, RAM de 512 KiB, transferencia, mixer de 44,1 kHz | `Spu`, `read16`, `write16`, `tick`, `drain_output`, `set_cd_audio` |
 | spu/voice | `crates/psx-core/src/spu/voice.rs` | estado das 24 vozes, pitch, key on/off, ENDX | `Voice`, `Volume`, `Phase`, `step` |
 | spu/adpcm | `crates/psx-core/src/spu/adpcm.rs` | bloco de 16 bytes -> 28 amostras | `decode_block`, `Flags` |

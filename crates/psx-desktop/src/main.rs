@@ -10,6 +10,7 @@ struct PsxDesktop {
     texture: Option<egui::ColorImage>,
     steps_per_frame: usize,
     audio: AudioOut,
+    memcard: Option<String>,
 }
 
 impl PsxDesktop {
@@ -23,6 +24,14 @@ impl PsxDesktop {
         let steps_per_frame = bus.gpu().frame_cycles() as usize;
 
         bus.sio_mut().connect_digital_pad(true);
+        let memcard = std::env::args().nth(2);
+        if let Some(caminho) = memcard.as_deref() {
+            let bytes =
+                std::fs::read(caminho).unwrap_or_else(|_| vec![0u8; psx_core::memcard::CARD_BYTES]);
+            if let Err(e) = bus.sio_mut().load_memory_card(&bytes) {
+                return Err(format!("memory card invalido: {e:?}"));
+            }
+        }
 
         Ok(PsxDesktop {
             cpu,
@@ -30,6 +39,7 @@ impl PsxDesktop {
             texture: None,
             steps_per_frame,
             audio: AudioOut::new(),
+            memcard,
         })
     }
 
@@ -58,6 +68,15 @@ impl PsxDesktop {
         self.bus.sio_mut().set_buttons(buttons);
     }
 
+    fn salva_memcard(&mut self) {
+        let Some(caminho) = self.memcard.clone() else {
+            return;
+        };
+        if self.bus.sio().memory_card_dirty() {
+            let _ = std::fs::write(caminho, self.bus.sio().memory_card_image());
+        }
+    }
+
     fn update_texture(&mut self) {
         let fb = match self.bus.gpu().framebuffer_for_display() {
             Some(fb) => fb,
@@ -79,6 +98,7 @@ impl eframe::App for PsxDesktop {
         }
         let quadros = self.bus.drain_audio();
         self.audio.push(&quadros);
+        self.salva_memcard();
         self.update_texture();
         egui::CentralPanel::default().show(ctx, |ui| {
             if let Some(ref texture) = self.texture {
@@ -103,7 +123,7 @@ impl eframe::App for PsxDesktop {
 
 fn main() -> Result<(), eframe::Error> {
     let bios_path = std::env::args().nth(1).unwrap_or_else(|| {
-        eprintln!("Uso: psx-desktop <BIOS.bin>");
+        eprintln!("Uso: psx-desktop <BIOS.bin> [cartao.mcd]");
         std::process::exit(1);
     });
 

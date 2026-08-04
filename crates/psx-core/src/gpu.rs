@@ -69,7 +69,7 @@ fn lerp_color(a: u16, b: u16, t: i32, t_max: i32) -> u16 {
     r | (g << 5) | (b << 10)
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 enum VramCmd {
     Fill,
     CpuToVram,
@@ -86,14 +86,14 @@ impl VramCmd {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 enum RectStage {
     AwaitVertex,
     AwaitUV,
     AwaitDims,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 enum VramState {
     Idle,
     Header {
@@ -155,6 +155,7 @@ enum VramState {
     },
 }
 
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub struct Gpu {
     stat: Cell<u32>,
     dma_direction: Cell<u8>,

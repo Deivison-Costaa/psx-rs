@@ -5,7 +5,7 @@ use super::gauss;
 const BLOCO_EM_CONTADOR: u32 = (BLOCK_SAMPLES as u32) << 12;
 const PITCH_MAXIMO: u32 = 0x4000;
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Phase {
     #[default]
     Off,
@@ -17,7 +17,7 @@ pub enum Phase {
 
 /// Volume de canal: valor fixo (bit15=0) ou envoltoria de sweep (bit15=1).
 /// § 1F801C00h+N*10h - Voice 0..23 Volume Left (L468) de docs/reference/08-spu.md.
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, serde::Serialize, serde::Deserialize)]
 pub struct Volume {
     pub raw: u16,
     pub env: Envelope,
@@ -49,7 +49,7 @@ impl Volume {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Voice {
     pub volume_left: Volume,
     pub volume_right: Volume,

@@ -212,3 +212,11 @@ da escada valer so para o que FALTA. Narrativa de cada item continua em
 - [x] 10.101 SPU/DMA4 ausente bloqueia dma/dpcr (13/15) (0173) (iter 0187)
 - [x] 10.112 SPU sem estado: fetch em 1F801C00h vira NOP infinito (0172) (iter 0187)
 - [x] 0185.1 flags de overflow do MAC conferidas no total, nao por parcela (0185) (iter 0190)
+
+## Fechados na iteração 0193-0198 (M9 inteiro)
+- [x] 9.1 Biblioteca: scan BIN/CUE, título/serial/região, lista (iter 0193)
+- [x] 9.2 Snapshot do core (serde) → save states F5/F8 + slots (iter 0194)
+- [x] 9.3 Memory cards automáticos por serial + tela de saves (iter 0195)
+- [x] 9.4 Controles PS/Xbox (gilrs) + tela de mapeamento + perfis (iter 0196)
+- [x] 9.5 Tela de configurações (BIOS, vídeo, áudio, pasta) em TOML (iter 0197)
+- [x] 9.6 Fast-forward + recentes + tempo de jogo (iter 0198)

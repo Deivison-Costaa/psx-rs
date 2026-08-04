@@ -1,3 +1,4 @@
+use psx_core::app::library;
 use psx_core::bus::{Bios, Bus, BusRead, Ram};
 use psx_core::cdrom_bin_cue::{DiscLayout, parse_cue};
 use psx_core::cpu::Cpu;
@@ -272,10 +273,58 @@ fn salva_memory_card(bus: &Bus, caminho: Option<&str>) {
     }
 }
 
+/// Identifica um disco sem bootar nada: le so os setores do ISO 9660 (licenca, PVD,
+/// diretorio raiz, SYSTEM.CNF) por seek. E a mesma rotina que a biblioteca do app usa.
+fn imprime_identidade(disc_path: &str) {
+    let caminho = std::path::Path::new(disc_path);
+    let layout = match std::fs::read_to_string(caminho) {
+        Ok(t) => parse_cue(&t),
+        Err(e) => {
+            eprintln!("Erro: nao foi possivel ler CUE '{disc_path}': {e}");
+            std::process::exit(1);
+        }
+    };
+    let pasta = caminho
+        .parent()
+        .unwrap_or_else(|| std::path::Path::new("."));
+    let Some(primeiro) = layout.arquivos_em_ordem().first().map(|a| pasta.join(a)) else {
+        eprintln!("Erro: CUE sem FILE: '{disc_path}'");
+        std::process::exit(1);
+    };
+    let passo: u64 = match layout.tracks.first().map(|t| &t.track_type) {
+        Some(psx_core::cdrom_bin_cue::TrackType::Mode1_2048) => 2048,
+        _ => 2352,
+    };
+    let mut arquivo = match std::fs::File::open(&primeiro) {
+        Ok(f) => f,
+        Err(e) => {
+            eprintln!("Erro: nao foi possivel abrir '{}': {e}", primeiro.display());
+            std::process::exit(1);
+        }
+    };
+    let id = library::identifica(|lba| {
+        use std::io::{Read, Seek, SeekFrom};
+        let mut bruto = vec![0u8; passo as usize];
+        arquivo.seek(SeekFrom::Start(u64::from(lba) * passo)).ok()?;
+        arquivo.read_exact(&mut bruto).ok()?;
+        library::dados_do_setor(&bruto).map(<[u8]>::to_vec)
+    });
+    println!("arquivo: {disc_path}");
+    println!("serial: {}", id.serial.as_deref().unwrap_or("?"));
+    println!("regiao: {}", id.regiao.nome());
+    println!("rotulo: {}", id.rotulo.as_deref().unwrap_or("?"));
+    println!("boot: {}", id.boot.as_deref().unwrap_or("?"));
+    println!("trilhas: {}", layout.tracks.len());
+}
+
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     if args.len() == 1 || (args.len() == 2 && args[1] == "--version") {
         println!("psx-cli {}", env!("CARGO_PKG_VERSION"));
+        return;
+    }
+    if args.len() == 3 && args[1] == "--disc-info" {
+        imprime_identidade(&args[2]);
         return;
     }
 

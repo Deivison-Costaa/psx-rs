@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Irq {
     stat: u32,
     mask: u32,

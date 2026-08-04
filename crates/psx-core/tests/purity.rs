@@ -2,7 +2,10 @@ mod support;
 
 use std::fs;
 
-const ALLOWED_DEPENDENCIES: &[&str] = &[];
+// Entraram na 0194 (item 9.2, save states). As duas sao puras: `serde` so gera codigo de
+// (de)serializacao e `bincode` so troca esse codigo por bytes — nenhuma das duas abre
+// arquivo, soquete ou relogio. Quem grava o `.state` e o frontend.
+const ALLOWED_DEPENDENCIES: &[&str] = &["serde", "bincode"];
 
 #[test]
 fn psx_core_sem_dependencias_fora_da_allowlist() {
@@ -14,6 +17,19 @@ fn psx_core_sem_dependencias_fora_da_allowlist() {
         let line = line.trim();
         if line.starts_with('[') {
             in_deps = line == "[dependencies]";
+            if let Some(nome) = line
+                .strip_prefix("[dependencies.")
+                .and_then(|r| r.strip_suffix(']'))
+            {
+                if !ALLOWED_DEPENDENCIES.contains(&nome.trim()) {
+                    violations.push(nome.trim().to_string());
+                }
+            } else if !in_deps
+                && line.contains("dependencies")
+                && !line.contains("dev-dependencies")
+            {
+                violations.push(line.to_string());
+            }
             continue;
         }
         if !in_deps || line.is_empty() || line.starts_with('#') {

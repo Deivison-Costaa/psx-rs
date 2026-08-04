@@ -1,0 +1,18 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: 78fff8805fc374d09f83c802a20951a34749ce4a
+# rodado_em: 2026-08-03T23:13:03-03:00
+m1,mutante,morreu,morreu,1.1,lista_para_de_crescer_no_limite_e_perde_o_mais_antigo;o_ultimo_jogado_fica_no_topo;registrar_devolve_lista_nova_sem_mexer_na_antiga;rejogar_sobe_para_o_topo_sem_duplicar;tempo_de_jogo_acumula_entre_sessoes;titulo_novo_substitui_o_antigo_do_mesmo_serial
+m2,mutante,morreu,morreu,1.1,tempo_de_jogo_acumula_entre_sessoes
+m3,mutante,morreu,morreu,2.5,rejogar_sobe_para_o_topo_sem_duplicar
+m4,mutante,morreu,morreu,2.5,lista_para_de_crescer_no_limite_e_perde_o_mais_antigo
+m5,mutante,morreu,morreu,1.1,jogo_sem_serial_nao_entra_na_lista
+m6,mutante,morreu,morreu,1.1,multiplicador_zero_nao_congela_o_emulador
+m7,mutante,morreu,morreu,0.8,velocidade_cicla_e_volta_para_um
+m8,mutante,morreu,morreu,0.8,velocidade_desconhecida_volta_para_um
+m9,mutante,morreu,morreu,0.8,tempo_e_escrito_na_unidade_que_faz_sentido
+m10,mutante,morreu,morreu,0.8,tempo_e_escrito_na_unidade_que_faz_sentido
+m11,mutante,morreu,morreu,0.9,tempo_e_escrito_na_unidade_que_faz_sentido
+m12,mutante,morreu,morreu,0.8,lista_para_de_crescer_no_limite_e_perde_o_mais_antigo;tempo_de_jogo_acumula_entre_sessoes
+m13,mutante,morreu,morreu,1,velocidade_cicla_e_volta_para_um;velocidades_disponiveis_sao_potencias_de_dois
+c1,controle,sobreviveu,sobreviveu,1.3,
+c2,controle,sobreviveu,sobreviveu,1.1,

@@ -21,8 +21,10 @@ mutação e revisão adversarial. Projeto final da cadeira de Programação com 
 
 Requer uma BIOS de PS1 obtida do seu próprio console (ex.: SCPH1001.BIN) — não incluída.
 
+**Guia de uso completo (jogar, teclas, memory card, áudio): [docs/como-rodar.md](docs/como-rodar.md).**
+
 ```
-cargo test --all        # testes + meta-testes de processo
-cargo run -p psx-cli    # headless
-cargo run -p psx-desktop
+cargo nextest run --workspace   # testes + meta-testes de processo
+cargo build --release           # sempre release: debug e ~20x mais lento
+./target/release/psx-desktop bios/SCPH1001.BIN cartao.mcd
 ```

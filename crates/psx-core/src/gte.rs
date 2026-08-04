@@ -22,8 +22,9 @@ enum OrigemRgb {
     Fifo,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Gte {
+    #[serde(with = "crate::serde_grande")]
     pub regs: [u32; 64],
 }
 

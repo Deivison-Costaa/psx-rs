@@ -1,6 +1,6 @@
 use crate::bus::{Bus, BusRead, BusWrite};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Cpu {
     pub regs: [u32; 32],
     pub cop0: [u32; 32],

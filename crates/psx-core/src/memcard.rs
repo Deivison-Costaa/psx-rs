@@ -11,7 +11,7 @@ pub enum MemoryCardError {
     TamanhoInvalido(usize),
 }
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 enum Modo {
     #[default]
     Ocioso,
@@ -23,7 +23,7 @@ enum Modo {
 
 /// Cartao de memoria de 128 KiB no endereco 81h do SIO0.
 /// § Memory Card Read/Write Commands (L2564) de docs/reference/10-controllers-memcards.md.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct MemoryCard {
     data: Vec<u8>,
     flag: u8,

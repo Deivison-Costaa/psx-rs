@@ -9,7 +9,7 @@ const PAUSE_IDLE_CYCLES: u64 = 0x1DF2;
 const STOP_MOTOR_CYCLES: u64 = 0x0D3_8ACA;
 const STOP_STOPPED_CYCLES: u64 = 0x1D7B;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Cdrom {
     bank: Cell<u8>,
     param_count: Cell<u8>,
@@ -30,6 +30,7 @@ pub struct Cdrom {
     seek_min: Cell<u8>,
     seek_sec: Cell<u8>,
     seek_sect: Cell<u8>,
+    #[serde(with = "crate::serde_grande::em_cell")]
     data_buffer: Cell<[u8; 2048]>,
     data_pos: Cell<usize>,
     read_mode: Cell<u8>,

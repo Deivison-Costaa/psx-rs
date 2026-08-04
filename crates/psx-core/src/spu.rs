@@ -58,7 +58,7 @@ const CAPTURE_SIZE: u32 = 0x400;
 /// nunca drena, e o anel nao pode virar vazamento.
 const OUTPUT_CAPACITY: usize = 8192;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Spu {
     ram: Vec<u8>,
     voices: Vec<Voice>,

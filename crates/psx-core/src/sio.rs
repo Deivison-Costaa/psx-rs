@@ -4,7 +4,7 @@ use crate::memcard::{self, MemoryCard, MemoryCardError};
 
 const ADDRESS_CONTROLLER: u8 = 0x01;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Sio {
     tx_data: Cell<u8>,
     rx_fifo: RefCell<Vec<u8>>,

@@ -2,7 +2,7 @@ use std::cell::Cell;
 
 const TIMER_COUNT: usize = 3;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 struct Timer {
     counter: Cell<u16>,
     mode: Cell<u32>,
@@ -13,7 +13,7 @@ struct Timer {
     irq_fired_oneshot: Cell<bool>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Timers {
     timers: [Timer; TIMER_COUNT],
     gpu_cycles_per_pix: Cell<u16>,

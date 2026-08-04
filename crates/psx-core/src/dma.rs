@@ -3,7 +3,7 @@ use crate::gpu::Gpu;
 use crate::mdec::Mdec;
 use crate::spu::Spu;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Dma {
     madr: [u32; 7],
     bcr: [u32; 7],

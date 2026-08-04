@@ -5,7 +5,7 @@ pub const BLOCK_SAMPLES: usize = 28;
 const POS: [i32; 5] = [0, 60, 115, 98, 122];
 const NEG: [i32; 5] = [0, 0, -52, -55, -60];
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Flags {
     pub loop_end: bool,
     pub loop_repeat: bool,

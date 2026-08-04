@@ -1,5 +1,6 @@
 #![forbid(unsafe_code)]
 
+pub mod app;
 pub mod audio;
 pub mod bus;
 pub mod cdrom;
@@ -15,6 +16,8 @@ pub mod memcard;
 pub mod pad_script;
 pub mod psexe;
 pub mod scheduler;
+mod serde_grande;
 pub mod sio;
+pub mod snapshot;
 pub mod spu;
 pub mod timers;

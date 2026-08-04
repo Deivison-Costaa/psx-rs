@@ -7,14 +7,19 @@
 
 ## Última iteração concluída
 
-**0193** — primeira sessão de jogo real no app desktop (Crash, pelo usuário): o app ganhou
-carga de `.cue` + `insert_disc` (semente do ROADMAP 9.1), pacing por tempo real
-(`total_cycles` a 33,8688 MHz), escala 4:3 e slider de velocidade. A sessão diagnosticou
-e registrou os achados **0193.1-0193.7**: jogo 2× rápido (1 ciclo/instrução sem custo de
-memória), HUD invisível (retângulo texturizado nunca desenhado, 10.11), mixer sem
-headroom, filas de áudio com descarte silencioso, display 24bpp ausente.
-**Exceção de executor autorizada pelo usuário para a escada 0194+: o orquestrador
-implementa diretamente** (registrada em `docs/orquestracao.md`).
+**0193 (duas, em paralelo — colisão de número registrada no diário)** e **0194-0198**.
+
+- **0193-desktop-disco** (sessão de jogo com o usuário): `.cue` + `insert_disc` no app,
+  pacing por tempo real, escala 4:3, slider. Abriu os achados **0193.1-0193.7**: jogo 2×
+  rápido (1 ciclo/instrução sem custo de memória), HUD invisível (10.11), mixer sem
+  headroom, display 24bpp ausente. **Exceção de executor autorizada pelo usuário: o
+  orquestrador implementa a escada de correção diretamente** (`docs/orquestracao.md`).
+- **0193-biblioteca a 0198 (M9 inteiro, rodada paralela)** — o app virou aplicativo:
+  identidade do disco por ISO 9660 (Crash = SCUS-94900), save state serde/bincode (3,6 MB;
+  `serde`/`bincode` na allowlist do `purity.rs`) com F5/F8 + 10 slots, `.mcd` por serial
+  (F9), gilrs + perfis (F10), `psx-rs.toml` (F11), fast-forward 1/2/4/8× (F12), recentes e
+  tempo de jogo emulado. **Na fusão, o loop do M9 (passos fixos por repaint) foi religado
+  ao pacing por tempo real da 0193-desktop-disco.**
 
 ## Próxima tarefa
 
@@ -26,14 +31,17 @@ implementa diretamente** (registrada em `docs/orquestracao.md`).
 Depois, na ordem (escada da 0193, plano com o usuário): Achado 10.11 (retângulos
 texturizados — HUD do Crash), Achado 10.115 (âncoras relativas nos rayman_*), Achado
 0193.4 (custo de ciclo de memória; oráculo `cpu/access-time`), Achados 0193.5, 0193.3 e
-0189.1 (áudio), Achado 0193.2 (display 24bpp), Achado 10.13 (modulação). **ROADMAP 9.2
-(save states) fica para depois da escada.**
+0189.1 (áudio), Achado 0193.2 (display 24bpp), Achado 10.13 (modulação). Depois da
+escada: ROADMAP 11.2 (gráficos), 11.3 (demo), remedir Amidog `psxtest_cpu` e o lote do
+oráculo de TTY (parado desde a 0186).
 
 Rodar Crash: `--bios bios/SCPH1001.BIN --disc "../roms/extraido/Crash Bandicoot (USA).cue"
 --max-steps 1200000000 --pad --press start@330000000 --press cross@700000000`.
 **Rayman: sempre `--pad` e o `.cue` MULTI-TRILHA**, 1200000000.
-Flags novas do runner: `--memcard <a.mcd>`, `--dump-audio <a.raw>` (PCM s16le 44100 Hz,
-ouvir com `ffplay -f s16le -ar 44100 -ch_layout stereo`), `--dump-vram-every N PREFIXO`.
+Flags do runner: `--memcard <a.mcd>`, `--dump-audio <a.raw>` (PCM s16le 44100 Hz),
+`--dump-vram-every N PREFIXO`, `--disc-info <cue>`.
+App desktop: `./target/release/psx-desktop`, configurado por `psx-rs.toml` (ver
+`docs/como-rodar.md`).
 
 Achados abertos em `docs/achados.md`. Lotes do oráculo: tarefa-modelo em
 `logs/orquestrador/task-lote-oraculo.txt`.
@@ -57,7 +65,7 @@ Invariantes relevantes: nenhuma.
 
 ## Placar de testes
 
-Workspace: **1137** testes.
+Workspace: **1228** testes.
 - **NUNCA rodar `cargo test`/`nextest` nem a bateria de mutação junto com o oráculo**: a
   disputa de CPU faz o `Start-Process` ler stdout antes do flush e reportar `sem-saida`
   falso. Derrubou 16/21 numa medição da 0170; rodada limpa deu 21/21.
@@ -72,6 +80,12 @@ Workspace: **1137** testes.
   instante em que os dois descritores estão habilitados.
 - **`mutantes.ps1` herda o último `teste:` visto (10.71)**: declare `teste:` em TODO
   registro do manifesto, não só no cabeçalho. Custou uma rodada de 9/18 falsos na 0187.
+- **Ele maiúsculo seguido de dígito é lido como citação de spec** pelo `spec_citations`
+  (é a forma de citar linha). Nomear os ombros do controle assim em doc reprova; escreva em
+  minúscula. Custou duas correções: `docs/como-rodar.md` e o doc da 0196.
+- **Lógica pura de frontend mora em `crates/psx-core/src/app/`** (biblioteca, saves, perfil
+  de controle, config, sessão). Não é capricho: `mutantes.ps1` só roda `-p psx-core`, então
+  código testável fora dele não teria bateria.
 - Imagens de disco ficam fora do repositório, em `.../Programacao com agentes/roms/extraido/`.
   **Nunca commitar imagem de disco.**
 - **Oraculo de hardware disponivel (0164)**: 51 EXEs em `tests/exes/` (gitignored). Amidog

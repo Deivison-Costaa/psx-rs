@@ -1,6 +1,6 @@
-# gerado a mao: alvo fora do psx-core, mutantes.ps1 recusa (achado 10.58)
-# commit: 6d34beb6f7886ae14b3ddf5ef517cc507da5d829
-# rodado_em: 2026-08-03T21:43:20-03:00
+# gerado a mao: alvo fora do psx-core, mutantes.ps1 recusa (achado 10.58); reaplicado na 0198 porque as ancoras trocaram do M9 (fechado) para o M11
+# commit: f33450bc334d41600a71c7f28d2a7313e3d373f4
+# rodado_em: 2026-08-03T23:16:49-03:00
 m1,mutante,morreu,morreu,0.5,marco_totalmente_fechado_nao_fica_no_roadmap;roadmap_nao_contem_itens_fechados
 m2,mutante,morreu,morreu,0.5,roadmap_nao_contem_itens_fechados
 m3,mutante,morreu,morreu,0.5,roadmap_aponta_para_o_arquivo_de_fechados

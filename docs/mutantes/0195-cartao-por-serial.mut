@@ -1,0 +1,175 @@
+# Manifesto de mutacao da iteracao 0195 — cartao por serial e leitura do diretorio
+formato: 1
+iteracao: 0195
+item: 9.3
+alvo: crates/psx-core/src/app/saves.rs
+teste: memcard_saves
+
+mutante: m1
+teste: memcard_saves
+rotulo: bloco de continuacao (53h) passa a virar arquivo proprio
+ocorrencias: 1
+@@DE
+        if u32_le(entrada, 0) != Some(0x0000_0051) {
+            continue;
+        }
+@@PARA
+        if u32_le(entrada, 0) == Some(0x0000_00A0) {
+            continue;
+        }
+@@FIM
+
+mutante: m2
+teste: memcard_saves
+rotulo: arquivo apagado (A1h) volta a ser listado
+ocorrencias: 1
+@@DE
+        if u32_le(entrada, 0) != Some(0x0000_0051) {
+@@PARA
+        if u32_le(entrada, 0) != Some(0x0000_00A1) {
+@@FIM
+
+mutante: m3
+teste: memcard_saves
+rotulo: diretorio comeca no frame 2, perdendo o primeiro arquivo do cartao
+ocorrencias: 1
+@@DE
+    for bloco in 1..=BLOCOS {
+@@PARA
+    for bloco in 2..=BLOCOS {
+@@FIM
+
+mutante: m4
+teste: memcard_saves
+rotulo: nome do arquivo lido do offset 0 em vez do 0Ah
+ocorrencias: 1
+@@DE
+        .get(0x0A..0x1F)
+@@PARA
+        .get(0x00..0x15)
+@@FIM
+
+mutante: m5
+teste: memcard_saves
+rotulo: tamanho em blocos dividido por frame, nao por bloco
+ocorrencias: 1
+@@DE
+            blocos: (tamanho / BLOCO_BYTES as u32).max(1) as u8,
+@@PARA
+            blocos: (tamanho / FRAME_BYTES as u32).max(1) as u8,
+@@FIM
+
+mutante: m6
+teste: memcard_saves
+rotulo: Title Frame aceito sem a assinatura SC
+ocorrencias: 1
+@@DE
+    if &frame[0..2] != b"SC" {
+        return String::new();
+    }
+@@PARA
+    if frame.len() < 2 {
+        return String::new();
+    }
+@@FIM
+
+mutante: m7
+teste: memcard_saves
+rotulo: digito Shift-JIS deslocado de um
+ocorrencias: 1
+@@DE
+        (0x82, 0x4F..=0x58) => (b'0' + (baixo - 0x4F)) as char,
+@@PARA
+        (0x82, 0x4F..=0x58) => (b'0' + (baixo - 0x4E)) as char,
+@@FIM
+
+mutante: m8
+teste: memcard_saves
+rotulo: maiuscula Shift-JIS lida da faixa das minusculas
+ocorrencias: 1
+@@DE
+        (0x82, 0x60..=0x79) => (b'A' + (baixo - 0x60)) as char,
+@@PARA
+        (0x82, 0x60..=0x79) => (b'a' + (baixo - 0x60)) as char,
+@@FIM
+
+mutante: m9
+teste: memcard_saves
+rotulo: titulo em ASCII de 8 bits deixa de ser reconhecido
+ocorrencias: 1
+@@DE
+        if (0x20..0x80).contains(&alto) {
+            fora.push(alto as char);
+            i += 1;
+            continue;
+        }
+@@PARA
+        if false {
+            fora.push(alto as char);
+            i += 1;
+            continue;
+        }
+@@FIM
+
+mutante: m10
+teste: memcard_saves
+rotulo: cartao de tamanho errado passa a ser lido assim mesmo
+ocorrencias: 1
+@@DE
+    if imagem.len() != CARD_BYTES {
+        return Vec::new();
+    }
+@@PARA
+    if imagem.is_empty() {
+        return Vec::new();
+    }
+@@FIM
+
+mutante: m11
+teste: memcard_saves
+rotulo: serial vai cru para o nome do arquivo, sem filtro
+ocorrencias: 1
+@@DE
+        .filter(|c| c.is_ascii_alphanumeric() || *c == '-' || *c == '_')
+@@PARA
+        .filter(|c| !c.is_control())
+@@FIM
+
+mutante: m12
+teste: memcard_saves
+rotulo: serial so de separadores deixa de cair no cartao padrao
+ocorrencias: 1
+@@DE
+    if limpo.trim_matches(['-', '_']).is_empty() {
+@@PARA
+    if limpo.len() > 64 {
+@@FIM
+
+controle: c1
+teste: memcard_saves
+rotulo: fim do titulo escrito com condicao invertida
+ocorrencias: 1
+@@DE
+        if alto == 0 {
+            break;
+        }
+@@PARA
+        if alto != 0 {
+        } else {
+            break;
+        }
+@@FIM
+
+controle: c2
+teste: memcard_saves
+rotulo: leitura do u32 little-endian escrita com try_into
+ocorrencias: 1
+@@DE
+    let f = bytes.get(em..em + 4)?;
+    Some(u32::from_le_bytes([f[0], f[1], f[2], f[3]]))
+@@PARA
+    let f = bytes.get(em..em + 4)?;
+    let mut quatro = [0u8; 4];
+    quatro.copy_from_slice(f);
+    Some(u32::from_le_bytes(quatro))
+@@FIM

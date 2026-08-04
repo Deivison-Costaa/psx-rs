@@ -1,210 +1,208 @@
+mod ajustes;
 mod audio;
+mod biblioteca;
+mod disco;
+mod emulador;
+mod gamepad;
+mod telas;
 
-use audio::AudioOut;
-use psx_core::bus::{Bios, Bus, Ram};
-use psx_core::cdrom_bin_cue::{DiscLayout, parse_cue};
-use psx_core::cpu::Cpu;
+use std::path::PathBuf;
 
-const CPU_HZ: f64 = 33_868_800.0;
+use biblioteca::Jogo;
+use emulador::Emulador;
+use gamepad::Gamepads;
+use psx_core::app::config::Config;
+use psx_core::app::input_map::Perfil;
+use psx_core::app::sessao::Recentes;
 
-struct PsxDesktop {
-    cpu: Cpu,
-    bus: Bus,
-    texture: Option<egui::ColorImage>,
-    ultimo: std::time::Instant,
-    velocidade: f64,
-    audio: AudioOut,
-    memcard: Option<String>,
+const PERFIL_DE_CONTROLE: &str = "controles.txt";
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Tela {
+    Biblioteca,
+    Jogando,
+    Saves,
+    Controles,
+    Ajustes,
 }
 
-fn load_disc(disc_path: &str) -> Result<(DiscLayout, Vec<u8>), String> {
-    let cue_text = std::fs::read_to_string(disc_path)
-        .map_err(|e| format!("Erro lendo CUE '{}': {}", disc_path, e))?;
-    let mut layout = parse_cue(&cue_text);
-    let cue_dir = std::path::Path::new(disc_path)
-        .parent()
-        .unwrap_or_else(|| std::path::Path::new("."));
-    let mut setores: Vec<u32> = Vec::new();
-    let mut bin_data: Vec<u8> = Vec::new();
-    for arquivo in layout.arquivos_em_ordem() {
-        let bin_path = cue_dir.join(&arquivo);
-        let d = std::fs::read(&bin_path)
-            .map_err(|e| format!("Erro lendo BIN '{}': {}", bin_path.display(), e))?;
-        setores.push((d.len() / 2352) as u32);
-        bin_data.extend_from_slice(&d);
-    }
-    layout.atribui_lbas_absolutos(&setores);
-    Ok((layout, bin_data))
+pub(crate) struct App {
+    pub(crate) tela: Tela,
+    pub(crate) config: Config,
+    pub(crate) config_caminho: PathBuf,
+    pub(crate) jogos: Vec<Jogo>,
+    pub(crate) emulador: Option<Emulador>,
+    pub(crate) erro: Option<String>,
+    pub(crate) recado: Option<String>,
+    pub(crate) em_execucao: Option<String>,
+    pub(crate) gamepads: Gamepads,
+    pub(crate) perfil: Perfil,
+    pub(crate) perfil_arquivo: PathBuf,
 }
 
-impl PsxDesktop {
-    fn new(
-        bios_path: &str,
-        disc_path: Option<&str>,
-        memcard: Option<String>,
-    ) -> Result<Self, String> {
-        let bios_data = std::fs::read(bios_path)
-            .map_err(|e| format!("Erro lendo BIOS '{}': {}", bios_path, e))?;
-        let bios = Bios::from_bytes(bios_data).map_err(|e| format!("BIOS invalida: {:?}", e))?;
-        let ram = Ram::new();
-        let mut bus = Bus::new(ram, bios);
-        let cpu = Cpu::new();
-
-        bus.sio_mut().connect_digital_pad(true);
-        if let Some(caminho) = memcard.as_deref() {
-            let bytes =
-                std::fs::read(caminho).unwrap_or_else(|_| vec![0u8; psx_core::memcard::CARD_BYTES]);
-            if let Err(e) = bus.sio_mut().load_memory_card(&bytes) {
-                return Err(format!("memory card invalido: {e:?}"));
-            }
+impl App {
+    fn novo(config_caminho: PathBuf, sobrepoe_bios: Option<String>) -> Self {
+        let (mut config, erro) = ajustes::carrega(&config_caminho);
+        if let Some(bios) = sobrepoe_bios {
+            config.bios = bios;
         }
-        if let Some(cue) = disc_path {
-            let (layout, bin_data) = load_disc(cue)?;
-            bus.inject_disc(layout, bin_data);
-            bus.cdrom_mut().insert_disc();
+        let perfil_arquivo = PathBuf::from(PERFIL_DE_CONTROLE);
+        let perfil = match std::fs::read_to_string(&perfil_arquivo) {
+            Ok(texto) => Perfil::de_texto("Do arquivo", &texto),
+            Err(_) => Perfil::padrao(),
+        };
+        let jogos = biblioteca::varre(std::path::Path::new(&config.pasta_de_jogos));
+        App {
+            tela: Tela::Biblioteca,
+            config,
+            config_caminho,
+            jogos,
+            emulador: None,
+            erro,
+            recado: None,
+            em_execucao: None,
+            gamepads: Gamepads::novo(),
+            perfil,
+            perfil_arquivo,
         }
-
-        Ok(PsxDesktop {
-            cpu,
-            bus,
-            texture: None,
-            ultimo: std::time::Instant::now(),
-            velocidade: 1.0,
-            audio: AudioOut::new(),
-            memcard,
-        })
     }
 
-    fn poll_input(&mut self, ctx: &egui::Context) {
-        let mut buttons: u16 = 0xFFFF;
-        for (key, bit) in [
-            (egui::Key::ArrowUp, 4u32),
-            (egui::Key::ArrowDown, 6),
-            (egui::Key::ArrowLeft, 7),
-            (egui::Key::ArrowRight, 5),
-            (egui::Key::Z, 14),
-            (egui::Key::Space, 13),
-            (egui::Key::A, 15),
-            (egui::Key::S, 12),
-            (egui::Key::Enter, 3),
-            (egui::Key::Tab, 0),
-            (egui::Key::D, 10),
-            (egui::Key::F, 11),
-            (egui::Key::E, 8),
-            (egui::Key::R, 9),
-        ] {
-            if ctx.input(|i| i.key_down(key)) {
-                buttons &= !(1u16 << bit);
-            }
-        }
-        self.bus.sio_mut().set_buttons(buttons);
+    pub(crate) fn revarre(&mut self) {
+        self.jogos = biblioteca::varre(std::path::Path::new(&self.config.pasta_de_jogos));
     }
 
-    fn salva_memcard(&mut self) {
-        let Some(caminho) = self.memcard.clone() else {
+    pub(crate) fn grava_perfil(&mut self) {
+        self.recado = Some(
+            match std::fs::write(&self.perfil_arquivo, self.perfil.para_texto()) {
+                Ok(()) => format!("perfil gravado em {}", self.perfil_arquivo.display()),
+                Err(e) => format!("gravando perfil: {e}"),
+            },
+        );
+    }
+
+    pub(crate) fn grava_config(&mut self) {
+        self.config = self.config.ajustada();
+        self.recado = Some(match ajustes::grava(&self.config_caminho, &self.config) {
+            Ok(()) => format!("ajustes gravados em {}", self.config_caminho.display()),
+            Err(e) => e,
+        });
+    }
+
+    pub(crate) fn inicia(&mut self, indice: usize) {
+        let Some(jogo) = self.jogos.get(indice).cloned() else {
             return;
         };
-        if self.bus.sio().memory_card_dirty() {
-            let _ = std::fs::write(caminho, self.bus.sio().memory_card_image());
-        }
-    }
-
-    fn update_texture(&mut self) {
-        let fb = match self.bus.gpu().framebuffer_for_display() {
-            Some(fb) => fb,
-            None => {
-                self.texture = None;
+        let bios = match std::fs::read(&self.config.bios) {
+            Ok(b) => b,
+            Err(e) => {
+                self.erro = Some(format!("lendo BIOS '{}': {e}", self.config.bios));
                 return;
             }
         };
-        let size = [fb.width as usize, fb.height as usize];
-        self.texture = Some(egui::ColorImage::from_rgba_unmultiplied(size, &fb.data));
+        let mut emu = match Emulador::novo(bios, jogo.serial(), &self.config) {
+            Ok(e) => e,
+            Err(e) => {
+                self.erro = Some(e);
+                return;
+            }
+        };
+        if let Err(e) = emu.insere_disco(&jogo.cue) {
+            self.erro = Some(e);
+            return;
+        }
+        self.em_execucao = Some(jogo.titulo.clone());
+        self.emulador = Some(emu);
+        self.erro = None;
+        self.tela = Tela::Jogando;
+    }
+
+    /// Segundos desde a epoca. Fica no frontend porque o `psx-core` nao le relogio (R3).
+    pub(crate) fn agora() -> u64 {
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0)
+    }
+
+    /// Chamado ao sair do jogo: acumula o tempo jogado e grava, para a lista de recentes
+    /// sobreviver a fechar o app.
+    pub(crate) fn encerra_partida(&mut self) {
+        let Some(emu) = self.emulador.take() else {
+            return;
+        };
+        let titulo = self.em_execucao.clone().unwrap_or_default();
+        let novas = self.config.recentes.registra(
+            emu.serial(),
+            &titulo,
+            emu.segundos_jogados(),
+            Self::agora(),
+        );
+        if novas != self.config.recentes {
+            self.config.recentes = novas;
+            let _ = ajustes::grava(&self.config_caminho, &self.config);
+        }
+        self.em_execucao = None;
+    }
+
+    pub(crate) fn recentes(&self) -> &Recentes {
+        &self.config.recentes
+    }
+
+    pub(crate) fn volta_do_menu(&mut self) {
+        self.tela = if self.emulador.is_some() {
+            Tela::Jogando
+        } else {
+            Tela::Biblioteca
+        };
     }
 }
 
-impl eframe::App for PsxDesktop {
+impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        self.poll_input(ctx);
-        let agora = std::time::Instant::now();
-        let dt = (agora - self.ultimo).as_secs_f64().min(0.05);
-        self.ultimo = agora;
-        let alvo = self.bus.total_cycles() + (dt * CPU_HZ * self.velocidade) as u64;
-        while self.bus.total_cycles() < alvo {
-            self.cpu.step(&mut self.bus);
+        egui::CentralPanel::default().show(ctx, |ui| match self.tela {
+            Tela::Biblioteca => self.tela_biblioteca(ui),
+            Tela::Jogando => self.tela_jogando(ctx, ui),
+            Tela::Saves => self.tela_saves(ui),
+            Tela::Controles => self.tela_controles(ui),
+            Tela::Ajustes => self.tela_ajustes(ui),
+        });
+        if self.tela == Tela::Jogando {
+            ctx.request_repaint();
         }
-        let quadros = self.bus.drain_audio();
-        self.audio.push(&quadros);
-        self.salva_memcard();
-        self.update_texture();
-        egui::TopBottomPanel::bottom("status").show(ctx, |ui| {
-            ui.horizontal(|ui| {
-                if self.audio.ativo() {
-                    ui.label(format!("Audio: {} Hz", self.audio.device_hz()));
-                } else {
-                    ui.label("Audio desligado (sem dispositivo de saida)");
-                }
-                if let Some(ref texture) = self.texture {
-                    let [w, h] = texture.size;
-                    ui.label(format!("Video: {}x{}", w, h));
-                }
-                ui.add(
-                    egui::Slider::new(&mut self.velocidade, 0.25..=2.0)
-                        .text("Velocidade")
-                        .fixed_decimals(2),
-                );
-            });
-        });
-        egui::CentralPanel::default().show(ctx, |ui| {
-            if let Some(ref texture) = self.texture {
-                let handle = ctx.load_texture(
-                    "framebuffer",
-                    texture.clone(),
-                    egui::TextureOptions::NEAREST,
-                );
-                let livre = ui.available_size();
-                let lado = (livre.x / 4.0).min(livre.y / 3.0).max(1.0);
-                ui.centered_and_justified(|ui| {
-                    ui.add(
-                        egui::Image::new(&handle)
-                            .fit_to_exact_size(egui::vec2(lado * 4.0, lado * 3.0)),
-                    );
-                });
-            } else {
-                ui.label("Display desligado");
-            }
-        });
-        ctx.request_repaint();
     }
+}
+
+fn argumentos() -> (PathBuf, Option<String>) {
+    let brutos: Vec<String> = std::env::args().skip(1).collect();
+    let mut config = None;
+    let mut bios = None;
+    let mut i = 0;
+    while i < brutos.len() {
+        match brutos[i].as_str() {
+            "--config" if i + 1 < brutos.len() => {
+                config = Some(PathBuf::from(&brutos[i + 1]));
+                i += 2;
+            }
+            "--bios" if i + 1 < brutos.len() => {
+                bios = Some(brutos[i + 1].clone());
+                i += 2;
+            }
+            outro => {
+                if bios.is_none() && !outro.starts_with("--") {
+                    bios = Some(outro.to_string());
+                }
+                i += 1;
+            }
+        }
+    }
+    (config.unwrap_or_else(ajustes::caminho_padrao), bios)
 }
 
 fn main() -> Result<(), eframe::Error> {
-    let mut bios_path: Option<String> = None;
-    let mut disc: Option<String> = None;
-    let mut memcard: Option<String> = None;
-    for arg in std::env::args().skip(1) {
-        if arg.to_lowercase().ends_with(".cue") {
-            disc = Some(arg);
-        } else if bios_path.is_none() {
-            bios_path = Some(arg);
-        } else {
-            memcard = Some(arg);
-        }
-    }
-    let bios_path = bios_path.unwrap_or_else(|| {
-        eprintln!("Uso: psx-desktop <BIOS.bin> [jogo.cue] [cartao.mcd]");
-        std::process::exit(1);
-    });
-
-    let app = match PsxDesktop::new(&bios_path, disc.as_deref(), memcard) {
-        Ok(a) => a,
-        Err(e) => {
-            eprintln!("{}", e);
-            std::process::exit(1);
-        }
-    };
-
+    let (config_caminho, bios) = argumentos();
+    let app = App::novo(config_caminho, bios);
     let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default().with_inner_size([640.0, 480.0]),
+        viewport: egui::ViewportBuilder::default().with_inner_size([840.0, 640.0]),
         ..Default::default()
     };
     eframe::run_native("psx-rs", options, Box::new(move |_cc| Ok(Box::new(app))))

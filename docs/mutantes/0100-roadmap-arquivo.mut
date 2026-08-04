@@ -18,9 +18,9 @@ rotulo: M11 fica 100% fechado e continua ocupando bytes da escada
 mutante: m2
 rotulo: item da escada marcado como fechado sem sair para o historico
 @@DE
-- [ ] 9.2 Snapshot do core (serde) → save states F5/F8 + slots
+- [ ] 11.2 Gráficos de metricas.csv + scoreboard-data
 @@PARA
-- [x] 9.2 Snapshot do core (serde) → save states F5/F8 + slots
+- [x] 11.2 Gráficos de metricas.csv + scoreboard-data
 @@FIM
 
 mutante: m3
@@ -34,17 +34,19 @@ Itens fechados saem daqui para outro lugar; a escada mantém só o que FALTA.
 mutante: m4
 rotulo: item reaparece na escada com id que ja vive no arquivo de historico
 @@DE
-- [ ] 9.1 Biblioteca: scan BIN/CUE, título/serial/região, lista
+- [ ] 11.3 Roteiro de demo
 @@PARA
-- [ ] 0.1 Biblioteca: scan BIN/CUE, título/serial/região, lista
+- [ ] 0.1 Roteiro de demo
 @@FIM
 
 mutante: m5
 rotulo: segundo id repetido entre escada e historico, por outro caminho
 @@DE
-- [ ] 9.5 Tela de configurações (BIOS, vídeo, áudio, pasta) em TOML
+## M11 — Apresentação (incremental desde o M1)
+- [ ] 11.2 Gráficos de metricas.csv + scoreboard-data
 @@PARA
-- [ ] 0.2 Tela de configurações (BIOS, vídeo, áudio, pasta) em TOML
+## M11 — Apresentação (incremental desde o M1)
+- [ ] 0.2 Gráficos de metricas.csv + scoreboard-data
 @@FIM
 
 controle: c1

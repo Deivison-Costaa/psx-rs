@@ -51,7 +51,6 @@
 - [ ] 10.57 Regiao do GetID fixada em SCEA; ler o setor de licenca do `.bin` (0122)
 - [ ] 10.56 Result FIFO anterior legivel na janela da primeira resposta (0121)
 - [ ] 10.55 Atraso da 1a resposta ignora o motor: `Nop (when stopped) 0x5CF4` (0121)
-- [ ] 10.53 Comando executa com INT pendente; spec exige o ack (06-cdrom.md L1984) (0121)
 - [ ] 10.47 Espera da BIOS por timeout: 0x8000 giros < ~230 k (0114)
 - [ ] 10.58 mutantes.ps1 so roda psx-core; alvo por crate (invariante 29) (0125)
 - [ ] 10.66 Meta-teste nao reexecuta bateria antiga: `.resultado` mente (0143)
@@ -96,3 +95,4 @@
 - [ ] 0198.4 Teste com BIOS+disco reais do snapshot nunca roda na CI; so a maquina sintetica (de NOPs) cobre o save state la (0198)
 - [ ] 0198.5 `saves::lista` nao confere o magico `MC` da imagem de cartao; imagem lixo lista saves fantasmas (0198)
 - [ ] 0198.6 Maquina sintetica dos testes de snapshot executa so NOPs: scheduler/IRQ/DMA nunca exercitados no roundtrip (0198)
+- [ ] 0201.1 Silent Hill (SLUS-00707) trava ~150-200M passos apos a tela de abertura: VRAM para, so sobra vblank; ultimo evento de CDROM e um INT2 sem sequencia (0201)

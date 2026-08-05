@@ -26,17 +26,13 @@ teste: cdrom_fila_int
 @@FIM
 
 mutante: m3
-rotulo: comando bloqueado finge sucesso em vez de false
+rotulo: bloqueio checa pending_cmd em vez de intsts (logica invertida)
 ocorrencias: 1
 teste: cdrom_fila_int
 @@DE
-        if blocked {
-            return false;
-        }
+        let blocked = self.intsts.get() != 0;
 @@PARA
-        if blocked {
-            return true;
-        }
+        let blocked = self.pending_cmd.get().is_none();
 @@FIM
 
 mutante: m4

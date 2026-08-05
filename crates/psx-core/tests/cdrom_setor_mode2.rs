@@ -111,6 +111,7 @@ fn le_quatro_bytes_do_frame(bin: Vec<u8>, ss: u8, ff: u8) -> [u8; 4] {
     param_write(&mut bus, ff);
     send_command(&mut bus, 0x02);
     let _ = result_read(&mut bus);
+    hclrctl_write(&mut bus, 0x07);
 
     send_command(&mut bus, 0x06);
     let _ = result_read(&mut bus);

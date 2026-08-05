@@ -82,6 +82,7 @@ fn setloc_readn_primeiro_byte(bus: &mut Bus, mm: u8, ss: u8, ff: u8) -> u8 {
     param_write(bus, ff);
     send_command(bus, 0x02);
     let _ = result_read(bus);
+    hclrctl_write(bus, 0x07);
 
     send_command(bus, 0x06);
     let hintsts = hintsts_read_bank1(bus);
@@ -136,6 +137,7 @@ fn setloc_dentro_do_pregap_nao_estoura_nem_entrega_dado() {
     param_write(&mut bus, 0x00);
     send_command(&mut bus, 0x02);
     let _ = result_read(&mut bus);
+    hclrctl_write(&mut bus, 0x07);
 
     send_command(&mut bus, 0x06);
     let _ = result_read(&mut bus);

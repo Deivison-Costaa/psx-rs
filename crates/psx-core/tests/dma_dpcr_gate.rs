@@ -60,6 +60,10 @@ fn preparar_cdrom_para_dma3(bus: &mut Bus) {
     bus.tick_timers(ESPERA_PRIMEIRA_RESPOSTA);
     let _ = cd_read(bus, 1);
 
+    set_bank(bus, 1);
+    cd_write(bus, 3, 0x07);
+    set_bank(bus, 0);
+
     cd_write(bus, 1, 0x06);
     bus.tick_timers(ESPERA_PRIMEIRA_RESPOSTA);
     let _ = cd_read(bus, 1);

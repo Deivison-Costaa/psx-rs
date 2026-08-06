@@ -32,6 +32,17 @@ fn lancou(opcode: u32, sr: u32) -> bool {
     pc == VETOR_GERAL && code == COP_UNUSABLE
 }
 
+fn ce_apos(opcode: u32, sr: u32) -> u32 {
+    let mut bus = bus_with_bios_empty();
+    let mut cpu = Cpu::new();
+    cpu.pc = 0;
+    cpu.set_sr(sr);
+    bus.write32::<BusRead>(0, opcode);
+    bus.write32::<BusRead>(4, nop());
+    cpu.step(&mut bus);
+    (cpu.cop0[13] >> 28) & 3
+}
+
 fn cop(n: u32) -> u32 {
     (0x10 | n) << 26
 }
@@ -127,5 +138,32 @@ fn cop0_em_modo_usuario_sem_cu0_lanca() {
     assert!(
         !lancou(cop(0), 0),
         "em modo kernel o cop0 e usavel mesmo com CU0 desligado"
+    );
+}
+
+// § cop0r13 - CAUSE, campo CE bits 28-29 (L681) de docs/reference/02-cpu.md: "Contains the
+// coprocessor number if the exception occurred because of a coprocessor instruction for a
+// coprocessor which wasn't enabled in SR."
+#[test]
+fn cause_ce_registra_o_numero_do_coprocessador_da_excecao() {
+    assert_eq!(
+        ce_apos(cop(1), sr_com(None)),
+        1,
+        "cop1 sem CU1: CAUSE.CE tem que valer 1"
+    );
+    assert_eq!(
+        ce_apos(cop(2), sr_com(None)),
+        2,
+        "cop2 sem CU2: CAUSE.CE tem que valer 2"
+    );
+    assert_eq!(
+        ce_apos(cop(3), sr_com(None)),
+        3,
+        "cop3 sem CU3: CAUSE.CE tem que valer 3"
+    );
+    assert_eq!(
+        ce_apos(cop(0), 1 << 1),
+        0,
+        "cop0 em modo usuario sem CU0: CAUSE.CE tem que valer 0"
     );
 }

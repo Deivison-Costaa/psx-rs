@@ -1,0 +1,102 @@
+# Manifesto de mutacao da iteracao 0203 — 10.42: framebuffer so muda no vblank
+formato: 1
+iteracao: 0203
+item: 10.42
+alvo: crates/psx-core/src/gpu.rs
+teste: gpu_vblank_snapshot
+
+mutante: m1
+rotulo: enter_vblank para de latchar o snapshot da VRAM
+ocorrencias: 1
+teste: gpu_vblank_snapshot
+@@DE
+        self.display_snapshot.copy_from_slice(&self.vram);
+@@PARA
+        let _ = &self.vram;
+@@FIM
+
+mutante: m2
+rotulo: framebuffer volta a ler VRAM ao vivo em vez do snapshot
+ocorrencias: 1
+teste: gpu_vblank_snapshot
+@@DE
+                let pixel = self.display_snapshot[vy * 1024 + vx];
+@@PARA
+                let pixel = self.vram[vy * 1024 + vx];
+@@FIM
+
+mutante: m3
+rotulo: direcao da copia invertida — vram e sobrescrita pelo snapshot vazio
+ocorrencias: 1
+teste: gpu_vblank_snapshot
+@@DE
+        self.display_snapshot.copy_from_slice(&self.vram);
+@@PARA
+        self.vram.copy_from_slice(&self.display_snapshot);
+@@FIM
+
+mutante: m4
+rotulo: latch acontece no exit_vblank, nao no enter_vblank
+ocorrencias: 1
+teste: gpu_vblank_snapshot
+@@DE
+        self.display_snapshot.copy_from_slice(&self.vram);
+    }
+@@PARA
+    }
+@@FIM
+@@DE
+    pub fn exit_vblank(&mut self) {
+        self.in_vblank.set(false);
+    }
+@@PARA
+    pub fn exit_vblank(&mut self) {
+        self.in_vblank.set(false);
+        self.display_snapshot.copy_from_slice(&self.vram);
+    }
+@@FIM
+
+mutante: m5
+rotulo: display_snapshot alocado com tamanho errado (uma linha de VRAM a menos)
+ocorrencias: 1
+teste: gpu_vblank_snapshot
+@@DE
+            display_snapshot: vec![0u16; 1024 * 512],
+@@PARA
+            display_snapshot: vec![0u16; 1024 * 511],
+@@FIM
+
+controle: c1
+rotulo: ordem do campo display_snapshot no struct/construtor nao importa
+ocorrencias: 1
+teste: gpu_vblank_snapshot
+@@DE
+    gpuread_latch: Cell<u32>,
+    display_snapshot: Vec<u16>,
+}
+@@PARA
+    display_snapshot: Vec<u16>,
+    gpuread_latch: Cell<u32>,
+}
+@@FIM
+@@DE
+            gpuread_latch: Cell::new(0),
+            display_snapshot: vec![0u16; 1024 * 512],
+        }
+    }
+@@PARA
+            display_snapshot: vec![0u16; 1024 * 512],
+            gpuread_latch: Cell::new(0),
+        }
+    }
+@@FIM
+
+controle: c2
+rotulo: copy_from_slice trocado por clone_from equivalente nao muda o resultado
+ocorrencias: 1
+teste: gpu_vblank_snapshot
+@@DE
+        self.display_snapshot.copy_from_slice(&self.vram);
+@@PARA
+        self.display_snapshot.clone_from(&self.vram);
+@@FIM

@@ -199,6 +199,8 @@ pub struct Gpu {
     odd_line: Cell<bool>,
     hblank_active: Cell<bool>,
     allow_upper_y: Cell<bool>,
+    gpuread_latch: Cell<u32>,
+    display_snapshot: Vec<u16>,
 }
 
 #[derive(Clone)]
@@ -243,6 +245,8 @@ impl Gpu {
             odd_line: Cell::new(false),
             hblank_active: Cell::new(false),
             allow_upper_y: Cell::new(false),
+            gpuread_latch: Cell::new(0),
+            display_snapshot: vec![0u16; 1024 * 512],
         }
     }
 
@@ -396,6 +400,10 @@ impl Gpu {
 
     pub fn enter_vblank(&mut self) {
         self.in_vblank.set(true);
+        // § Vertical Refresh Rates (03-gpu.md L1426): a imagem exibida so muda uma vez por
+        // ciclo de video, no vblank — ler VRAM ao vivo entre dois vblanks vaza quadros
+        // parciais de jogos sem double-buffer (achado 10.42).
+        self.display_snapshot.copy_from_slice(&self.vram);
     }
 
     pub fn exit_vblank(&mut self) {
@@ -449,7 +457,7 @@ impl Gpu {
             for x in 0..(w as usize) {
                 let vx = (start_x + x) & 0x3FF;
                 let vy = (start_y + y) & 0x1FF;
-                let pixel = self.vram[vy * 1024 + vx];
+                let pixel = self.display_snapshot[vy * 1024 + vx];
                 let r = ((pixel & 0x1F) as u8) << 3;
                 let g = (((pixel >> 5) & 0x1F) as u8) << 3;
                 let b = (((pixel >> 10) & 0x1F) as u8) << 3;
@@ -1467,22 +1475,24 @@ impl Gpu {
                 )
             };
 
+            let xl_span = xl;
+            let dx_span = xr - xl;
+
             let xl = xl.max(area_x1).max(0);
             let xr = xr.max(0).min(area_x2 + 1).min(1024);
             if xl >= xr {
                 continue;
             }
 
-            let dx = xr - xl;
             for x in xl..xr {
                 let pixel = if textured {
-                    let tex_u = if dx > 0 {
-                        lerp_i32(ul, ur, x - xl, dx)
+                    let tex_u = if dx_span > 0 {
+                        lerp_i32(ul, ur, x - xl_span, dx_span)
                     } else {
                         ul
                     };
-                    let tex_v = if dx > 0 {
-                        lerp_i32(vl, vr, x - xl, dx)
+                    let tex_v = if dx_span > 0 {
+                        lerp_i32(vl, vr, x - xl_span, dx_span)
                     } else {
                         vl
                     };
@@ -1493,15 +1503,15 @@ impl Gpu {
                     if raw_texture {
                         texel
                     } else {
-                        let vcolor = if dx > 0 {
-                            lerp_color(cl, cr, x - xl, dx)
+                        let vcolor = if dx_span > 0 {
+                            lerp_color(cl, cr, x - xl_span, dx_span)
                         } else {
                             cl
                         };
                         modulate_texel(texel, vcolor)
                     }
-                } else if gouraud && dx > 0 {
-                    lerp_color(cl, cr, x - xl, dx)
+                } else if gouraud && dx_span > 0 {
+                    lerp_color(cl, cr, x - xl_span, dx_span)
                 } else {
                     pct
                 };
@@ -1811,9 +1821,14 @@ impl Gpu {
                     });
                 }
 
-                (hw1 as u32) | ((hw2 as u32) << 16)
+                let word = (hw1 as u32) | ((hw2 as u32) << 16);
+                self.gpuread_latch.set(word);
+                word
             }
-            _ => 0,
+            // § VRAM to CPU blitting / GP1(10h) (03-gpu.md L146, L939-940): GPUREAD e um
+            // latch compartilhado — sem transferencia em curso, devolve o ultimo valor
+            // lido, nao zero.
+            _ => self.gpuread_latch.get(),
         }
     }
 
@@ -1828,7 +1843,7 @@ impl Gpu {
                 remaining,
             } => {
                 if remaining == 0 {
-                    return 0;
+                    return self.gpuread_latch.get();
                 }
 
                 let total = (width as u32) * (height as u32);
@@ -1853,7 +1868,9 @@ impl Gpu {
 
                 (hw1 as u32) | ((hw2 as u32) << 16)
             }
-            _ => 0,
+            // § VRAM to CPU blitting / GP1(10h) (03-gpu.md L146, L939-940): mesmo latch
+            // compartilhado do gpuread_word — sem transferencia, devolve o ultimo valor.
+            _ => self.gpuread_latch.get(),
         }
     }
 

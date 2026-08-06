@@ -1,0 +1,78 @@
+# Manifesto de mutacao da iteracao 0203 — 10.109: chopping atualiza MADR/BC
+formato: 1
+iteracao: 0203
+item: 10.109
+alvo: crates/psx-core/src/dma.rs
+teste: dma_burst_sync0_chopping
+
+mutante: m1
+rotulo: condicao do chopping invertida — atualiza sem chopping, congela com chopping
+ocorrencias: 1
+teste: dma_burst_sync0_chopping
+@@DE
+        if self.chcr[2] & (1 << 8) != 0 {
+@@PARA
+        if self.chcr[2] & (1 << 8) == 0 {
+@@FIM
+
+mutante: m2
+rotulo: MADR nao e atualizado mesmo com chopping ligado
+ocorrencias: 1
+teste: dma_burst_sync0_chopping
+@@DE
+            self.madr[2] = addr;
+@@PARA
+            let _ = addr;
+@@FIM
+
+mutante: m3
+rotulo: BC nao e zerado mesmo com chopping ligado
+ocorrencias: 1
+teste: dma_burst_sync0_chopping
+@@DE
+            self.bcr[2] &= !0xFFFF;
+@@PARA
+            let _ = &self.bcr;
+@@FIM
+
+mutante: m4
+rotulo: mascara erra o campo — zera os bits altos em vez do campo BC
+ocorrencias: 1
+teste: dma_burst_sync0_chopping
+@@DE
+            self.bcr[2] &= !0xFFFF;
+@@PARA
+            self.bcr[2] &= !0xFFFF_0000;
+@@FIM
+
+mutante: m5
+rotulo: MADR final grava um endereco a mais (off-by-one word)
+ocorrencias: 1
+teste: dma_burst_sync0_chopping
+@@DE
+            self.madr[2] = addr;
+@@PARA
+            self.madr[2] = addr.wrapping_add(4);
+@@FIM
+
+controle: c1
+rotulo: ordem das duas atribuicoes dentro do if nao importa
+ocorrencias: 1
+teste: dma_burst_sync0_chopping
+@@DE
+            self.madr[2] = addr;
+            self.bcr[2] &= !0xFFFF;
+@@PARA
+            self.bcr[2] &= !0xFFFF;
+            self.madr[2] = addr;
+@@FIM
+
+controle: c2
+rotulo: escrever a mascara como constante literal equivale ao NOT
+ocorrencias: 1
+teste: dma_burst_sync0_chopping
+@@DE
+            self.bcr[2] &= !0xFFFF;
+@@PARA
+            self.bcr[2] &= 0xFFFF_0000;
+@@FIM

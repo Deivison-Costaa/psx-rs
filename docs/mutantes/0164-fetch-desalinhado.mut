@@ -4,6 +4,7 @@ iteracao: 0164
 item: 10.91
 alvo: crates/psx-core/src/cpu.rs
 teste: cpu_fetch_desalinhado
+arquivada: iter 0203 (achado 10.4) acrescentou o parametro `ce` a enter_exception; as chamadas de 5 argumentos ancoradas por m1-m4/c2 nao existem mais
 
 mutante: m1
 rotulo: volta a executar o alvo desalinhado, o estado que o Amidog reprovava

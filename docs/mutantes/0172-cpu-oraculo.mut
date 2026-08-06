@@ -4,6 +4,7 @@ iteracao: 0172
 item: 10.100
 alvo: crates/psx-core/src/cpu.rs
 teste: cpu_cop0_invalid_opcode
+arquivada: iter 0203 (achado 10.4) acrescentou o parametro `ce` a enter_exception; a chamada de 5 argumentos ancorada por m7 nao existe mais
 
 mutante: m1
 rotulo: cop0cmd fora de RFE nunca lanca reservado, nem para TLBxx

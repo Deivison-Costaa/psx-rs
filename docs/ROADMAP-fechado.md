@@ -236,3 +236,25 @@ da escada valer so para o que FALTA. Narrativa de cada item continua em
 - [x] 0203.4 Máscara final do índice de byte em `region_read_byte` aplicada aos 4 sítios
   irmãos do 10.51 (MEM_CTRL, espelho do MEM_CTRL, BCC, DMA) que o PR #215 não cobriu
   (iter 0204)
+
+## Fechado na iteração 0203
+- [x] 10.4 CAUSE.CE nao preenchido no Coprocessor Unusable (02-cpu.md L681) (iter 0203)
+- [x] 10.6 GP0(80h) VRAM->VRAM blit — achado ficou desatualizado: ja implementado com
+  mascara/wrap/coordenadas absolutas desde a iter 0105 (`execute_vram_to_vram`,
+  `crates/psx-core/src/gpu.rs`); confirmado sem mudanca de codigo na revisao da 0203
+- [x] 10.7 Mask GP0(E6h) em CPU->VRAM e VRAM->VRAM — achado ficou desatualizado: os dois
+  caminhos ja checam `force_bit15`/`check_mask` (GPUSTAT bits 11/12) desde a iter 0049/0105;
+  confirmado sem mudanca de codigo na revisao da 0203
+- [x] 10.50 `GP0(C0h)` sem transferencia devolve zero (0117) (iter 0203)
+- [x] 10.14 U/V e gouraud reinterpolados sobre span recortado (03-gpu.md L452) (iter 0203) —
+  caminho dither+gouraud+nao-texturizado (`render_triangle_dithered`) tem o mesmo padrao mas
+  fica pra depois sem teste dedicado; ver achado 0203.1
+- [x] 10.42 Linhas tremulas: captura sem sync com vblank (03-gpu.md L1426) (iter 0203) —
+  framebuffer() passa a ler um snapshot de VRAM latchado em enter_vblank(), nao VRAM ao vivo
+- [x] 10.117 (parcial) hblank nunca agendado — HBLANK_ENTER/HBLANK_EXIT agora sao eventos
+  reais do scheduler, uma vez por scanline (03-gpu.md L826/L1469) (iter 0203); a outra metade
+  do achado ("System Clock" diverge ~13-70x, causa raiz desconhecida desde a 0176) continua
+  aberta como 0203.3
+- [x] 10.109 SyncMode=0 com chopping: MADR e BC atualizados no fim do burst do DMA2
+  (04-dma.md L48-50, L80-81) (iter 0203) — so o estado final, sem cycle-stealing real
+  (achados 10.102/10.114 continuam abertos)

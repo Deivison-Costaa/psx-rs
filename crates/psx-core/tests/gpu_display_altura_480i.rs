@@ -63,6 +63,7 @@ fn framebuffer_480i_le_linhas_consecutivas_da_vram() {
         vram[1024] = 0x03E0;
         vram[479 * 1024] = 0x7C00;
     }
+    gpu.enter_vblank();
     let fb = gpu.framebuffer_for_display().expect("display ligado");
     let px = |x: usize, y: usize| {
         let o = (y * fb.width as usize + x) * 4;

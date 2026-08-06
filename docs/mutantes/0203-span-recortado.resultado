@@ -1,0 +1,10 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: 7b1bd2118b3fb3711bc9b1f325c9ee9d788b5b7c
+# rodado_em: 2026-08-06T13:55:18-03:00
+m1,mutante,morreu,morreu,1.3,gouraud_sobre_span_recortado_da_a_mesma_cor_do_span_inteiro
+m2,mutante,morreu,morreu,1.2,uv_sobre_span_recortado_amostra_o_mesmo_texel_do_span_inteiro
+m3,mutante,morreu,morreu,1.1,v_sobre_span_recortado_amostra_o_mesmo_texel_do_span_inteiro
+m4,mutante,morreu,morreu,1.2,gouraud_sobre_span_recortado_da_a_mesma_cor_do_span_inteiro;uv_sobre_span_recortado_amostra_o_mesmo_texel_do_span_inteiro;v_sobre_span_recortado_amostra_o_mesmo_texel_do_span_inteiro
+m5,mutante,morreu,morreu,1.2,gouraud_sobre_span_recortado_da_a_mesma_cor_do_span_inteiro;uv_sobre_span_recortado_amostra_o_mesmo_texel_do_span_inteiro;v_sobre_span_recortado_amostra_o_mesmo_texel_do_span_inteiro
+c1,controle,sobreviveu,sobreviveu,1.3,
+c2,controle,sobreviveu,sobreviveu,1.3,

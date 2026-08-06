@@ -4,6 +4,7 @@ iteracao: 0038
 item: 2.2
 alvo: crates/psx-core/src/gpu.rs
 teste: gpu_vram_transfers
+arquivada: iter 0203 (achado 10.50) reescreveu gpuread_word para gravar o latch antes de devolver a palavra; o registro 'd' esperava 2 ocorrencias da linha e agora so sobra 1 (em peek_gpuread)
 
 mutante: a
 rotulo: mascara de Xpos do fill de 3F0h para 3FFh, Xpos nao fica mais arredondado para multiplo de 16

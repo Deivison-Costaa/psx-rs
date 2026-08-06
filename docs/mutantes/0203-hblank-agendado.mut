@@ -1,0 +1,122 @@
+# Manifesto de mutacao da iteracao 0203 — 10.117: hblank agendado pelo scheduler
+formato: 1
+iteracao: 0203
+item: 10.117
+alvo: crates/psx-core/src/bus.rs
+teste: timers_hblank_agendado
+
+mutante: m1
+rotulo: X1/X2 trocados — janela de blanking fica invertida
+ocorrencias: 1
+teste: timers_hblank_agendado
+@@DE
+        let hblank_enter_offset = x2 * cpu_per_sl / video_per_sl;
+        let hblank_exit_offset = x1 * cpu_per_sl / video_per_sl;
+@@PARA
+        let hblank_enter_offset = x1 * cpu_per_sl / video_per_sl;
+        let hblank_exit_offset = x2 * cpu_per_sl / video_per_sl;
+@@FIM
+
+mutante: m2
+rotulo: HBLANK_ENTER liga o hblank em vez de desligar
+ocorrencias: 1
+teste: timers_hblank_agendado
+@@DE
+                HBLANK_ENTER => {
+                    self.gpu.set_hblank_active(true);
+@@PARA
+                HBLANK_ENTER => {
+                    self.gpu.set_hblank_active(false);
+@@FIM
+
+mutante: m3
+rotulo: HBLANK_EXIT desliga o hblank em vez de ligar
+ocorrencias: 1
+teste: timers_hblank_agendado
+@@DE
+                HBLANK_EXIT => {
+                    self.gpu.set_hblank_active(false);
+@@PARA
+                HBLANK_EXIT => {
+                    self.gpu.set_hblank_active(true);
+@@FIM
+
+mutante: m4
+rotulo: HBLANK_ENTER reagenda a cada frame em vez de a cada scanline
+ocorrencias: 1
+teste: timers_hblank_agendado
+@@DE
+                    self.scheduler.schedule(
+                        ScheduleKey::new(self.total_cycles + cpu_per_sl),
+                        EventId(HBLANK_ENTER),
+                    );
+@@PARA
+                    self.scheduler.schedule(
+                        ScheduleKey::new(self.total_cycles + frame),
+                        EventId(HBLANK_ENTER),
+                    );
+@@FIM
+
+mutante: m5
+rotulo: HBLANK_EXIT reagenda a cada frame em vez de a cada scanline
+ocorrencias: 1
+teste: timers_hblank_agendado
+@@DE
+                    self.scheduler.schedule(
+                        ScheduleKey::new(self.total_cycles + cpu_per_sl),
+                        EventId(HBLANK_EXIT),
+                    );
+@@PARA
+                    self.scheduler.schedule(
+                        ScheduleKey::new(self.total_cycles + frame),
+                        EventId(HBLANK_EXIT),
+                    );
+@@FIM
+
+controle: c1
+rotulo: ordem de agendamento dos dois eventos iniciais nao importa
+ocorrencias: 1
+teste: timers_hblank_agendado
+@@DE
+        scheduler.schedule(ScheduleKey::new(hblank_exit_offset), EventId(HBLANK_EXIT));
+        scheduler.schedule(ScheduleKey::new(hblank_enter_offset), EventId(HBLANK_ENTER));
+@@PARA
+        scheduler.schedule(ScheduleKey::new(hblank_enter_offset), EventId(HBLANK_ENTER));
+        scheduler.schedule(ScheduleKey::new(hblank_exit_offset), EventId(HBLANK_EXIT));
+@@FIM
+
+controle: c2
+rotulo: ordem dos bracos HBLANK_ENTER/HBLANK_EXIT no match nao importa
+ocorrencias: 1
+teste: timers_hblank_agendado
+@@DE
+                HBLANK_ENTER => {
+                    self.gpu.set_hblank_active(true);
+                    self.scheduler.schedule(
+                        ScheduleKey::new(self.total_cycles + cpu_per_sl),
+                        EventId(HBLANK_ENTER),
+                    );
+                }
+                HBLANK_EXIT => {
+                    self.gpu.set_hblank_active(false);
+                    self.scheduler.schedule(
+                        ScheduleKey::new(self.total_cycles + cpu_per_sl),
+                        EventId(HBLANK_EXIT),
+                    );
+                }
+@@PARA
+                HBLANK_EXIT => {
+                    self.gpu.set_hblank_active(false);
+                    self.scheduler.schedule(
+                        ScheduleKey::new(self.total_cycles + cpu_per_sl),
+                        EventId(HBLANK_EXIT),
+                    );
+                }
+                HBLANK_ENTER => {
+                    self.gpu.set_hblank_active(true);
+                    self.scheduler.schedule(
+                        ScheduleKey::new(self.total_cycles + cpu_per_sl),
+                        EventId(HBLANK_ENTER),
+                    );
+                }
+@@FIM

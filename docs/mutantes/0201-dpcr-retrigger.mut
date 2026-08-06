@@ -1,0 +1,87 @@
+# Manifesto de mutacao da iteracao 0201 — retrigger de DMA ao habilitar DPCR
+formato: 1
+iteracao: 0201
+item: 10.30
+alvo: crates/psx-core/src/bus.rs
+teste: dma_dpcr_retrigger
+
+mutante: m1
+rotulo: DPCR zerado antes do retrigger
+ocorrencias: 1
+teste: dma_dpcr_retrigger
+@@DE
+                self.dma.write_dpcr(val);
+@@PARA
+                self.dma.write_dpcr(0);
+@@FIM
+
+mutante: m2
+rotulo: bit de enable do OTC removido
+ocorrencias: 1
+teste: dma_dpcr_retrigger
+@@DE
+                self.dma.write_dpcr(val);
+@@PARA
+                self.dma.write_dpcr(val & !(1 << 27));
+@@FIM
+
+mutante: m3
+rotulo: retorno antes da tentativa do canal 0
+ocorrencias: 1
+teste: dma_dpcr_retrigger
+@@DE
+                self.dma.try_execute_dma0(&self.ram.data, &mut self.mdec);
+@@PARA
+                return true;
+@@FIM
+
+mutante: m4
+rotulo: retorno antes das tentativas dos canais 1 e 2
+ocorrencias: 1
+teste: dma_dpcr_retrigger
+@@DE
+                self.dma.try_execute_dma1(&mut self.ram.data, &self.mdec);
+                self.dma.try_execute_dma2(&mut self.ram.data, &mut self.gpu);
+@@PARA
+                return true;
+@@FIM
+
+mutante: m5
+rotulo: retorno antes da tentativa do canal 2
+ocorrencias: 1
+teste: dma_dpcr_retrigger
+@@DE
+                self.dma.try_execute_dma2(&mut self.ram.data, &mut self.gpu);
+@@PARA
+                return true;
+@@FIM
+
+mutante: m6
+rotulo: OTC recebe uma RAM sem espaco
+ocorrencias: 1
+teste: dma_dpcr_retrigger
+@@DE
+                self.dma.try_execute_otc(&mut self.ram.data);
+@@PARA
+                self.dma.try_execute_otc(&mut self.ram.data[0..0]);
+@@FIM
+
+controle: c1
+rotulo: OR numerico preserva o valor do DPCR
+ocorrencias: 1
+teste: dma_dpcr_retrigger
+@@DE
+                self.dma.write_dpcr(val);
+@@PARA
+                self.dma.write_dpcr(val | 0);
+@@FIM
+
+controle: c2
+rotulo: fatia completa preserva a RAM do OTC
+ocorrencias: 1
+teste: dma_dpcr_retrigger
+@@DE
+                self.dma.try_execute_otc(&mut self.ram.data);
+@@PARA
+                self.dma.try_execute_otc(&mut self.ram.data[..]);
+@@FIM

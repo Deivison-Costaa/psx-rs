@@ -21,7 +21,9 @@ fn framebuffer_so_muda_no_proximo_vblank_nao_a_cada_escrita_em_vram() {
 
     desenha_rect_1x1(&mut gpu, 10, 10, VERMELHO);
     gpu.enter_vblank();
-    let fb1 = gpu.framebuffer_for_display().expect("display habilitado por padrao");
+    let fb1 = gpu
+        .framebuffer_for_display()
+        .expect("display habilitado por padrao");
     assert_eq!(
         pixel_rgb(&fb1, 10, 10),
         (0xF8, 0, 0),

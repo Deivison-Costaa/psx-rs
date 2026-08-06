@@ -69,6 +69,7 @@ fn t3_framebuffer_converte_15bpp_para_rgba8() {
     write_pixel(&mut gpu, 3, 0, 0x7C00);
     write_pixel(&mut gpu, 4, 0, 0x0000);
 
+    gpu.enter_vblank();
     let fb = gpu.framebuffer();
 
     let px = |index: usize| {
@@ -121,6 +122,7 @@ fn t4_framebuffer_respeita_display_start_offset() {
 
     write_gp1(&mut gpu, 0x05, 10 | (5 << 10));
 
+    gpu.enter_vblank();
     let fb = gpu.framebuffer();
 
     let offset = 0;
@@ -143,6 +145,7 @@ fn t5_framebuffer_faz_wrap_de_coordenadas_da_vram() {
 
     write_gp1(&mut gpu, 0x05, (0x3FF) | (0x1FF << 10));
 
+    gpu.enter_vblank();
     let fb = gpu.framebuffer();
 
     let offset = 0;
@@ -168,6 +171,7 @@ fn t6_framebuffer_le_multiplas_linhas_da_vram() {
 
     write_gp1(&mut gpu, 0x05, 100 | (10 << 10));
 
+    gpu.enter_vblank();
     let fb = gpu.framebuffer();
 
     let px = |x: usize, y: usize| {

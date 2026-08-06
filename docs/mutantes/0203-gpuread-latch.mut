@@ -4,6 +4,7 @@ iteracao: 0203
 item: 10.50
 alvo: crates/psx-core/src/gpu.rs
 teste: gpu_gpuread_latch
+arquivada: c2 ancora o fim do struct Gpu (campo gpuread_latch antes do `}`), que ganhou o campo display_snapshot logo depois na mesma iteracao (achado 10.42)
 
 mutante: m1
 rotulo: gpuread_word volta a devolver 0 fixo quando ocioso

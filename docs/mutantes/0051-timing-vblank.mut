@@ -4,6 +4,7 @@ iteracao: 0051
 item: 2.7b
 alvo: crates/psx-core/src/gpu.rs
 teste: gpu_timing_vblank
+arquivada: m3 ancora o corpo de enter_vblank(), que ganhou o latch do display_snapshot na 0203 (achado 10.42)
 
 mutante: m1
 rotulo: frame_cycles usa constante PAL (680659) para modo NTSC

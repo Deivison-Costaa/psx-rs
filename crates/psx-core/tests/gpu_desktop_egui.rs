@@ -48,6 +48,7 @@ fn d3_framebuffer_para_egui_formato_rgba8() {
     vram[(2 & 0x1FF) * 1024 + (5 & 0x3FF)] = 0x03E0;
     vram[(2 & 0x1FF) * 1024 + (6 & 0x3FF)] = 0x001F;
 
+    gpu.enter_vblank();
     let fb = gpu.framebuffer_for_display().expect("display deve estar habilitado");
 
     assert!(fb.width > 0, "D3: largura deve ser > 0, obtido {}", fb.width);

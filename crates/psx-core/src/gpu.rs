@@ -184,6 +184,7 @@ pub struct Gpu {
     hblank_active: Cell<bool>,
     allow_upper_y: Cell<bool>,
     gpuread_latch: Cell<u32>,
+    display_snapshot: Vec<u16>,
 }
 
 #[derive(Clone)]
@@ -229,6 +230,7 @@ impl Gpu {
             hblank_active: Cell::new(false),
             allow_upper_y: Cell::new(false),
             gpuread_latch: Cell::new(0),
+            display_snapshot: vec![0u16; 1024 * 512],
         }
     }
 
@@ -382,6 +384,10 @@ impl Gpu {
 
     pub fn enter_vblank(&mut self) {
         self.in_vblank.set(true);
+        // § Vertical Refresh Rates (03-gpu.md L1426): a imagem exibida so muda uma vez por
+        // ciclo de video, no vblank — ler VRAM ao vivo entre dois vblanks vaza quadros
+        // parciais de jogos sem double-buffer (achado 10.42).
+        self.display_snapshot.copy_from_slice(&self.vram);
     }
 
     pub fn exit_vblank(&mut self) {
@@ -435,7 +441,7 @@ impl Gpu {
             for x in 0..(w as usize) {
                 let vx = (start_x + x) & 0x3FF;
                 let vy = (start_y + y) & 0x1FF;
-                let pixel = self.vram[vy * 1024 + vx];
+                let pixel = self.display_snapshot[vy * 1024 + vx];
                 let r = ((pixel & 0x1F) as u8) << 3;
                 let g = (((pixel >> 5) & 0x1F) as u8) << 3;
                 let b = (((pixel >> 10) & 0x1F) as u8) << 3;

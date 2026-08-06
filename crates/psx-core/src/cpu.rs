@@ -106,6 +106,7 @@ impl Cpu {
         self.branch_target = None;
         self.delay_slot_pending = false;
         self.branch_taken = false;
+        self.load_extra_cycles = 0;
         if let Some((reg, val)) = self.load_delay.take() {
             self.set_reg(reg, val);
         }

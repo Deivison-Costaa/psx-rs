@@ -55,7 +55,6 @@
 - [ ] 10.85 Rayman: laco `0x801B9574` espera `[0x801CF2CC]>=2` (0159)
 - [ ] 10.90 296x `VSync: timeout` antes do executavel assumir; o jogo roda depois (0184: nao e bloqueio)
 - [ ] 10.102 DMA sincrono: ticks medidos ao redor leem overhead do poll (0173)
-- [ ] 10.103 GetlocL/GetlocP stub; disc-swap exige tray scriptavel (06-cdrom.md L1052) (0175)
 - [ ] 10.107 `CLAUDE.md` lista `perf`/`ci` mas o commit-lint so aceita 6 tipos (0177)
 - [ ] 10.108 Oraculo roda cdrom sem `--disc`; com disco: GetStat sem bit1 (0175)
 - [ ] 10.113 step-by-step-log: divergencia de endereco do proprio EXE e status (yuv2rgb feito na 0184)
@@ -88,3 +87,4 @@
 - [ ] 0203.1 render_triangle_dithered tem o mesmo bug de 10.14 (reinterpola gouraud sobre o span ja recortado pela drawing area), caminho dither+gouraud+nao-texturizado; sem teste dedicado ainda (0203)
 - [ ] 0203.2 PR #214 (10.30, retrigger de DMA no DPCR): so o canal OTC e exercitado; mutantes m3/m4/m5 do manifesto "matam" por efeito colateral (return precoce tambem pula o OTC, que vem depois no codigo), nao porque testam os canais 0/1/2 de fato — CDROM (dma3) e SPU (dma4) nunca sao exercitados nem pela bateria nem pelo teste (revisao do orquestrador no PR #214)
 - [ ] 0203.3 "System Clock" diverge ~13-70x do gabarito do oraculo `timers` (ex-10.117); a iteracao 0176 ja tentou achar a causa raiz (inclusive corrigindo a propagacao de timing da GPU pros timers) e nao moveu esse numero — hblank agora e agendado de verdade (0203, ex-10.117 parcial) mas isso tambem nao deve mudar o "System Clock" (nao depende de GPU/hblank per a nota da 0176); causa raiz ainda desconhecida (0203)
+- [ ] 0207.1 disc-swap trava numa interacao fisica (abrir/fechar a bandeja) que o psx-cli nao tem como scriptar; bloqueio de infraestrutura, nao defeito de hardware (ex-parte de 10.103, ver 0175) (0207)

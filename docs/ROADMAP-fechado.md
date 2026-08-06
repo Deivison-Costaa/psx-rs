@@ -257,4 +257,11 @@ da escada valer so para o que FALTA. Narrativa de cada item continua em
   aberta como 0203.3
 - [x] 10.109 SyncMode=0 com chopping: MADR e BC atualizados no fim do burst do DMA2
   (04-dma.md L48-50, L80-81) (iter 0203) — so o estado final, sem cycle-stealing real
+
+## Fechado na iteração 0207
+- [x] 10.103 (parte GetlocL/GetlocP) — os dois comandos caiam no braco generico de
+  `send_command`, que so devolvia o stat byte; agora devolvem cabecalho+sub-header (10h) e
+  trilha/index/posicao (11h) por completo, com as condicoes de erro da spec mais a medida em
+  hardware real na 0175 (06-cdrom.md L1052/L1073) (iter 0207) — a parte de disc-swap do mesmo
+  achado nao e defeito de hardware e virou 0207.1
   (achados 10.102/10.114 continuam abertos)

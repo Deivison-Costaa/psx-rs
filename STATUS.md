@@ -7,30 +7,30 @@
 
 ## Última iteração concluída
 
-**0201-0204 — lote de achados 10.x, 10 itens mesclados na main (PRs #211-#216).** Fechados:
-10.53, 10.13, 10.48, 10.30, 10.51 + 0203.4 (mesma máscara de byte nos 4 sítios irmãos:
-MEM_CTRL, espelho, BCC, DMA), 10.4 (CAUSE.CE), 10.50 (GPUREAD latch), 10.14 (gouraud/UV sobre
-span recortado), 10.42 (framebuffer só muda no vblank — suspeito direto do "triângulos
-piscando" relatado pelo usuário no Crash), 10.117 parcial (hblank agendado; a metade "System
-Clock" continua sem causa raiz, ver 0203.3), 10.109 (DMA2 chopping). 10.6/10.7 estavam
-desatualizados (já corrigidos em 0049/0105) — só bookkeeping. Baterias 5/5 ou 6/6 + 2/2 cada.
-**CI do GitHub Actions ficou com a fila travada** (minutos esgotados) durante os merges —
-feitos com verificação local completa e `--admin` bypass, proteção restaurada depois.
-**Silent Hill CONTINUA travado** (0201.1); **artefato de triângulos no Crash precisa
-reconfirmação** pós-10.42 (0202.1). Achados novos: 0203.1, 0203.2, 0203.3 abertos; 0203.4
-fechado. **Exceção vigente: o orquestrador implementa a escada** (`docs/orquestracao.md`).
+**0207 — GetlocL/GetlocP (10.103), branch `iter/0207-cdrom-getloc`, PR ainda não aberto.**
+Os dois comandos caíam no braço genérico de `send_command` (só stat byte); agora devolvem
+cabeçalho+sub-header (10h) e trilha/index/posição relativa+absoluta (11h). Falha (80h) com
+motor parado, durante play, e — medido no hardware real da 0175, não na spec — antes de
+qualquer ReadN/ReadS ter completado. `send_command`/`deliver_first` passaram a receber
+`disc_layout`. Extraído `sector_bin_offset` para não duplicar linha ancorada por
+0132/0136 (as duas baterias antigas foram reexecutadas, sem regressão). Bateria 7/7+2/2.
+**Limitação registrada, não testada:** não há checagem de `seeking` dedicada (só a de "nenhum
+setor lido ainda", que cobre o caso comum por coincidência) — ver 0207-cdrom-getloc.md.
+Parte de disc-swap do 10.103 (tray não scriptável) virou achado 0207.1, ainda aberto.
+**PRs #218 (10.49+10.55+10.56) e #219 (10.52) seguem abertos, não mesclados** — ver seção
+anterior do histórico se precisar do contexto de CI/admin-bypass dos merges #211-#217.
 
 ## Próxima tarefa
 
 Continuar a lista de achados legado `10.x` em `docs/achados.md` (pedido do usuário: "vá
 passando por essa lista... resolver esses bugs... faça o máximo possível", uma iteração por
-achado, PR a cada ~10 itens). ~13 dos 16 achados classificados como bugs reais de emulação
-ainda faltam — ver `docs/achados.md` para citações de spec. Candidatos: 10.45 (load shadow,
-delay slot — CUIDADO, R1), 10.52 (timer lhu/lbu — tem pegadinha: `read16` chama
-`region_read_byte` duas vezes, então o side-effect de clear-on-read não pode disparar 2x),
-10.55/10.56/10.57 (CD-ROM), 10.83/10.85 (Rayman), 10.102/10.114/10.116 (timing arquitetural,
-grandes). Achado 10.115 — âncoras relativas nos rayman_* segue pendente (manutenção de teste,
-não bug de jogo).
+achado). Candidatos que restam: 10.45 (load shadow — na verdade é custo de ciclo por
+instrução/acesso, mesmo cluster arquitetural de baixo que 0193.4/10.102/10.114/10.116;
+CUIDADO, R1, precisa de escopo próprio, não é micro-item), 10.83/10.85 (Rayman — investigação
+multi-iteração sem causa raiz confirmada ainda, ver 0154/0157/0158/0159; não force fix sem
+achar a causa), 10.102/10.114/10.116 (timing arquitetural, grandes, idem 10.45).
+Achado 10.115 — âncoras relativas nos rayman_* segue pendente (manutenção de teste, não bug
+de jogo).
 
 Rodar Crash: `--bios bios/SCPH1001.BIN --disc "../roms/extraido/Crash Bandicoot (USA).cue"
 --max-steps 1200000000 --pad --press start@330000000 --press cross@700000000`.
@@ -62,7 +62,7 @@ Invariantes relevantes: nenhuma.
 
 ## Placar de testes
 
-Workspace: **1264** testes.
+Workspace: **1271** testes.
 - **NUNCA rodar `cargo test`/`nextest` nem a bateria de mutação junto com o oráculo**: a
   disputa de CPU faz o `Start-Process` ler stdout antes do flush e reportar `sem-saida`
   falso. Derrubou 16/21 numa medição da 0170; rodada limpa deu 21/21.

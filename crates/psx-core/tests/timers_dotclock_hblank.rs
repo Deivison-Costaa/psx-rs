@@ -72,6 +72,24 @@ fn timer1_hblank_ntsc_razao_11_por_23891_cpu_cycles() {
     );
 }
 
+// § Dotclock/Hblank (L79-86) de docs/reference/05-timers.md diz que o hblank pulsa 11 vezes
+// a cada 7 linhas de varredura — denom = 7 * ciclos_por_linha, nao 8. 2172 ciclos*11=23892 e
+// o primeiro multiplo que cruza 23891 (7*3413); cruza so no ciclo 27304 (8*3413) se o fator
+// virasse 8 por engano, entao esse limiar prova qual dos dois o codigo usa de fato.
+#[test]
+fn timer1_hblank_denom_e_sete_vezes_video_cycles_por_scanline_nao_oito() {
+    let mut bus = bus();
+    bus.timers_mut().update_gpu_timing(10, 3413);
+    bus.write32::<BusRead>(T1_MODE, 0x0100);
+    tick_timer(&mut bus, T1_CNT, 2172);
+    assert_eq!(
+        bus.read32::<BusRead>(T1_CNT) & 0xFFFF,
+        1,
+        "2172*11=23892 cruza 7*3413=23891 por 1 ciclo — com denom=8*3413=27304 isso ainda \
+         nao teria cruzado nenhum pulso"
+    );
+}
+
 // § Dotclock/Hblank (L79-86) de docs/reference/05-timers.md: o driver da PsyQ le o contador
 // duas vezes seguidas e so aceita quando as leituras batem. Se o acumulador fracionario
 // vazar o resto inteiro a cada chamada (em vez de reter so a fracao ate cruzar o proximo

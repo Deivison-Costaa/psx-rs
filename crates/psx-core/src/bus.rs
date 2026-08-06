@@ -333,7 +333,8 @@ impl Bus {
     fn schedule_cdrom_response(&mut self) {
         if let Some(cmd) = self.cdrom.take_issued_command() {
             self.scheduler.cancel(EventId(CDROM_RESPONSE));
-            let prazo = self.total_cycles + Cdrom::first_response_cycles(cmd);
+            let prazo =
+                self.total_cycles + Cdrom::first_response_cycles(cmd, self.cdrom.motor_on());
             self.scheduler
                 .schedule(ScheduleKey::new(prazo), EventId(CDROM_RESPONSE));
         }

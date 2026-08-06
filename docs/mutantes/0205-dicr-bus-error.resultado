@@ -1,0 +1,10 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: ab2a043a59c8bdf53b15ddebf40521e70c623664
+# rodado_em: 2026-08-06T16:31:04-03:00
+m1,mutante,morreu,morreu,1.1,dma2_burst_fora_da_ram_levanta_bus_error_no_dicr;dma6_otc_fora_da_ram_levanta_bus_error_no_dicr
+m2,mutante,morreu,morreu,1.1,dma6_otc_ponteiro_guarda_24_bits_e_nao_dobra_em_21
+m3,mutante,morreu,morreu,1.1,dma2_burst_fora_da_ram_levanta_bus_error_no_dicr;dma6_otc_fora_da_ram_levanta_bus_error_no_dicr
+m4,mutante,morreu,morreu,1.1,dma2_burst_fora_da_ram_levanta_bus_error_no_dicr;dma6_otc_fora_da_ram_levanta_bus_error_no_dicr
+m5,mutante,morreu,morreu,1.1,dma2_burst_fora_da_ram_levanta_bus_error_no_dicr;dma6_otc_fora_da_ram_levanta_bus_error_no_dicr
+c1,controle,sobreviveu,sobreviveu,1.1,
+c2,controle,sobreviveu,sobreviveu,1.1,

@@ -84,6 +84,23 @@ impl Dma {
         }
     }
 
+    fn ram_transfer_in_bounds(&mut self, ram: &[u8], addr: u32, offset: usize) -> bool {
+        // § D#_MADR (04-dma.md L48-50): MADR e um campo de 24 bits (0-23) — enderecos
+        // com bits 21-23 ligados sao mascarados/espelhados pro decodificador de RAM
+        // de 21 bits e NAO sao erro (dma_otc.rs::...guarda_24_bits_e_nao_dobra_em_21,
+        // ja existente, exige que o ponteiro gravado preserve esses bits). O bus error
+        // e so o wraparound que a spec descreve: contador decrementando de 000000h
+        // passa por baixo de zero e vira ~FFFFFFFCh em aritmetica de 32 bits, bem
+        // acima do proprio campo de 24 bits do MADR — dai o teto em 0x00FF_FFFF.
+        if addr <= 0x00FF_FFFF && offset + 4 <= ram.len() {
+            true
+        } else {
+            self.dicr |= 1 << 15;
+            self.recalc_master_flag();
+            false
+        }
+    }
+
     fn signal_completion(&mut self, ch: usize) {
         let mascara = self.dicr & (1 << (16 + ch)) != 0;
         let master_enable = self.dicr & (1 << 23) != 0;
@@ -117,7 +134,7 @@ impl Dma {
         let mut addr = madr;
         for i in 0..count {
             let offset = (addr & 0x1F_FF_FF) as usize;
-            if offset + 4 <= ram.len() {
+            if self.ram_transfer_in_bounds(ram, addr, offset) {
                 let val = if i == count - 1 {
                     0x00FF_FFFF
                 } else {
@@ -156,7 +173,7 @@ impl Dma {
             let b3 = cdrom.read8(2) as u32;
             let word = b0 | (b1 << 8) | (b2 << 16) | (b3 << 24);
             let offset = (addr & 0x1F_FF_FF) as usize;
-            if offset + 4 <= ram.len() {
+            if self.ram_transfer_in_bounds(ram, addr, offset) {
                 ram[offset..offset + 4].copy_from_slice(&word.to_le_bytes());
             }
             addr = addr.wrapping_add(4);
@@ -191,7 +208,7 @@ impl Dma {
 
         for _ in 0..count {
             let offset = (addr & 0x1F_FF_FF) as usize;
-            if offset + 4 <= ram.len() {
+            if self.ram_transfer_in_bounds(ram, addr, offset) {
                 if para_dispositivo {
                     let word = u32::from_le_bytes([
                         ram[offset],
@@ -241,7 +258,7 @@ impl Dma {
         for _ in 0..ba {
             for _ in 0..bs {
                 let offset = (addr & 0x1F_FF_FF) as usize;
-                if offset + 4 <= ram.len() {
+                if self.ram_transfer_in_bounds(ram, addr, offset) {
                     if para_dispositivo {
                         let word = u32::from_le_bytes([
                             ram[offset],
@@ -285,7 +302,7 @@ impl Dma {
                 break;
             }
             let offset = (addr & 0x1F_FF_FF) as usize;
-            if offset + 4 > ram.len() {
+            if !self.ram_transfer_in_bounds(ram, addr, offset) {
                 alcancou_fim = true;
                 break;
             }
@@ -301,7 +318,7 @@ impl Dma {
             let mut data_addr = addr.wrapping_add(4);
             for _ in 0..word_count {
                 let doff = (data_addr & 0x1F_FF_FF) as usize;
-                if doff + 4 <= ram.len() {
+                if self.ram_transfer_in_bounds(ram, data_addr, doff) {
                     let word = u32::from_le_bytes([
                         ram[doff],
                         ram[doff + 1],
@@ -356,7 +373,7 @@ impl Dma {
         let mut addr = self.madr[0] & 0x00FF_FFFC;
         for _ in 0..self.total_words(0) {
             let offset = (addr & 0x1F_FFFF) as usize;
-            if offset + 4 <= ram.len() {
+            if self.ram_transfer_in_bounds(ram, addr, offset) {
                 let word = u32::from_le_bytes([
                     ram[offset],
                     ram[offset + 1],
@@ -403,7 +420,7 @@ impl Dma {
         for _ in 0..available {
             let word = mdec.read32_dma();
             let offset = (addr & 0x1F_FFFF) as usize;
-            if offset + 4 <= ram.len() {
+            if self.ram_transfer_in_bounds(ram, addr, offset) {
                 let bytes_lidas = word.to_le_bytes();
                 ram[offset..offset + 4].copy_from_slice(&bytes_lidas);
             }
@@ -434,7 +451,7 @@ impl Dma {
         for _ in 0..self.total_words(4) {
             let offset = (addr & 0x1F_FFFF) as usize;
             if from_ram {
-                if offset + 4 <= ram.len() {
+                if self.ram_transfer_in_bounds(ram, addr, offset) {
                     let word = u32::from_le_bytes([
                         ram[offset],
                         ram[offset + 1],
@@ -445,7 +462,7 @@ impl Dma {
                 }
             } else {
                 let word = spu.dma_pop_word();
-                if offset + 4 <= ram.len() {
+                if self.ram_transfer_in_bounds(ram, addr, offset) {
                     ram[offset..offset + 4].copy_from_slice(&word.to_le_bytes());
                 }
             }

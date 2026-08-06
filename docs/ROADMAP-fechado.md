@@ -258,3 +258,16 @@ da escada valer so para o que FALTA. Narrativa de cada item continua em
 - [x] 10.109 SyncMode=0 com chopping: MADR e BC atualizados no fim do burst do DMA2
   (04-dma.md L48-50, L80-81) (iter 0203) — so o estado final, sem cycle-stealing real
   (achados 10.102/10.114 continuam abertos)
+
+## Fechado na iteração 0205
+- [x] 10.49 Bit 15 do DICR (bus error) levantado quando o endereco do DMA excede o campo de
+  24 bits do MADR (04-dma.md L48-50, L119-135) (iter 0205) — trabalhador fez teste+fix,
+  orquestrador corrigiu uma regressao real (endereco com bits 21-23 legitimos sendo tratado
+  como erro) e completou passos 6-9
+
+## Fechado na iteração 0206
+- [x] 10.55 Atraso da 1a resposta usa 0005cf4h quando o motor esta parado, nao sempre
+  000c4e1h (06-cdrom.md L2047-2054) (iter 0206)
+- [x] 10.56 Result FIFO anterior legivel na janela da 1a resposta — achado ficou desatualizado
+  (send_command/result_clear so rodam quando deliver_first() entrega a resposta nova, nao na
+  escrita do comando); confirmado sem mudanca de codigo na revisao da 0206

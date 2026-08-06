@@ -1,0 +1,10 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: 7d9dae5583d29a031c028e289761fd7c803c5bdc
+# rodado_em: 2026-08-06T17:09:05-03:00
+m1,mutante,morreu,morreu,1.2,primeira_resposta_com_motor_ligado_usa_o_atraso_normal;primeira_resposta_com_motor_parado_usa_o_atraso_menor
+m2,mutante,morreu,morreu,1.1,primeira_resposta_com_motor_parado_usa_o_atraso_menor
+m3,mutante,morreu,morreu,1.1,primeira_resposta_com_motor_ligado_usa_o_atraso_normal
+m4,mutante,morreu,morreu,1.2,primeira_resposta_com_motor_parado_usa_o_atraso_menor
+m5,mutante,morreu,morreu,2.2,primeira_resposta_com_motor_parado_usa_o_atraso_menor
+c1,controle,sobreviveu,sobreviveu,2.3,
+c2,controle,sobreviveu,sobreviveu,1.1,

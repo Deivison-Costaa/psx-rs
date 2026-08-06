@@ -183,6 +183,7 @@ pub struct Gpu {
     odd_line: Cell<bool>,
     hblank_active: Cell<bool>,
     allow_upper_y: Cell<bool>,
+    gpuread_latch: Cell<u32>,
 }
 
 #[derive(Clone)]
@@ -227,6 +228,7 @@ impl Gpu {
             odd_line: Cell::new(false),
             hblank_active: Cell::new(false),
             allow_upper_y: Cell::new(false),
+            gpuread_latch: Cell::new(0),
         }
     }
 
@@ -1775,9 +1777,14 @@ impl Gpu {
                     });
                 }
 
-                (hw1 as u32) | ((hw2 as u32) << 16)
+                let word = (hw1 as u32) | ((hw2 as u32) << 16);
+                self.gpuread_latch.set(word);
+                word
             }
-            _ => 0,
+            // § VRAM to CPU blitting / GP1(10h) (03-gpu.md L146, L939-940): GPUREAD e um
+            // latch compartilhado — sem transferencia em curso, devolve o ultimo valor
+            // lido, nao zero.
+            _ => self.gpuread_latch.get(),
         }
     }
 
@@ -1792,7 +1799,7 @@ impl Gpu {
                 remaining,
             } => {
                 if remaining == 0 {
-                    return 0;
+                    return self.gpuread_latch.get();
                 }
 
                 let total = (width as u32) * (height as u32);
@@ -1817,7 +1824,9 @@ impl Gpu {
 
                 (hw1 as u32) | ((hw2 as u32) << 16)
             }
-            _ => 0,
+            // § VRAM to CPU blitting / GP1(10h) (03-gpu.md L146, L939-940): mesmo latch
+            // compartilhado do gpuread_word — sem transferencia, devolve o ultimo valor.
+            _ => self.gpuread_latch.get(),
         }
     }
 

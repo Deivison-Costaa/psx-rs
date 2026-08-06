@@ -7,30 +7,27 @@
 
 ## Última iteração concluída
 
-**0201-0204 — lote de achados 10.x, 10 itens mesclados na main (PRs #211-#216).** Fechados:
-10.53, 10.13, 10.48, 10.30, 10.51 + 0203.4 (mesma máscara de byte nos 4 sítios irmãos:
-MEM_CTRL, espelho, BCC, DMA), 10.4 (CAUSE.CE), 10.50 (GPUREAD latch), 10.14 (gouraud/UV sobre
-span recortado), 10.42 (framebuffer só muda no vblank — suspeito direto do "triângulos
-piscando" relatado pelo usuário no Crash), 10.117 parcial (hblank agendado; a metade "System
-Clock" continua sem causa raiz, ver 0203.3), 10.109 (DMA2 chopping). 10.6/10.7 estavam
-desatualizados (já corrigidos em 0049/0105) — só bookkeeping. Baterias 5/5 ou 6/6 + 2/2 cada.
-**CI do GitHub Actions ficou com a fila travada** (minutos esgotados) durante os merges —
-feitos com verificação local completa e `--admin` bypass, proteção restaurada depois.
-**Silent Hill CONTINUA travado** (0201.1); **artefato de triângulos no Crash precisa
-reconfirmação** pós-10.42 (0202.1). Achados novos: 0203.1, 0203.2, 0203.3 abertos; 0203.4
-fechado. **Exceção vigente: o orquestrador implementa a escada** (`docs/orquestracao.md`).
+**0208 — acumulador fracionário de timers (0208.1), branch `iter/0208-timer-acumulador-fracionario`,
+PR não aberto.** Urgência do usuário: rodei os 14 jogos comerciais (`../roms/extraido/`); só
+Crash funciona, os outros 13 travam (11 na tela SCEA, Tomb Raider I/II com tela preta),
+confirmado até 1,6 bilhão de passos — não é boot lento. Workflow de 5 agentes (ff7, tekken3,
+re2, tomb-raider, ctr) caçou o PC de cada travamento. **Achado e corrigido:** Tekken 3 e RE2
+travam no double-read do Timer 1 (idiom PsyQ, `05-timers.md` L79-86) porque `Timers::tick()`
+escalava o resto acumulado por `denom` de novo a cada chamada — Timer 0/1 em dotclock/hblank
+saltava centenas/milhares de unidades por tick. Bateria 6/6+2/2 (0059 reexecutada 7/7+2/2,
+sem regressão). **Não medi ainda se o fix destrava os jogos de verdade.** Causas diferentes
+abertas: 0208.2 (FF7), 0208.3 (Tomb Raider), 0208.4 (CTR), 0208.5 (8 jogos não investigados).
+PRs #218/#219/#220 de rodadas anteriores seguem abertos, não mesclados.
 
 ## Próxima tarefa
 
-Continuar a lista de achados legado `10.x` em `docs/achados.md` (pedido do usuário: "vá
-passando por essa lista... resolver esses bugs... faça o máximo possível", uma iteração por
-achado, PR a cada ~10 itens). ~13 dos 16 achados classificados como bugs reais de emulação
-ainda faltam — ver `docs/achados.md` para citações de spec. Candidatos: 10.45 (load shadow,
-delay slot — CUIDADO, R1), 10.52 (timer lhu/lbu — tem pegadinha: `read16` chama
-`region_read_byte` duas vezes, então o side-effect de clear-on-read não pode disparar 2x),
-10.55/10.56/10.57 (CD-ROM), 10.83/10.85 (Rayman), 10.102/10.114/10.116 (timing arquitetural,
-grandes). Achado 10.115 — âncoras relativas nos rayman_* segue pendente (manutenção de teste,
-não bug de jogo).
+**Prioridade: compatibilidade de jogos, não a lista `10.x`.** Abrir o PR da 0208, depois
+rodar Tekken 3/RE2 de novo pra confirmar que passam da tela SCEA (bateria verde não prova
+isso). Investigar Achado 0208.2 (FF7, RAM 0x80089D9C só escrita pela BIOS), Achado 0208.3
+(Tomb Raider, CD-ROM ISO9660 ou ciclos), Achado 0208.4 (CTR, elo IRQ→contador do jogo), depois
+os 8 jogos do Achado 0208.5 um a um, mesmo método (`--sample-pcs`/`--watch-mem`/`--dump-mem`).
+Lista legado `10.x`
+(10.45/10.83/10.85/10.102/10.114/10.116) fica em segundo plano até isso avançar.
 
 Rodar Crash: `--bios bios/SCPH1001.BIN --disc "../roms/extraido/Crash Bandicoot (USA).cue"
 --max-steps 1200000000 --pad --press start@330000000 --press cross@700000000`.
@@ -62,7 +59,7 @@ Invariantes relevantes: nenhuma.
 
 ## Placar de testes
 
-Workspace: **1264** testes.
+Workspace: **1266** testes.
 - **NUNCA rodar `cargo test`/`nextest` nem a bateria de mutação junto com o oráculo**: a
   disputa de CPU faz o `Start-Process` ler stdout antes do flush e reportar `sem-saida`
   falso. Derrubou 16/21 numa medição da 0170; rodada limpa deu 21/21.

@@ -223,6 +223,15 @@ da escada valer so para o que FALTA. Narrativa de cada item continua em
 - [x] 10.23 Scoreboard com veredito de VRAM via diffvram: 13 suítes ganharam veredito gráfico (iter 0199)
 - [x] 10.11 Retângulos texturizados (raw+CLUT+STP+wrap); rectangles 11.560px → 7.265px (iter 0200)
 
+## Fechado na iteração 0201
+- [x] 10.53 Comando executa com INT pendente; spec exige o ack (06-cdrom.md L1984) (0121) (iter 0201)
+- [x] 10.48 `sw` em `1F801044h..104Fh` encaminhado para MODE, CTRL e BAUD do SIO (iter 0201; achado 0115)
+- [x] 10.30 Habilitar canal no DPCR nao dispara transferencia pendente (so no CHCR) (iter 0201)
+- [x] 10.51 GPU em `region_read_byte`: mascara do indice de byte evita shift alem de `u32` (iter 0201)
+
+## Fechado na iteração 0202
+- [x] 10.13 GP0(24h) e modulacao, nao raw texture (03-gpu.md L264/L1610) (0110) (iter 0202)
+
 ## Fechado na iteração 0204
 - [x] 0203.4 Máscara final do índice de byte em `region_read_byte` aplicada aos 4 sítios
   irmãos do 10.51 (MEM_CTRL, espelho do MEM_CTRL, BCC, DMA) que o PR #215 não cobriu

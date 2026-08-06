@@ -143,7 +143,7 @@ fn comando_e1h_sozinho_nao_altera_gpustat_15() {
 fn poligono_texturizado_com_gate_fechado_nao_seta_gpustat_15() {
     let mut gpu = Gpu::new();
 
-    gpu.write32(0, 0x24 << 24);
+    gpu.write32(0, 0x25 << 24);
     gpu.write32(0, 0x0000_0000);
     gpu.write32(0, 0x0080_0000);
     gpu.write32(0, 0x0001_0001);
@@ -164,7 +164,7 @@ fn poligono_texturizado_com_gate_aberto_seta_gpustat_15() {
     let mut gpu = Gpu::new();
 
     gpu.write32(4, (0x09 << 24) | 0x01);
-    gpu.write32(0, 0x24 << 24);
+    gpu.write32(0, 0x25 << 24);
     gpu.write32(0, 0x0000_0000);
     gpu.write32(0, 0x0080_0000);
     gpu.write32(0, 0x0001_0001);
@@ -185,7 +185,7 @@ fn poligono_abre_gate_fecha_e_latch_mantem_gpustat_15() {
     let mut gpu = Gpu::new();
 
     gpu.write32(4, (0x09 << 24) | 0x01);
-    gpu.write32(0, 0x24 << 24);
+    gpu.write32(0, 0x25 << 24);
     gpu.write32(0, 0x0000_0000);
     gpu.write32(0, 0x0080_0000);
     gpu.write32(0, 0x0001_0001);

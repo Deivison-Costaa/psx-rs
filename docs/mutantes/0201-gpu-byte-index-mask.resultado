@@ -1,0 +1,11 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: d385a8b47c3419f83f399624f901a0b26258317e
+# rodado_em: 2026-08-06T13:40:28-03:00
+m1,mutante,morreu,morreu,1.2,gpu_read16_dobra_indice_de_byte_no_limite_da_palavra
+m2,mutante,morreu,morreu,1.2,gpu_read16_dobra_indice_de_byte_no_limite_da_palavra
+m3,mutante,morreu,morreu,1.2,gpu_read16_dobra_indice_de_byte_no_limite_da_palavra
+m4,mutante,morreu,morreu,1.2,gpu_read16_dobra_indice_de_byte_no_limite_da_palavra
+m5,mutante,morreu,morreu,1.2,gpu_read16_dobra_indice_de_byte_no_limite_da_palavra
+m6,mutante,morreu,morreu,1.2,gpu_read16_dobra_indice_de_byte_no_limite_da_palavra
+c1,controle,sobreviveu,sobreviveu,1.1,
+c2,controle,sobreviveu,sobreviveu,1.2,

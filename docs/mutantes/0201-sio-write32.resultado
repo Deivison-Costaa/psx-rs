@@ -1,0 +1,11 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: 8bcf45281d2f1f25ba180a40c4c9b6e460456e92
+# rodado_em: 2026-08-05T22:04:02-03:00
+m1,mutante,morreu,morreu,1.2,write32_em_joy_mode_ctrl_e_baud_entrega_os_dois_bytes
+m2,mutante,morreu,morreu,1.1,write32_em_joy_mode_ctrl_e_baud_entrega_os_dois_bytes
+m3,mutante,morreu,morreu,1.1,write32_em_joy_mode_ctrl_e_baud_entrega_os_dois_bytes
+m4,mutante,morreu,morreu,1.2,write32_em_joy_mode_ctrl_e_baud_entrega_os_dois_bytes
+m5,mutante,morreu,morreu,1.1,write32_em_joy_mode_ctrl_e_baud_entrega_os_dois_bytes
+m6,mutante,morreu,morreu,1.1,write32_em_joy_mode_ctrl_e_baud_entrega_os_dois_bytes
+c1,controle,sobreviveu,sobreviveu,2.3,
+c2,controle,sobreviveu,sobreviveu,2.2,

@@ -8,6 +8,14 @@
 
 # Dumps de execução na raiz (--dump-vram etc.)
 /*.raw
+/*.vram
+/*.log
+
+# Config e save data locais do app desktop (psx-rs.toml cria isso na primeira execução)
+/psx-rs.toml
+/cartoes/
+/controles.txt
+/saves/
 
 # Baixados por script (scripts/fetch-*.ps1)
 /tests/exes/

@@ -535,6 +535,13 @@ impl Bus {
             }
             0x1F80_10F0 => {
                 self.dma.write_dpcr(val);
+                self.dma.try_execute_dma0(&self.ram.data, &mut self.mdec);
+                self.dma.try_execute_dma1(&mut self.ram.data, &self.mdec);
+                self.dma.try_execute_dma2(&mut self.ram.data, &mut self.gpu);
+                self.dma.try_execute_dma3(&mut self.ram.data, &self.cdrom);
+                self.dma.try_execute_dma4(&mut self.ram.data, &mut self.spu);
+                self.dma.try_execute_otc(&mut self.ram.data);
+                self.service_dma_irq();
                 true
             }
             0x1F80_10F4 => {
@@ -586,6 +593,16 @@ impl Bus {
                 self.service_spu_irq();
                 true
             }
+            0x1F80_1044..=0x1F80_104F => {
+                let bytes = val.to_le_bytes();
+                self.sio.write_byte(phys, bytes[0]);
+                self.sio.write_byte(phys + 1, bytes[1]);
+                self.sio.write_byte(phys + 2, bytes[2]);
+                self.sio.write_byte(phys + 3, bytes[3]);
+                self.schedule_sio_ack();
+                self.service_sio_irq();
+                true
+            }
             0x1F80_1024..=0x1F80_103F
             | 0x1F80_1041..=0x1F80_105F
             | 0x1F80_1061..=0x1F80_10FF
@@ -626,7 +643,7 @@ impl Bus {
             0x1F80_1810..=0x1F80_1817 => {
                 let base = phys & !3;
                 let val = self.gpu.peek32(base - 0x1F80_1810);
-                let byte_index = (phys & 3) + offset;
+                let byte_index = ((phys & 3) + offset) & 3;
                 Some(((val >> (byte_index * 8)) & 0xFF) as u8)
             }
             0x1F80_1800..=0x1F80_1803 => {

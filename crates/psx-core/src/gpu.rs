@@ -1442,22 +1442,24 @@ impl Gpu {
                 )
             };
 
+            let xl_span = xl;
+            let dx_span = xr - xl;
+
             let xl = xl.max(area_x1).max(0);
             let xr = xr.max(0).min(area_x2 + 1).min(1024);
             if xl >= xr {
                 continue;
             }
 
-            let dx = xr - xl;
             for x in xl..xr {
                 let pixel = if textured {
-                    let tex_u = if dx > 0 {
-                        lerp_i32(ul, ur, x - xl, dx)
+                    let tex_u = if dx_span > 0 {
+                        lerp_i32(ul, ur, x - xl_span, dx_span)
                     } else {
                         ul
                     };
-                    let tex_v = if dx > 0 {
-                        lerp_i32(vl, vr, x - xl, dx)
+                    let tex_v = if dx_span > 0 {
+                        lerp_i32(vl, vr, x - xl_span, dx_span)
                     } else {
                         vl
                     };
@@ -1466,8 +1468,8 @@ impl Gpu {
                         continue;
                     }
                     texel
-                } else if gouraud && dx > 0 {
-                    lerp_color(cl, cr, x - xl, dx)
+                } else if gouraud && dx_span > 0 {
+                    lerp_color(cl, cr, x - xl_span, dx_span)
                 } else {
                     pct
                 };

@@ -241,3 +241,6 @@ da escada valer so para o que FALTA. Narrativa de cada item continua em
   reais do scheduler, uma vez por scanline (03-gpu.md L826/L1469) (iter 0203); a outra metade
   do achado ("System Clock" diverge ~13-70x, causa raiz desconhecida desde a 0176) continua
   aberta como 0203.3
+- [x] 10.109 SyncMode=0 com chopping: MADR e BC atualizados no fim do burst do DMA2
+  (04-dma.md L48-50, L80-81) (iter 0203) — so o estado final, sem cycle-stealing real
+  (achados 10.102/10.114 continuam abertos)

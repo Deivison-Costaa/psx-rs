@@ -63,7 +63,6 @@
 - [ ] 10.103 GetlocL/GetlocP stub; disc-swap exige tray scriptavel (06-cdrom.md L1052) (0175)
 - [ ] 10.107 `CLAUDE.md` lista `perf`/`ci` mas o commit-lint so aceita 6 tipos (0177)
 - [ ] 10.108 Oraculo roda cdrom sem `--disc`; com disco: GetStat sem bit1 (0175)
-- [ ] 10.109 SyncMode=0 com chopping: MADR e BC parados (04-dma.md L48) (0173)
 - [ ] 10.113 step-by-step-log: divergencia de endereco do proprio EXE e status (yuv2rgb feito na 0184)
 - [ ] 10.114 DMA sem custo por ciclo: SPU testDMA*Timing exigem poll (0174)
 - [ ] 10.115 Provas do Rayman fixam passo absoluto: melhoria legitima reprova (0174)

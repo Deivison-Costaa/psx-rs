@@ -85,8 +85,14 @@ impl Dma {
     }
 
     fn ram_transfer_in_bounds(&mut self, ram: &[u8], addr: u32, offset: usize) -> bool {
-        let endereco = (addr & 0x00FF_FFFF) as usize;
-        if offset + 4 <= ram.len() && endereco + 4 <= ram.len() {
+        // § D#_MADR (04-dma.md L48-50): MADR e um campo de 24 bits (0-23) — enderecos
+        // com bits 21-23 ligados sao mascarados/espelhados pro decodificador de RAM
+        // de 21 bits e NAO sao erro (dma_otc.rs::...guarda_24_bits_e_nao_dobra_em_21,
+        // ja existente, exige que o ponteiro gravado preserve esses bits). O bus error
+        // e so o wraparound que a spec descreve: contador decrementando de 000000h
+        // passa por baixo de zero e vira ~FFFFFFFCh em aritmetica de 32 bits, bem
+        // acima do proprio campo de 24 bits do MADR — dai o teto em 0x00FF_FFFF.
+        if addr <= 0x00FF_FFFF && offset + 4 <= ram.len() {
             true
         } else {
             self.dicr |= 1 << 15;

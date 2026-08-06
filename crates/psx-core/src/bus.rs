@@ -117,6 +117,8 @@ const CDROM_RESPONSE: u32 = 2;
 const CDROM_SECOND: u32 = 3;
 const SIO_ACK: u32 = 4;
 const SPU_TICK: u32 = 5;
+const HBLANK_ENTER: u32 = 6;
+const HBLANK_EXIT: u32 = 7;
 
 // Atraso do /ACK depois do ULTIMO pulso de SCK. § Address byte (01h) being sent (L379-386) de
 // docs/reference/10-controllers-memcards.md: o driver do kernel ignora pulsos nos primeiros
@@ -175,6 +177,19 @@ impl Bus {
         let vblank_enter_offset = frame * y2 / total_sl;
         let vblank_exit_offset = frame * y1 / total_sl;
 
+        // § Horizontal Timings / GP1(06h) (03-gpu.md L1469, L826): hblank fica fora da janela
+        // [X1,X2) do Horizontal Display Range, em unidades de video clock — convertido pra
+        // ciclos de CPU pela mesma razao usada por cpu_cycles_per_scanline/
+        // video_cycles_per_scanline. So calculado uma vez, como o Y1/Y2 do vblank acima; um
+        // GP1(06h) escrito depois nao realinha os eventos ja agendados (mesma simplificacao
+        // do vblank com GP1(07h)).
+        let cpu_per_sl = gpu.cpu_cycles_per_scanline();
+        let video_per_sl = gpu.video_cycles_per_scanline() as u64;
+        let x1 = gpu.display_range_x1() as u64;
+        let x2 = gpu.display_range_x2() as u64;
+        let hblank_enter_offset = x2 * cpu_per_sl / video_per_sl;
+        let hblank_exit_offset = x1 * cpu_per_sl / video_per_sl;
+
         let mut scheduler = Scheduler::new();
         scheduler.schedule(ScheduleKey::new(vblank_exit_offset), EventId(VBLANK_EXIT));
         scheduler.schedule(ScheduleKey::new(vblank_enter_offset), EventId(VBLANK_ENTER));
@@ -182,9 +197,13 @@ impl Bus {
             ScheduleKey::new(spu::CPU_CYCLES_PER_SAMPLE),
             EventId(SPU_TICK),
         );
+        scheduler.schedule(ScheduleKey::new(hblank_exit_offset), EventId(HBLANK_EXIT));
+        scheduler.schedule(ScheduleKey::new(hblank_enter_offset), EventId(HBLANK_ENTER));
 
         // Raster starts at scanline 0, which is in top blanking (0 < y1)
         gpu.enter_vblank();
+        // Scanline position 0 is before X1, so hblank is active at start too.
+        gpu.set_hblank_active(true);
 
         Bus {
             ram,
@@ -342,8 +361,23 @@ impl Bus {
         );
 
         let frame = self.gpu.frame_cycles();
+        let cpu_per_sl = self.gpu.cpu_cycles_per_scanline();
         while let Some(EventId(id)) = self.scheduler.advance_to(self.total_cycles) {
             match id {
+                HBLANK_ENTER => {
+                    self.gpu.set_hblank_active(true);
+                    self.scheduler.schedule(
+                        ScheduleKey::new(self.total_cycles + cpu_per_sl),
+                        EventId(HBLANK_ENTER),
+                    );
+                }
+                HBLANK_EXIT => {
+                    self.gpu.set_hblank_active(false);
+                    self.scheduler.schedule(
+                        ScheduleKey::new(self.total_cycles + cpu_per_sl),
+                        EventId(HBLANK_EXIT),
+                    );
+                }
                 VBLANK_ENTER => {
                     self.gpu.enter_vblank();
                     self.irq.raise(0);

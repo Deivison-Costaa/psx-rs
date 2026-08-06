@@ -1,0 +1,12 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: 13bf48652716b06f2448f3770f523c4bc8f0b21e
+# rodado_em: 2026-08-06T17:39:23-03:00
+m1,mutante,morreu,morreu,1.2,getlocl_erro_80h_com_motor_parado_apos_leitura
+m2,mutante,morreu,morreu,1.2,getlocl_erro_80h_durante_play
+m3,mutante,morreu,morreu,1.2,getlocl_erro_80h_antes_de_qualquer_leitura
+m4,mutante,morreu,morreu,1.3,getlocl_devolve_cabecalho_e_subheader_do_ultimo_setor_lido
+m5,mutante,morreu,morreu,1.2,getlocl_devolve_cabecalho_e_subheader_do_ultimo_setor_lido
+m6,mutante,morreu,morreu,1.2,getlocp_erro_80h_com_motor_parado
+m7,mutante,morreu,morreu,1.2,getlocp_devolve_trilha_index_posicao_relativa_e_absoluta
+c1,controle,sobreviveu,sobreviveu,1.2,
+c2,controle,sobreviveu,sobreviveu,1.2,

@@ -1,0 +1,88 @@
+# Manifesto de mutação da iteração 0207 — cdrom-getloc
+formato: 1
+iteracao: 0207
+item: 10.103
+alvo: crates/psx-core/src/cdrom.rs
+teste: cdrom_getloc
+
+mutante: m1
+rotulo: GetlocL sem checar motor parado
+@@DE
+                if !self.motor_on.get() || self.playing.get() || !self.has_last_sector.get() {
+@@PARA
+                if self.playing.get() || !self.has_last_sector.get() {
+@@FIM
+
+mutante: m2
+rotulo: GetlocL sem checar play
+@@DE
+                if !self.motor_on.get() || self.playing.get() || !self.has_last_sector.get() {
+@@PARA
+                if !self.motor_on.get() || !self.has_last_sector.get() {
+@@FIM
+
+mutante: m3
+rotulo: GetlocL sem checar setor jamais lido (0175)
+@@DE
+                if !self.motor_on.get() || self.playing.get() || !self.has_last_sector.get() {
+@@PARA
+                if !self.motor_on.get() || self.playing.get() {
+@@FIM
+
+mutante: m4
+rotulo: GetlocL sucesso responde INT2 em vez de INT3
+@@DE
+                    for b in self.last_sector_header.get() {
+                        self.result_push(b);
+                    }
+                    self.intsts.set(3);
+@@PARA
+                    for b in self.last_sector_header.get() {
+                        self.result_push(b);
+                    }
+                    self.intsts.set(2);
+@@FIM
+
+mutante: m5
+rotulo: ReadN nunca marca o setor como lido
+@@DE
+                        self.has_last_sector.set(true);
+@@PARA
+                        self.has_last_sector.set(false);
+@@FIM
+
+mutante: m6
+rotulo: GetlocP sem checar motor parado
+@@DE
+                if !self.motor_on.get() {
+@@PARA
+                if false {
+@@FIM
+
+mutante: m7
+rotulo: GetlocP sempre devolve posicao relativa zero
+@@DE
+                    let (track, index, inicio) = self.trilha_em(disc_layout, amm, ass, asect);
+                    let (mm, ss, ff) = subtrai_msf((amm, ass, asect), inicio);
+@@PARA
+                    let (track, index, inicio) = self.trilha_em(disc_layout, amm, ass, asect);
+                    let (mm, ss, ff) = subtrai_msf((amm, ass, asect), (amm, ass, asect));
+@@FIM
+
+controle: c1
+rotulo: comentario antes de read_sector_header
+@@DE
+fn read_sector_header(bin: &[u8], min_bcd: u8, sec_bcd: u8, sect_bcd: u8) -> Option<[u8; 8]> {
+@@PARA
+// le os 8 bytes crus de cabecalho+sub-header do setor
+fn read_sector_header(bin: &[u8], min_bcd: u8, sec_bcd: u8, sect_bcd: u8) -> Option<[u8; 8]> {
+@@FIM
+
+controle: c2
+rotulo: comentario antes de sector_bin_offset
+@@DE
+fn sector_bin_offset(min_bcd: u8, sec_bcd: u8, sect_bcd: u8) -> Option<usize> {
+@@PARA
+// offset do inicio do setor bruto no .bin
+fn sector_bin_offset(min_bcd: u8, sec_bcd: u8, sect_bcd: u8) -> Option<usize> {
+@@FIM

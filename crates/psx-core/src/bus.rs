@@ -413,7 +413,7 @@ impl Bus {
                     }
                 }
                 CDROM_RESPONSE => {
-                    if self.cdrom.deliver_first() {
+                    if self.cdrom.deliver_first(self.disc_layout.as_ref()) {
                         self.scheduler.cancel(EventId(CDROM_SECOND));
                     }
                     if self.cdrom.take_irq2_edge() {

@@ -8,7 +8,9 @@ const GP0: u32 = 0x1F80_1810;
 const GP1: u32 = 0x1F80_1814;
 const TIMER1_CONTADOR: u32 = 0x1F80_1110;
 const SCRATCHPAD: u32 = 0x1F80_0000;
-const TAMANHO_DO_ESTADO: usize = 4_858_096;
+// +9 bytes na iter 0207: Cdrom ganhou `last_sector_header: [u8; 8]` e `has_last_sector: bool`
+// para o GetlocL (10h) lembrar o cabecalho do ultimo setor lido entre comandos.
+const TAMANHO_DO_ESTADO: usize = 4_858_105;
 const SPU_VOZ0_VOL: u32 = 0x1F80_1C00;
 const I_MASK: u32 = 0x1F80_1074;
 const DMA6_MADR: u32 = 0x1F80_10E0;

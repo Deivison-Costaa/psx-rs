@@ -235,3 +235,5 @@ da escada valer so para o que FALTA. Narrativa de cada item continua em
 - [x] 10.14 U/V e gouraud reinterpolados sobre span recortado (03-gpu.md L452) (iter 0203) —
   caminho dither+gouraud+nao-texturizado (`render_triangle_dithered`) tem o mesmo padrao mas
   fica pra depois sem teste dedicado; ver achado 0203.1
+- [x] 10.42 Linhas tremulas: captura sem sync com vblank (03-gpu.md L1426) (iter 0203) —
+  framebuffer() passa a ler um snapshot de VRAM latchado em enter_vblank(), nao VRAM ao vivo

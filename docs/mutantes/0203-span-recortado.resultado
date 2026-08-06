@@ -1,10 +1,10 @@
 # gerado por scripts/mutantes.ps1 — NAO editar a mao
-# commit: 2969e78bb39afe3dadcd787578667aa63b7364c7
-# rodado_em: 2026-08-05T21:51:23-03:00
-m1,mutante,morreu,morreu,3.4,gouraud_sobre_span_recortado_da_a_mesma_cor_do_span_inteiro
+# commit: 98197c7a3a7636f7cd885dc20cb188bcc6dd7c48
+# rodado_em: 2026-08-05T22:24:29-03:00
+m1,mutante,morreu,morreu,1.3,gouraud_sobre_span_recortado_da_a_mesma_cor_do_span_inteiro
 m2,mutante,morreu,morreu,1.3,uv_sobre_span_recortado_amostra_o_mesmo_texel_do_span_inteiro
 m3,mutante,morreu,morreu,1.2,v_sobre_span_recortado_amostra_o_mesmo_texel_do_span_inteiro
-m4,mutante,morreu,morreu,1.3,gouraud_sobre_span_recortado_da_a_mesma_cor_do_span_inteiro;uv_sobre_span_recortado_amostra_o_mesmo_texel_do_span_inteiro;v_sobre_span_recortado_amostra_o_mesmo_texel_do_span_inteiro
+m4,mutante,morreu,morreu,1.2,gouraud_sobre_span_recortado_da_a_mesma_cor_do_span_inteiro;uv_sobre_span_recortado_amostra_o_mesmo_texel_do_span_inteiro;v_sobre_span_recortado_amostra_o_mesmo_texel_do_span_inteiro
 m5,mutante,morreu,morreu,1.3,gouraud_sobre_span_recortado_da_a_mesma_cor_do_span_inteiro;uv_sobre_span_recortado_amostra_o_mesmo_texel_do_span_inteiro;v_sobre_span_recortado_amostra_o_mesmo_texel_do_span_inteiro
-c1,controle,sobreviveu,sobreviveu,1.3,
-c2,controle,sobreviveu,sobreviveu,1.3,
+c1,controle,sobreviveu,sobreviveu,1.2,
+c2,controle,sobreviveu,sobreviveu,1.2,

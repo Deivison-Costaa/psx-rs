@@ -34,7 +34,6 @@
 - [ ] 10.34 Nenhum meta-teste reprova `#[test]` sem assercao (T10 da 0080 passou assim)
 - [ ] 10.35 `mutantes.ps1` grava nome qualificado, `mutation_battery` busca fn literal
 - [ ] 10.40 `mutantes.ps1` so casa ancora em LF; CRLF da 'encontrada 0 vez(es)'
-- [ ] 10.42 Linhas tremulas: captura sem sync com vblank; suspeito GP1(05h) (30/07)
 - [ ] 10.42b Manifesto trata `#` como comentario em `@@DE`/`@@PARA` (alvo `.md`)
 - [ ] 10.44 Manifesto com alvo em documento vivo (STATUS.md) envelhece sempre
 - [ ] 10.45 Load shadow sobrepoe as instrucoes seguintes (`docs/reference/02-cpu.md` L281)

@@ -124,8 +124,8 @@ controle: K2
 rotulo: renomear o acumulador de ciclos (semantica identica)
 @@DE
         let prev_acc = t.cycle_acc.get() as u64;
-        let total = prev_acc * denom + (cycles as u64) * numer;
+        let total = prev_acc + (cycles as u64) * numer;
 @@PARA
         let previous_acc = t.cycle_acc.get() as u64;
-        let total = previous_acc * denom + (cycles as u64) * numer;
+        let total = previous_acc + (cycles as u64) * numer;
 @@FIM

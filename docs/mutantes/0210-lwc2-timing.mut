@@ -1,0 +1,68 @@
+# Manifesto de mutação da iteração 0210 — lwc2-timing
+formato: 1
+iteracao: 0210
+item: 0210.1
+alvo: crates/psx-core/src/cpu.rs
+teste: cpu_lwc2_timing
+
+mutante: m1
+rotulo: remove a cobertura do LWC2 (volta ao original)
+@@DE
+        if (0x20..=0x26).contains(&primary) || primary == 0x32 {
+@@PARA
+        if (0x20..=0x26).contains(&primary) {
+@@FIM
+
+mutante: m2
+rotulo: cobre SWC2 (0x3A) em vez de LWC2
+@@DE
+        if (0x20..=0x26).contains(&primary) || primary == 0x32 {
+@@PARA
+        if (0x20..=0x26).contains(&primary) || primary == 0x3A {
+@@FIM
+
+mutante: m3
+rotulo: opcode errado (0x30 em vez de 0x32)
+@@DE
+        if (0x20..=0x26).contains(&primary) || primary == 0x32 {
+@@PARA
+        if (0x20..=0x26).contains(&primary) || primary == 0x30 {
+@@FIM
+
+mutante: m4
+rotulo: troca OR por AND (desliga o custo de load pra tudo)
+@@DE
+        if (0x20..=0x26).contains(&primary) || primary == 0x32 {
+@@PARA
+        if (0x20..=0x26).contains(&primary) && primary == 0x32 {
+@@FIM
+
+mutante: m5
+rotulo: comparacao vira faixa aberta (pega SWC2 tambem)
+@@DE
+        if (0x20..=0x26).contains(&primary) || primary == 0x32 {
+@@PARA
+        if (0x20..=0x26).contains(&primary) || primary >= 0x32 {
+@@FIM
+
+controle: c1
+rotulo: comentario antes do predicado de custo de load
+@@DE
+        let primary = instr >> 26;
+        if (0x20..=0x26).contains(&primary) || primary == 0x32 {
+@@PARA
+        let primary = instr >> 26;
+        // LWC2 le memoria como qualquer outro load, paga o mesmo custo de regiao
+        if (0x20..=0x26).contains(&primary) || primary == 0x32 {
+@@FIM
+
+controle: c2
+rotulo: comentario antes do calculo de endereco
+@@DE
+            let rs = ((instr >> 21) & 0x1F) as usize;
+            let addr = self.reg(rs).wrapping_add(Self::sign_extend_imm(instr));
+@@PARA
+            // rs e imm ficam no mesmo lugar do encoding em todos esses opcodes
+            let rs = ((instr >> 21) & 0x1F) as usize;
+            let addr = self.reg(rs).wrapping_add(Self::sign_extend_imm(instr));
+@@FIM

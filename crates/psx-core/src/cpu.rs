@@ -221,7 +221,7 @@ impl Cpu {
 
     fn execute(&mut self, instr: u32, bus: &mut Bus) -> Option<(usize, u32)> {
         let primary = instr >> 26;
-        if (0x20..=0x26).contains(&primary) {
+        if (0x20..=0x26).contains(&primary) || primary == 0x32 {
             let rs = ((instr >> 21) & 0x1F) as usize;
             let addr = self.reg(rs).wrapping_add(Self::sign_extend_imm(instr));
             self.load_extra_cycles = Bus::load_cycles(addr) - 1;

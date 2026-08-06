@@ -7,26 +7,24 @@
 
 ## Última iteração concluída
 
-**0209 — Degrau 1 da escada de timing CPU/barramento (0209.1), branch
-`iter/0209-ciclos-excecao`, PR não aberto.** Usuário mandou atacar CPU/barramento direto
-(achado 0193.4 é a suspeita: CPU roda rápido demais por não cobrar custo de acesso, e RE2
-trava num laço vsync-com-timeout cujo orçamento corre contra o contador real de vblank).
-Investigação prévia (3 Explore + 1 Plan) achou que custo de load por região já está
-implementado e testado; o que falta é MULT/DIV, GTE, DMA (ciclo zero) e um vazamento real:
-`load_extra_cycles` não era zerado em `enter_exception`, então um load que falta (AdEL)
-cobrava seu custo da PRÓXIMA instrução que completasse. Fix + invariante 34. Bateria
-5/5+2/2. **Escada completa (10 degraus) no plano aprovado — não repetir aqui, ver Degrau 2
-abaixo e o arquivo de plano se precisar do resto.**
+**0210 — Degrau 2 da escada de timing CPU/barramento (0210.1), branch
+`iter/0210-lwc2-timing`, PR não aberto.** LWC2 (0x32) não disparava `load_extra_cycles`
+(só 0x20..=0x26 disparavam), custando 1 ciclo fixo mesmo vindo da ROM da BIOS — mesma spec
+já usada no Degrau 1 (`02-cpu.md` L260-269). Sem erro de primeira tentativa: o padrão e o
+teste-controle (CU2 desligado) já vinham prontos do Degrau 1. Bateria 5/5+2/2.
 
 ## Próxima tarefa
 
-Escada motivada pelo Achado 0193.4 (CPU sem custo de acesso a memória).
+Escada motivada pelo Achado 0193.4 (CPU sem custo de acesso a memória/periférico), 10
+degraus, plano completo em `~/.claude/plans/smooth-swimming-manatee.md`.
 
-**Degrau 2 da escada de timing: LWC2 paga o custo de região do load** (hoje só opcodes
-`0x20..=0x26` disparam `load_extra_cycles`; LWC2 é `0x32` e custa 1 ciclo até vindo da
-BIOS). Mesma spec já usada (`02-cpu.md` L260-269). Depois: Degrau 3 (MULT/DIV, stall de
-HI/LO, `02-cpu.md` L420-440).
-Degrau 4 vem depois: tabela de custo por comando GTE, cada opcode com seu próprio custo.
+**Degrau 3: MULT/MULTU/DIV/DIVU custam ciclos de HI/LO** (`02-cpu.md` L420-440) — iniciar
+custa 1 ciclo (já correto), mas ler HI/LO (MFHI/MFLO) antes do fim trava a CPU: multu/mult
+6/9/13 ciclos por faixa de `rs` (cuidado com a sobreposição de 1 unidade nas faixas com
+sinal do mult — resolver a favor da faixa mais apertada), div/divu fixo em 36. Modelo de
+stall: `busy_until = inicio + 1 + custo` (ancorado no exemplo da spec "seis opcodes ALU
+cabem de graça entre multu e mflo"). Campo novo em `Cpu` → bump `snapshot::VERSAO`. Depois:
+Degrau 4 (tabela pura de custo por comando GTE) e Degrau 5 (o stall do GTE ligado na CPU).
 Cada degrau é uma iteração normal (branch → teste vermelho → fix → bateria → docs → PR).
 Depois dos degraus 1-6, Degrau 7 remede os jogos travados (ff7/tekken3/re2/tomb-raider/
 ctr) antes de decidir se DMA (degraus 8-9, os mais arriscados) ainda é necessário.
@@ -65,7 +63,7 @@ cada degrau da escada de timing), 34 (acumulador de ciclos extras é estado de p
 
 ## Placar de testes
 
-Workspace: **1269** testes.
+Workspace: **1275** testes.
 - **NUNCA rodar `cargo test`/`nextest` nem a bateria de mutação junto com o oráculo**: a
   disputa de CPU faz o `Start-Process` ler stdout antes do flush e reportar `sem-saida`
   falso. Derrubou 16/21 numa medição da 0170; rodada limpa deu 21/21.

@@ -1,0 +1,11 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: 4f7522a79bd6e3ff44bd7dd0303941192dc99130
+# rodado_em: 2026-08-05T22:18:14-03:00
+m1,mutante,morreu,morreu,1.1,otc_armado_antes_do_dpcr_e_reexecutado_ao_habilitar_canal
+m2,mutante,morreu,morreu,1.2,otc_armado_antes_do_dpcr_e_reexecutado_ao_habilitar_canal
+m3,mutante,morreu,morreu,1.1,otc_armado_antes_do_dpcr_e_reexecutado_ao_habilitar_canal
+m4,mutante,morreu,morreu,2.2,otc_armado_antes_do_dpcr_e_reexecutado_ao_habilitar_canal
+m5,mutante,morreu,morreu,2.1,otc_armado_antes_do_dpcr_e_reexecutado_ao_habilitar_canal
+m6,mutante,morreu,morreu,1.2,otc_armado_antes_do_dpcr_e_reexecutado_ao_habilitar_canal
+c1,controle,sobreviveu,sobreviveu,1.1,
+c2,controle,sobreviveu,sobreviveu,1.1,

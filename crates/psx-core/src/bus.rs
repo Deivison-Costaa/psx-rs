@@ -535,6 +535,13 @@ impl Bus {
             }
             0x1F80_10F0 => {
                 self.dma.write_dpcr(val);
+                self.dma.try_execute_dma0(&self.ram.data, &mut self.mdec);
+                self.dma.try_execute_dma1(&mut self.ram.data, &self.mdec);
+                self.dma.try_execute_dma2(&mut self.ram.data, &mut self.gpu);
+                self.dma.try_execute_dma3(&mut self.ram.data, &self.cdrom);
+                self.dma.try_execute_dma4(&mut self.ram.data, &mut self.spu);
+                self.dma.try_execute_otc(&mut self.ram.data);
+                self.service_dma_irq();
                 true
             }
             0x1F80_10F4 => {

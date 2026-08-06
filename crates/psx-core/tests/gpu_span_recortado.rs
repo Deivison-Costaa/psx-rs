@@ -167,3 +167,63 @@ fn uv_sobre_span_recortado_amostra_o_mesmo_texel_do_span_inteiro() {
          visiveis — o U/V em (150,75) tem que ser igual nos dois renders"
     );
 }
+
+// Espelha o teste de U acima, mas variando V (com U fixo em 0) — o teste de U
+// nao pega uma regressao isolada na interpolacao de V, porque com v0=v1=v2
+// iguais o valor interpolado de V nao muda nunca, mutante ou nao.
+fn escreve_coluna_15bpp(gpu: &mut Gpu, altura: u16, texel_em: impl Fn(u16) -> u16) {
+    for v in 0..altura {
+        gpu.write32(0, 0xA0u32 << 24);
+        gpu.write32(0, (v as u32) << 16);
+        gpu.write32(0, 0x0001_0001);
+        gpu.write32(0, texel_em(v) as u32);
+    }
+}
+
+#[test]
+fn v_sobre_span_recortado_amostra_o_mesmo_texel_do_span_inteiro() {
+    let texel_em = |v: u16| 0x8000u16 | v;
+
+    let mut inteiro = Gpu::new();
+    escreve_coluna_15bpp(&mut inteiro, 251, texel_em);
+    gp0_e1h(&mut inteiro, 2 << 7);
+    prepara_triangulo_texturizado_raw(
+        &mut inteiro,
+        &[
+            (V_TOPO, 0, 0),
+            (V_MEIO, 0, 100),
+            (V_BASE, 0, 250),
+        ],
+    );
+    let esperado = inteiro.vram_pixel(X_AMOSTRA as u16, Y_AMOSTRA as u16);
+    assert_ne!(
+        esperado, 0,
+        "pixel de amostra precisa estar dentro do triangulo no render sem recorte"
+    );
+
+    let mut recortado = Gpu::new();
+    escreve_coluna_15bpp(&mut recortado, 251, texel_em);
+    gp0_e1h(&mut recortado, 2 << 7);
+    gp0_e3h_x1(&mut recortado, X1_RECORTE);
+    prepara_triangulo_texturizado_raw(
+        &mut recortado,
+        &[
+            (V_TOPO, 0, 0),
+            (V_MEIO, 0, 100),
+            (V_BASE, 0, 250),
+        ],
+    );
+
+    assert_eq!(
+        recortado.vram_pixel(110, Y_AMOSTRA as u16),
+        0,
+        "sanidade: x=110 fica a esquerda de X1=130, tem que estar fora da area de desenho"
+    );
+    assert_eq!(
+        recortado.vram_pixel(X_AMOSTRA as u16, Y_AMOSTRA as u16),
+        esperado,
+        "spec § GPU Rendering Attributes (03-gpu.md L452): mesma garantia do \
+         teste de U, agora para V — o texel amostrado em (150,75) tem que ser \
+         igual nos dois renders"
+    );
+}

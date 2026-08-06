@@ -225,6 +225,7 @@ da escada valer so para o que FALTA. Narrativa de cada item continua em
 
 ## Fechado na iteração 0201
 - [x] 10.53 Comando executa com INT pendente; spec exige o ack (06-cdrom.md L1984) (0121) (iter 0201)
+- [x] 10.48 `sw` em `1F801044h..104Fh` encaminhado para MODE, CTRL e BAUD do SIO (iter 0201; achado 0115)
 
 ## Fechado na iteração 0202
 - [x] 10.13 GP0(24h) e modulacao, nao raw texture (03-gpu.md L264/L1610) (0110) (iter 0202)

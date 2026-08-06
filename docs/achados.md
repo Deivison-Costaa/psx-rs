@@ -46,7 +46,6 @@
 - [ ] 10.51 GPU em `region_read_byte`: `(phys&3)+offset` sem mascara estoura em debug (0118)
 - [ ] 10.50 `GP0(C0h)` sem transferencia devolve zero (0117)
 - [ ] 10.49 Bit 15 do `DICR` gravavel mas nada o levanta; DMA fora da RAM ignorada (0116)
-- [ ] 10.48 `sw` em `1F801044h..104Fh` cai no sumidouro de `region_write32` (0115)
 - [ ] 10.57 Regiao do GetID fixada em SCEA; ler o setor de licenca do `.bin` (0122)
 - [ ] 10.56 Result FIFO anterior legivel na janela da primeira resposta (0121)
 - [ ] 10.55 Atraso da 1a resposta ignora o motor: `Nop (when stopped) 0x5CF4` (0121)

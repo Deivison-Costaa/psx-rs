@@ -1,0 +1,97 @@
+# Manifesto de mutacao da iteracao 0205 — 10.52: lhu/lbu limpam bits 11/12 do timer
+formato: 1
+iteracao: 0205
+item: 10.52
+alvo: crates/psx-core/src/bus.rs
+teste: timers_lhu_lbu_clear
+
+mutante: m1
+rotulo: region_read_byte volta a usar peek32 (sem efeito colateral) no timer
+ocorrencias: 1
+teste: timers_lhu_lbu_clear
+@@DE
+                let val = self.timers.read32(base);
+                let byte_index = ((phys & 3) + offset) & 3;
+@@PARA
+                let val = self.timers.peek32(base);
+                let byte_index = ((phys & 3) + offset) & 3;
+@@FIM
+
+mutante: m2
+rotulo: braco de read16 vira no-op — timer volta a cair no caminho de duas chamadas
+ocorrencias: 1
+teste: timers_lhu_lbu_clear
+@@DE
+            0x1F80_1100..=0x1F80_112F => {
+                let base = phys & !3;
+                let val = self.timers.read32(base);
+                let shift = (phys & 2) * 8;
+                return ((val >> shift) & 0xFFFF) as u16;
+            }
+@@PARA
+            0x1F80_1100..=0x1F80_112F => {}
+@@FIM
+
+mutante: m3
+rotulo: braco de read16 existe mas usa peek32 (sem efeito colateral)
+ocorrencias: 1
+teste: timers_lhu_lbu_clear
+@@DE
+                let base = phys & !3;
+                let val = self.timers.read32(base);
+                let shift = (phys & 2) * 8;
+@@PARA
+                let base = phys & !3;
+                let val = self.timers.peek32(base);
+                let shift = (phys & 2) * 8;
+@@FIM
+
+mutante: m4
+rotulo: region_read_byte nao alinha o offset — reg errado cai no sumidouro do timer
+ocorrencias: 1
+teste: timers_lhu_lbu_clear
+@@DE
+            0x1F80_1100..=0x1F80_112F => {
+                let base = phys & !3;
+                // § MODE register clear-on-read dos bits 11/12 (Timers::read32 ja tem o
+@@PARA
+            0x1F80_1100..=0x1F80_112F => {
+                let base = phys;
+                // § MODE register clear-on-read dos bits 11/12 (Timers::read32 ja tem o
+@@FIM
+
+mutante: m5
+rotulo: braco de read16 nao alinha o offset — reg errado cai no sumidouro do timer
+ocorrencias: 1
+teste: timers_lhu_lbu_clear
+@@DE
+            0x1F80_1100..=0x1F80_112F => {
+                let base = phys & !3;
+                let val = self.timers.read32(base);
+@@PARA
+            0x1F80_1100..=0x1F80_112F => {
+                let base = phys;
+                let val = self.timers.read32(base);
+@@FIM
+
+controle: c1
+rotulo: mascara de shift escrita em binario equivale a decimal
+ocorrencias: 1
+teste: timers_lhu_lbu_clear
+@@DE
+                let shift = (phys & 2) * 8;
+@@PARA
+                let shift = (phys & 0b10) * 8;
+@@FIM
+
+controle: c2
+rotulo: reescrever a mascara do byte_index nao muda o valor
+ocorrencias: 1
+teste: timers_lhu_lbu_clear
+@@DE
+                let val = self.timers.read32(base);
+                let byte_index = ((phys & 3) + offset) & 3;
+@@PARA
+                let val = self.timers.read32(base);
+                let byte_index = (offset + (phys & 3)) & 3;
+@@FIM

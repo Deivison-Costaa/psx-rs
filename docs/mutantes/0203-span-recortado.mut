@@ -1,0 +1,98 @@
+# Manifesto de mutacao da iteracao 0203 — 10.14: gouraud/UV sobre span recortado
+formato: 1
+iteracao: 0203
+item: 10.14
+alvo: crates/psx-core/src/gpu.rs
+teste: gpu_span_recortado
+
+mutante: m1
+rotulo: cor gouraud volta a interpolar pelo span ja recortado (xl/xr pos-clip)
+ocorrencias: 1
+teste: gpu_span_recortado
+@@DE
+                } else if gouraud && dx_span > 0 {
+                    lerp_color(cl, cr, x - xl_span, dx_span)
+                } else {
+@@PARA
+                } else if gouraud && dx_span > 0 {
+                    lerp_color(cl, cr, x - xl, xr - xl)
+                } else {
+@@FIM
+
+mutante: m2
+rotulo: tex_u volta a interpolar pelo span ja recortado
+ocorrencias: 1
+teste: gpu_span_recortado
+@@DE
+                    let tex_u = if dx_span > 0 {
+                        lerp_i32(ul, ur, x - xl_span, dx_span)
+                    } else {
+                        ul
+                    };
+@@PARA
+                    let tex_u = if dx_span > 0 {
+                        lerp_i32(ul, ur, x - xl, xr - xl)
+                    } else {
+                        ul
+                    };
+@@FIM
+
+mutante: m3
+rotulo: tex_v volta a interpolar pelo span ja recortado
+ocorrencias: 1
+teste: gpu_span_recortado
+@@DE
+                    let tex_v = if dx_span > 0 {
+                        lerp_i32(vl, vr, x - xl_span, dx_span)
+                    } else {
+                        vl
+                    };
+@@PARA
+                    let tex_v = if dx_span > 0 {
+                        lerp_i32(vl, vr, x - xl, xr - xl)
+                    } else {
+                        vl
+                    };
+@@FIM
+
+mutante: m4
+rotulo: xl_span captura o xl ja recortado em vez do span original
+ocorrencias: 1
+teste: gpu_span_recortado
+@@DE
+            let xl_span = xl;
+@@PARA
+            let xl_span = xl.max(area_x1).max(0);
+@@FIM
+
+mutante: m5
+rotulo: dx_span usa a largura ja recortada em vez da largura original
+ocorrencias: 1
+teste: gpu_span_recortado
+@@DE
+            let dx_span = xr - xl;
+@@PARA
+            let dx_span = xr.max(0).min(area_x2 + 1).min(1024) - xl.max(area_x1).max(0);
+@@FIM
+
+controle: c1
+rotulo: trocar a ordem das duas declaracoes de span nao muda o resultado
+ocorrencias: 1
+teste: gpu_span_recortado
+@@DE
+            let xl_span = xl;
+            let dx_span = xr - xl;
+@@PARA
+            let dx_span = xr - xl;
+            let xl_span = xl;
+@@FIM
+
+controle: c2
+rotulo: parenteses redundantes em dx_span nao mudam o valor calculado
+ocorrencias: 1
+teste: gpu_span_recortado
+@@DE
+            let dx_span = xr - xl;
+@@PARA
+            let dx_span = (xr - xl);
+@@FIM

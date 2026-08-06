@@ -1,0 +1,80 @@
+# Manifesto de mutacao da iteracao 0205 — 10.49: DICR bit15 (bus error) no DMA
+formato: 1
+iteracao: 0205
+item: 10.49
+alvo: crates/psx-core/src/dma.rs
+teste: dma_dicr_bus_error
+
+mutante: m1
+rotulo: checagem do campo de 24 bits removida — wraparound nunca vira bus error
+ocorrencias: 1
+teste: dma_dicr_bus_error
+@@DE
+        if addr <= 0x00FF_FFFF && offset + 4 <= ram.len() {
+@@PARA
+        if offset + 4 <= ram.len() {
+@@FIM
+
+mutante: m2
+rotulo: teto do campo trocado por 21 bits — quebra o alias legitimo de 24 bits
+ocorrencias: 1
+teste: dma_otc
+@@DE
+        if addr <= 0x00FF_FFFF && offset + 4 <= ram.len() {
+@@PARA
+        if addr <= 0x001F_FFFF && offset + 4 <= ram.len() {
+@@FIM
+
+mutante: m3
+rotulo: bit15 nao e levantado no caminho de erro
+ocorrencias: 1
+teste: dma_dicr_bus_error
+@@DE
+            self.dicr |= 1 << 15;
+            self.recalc_master_flag();
+@@PARA
+            self.recalc_master_flag();
+@@FIM
+
+mutante: m4
+rotulo: bit31 nao e recalculado apos levantar o bus error
+ocorrencias: 1
+teste: dma_dicr_bus_error
+@@DE
+            self.dicr |= 1 << 15;
+            self.recalc_master_flag();
+            false
+@@PARA
+            self.dicr |= 1 << 15;
+            false
+@@FIM
+
+mutante: m5
+rotulo: E logico vira OU — endereco valido por qualquer um dos dois lados basta
+ocorrencias: 1
+teste: dma_dicr_bus_error
+@@DE
+        if addr <= 0x00FF_FFFF && offset + 4 <= ram.len() {
+@@PARA
+        if addr <= 0x00FF_FFFF || offset + 4 <= ram.len() {
+@@FIM
+
+controle: c1
+rotulo: ordem dos dois lados do E logico nao importa
+ocorrencias: 1
+teste: dma_dicr_bus_error
+@@DE
+        if addr <= 0x00FF_FFFF && offset + 4 <= ram.len() {
+@@PARA
+        if offset + 4 <= ram.len() && addr <= 0x00FF_FFFF {
+@@FIM
+
+controle: c2
+rotulo: teto de 24 bits escrito como expressao equivalente
+ocorrencias: 1
+teste: dma_dicr_bus_error
+@@DE
+        if addr <= 0x00FF_FFFF && offset + 4 <= ram.len() {
+@@PARA
+        if addr <= (1u32 << 24) - 1 && offset + 4 <= ram.len() {
+@@FIM

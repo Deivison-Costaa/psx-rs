@@ -38,8 +38,6 @@
 - [ ] 10.46 `justificativa:` do equivalente nao aceita continuacao de linha
 - [ ] 10.52 `lhu`/`lbu` no modo do timer nao limpa bits 11/12 (0118)
 - [ ] 10.57 Regiao do GetID fixada em SCEA; ler o setor de licenca do `.bin` (0122)
-- [ ] 10.56 Result FIFO anterior legivel na janela da primeira resposta (0121)
-- [ ] 10.55 Atraso da 1a resposta ignora o motor: `Nop (when stopped) 0x5CF4` (0121)
 - [ ] 10.47 Espera da BIOS por timeout: 0x8000 giros < ~230 k (0114)
 - [ ] 10.58 mutantes.ps1 so roda psx-core; alvo por crate (invariante 29) (0125)
 - [ ] 10.66 Meta-teste nao reexecuta bateria antiga: `.resultado` mente (0143)

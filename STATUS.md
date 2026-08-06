@@ -7,22 +7,20 @@
 
 ## Última iteração concluída
 
-**0205 — 10.49 (DICR bus error).** Trabalhador fez teste+fix mas parou no passo 6 sem PR
-(bug de `workdir` truncado na ferramenta de bash do worker); orquestrador retomou, achou e
-corrigiu uma regressão real no fix do trabalhador (endereço com bits 21-23 legítimos —
-`dma_otc.rs`, ps1-tests otc-test — sendo tratado como bus error; condição certa é
-`addr <= 0x00FF_FFFF`, campo de 24 bits do MADR, não uma segunda máscara contra o tamanho de
-RAM) e completou os passos 6-9. Bateria 5/5 + 2/2. **Há uma segunda branch paralela não
-mesclada** (`iter/0205-timer-lhu-lbu-clear`, no worktree `psx-rs-wt-vblank`) fechando 10.52
-(timer `lhu`/`lbu` clear-on-read dos bits 11/12) — vai divergir de STATUS/achados/ROADMAP-
-fechado até reconciliar no merge, igual aconteceu com o lote anterior. **Exceção vigente: o
-orquestrador implementa a escada** (`docs/orquestracao.md`).
+**0206 — 10.55 (1a resposta ignora o motor) + 10.56 fechado como desatualizado.**
+`Cdrom::first_response_cycles` ganhou o parâmetro `motor_on`: 0005cf4h parado, 000c4e1h ligado
+(06-cdrom.md L2047-2054) — corrigiu 2 testes pré-existentes que assumiam motor ligado sem
+chamar `insert_disc()`. 10.56 ("result FIFO anterior legível na janela") foi verificado com um
+teste-sonda e já estava correto — fechado sem mudança de código. Bateria 5/5 + 2/2. **PRs
+#218 (10.49) e #219 (10.52) ainda abertos, não mesclados** — STATUS/achados/ROADMAP-fechado
+vão divergir até reconciliar. **Exceção vigente: o orquestrador implementa a escada**
+(`docs/orquestracao.md`).
 
 ## Próxima tarefa
 
-Fechar e mesclar a branch `iter/0205-timer-lhu-lbu-clear` (10.52, pronta, só falta abrir PR).
-Depois, continuar a lista de achados legado `10.x` em `docs/achados.md` (pedido do usuário:
-uma iteração por achado, PR a cada ~10 itens, orquestrador faz os difíceis e delega os fáceis
+Mesclar PRs #218 (10.49) e #219 (10.52), já revisados e verificados localmente. Depois,
+continuar a lista de achados legado `10.x` em `docs/achados.md` (pedido do usuário: uma
+iteração por achado, PR a cada ~10 itens, orquestrador faz os difíceis e delega os fáceis
 pro trabalhador). ~11 dos 16 achados classificados como bugs reais de emulação ainda faltam —
 ver `docs/achados.md` pras citações de spec. Candidatos: 10.45 (load shadow, delay slot —
 CUIDADO, R1), 10.55/10.56/10.57 (CD-ROM), 10.83/10.85 (Rayman), 10.102/10.114/10.116 (timing
@@ -60,7 +58,7 @@ Invariantes relevantes: nenhuma.
 
 ## Placar de testes
 
-Workspace: **1266** testes.
+Workspace: **1268** testes.
 - **NUNCA rodar `cargo test`/`nextest` nem a bateria de mutação junto com o oráculo**: a
   disputa de CPU faz o `Start-Process` ler stdout antes do flush e reportar `sem-saida`
   falso. Derrubou 16/21 numa medição da 0170; rodada limpa deu 21/21.

@@ -264,3 +264,10 @@ da escada valer so para o que FALTA. Narrativa de cada item continua em
   24 bits do MADR (04-dma.md L48-50, L119-135) (iter 0205) — trabalhador fez teste+fix,
   orquestrador corrigiu uma regressao real (endereco com bits 21-23 legitimos sendo tratado
   como erro) e completou passos 6-9
+
+## Fechado na iteração 0206
+- [x] 10.55 Atraso da 1a resposta usa 0005cf4h quando o motor esta parado, nao sempre
+  000c4e1h (06-cdrom.md L2047-2054) (iter 0206)
+- [x] 10.56 Result FIFO anterior legivel na janela da 1a resposta — achado ficou desatualizado
+  (send_command/result_clear so rodam quando deliver_first() entrega a resposta nova, nao na
+  escrita do comando); confirmado sem mudanca de codigo na revisao da 0206

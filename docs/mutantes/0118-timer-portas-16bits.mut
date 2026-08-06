@@ -4,6 +4,7 @@ iteracao: 0118
 item: 4.4m
 alvo: crates/psx-core/src/bus.rs
 teste: timer_portas_16bits
+arquivada: m1/m2 ancoram peek32 no braco de timers de region_read_byte, trocado por read32 (com efeito colateral de clear-on-read) na iteracao 0205 (achado 10.52)
 
 mutante: m1
 rotulo: leitura de byte dos timers devolve zero (o defeito 4.4m original)

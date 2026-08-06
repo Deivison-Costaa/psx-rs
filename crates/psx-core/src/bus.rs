@@ -686,7 +686,10 @@ impl Bus {
             }
             0x1F80_1100..=0x1F80_112F => {
                 let base = phys & !3;
-                let val = self.timers.peek32(base);
+                // § MODE register clear-on-read dos bits 11/12 (Timers::read32 ja tem o
+                // efeito colateral certo, e e um no-op pros outros registros do timer —
+                // por isso e seguro chamar sempre, mesmo pra COUNT/TARGET).
+                let val = self.timers.read32(base);
                 let byte_index = ((phys & 3) + offset) & 3;
                 Some(((val >> (byte_index * 8)) & 0xFF) as u8)
             }
@@ -829,6 +832,16 @@ impl Bus {
             0x1F80_1074 => return (self.irq.read_mask() & 0xFFFF) as u16,
             0x1F80_1076 => return ((self.irq.read_mask() >> 16) & 0xFFFF) as u16,
             0x1F80_1C00..=0x1F80_1E7F => return self.spu.read16(phys),
+            // Igual ao braço da GPU/SPU acima: se isso passasse pelas duas chamadas de
+            // region_read_byte abaixo, cada uma chamaria Timers::read32 por conta própria
+            // e a segunda já veria os bits 11/12 zerados pela primeira (achado 10.52).
+            // Uma chamada só, os dois bytes saem do mesmo instantâneo pré-clear.
+            0x1F80_1100..=0x1F80_112F => {
+                let base = phys & !3;
+                let val = self.timers.read32(base);
+                let shift = (phys & 2) * 8;
+                return ((val >> shift) & 0xFFFF) as u16;
+            }
             _ => {}
         }
         if let (Some(lo), Some(hi)) = (

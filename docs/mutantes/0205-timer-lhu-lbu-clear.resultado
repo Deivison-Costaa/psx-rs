@@ -1,0 +1,10 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: e445010493e1074606f6a9f436013d4aa457c3f9
+# rodado_em: 2026-08-06T16:23:41-03:00
+m1,mutante,morreu,morreu,1.1,flag_target_alcancado_e_limpo_por_read8
+m2,mutante,morreu,morreu,2.1,flag_target_alcancado_e_limpo_por_read16;read16_no_meio_da_transferencia_nao_corrompe_o_segundo_byte
+m3,mutante,morreu,morreu,2.3,flag_target_alcancado_e_limpo_por_read16
+m4,mutante,morreu,morreu,2.1,flag_target_alcancado_e_limpo_por_read8
+m5,equivalente,sobreviveu,sobreviveu,2.1,
+c1,controle,sobreviveu,sobreviveu,2.2,
+c2,controle,sobreviveu,sobreviveu,2.4,

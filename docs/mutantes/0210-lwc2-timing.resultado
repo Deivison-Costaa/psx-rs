@@ -1,0 +1,10 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: d246389295dc36a1aca3827f4e02e3e3ba60f37e
+# rodado_em: 2026-08-06T20:52:12-03:00
+m1,mutante,morreu,morreu,1.2,lwc2_da_bios_custa_27_ciclos;lwc2_da_ram_custa_7_ciclos;lwc2_de_io_on_die_custa_5_ciclos
+m2,mutante,morreu,morreu,1.2,lwc2_da_bios_custa_27_ciclos;lwc2_da_ram_custa_7_ciclos;lwc2_de_io_on_die_custa_5_ciclos;swc2_na_ram_custa_1_ciclo
+m3,mutante,morreu,morreu,1.2,lwc2_da_bios_custa_27_ciclos;lwc2_da_ram_custa_7_ciclos;lwc2_de_io_on_die_custa_5_ciclos
+m4,mutante,morreu,morreu,1.2,lwc2_da_bios_custa_27_ciclos;lwc2_da_ram_custa_7_ciclos;lwc2_de_io_on_die_custa_5_ciclos
+m5,mutante,morreu,morreu,1.1,swc2_na_ram_custa_1_ciclo
+c1,controle,sobreviveu,sobreviveu,1.2,
+c2,controle,sobreviveu,sobreviveu,1.2,

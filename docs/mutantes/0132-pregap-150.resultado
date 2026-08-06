@@ -1,10 +1,10 @@
 # gerado por scripts/mutantes.ps1 — NAO editar a mao
-# commit: b36e421328bcd4d4fb39af26e6e3ca397fc06a7b
-# rodado_em: 2026-08-01T01:05:56-03:00
-m1,mutante,morreu,morreu,0.9,setloc_msf_absoluto_mapeia_para_setor_do_arquivo_menos_150;setloc_no_inicio_da_trilha_entrega_o_primeiro_setor_do_arquivo
-m2,mutante,morreu,morreu,0.8,setloc_msf_absoluto_mapeia_para_setor_do_arquivo_menos_150;setloc_no_inicio_da_trilha_entrega_o_primeiro_setor_do_arquivo
-m3,mutante,morreu,morreu,0.8,setloc_msf_absoluto_mapeia_para_setor_do_arquivo_menos_150
-m4,mutante,morreu,morreu,0.9,setloc_dentro_do_pregap_nao_estoura_nem_entrega_dado
-m5,mutante,morreu,morreu,0.9,setloc_msf_absoluto_mapeia_para_setor_do_arquivo_menos_150;setloc_no_inicio_da_trilha_entrega_o_primeiro_setor_do_arquivo
-c1,controle,sobreviveu,sobreviveu,0.9,
-c2,controle,sobreviveu,sobreviveu,0.8,
+# commit: 5a5b88f6e50c4ed01c7a656f37f91b9ad1cb7c7f
+# rodado_em: 2026-08-06T17:36:34-03:00
+m1,mutante,morreu,morreu,1.3,setloc_msf_absoluto_mapeia_para_setor_do_arquivo_menos_150;setloc_no_inicio_da_trilha_entrega_o_primeiro_setor_do_arquivo
+m2,mutante,morreu,morreu,1.2,setloc_msf_absoluto_mapeia_para_setor_do_arquivo_menos_150;setloc_no_inicio_da_trilha_entrega_o_primeiro_setor_do_arquivo
+m3,mutante,morreu,morreu,1.2,setloc_msf_absoluto_mapeia_para_setor_do_arquivo_menos_150
+m4,mutante,morreu,morreu,1.2,setloc_dentro_do_pregap_nao_estoura_nem_entrega_dado
+m5,mutante,morreu,morreu,1.1,setloc_msf_absoluto_mapeia_para_setor_do_arquivo_menos_150;setloc_no_inicio_da_trilha_entrega_o_primeiro_setor_do_arquivo
+c1,controle,sobreviveu,sobreviveu,1.1,
+c2,controle,sobreviveu,sobreviveu,1.2,

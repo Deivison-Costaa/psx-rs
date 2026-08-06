@@ -1,0 +1,72 @@
+# Manifesto de mutação da iteração 0208 — timer-acumulador-fracionario
+formato: 1
+iteracao: 0208
+item: 0208.1
+alvo: crates/psx-core/src/timers.rs
+teste: timers_dotclock_hblank
+
+mutante: m1
+rotulo: reintroduz o bug original (escala o resto por denom de novo)
+@@DE
+        let total = prev_acc + (cycles as u64) * numer;
+@@PARA
+        let total = prev_acc * denom + (cycles as u64) * numer;
+@@FIM
+
+mutante: m2
+rotulo: soma 1 espurio a cada chamada
+@@DE
+        let total = prev_acc + (cycles as u64) * numer;
+@@PARA
+        let total = prev_acc + (cycles as u64) * numer + 1;
+@@FIM
+
+mutante: m3
+rotulo: troca divisao por resto no calculo de pulsos efetivos
+@@DE
+        let effective = (total / denom) as u32;
+@@PARA
+        let effective = (total % denom) as u32;
+@@FIM
+
+mutante: m4
+rotulo: troca resto por divisao no acumulador guardado
+@@DE
+        t.cycle_acc.set((total % denom) as u32);
+@@PARA
+        t.cycle_acc.set((total / denom) as u32);
+@@FIM
+
+mutante: m5
+rotulo: razao do dotclock 11/7 vira 12/7
+@@DE
+                (11, 7 * cpp)
+@@PARA
+                (12, 7 * cpp)
+@@FIM
+
+mutante: m6
+rotulo: razao do hblank 11/7 vira 11/8
+@@DE
+                (11, 7 * vcs)
+@@PARA
+                (11, 8 * vcs)
+@@FIM
+
+controle: c1
+rotulo: comentario antes do calculo do acumulador
+@@DE
+        let prev_acc = t.cycle_acc.get() as u64;
+@@PARA
+        // acumulador fracionario de ciclos pendentes
+        let prev_acc = t.cycle_acc.get() as u64;
+@@FIM
+
+controle: c2
+rotulo: comentario antes da tabela numer/denom
+@@DE
+        let (numer, denom): (u64, u64) = match idx {
+@@PARA
+        // razao de pulsos por ciclo de CPU, por fonte de clock
+        let (numer, denom): (u64, u64) = match idx {
+@@FIM

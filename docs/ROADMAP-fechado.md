@@ -258,3 +258,12 @@ da escada valer so para o que FALTA. Narrativa de cada item continua em
 - [x] 10.109 SyncMode=0 com chopping: MADR e BC atualizados no fim do burst do DMA2
   (04-dma.md L48-50, L80-81) (iter 0203) — so o estado final, sem cycle-stealing real
   (achados 10.102/10.114 continuam abertos)
+
+## Fechado na iteração 0208
+- [x] 0208.1 Acumulador fracionario de `Timers::tick()` escalava o resto pendente por `denom`
+  de novo a cada chamada em vez de so somar (05-timers.md L79-86) (iter 0208) — Timer 0/1 em
+  modo dotclock/hblank saltava centenas/milhares de unidades por chamada; o double-read da
+  PsyQ nunca estabilizava e travava o boot. Achado via workflow de 5 agentes investigando
+  jogos comerciais travados a pedido do usuario; confirmado travando Tekken 3 e Resident
+  Evil 2. Outros 3 casos investigados (FF7, Tomb Raider, CTR) tem causas DIFERENTES, ainda
+  abertas como 0208.2/0208.3/0208.4

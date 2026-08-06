@@ -44,7 +44,6 @@
 - [ ] 10.45 Load shadow sobrepoe as instrucoes seguintes (`docs/reference/02-cpu.md` L281)
 - [ ] 10.46 `justificativa:` do equivalente nao aceita continuacao de linha
 - [ ] 10.52 `lhu`/`lbu` no modo do timer nao limpa bits 11/12 (0118)
-- [ ] 10.51 GPU em `region_read_byte`: `(phys&3)+offset` sem mascara estoura em debug (0118)
 - [ ] 10.50 `GP0(C0h)` sem transferencia devolve zero (0117)
 - [ ] 10.49 Bit 15 do `DICR` gravavel mas nada o levanta; DMA fora da RAM ignorada (0116)
 - [ ] 10.48 `sw` em `1F801044h..104Fh` cai no sumidouro de `region_write32` (0115)

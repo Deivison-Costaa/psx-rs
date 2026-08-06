@@ -1,0 +1,108 @@
+# Manifesto de mutacao da iteracao 0202 — 10.13: poligono texturizado modula pela cor
+formato: 1
+iteracao: 0202
+item: 10.13
+alvo: crates/psx-core/src/gpu.rs
+teste: gpu_poligono_modulacao
+
+mutante: m1
+rotulo: escala errada — divide por 8 em vez de 16
+ocorrencias: 1
+teste: gpu_poligono_modulacao
+@@DE
+    let r = ((tr * cr) / 16).min(31) as u16;
+    let g = ((tg * cg) / 16).min(31) as u16;
+    let b = ((tb * cb) / 16).min(31) as u16;
+@@PARA
+    let r = ((tr * cr) / 8).min(31) as u16;
+    let g = ((tg * cg) / 8).min(31) as u16;
+    let b = ((tb * cb) / 8).min(31) as u16;
+@@FIM
+
+mutante: m2
+rotulo: bit raw invertido — raw modula, blended fica cru
+ocorrencias: 1
+teste: gpu_poligono_modulacao
+@@DE
+                    if raw_texture {
+                        texel
+                    } else {
+@@PARA
+                    if !raw_texture {
+                        texel
+                    } else {
+@@FIM
+
+mutante: m3
+rotulo: bit 15 (STP) do texel perdido apos a modulacao
+ocorrencias: 1
+teste: gpu_poligono_modulacao
+@@DE
+    r | (g << 5) | (b << 10) | (texel & 0x8000)
+@@PARA
+    r | (g << 5) | (b << 10)
+@@FIM
+
+mutante: m4
+rotulo: canal R modula por si mesmo em vez de pela cor do vertice
+ocorrencias: 1
+teste: gpu_poligono_modulacao
+@@DE
+    let r = ((tr * cr) / 16).min(31) as u16;
+@@PARA
+    let r = ((cr * cr) / 16).min(31) as u16;
+@@FIM
+
+mutante: m5
+rotulo: teto do clamp em 15 em vez de 31 — estoura canal alto
+ocorrencias: 1
+teste: gpu_poligono_modulacao
+@@DE
+    let r = ((tr * cr) / 16).min(31) as u16;
+    let g = ((tg * cg) / 16).min(31) as u16;
+    let b = ((tb * cb) / 16).min(31) as u16;
+@@PARA
+    let r = ((tr * cr) / 16).min(15) as u16;
+    let g = ((tg * cg) / 16).min(15) as u16;
+    let b = ((tb * cb) / 16).min(15) as u16;
+@@FIM
+
+controle: c1
+rotulo: renomear tr/tg/tb (com todos os usos) nao muda o resultado
+ocorrencias: 1
+teste: gpu_poligono_modulacao
+@@DE
+    let tr = (texel & 0x1F) as i32;
+    let tg = ((texel >> 5) & 0x1F) as i32;
+    let tb = ((texel >> 10) & 0x1F) as i32;
+    let cr = (color & 0x1F) as i32;
+    let cg = ((color >> 5) & 0x1F) as i32;
+    let cb = ((color >> 10) & 0x1F) as i32;
+    let r = ((tr * cr) / 16).min(31) as u16;
+    let g = ((tg * cg) / 16).min(31) as u16;
+    let b = ((tb * cb) / 16).min(31) as u16;
+@@PARA
+    let canal_r_texel = (texel & 0x1F) as i32;
+    let canal_g_texel = ((texel >> 5) & 0x1F) as i32;
+    let canal_b_texel = ((texel >> 10) & 0x1F) as i32;
+    let cr = (color & 0x1F) as i32;
+    let cg = ((color >> 5) & 0x1F) as i32;
+    let cb = ((color >> 10) & 0x1F) as i32;
+    let r = ((canal_r_texel * cr) / 16).min(31) as u16;
+    let g = ((canal_g_texel * cg) / 16).min(31) as u16;
+    let b = ((canal_b_texel * cb) / 16).min(31) as u16;
+@@FIM
+
+controle: c2
+rotulo: ordem de cr/cg/cb nao importa — cada um so depende de color
+ocorrencias: 1
+teste: gpu_poligono_modulacao
+@@DE
+    let cr = (color & 0x1F) as i32;
+    let cg = ((color >> 5) & 0x1F) as i32;
+    let cb = ((color >> 10) & 0x1F) as i32;
+@@PARA
+    let cb = ((color >> 10) & 0x1F) as i32;
+    let cg = ((color >> 5) & 0x1F) as i32;
+    let cr = (color & 0x1F) as i32;
+@@FIM

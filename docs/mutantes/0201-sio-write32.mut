@@ -1,0 +1,84 @@
+# Manifesto de mutacao da iteracao 0201 — write32 da SIO
+formato: 1
+iteracao: 0201
+item: 10.48
+alvo: crates/psx-core/src/bus.rs
+teste: bus_sio_write32
+
+mutante: m1
+rotulo: conversao big-endian troca a ordem dos bytes da SIO
+teste: bus_sio_write32
+@@DE
+                let bytes = val.to_le_bytes();
+@@PARA
+                let bytes = val.to_be_bytes();
+@@FIM
+
+mutante: m2
+rotulo: byte baixo usa o segundo byte e corrompe o registrador
+teste: bus_sio_write32
+@@DE
+                self.sio.write_byte(phys, bytes[0]);
+@@PARA
+                self.sio.write_byte(phys, bytes[1]);
+@@FIM
+
+mutante: m3
+rotulo: byte alto usa o byte baixo e duplica o valor escrito
+teste: bus_sio_write32
+@@DE
+                self.sio.write_byte(phys + 1, bytes[1]);
+@@PARA
+                self.sio.write_byte(phys + 1, bytes[0]);
+@@FIM
+
+mutante: m4
+rotulo: terceiro byte volta ao offset anterior e apaga o alto
+teste: bus_sio_write32
+@@DE
+                self.sio.write_byte(phys + 2, bytes[2]);
+@@PARA
+                self.sio.write_byte(phys + 1, bytes[2]);
+@@FIM
+
+mutante: m5
+rotulo: quarto byte volta ao offset anterior e apaga o alto
+teste: bus_sio_write32
+@@DE
+                self.sio.write_byte(phys + 3, bytes[3]);
+@@PARA
+                self.sio.write_byte(phys + 1, bytes[3]);
+@@FIM
+
+mutante: m6
+rotulo: faixa explicita nao cobre as portas de registradores da SIO
+teste: bus_sio_write32
+@@DE
+            0x1F80_1044..=0x1F80_104F => {
+@@PARA
+            0x1F80_1050..=0x1F80_105F => {
+@@FIM
+
+controle: c1
+rotulo: decomposicao explicita preserva a ordem little-endian
+teste: bus_sio_write32
+@@DE
+                let bytes = val.to_le_bytes();
+@@PARA
+                let bytes = [
+                    (val & 0xFF) as u8,
+                    ((val >> 8) & 0xFF) as u8,
+                    ((val >> 16) & 0xFF) as u8,
+                    (val >> 24) as u8,
+                ];
+@@FIM
+
+controle: c2
+rotulo: quebra de linha na chamada preserva o offset e o byte
+teste: bus_sio_write32
+@@DE
+                self.sio.write_byte(phys + 1, bytes[1]);
+@@PARA
+                self.sio
+                    .write_byte(phys + 1, bytes[1]);
+@@FIM

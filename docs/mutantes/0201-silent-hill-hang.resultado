@@ -1,0 +1,10 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: 4f664aa7dfb8c20ce6395378309495e26b571037
+# rodado_em: 2026-08-05T20:33:46-03:00
+m1,mutante,morreu,morreu,1.1,comando_novo_durante_int_pendente_e_entregue_apos_o_ack
+m2,mutante,morreu,morreu,1.1,ack_nao_entrega_a_segunda_no_mesmo_instante;comando_novo_durante_int_pendente_e_entregue_apos_o_ack;segunda_nao_atropela_a_primeira_sem_ack;segunda_resposta_chega_apos_o_atraso_do_ack
+m3,mutante,morreu,morreu,1.1,comando_novo_durante_int_pendente_e_entregue_apos_o_ack
+m4,mutante,morreu,morreu,1.1,comando_novo_durante_int_pendente_e_entregue_apos_o_ack
+m5,mutante,morreu,morreu,1.2,ack_nao_entrega_a_segunda_no_mesmo_instante;comando_novo_durante_int_pendente_e_entregue_apos_o_ack;segunda_nao_atropela_a_primeira_sem_ack;segunda_resposta_chega_apos_o_atraso_do_ack
+c1,controle,sobreviveu,sobreviveu,1.1,
+c2,controle,sobreviveu,sobreviveu,1.1,

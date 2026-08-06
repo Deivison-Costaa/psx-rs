@@ -157,6 +157,7 @@ fn seek_l_com_disco_retorna_int3_depois_int2() {
     param_write(&mut bus, bcd_sector(0x00));
     send_command(&mut bus, 0x02);
     let _ = result_read(&mut bus);
+    hclrctl_write(&mut bus, 0x07);
     send_command(&mut bus, 0x15);
     let hintsts = hintsts_read_bank1(&mut bus);
     assert_eq!(hintsts & 0x7, 3, "INT3 apos SeekL (15h)");
@@ -180,6 +181,7 @@ fn seek_l_sem_disco_retorna_int5() {
     param_write(&mut bus, bcd_sector(0x00));
     send_command(&mut bus, 0x02);
     let _ = result_read(&mut bus);
+    hclrctl_write(&mut bus, 0x07);
     send_command(&mut bus, 0x15);
     let hintsts = hintsts_read_bank1(&mut bus);
     assert_eq!(hintsts & 0x7, 5, "INT5 apos SeekL sem disco");
@@ -216,6 +218,7 @@ fn setloc_consome_tres_parametros_fifo_alinhado() {
     param_write(&mut bus, bcd_sector(0x00));
     send_command(&mut bus, 0x02);
     let _ = result_read(&mut bus);
+    hclrctl_write(&mut bus, 0x07);
     param_write(&mut bus, 0x20);
     send_command(&mut bus, 0x19);
     let yy = result_read(&mut bus);

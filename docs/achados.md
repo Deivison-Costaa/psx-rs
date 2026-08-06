@@ -22,9 +22,7 @@
 - [ ] 10.10 Drawing Area GP0(E3h/E4h) e Offset GP0(E5h) sem suite que os meça
 - [ ] 10.28 Tabela por registro nos docs vs `.resultado`: 0071 errou 3/9, 0038 inflou 2
 - [ ] 10.29 `dma_dpcr_gate.rs:141`: `assert_ne!` como unica assercao de uma correcao
-- [ ] 10.30 Habilitar canal no DPCR nao dispara transferencia pendente (so no CHCR)
 - [ ] 10.25 `unwrap_or` de caminho nos meta-testes silencia `strip_prefix` que falha (10.12)
-- [ ] 10.13 GP0(24h) e modulacao, nao raw texture (03-gpu.md L264/L1610) (0110)
 - [ ] 10.17 `mutantes.ps1` recusa arvore suja; permitir `docs/mutantes/*.mut`
 - [ ] 10.24 Job `scoreboard` da CI sai VERDE medindo zero (0072)
 - [ ] 10.26 Nenhum dos 9 testes de `ci_scoreboard.rs` afirma que o job mede algo
@@ -39,13 +37,10 @@
 - [ ] 10.45 Load shadow sobrepoe as instrucoes seguintes (`docs/reference/02-cpu.md` L281)
 - [ ] 10.46 `justificativa:` do equivalente nao aceita continuacao de linha
 - [ ] 10.52 `lhu`/`lbu` no modo do timer nao limpa bits 11/12 (0118)
-- [ ] 10.51 GPU em `region_read_byte`: `(phys&3)+offset` sem mascara estoura em debug (0118)
 - [ ] 10.49 Bit 15 do `DICR` gravavel mas nada o levanta; DMA fora da RAM ignorada (0116)
-- [ ] 10.48 `sw` em `1F801044h..104Fh` cai no sumidouro de `region_write32` (0115)
 - [ ] 10.57 Regiao do GetID fixada em SCEA; ler o setor de licenca do `.bin` (0122)
 - [ ] 10.56 Result FIFO anterior legivel na janela da primeira resposta (0121)
 - [ ] 10.55 Atraso da 1a resposta ignora o motor: `Nop (when stopped) 0x5CF4` (0121)
-- [ ] 10.53 Comando executa com INT pendente; spec exige o ack (06-cdrom.md L1984) (0121)
 - [ ] 10.47 Espera da BIOS por timeout: 0x8000 giros < ~230 k (0114)
 - [ ] 10.58 mutantes.ps1 so roda psx-core; alvo por crate (invariante 29) (0125)
 - [ ] 10.66 Meta-teste nao reexecuta bateria antiga: `.resultado` mente (0143)
@@ -88,7 +83,8 @@
 - [ ] 0198.4 Teste com BIOS+disco reais do snapshot nunca roda na CI; so a maquina sintetica (de NOPs) cobre o save state la (0198)
 - [ ] 0198.5 `saves::lista` nao confere o magico `MC` da imagem de cartao; imagem lixo lista saves fantasmas (0198)
 - [ ] 0198.6 Maquina sintetica dos testes de snapshot executa so NOPs: scheduler/IRQ/DMA nunca exercitados no roundtrip (0198)
+- [ ] 0201.1 Silent Hill (SLUS-00707) trava ~150-200M passos apos a tela de abertura: VRAM para, so sobra vblank; ultimo evento de CDROM e um INT2 sem sequencia (0201)
+- [ ] 0202.1 Crash Bandicoot: triangulos aparecem e somem rapido durante o jogo (relato do usuario, nao reproduzido por medicao ainda) — suspeita: ordem de desenho/pintor sem Z-buffer, ou lixo de VRAM entre frames; precisa de dump-vram-every com passo fino pra flagrar o frame do artefato (0202)
 - [ ] 0203.1 render_triangle_dithered tem o mesmo bug de 10.14 (reinterpola gouraud sobre o span ja recortado pela drawing area), caminho dither+gouraud+nao-texturizado; sem teste dedicado ainda (0203)
 - [ ] 0203.2 PR #214 (10.30, retrigger de DMA no DPCR): so o canal OTC e exercitado; mutantes m3/m4/m5 do manifesto "matam" por efeito colateral (return precoce tambem pula o OTC, que vem depois no codigo), nao porque testam os canais 0/1/2 de fato — CDROM (dma3) e SPU (dma4) nunca sao exercitados nem pela bateria nem pelo teste (revisao do orquestrador no PR #214)
 - [ ] 0203.3 "System Clock" diverge ~13-70x do gabarito do oraculo `timers` (ex-10.117); a iteracao 0176 ja tentou achar a causa raiz (inclusive corrigindo a propagacao de timing da GPU pros timers) e nao moveu esse numero — hblank agora e agendado de verdade (0203, ex-10.117 parcial) mas isso tambem nao deve mudar o "System Clock" (nao depende de GPU/hblank per a nota da 0176); causa raiz ainda desconhecida (0203)
-- [ ] 0203.4 PR #215 (10.51, mascara do indice de byte da GPU): o MESMO padrao sem mascara final continua em `crates/psx-core/src/bus.rs` region_read_byte, 4 bracos nao tocados pelo PR (fora do escopo do achado 10.51, que citava so a GPU) — MEM_CTRL (`0x1F80_1000..=0x1F80_1023`), espelho do MEM_CTRL (`0x1F80_1060..=0x1F80_1063`), BCC/cache control (`0xFFFE_0130..=0xFFFE_0133`) e DMA (`0x1F80_1080..=0x1F80_10EC | 0x1F80_10F0 | 0x1F80_10F4`); `bus.read16` no ultimo byte de qualquer um desses ranges panica em debug igual o 10.51 original (revisao do orquestrador no PR #215)

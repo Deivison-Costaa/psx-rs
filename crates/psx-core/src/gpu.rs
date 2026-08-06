@@ -53,6 +53,21 @@ fn lerp_i32(a: i32, b: i32, t: i32, t_max: i32) -> i32 {
     a + (b - a) * t / t_max
 }
 
+/// § Modulation (03-gpu.md L1604): finalChannel = texel*vertexColor/128 por canal de 8 bits.
+/// Aqui os dois lados ja chegam em 5 bits (canal do 15bpp); 128 em 8 bits vira 16 em 5 bits.
+fn modulate_texel(texel: u16, color: u16) -> u16 {
+    let tr = (texel & 0x1F) as i32;
+    let tg = ((texel >> 5) & 0x1F) as i32;
+    let tb = ((texel >> 10) & 0x1F) as i32;
+    let cr = (color & 0x1F) as i32;
+    let cg = ((color >> 5) & 0x1F) as i32;
+    let cb = ((color >> 10) & 0x1F) as i32;
+    let r = ((tr * cr) / 16).min(31) as u16;
+    let g = ((tg * cg) / 16).min(31) as u16;
+    let b = ((tb * cb) / 16).min(31) as u16;
+    r | (g << 5) | (b << 10) | (texel & 0x8000)
+}
+
 fn lerp_color(a: u16, b: u16, t: i32, t_max: i32) -> u16 {
     if t_max == 0 {
         return a;
@@ -118,6 +133,7 @@ enum VramState {
     PolygonRender {
         gouraud: bool,
         textured: bool,
+        raw_texture: bool,
         quad: bool,
         semi_transparent: bool,
         color0: u32,
@@ -533,10 +549,12 @@ impl Gpu {
                             let textured = (cmd & 0x04) != 0;
                             let quad = (cmd & 0x08) != 0;
                             let semi_transparent = (cmd & 0x02) != 0;
+                            let raw_texture = (cmd & 0x01) != 0;
                             let total = if quad { 4 } else { 3 };
                             VramState::PolygonRender {
                                 gouraud,
                                 textured,
+                                raw_texture,
                                 quad,
                                 semi_transparent,
                                 color0: val & 0x00FF_FFFF,
@@ -699,6 +717,7 @@ impl Gpu {
             VramState::PolygonRender {
                 gouraud,
                 textured,
+                raw_texture,
                 quad,
                 semi_transparent,
                 color0,
@@ -724,6 +743,7 @@ impl Gpu {
                             gouraud,
                             quad,
                             textured,
+                            raw_texture,
                             semi_transparent,
                             &mut vertices,
                             &mut colors,
@@ -756,6 +776,7 @@ impl Gpu {
                             gouraud,
                             quad,
                             textured,
+                            raw_texture,
                             semi_transparent,
                             &mut vertices,
                             &mut colors,
@@ -772,6 +793,7 @@ impl Gpu {
                 self.vram_state.set(VramState::PolygonRender {
                     gouraud,
                     textured,
+                    raw_texture,
                     quad,
                     semi_transparent,
                     color0,
@@ -1282,6 +1304,7 @@ impl Gpu {
         gouraud: bool,
         quad: bool,
         textured: bool,
+        raw_texture: bool,
         semi_transparent: bool,
         vertices: &mut [(i16, i16); 4],
         colors: &mut [u32; 4],
@@ -1312,6 +1335,7 @@ impl Gpu {
             self.render_triangle(
                 gouraud,
                 tex_active,
+                raw_texture,
                 semi_transparent,
                 dither,
                 [vertices[0], vertices[1], vertices[2]],
@@ -1321,6 +1345,7 @@ impl Gpu {
             self.render_triangle(
                 gouraud,
                 tex_active,
+                raw_texture,
                 semi_transparent,
                 dither,
                 [vertices[1], vertices[2], vertices[3]],
@@ -1331,6 +1356,7 @@ impl Gpu {
             self.render_triangle(
                 gouraud,
                 tex_active,
+                raw_texture,
                 semi_transparent,
                 dither,
                 [vertices[0], vertices[1], vertices[2]],
@@ -1345,6 +1371,7 @@ impl Gpu {
         &mut self,
         gouraud: bool,
         textured: bool,
+        raw_texture: bool,
         semi_transparent: bool,
         dither: bool,
         verts: [(i16, i16); 3],
@@ -1473,7 +1500,16 @@ impl Gpu {
                     if texel == 0 {
                         continue;
                     }
-                    texel
+                    if raw_texture {
+                        texel
+                    } else {
+                        let vcolor = if dx_span > 0 {
+                            lerp_color(cl, cr, x - xl_span, dx_span)
+                        } else {
+                            cl
+                        };
+                        modulate_texel(texel, vcolor)
+                    }
                 } else if gouraud && dx_span > 0 {
                     lerp_color(cl, cr, x - xl_span, dx_span)
                 } else {

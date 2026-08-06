@@ -1,0 +1,120 @@
+# Manifesto de mutacao da iteracao 0204 — quatro indices de byte dos registradores
+formato: 1
+iteracao: 0204
+item: 0203.4
+alvo: crates/psx-core/src/bus.rs
+teste: bus_byte_index_mask_siblings
+
+mutante: m1
+rotulo: MEM_CTRL sem mascara volta a deslocar por 32 bits
+ocorrencias: 1
+teste: bus_byte_index_mask_siblings
+@@DE
+            0x1F80_1000..=0x1F80_1023 => {
+                let val = self.mem_ctrl.read32(phys);
+                let byte_index = ((phys & 3) + offset) & 3;
+@@PARA
+            0x1F80_1000..=0x1F80_1023 => {
+                let val = self.mem_ctrl.read32(phys);
+                let byte_index = (phys & 3) + offset;
+@@FIM
+
+mutante: m2
+rotulo: espelho MEM_CTRL sem mascara estoura no segundo byte
+ocorrencias: 1
+teste: bus_byte_index_mask_siblings
+@@DE
+            0x1F80_1060..=0x1F80_1063 => {
+                let val = self.mem_ctrl.read32(0x1F80_1060);
+                let byte_index = (phys - 0x1F80_1060 + offset) & 3;
+@@PARA
+            0x1F80_1060..=0x1F80_1063 => {
+                let val = self.mem_ctrl.read32(0x1F80_1060);
+                let byte_index = (phys - 0x1F80_1060) + offset;
+@@FIM
+
+mutante: m3
+rotulo: BCC sem mascara permite indice quatro no read16
+ocorrencias: 1
+teste: bus_byte_index_mask_siblings
+@@DE
+            0xFFFE_0130..=0xFFFE_0133 => {
+                let byte_index = (phys - 0xFFFE_0130 + offset) & 3;
+                Some(((self.bcc.0 >> (byte_index * 8)) & 0xFF) as u8)
+@@PARA
+            0xFFFE_0130..=0xFFFE_0133 => {
+                let byte_index = (phys - 0xFFFE_0130) + offset;
+                Some(((self.bcc.0 >> (byte_index * 8)) & 0xFF) as u8)
+@@FIM
+
+mutante: m4
+rotulo: DMA sem mascara reintroduz o shift invalido
+ocorrencias: 1
+teste: bus_byte_index_mask_siblings
+@@DE
+            0x1F80_1080..=0x1F80_10EC | 0x1F80_10F0 | 0x1F80_10F4 => {
+                let base = phys & !3;
+                let val = self.dma_register_value(base).unwrap_or(0);
+                let byte_index = ((phys & 3) + offset) & 3;
+@@PARA
+            0x1F80_1080..=0x1F80_10EC | 0x1F80_10F0 | 0x1F80_10F4 => {
+                let base = phys & !3;
+                let val = self.dma_register_value(base).unwrap_or(0);
+                let byte_index = (phys & 3) + offset;
+@@FIM
+
+mutante: m5
+rotulo: MEM_CTRL com mascara de dois bits perde byte superior
+ocorrencias: 1
+teste: bus_byte_index_mask_siblings
+@@DE
+            0x1F80_1000..=0x1F80_1023 => {
+                let val = self.mem_ctrl.read32(phys);
+                let byte_index = ((phys & 3) + offset) & 3;
+@@PARA
+            0x1F80_1000..=0x1F80_1023 => {
+                let val = self.mem_ctrl.read32(phys);
+                let byte_index = ((phys & 3) + offset) & 2;
+@@FIM
+
+mutante: m6
+rotulo: BCC com mascara de um bit seleciona byte errado
+ocorrencias: 1
+teste: bus_byte_index_mask_siblings
+@@DE
+            0xFFFE_0130..=0xFFFE_0133 => {
+                let byte_index = (phys - 0xFFFE_0130 + offset) & 3;
+                Some(((self.bcc.0 >> (byte_index * 8)) & 0xFF) as u8)
+@@PARA
+            0xFFFE_0130..=0xFFFE_0133 => {
+                let byte_index = (phys - 0xFFFE_0130 + offset) & 1;
+                Some(((self.bcc.0 >> (byte_index * 8)) & 0xFF) as u8)
+@@FIM
+
+controle: c1
+rotulo: ordem diferente da soma mantem mascara do MEM_CTRL
+ocorrencias: 1
+teste: bus_byte_index_mask_siblings
+@@DE
+            0x1F80_1000..=0x1F80_1023 => {
+                let val = self.mem_ctrl.read32(phys);
+                let byte_index = ((phys & 3) + offset) & 3;
+@@PARA
+            0x1F80_1000..=0x1F80_1023 => {
+                let val = self.mem_ctrl.read32(phys);
+                let byte_index = (offset + (phys & 3)) & 3;
+@@FIM
+
+controle: c2
+rotulo: literal hexadecimal preserva a mascara do BCC
+ocorrencias: 1
+teste: bus_byte_index_mask_siblings
+@@DE
+            0xFFFE_0130..=0xFFFE_0133 => {
+                let byte_index = (phys - 0xFFFE_0130 + offset) & 3;
+                Some(((self.bcc.0 >> (byte_index * 8)) & 0xFF) as u8)
+@@PARA
+            0xFFFE_0130..=0xFFFE_0133 => {
+                let byte_index = (phys - 0xFFFE_0130 + offset) & 0x3;
+                Some(((self.bcc.0 >> (byte_index * 8)) & 0xFF) as u8)
+@@FIM

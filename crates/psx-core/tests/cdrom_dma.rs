@@ -68,6 +68,7 @@ fn setloc(bus: &mut Bus, mm: u8, ss: u8, ff: u8) {
     param_write(bus, ff);
     send_command(bus, 0x02);
     let _ = result_read(bus);
+    hclrctl_write(bus, 0x07);
 }
 
 fn read_n_and_int1(bus: &mut Bus) {

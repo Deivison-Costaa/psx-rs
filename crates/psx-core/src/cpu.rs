@@ -13,6 +13,7 @@ pub struct Cpu {
     branch_taken: bool,
     pending_exception: Option<u8>,
     exception_badvaddr: Option<u32>,
+    pending_ce: Option<u8>,
     load_extra_cycles: u32,
     written_gpr: Option<usize>,
     pub irq_handler_entries: u64,
@@ -42,6 +43,7 @@ impl Cpu {
             branch_taken: false,
             pending_exception: None,
             exception_badvaddr: None,
+            pending_ce: None,
             load_extra_cycles: 0,
             written_gpr: None,
             irq_handler_entries: 0,
@@ -60,6 +62,7 @@ impl Cpu {
         instr_pc: u32,
         in_delay_slot: bool,
         was_taken: bool,
+        ce: Option<u8>,
     ) {
         let sr = self.cop0[12];
         let ie_ku_shifted = ((sr & 0x3) << 2) | ((sr & 0xC) << 2);
@@ -72,7 +75,17 @@ impl Cpu {
                 cause |= 1 << 30;
             }
         }
-        self.cop0[13] = (self.cop0[13] & !0xC000_007C) | cause;
+        // § cop0r13 - CAUSE, campo CE bits 28-29 (02-cpu.md L681): numero do coprocessador
+        // da excecao Coprocessor Unusable. So mexe nesses bits quando a excecao e CpU;
+        // outros tipos de excecao deixam o CE anterior como estava.
+        let ce_mask = match ce {
+            Some(unit) => {
+                cause |= (unit as u32 & 0x3) << 28;
+                0x3000_0000
+            }
+            None => 0,
+        };
+        self.cop0[13] = (self.cop0[13] & !(0xC000_007C | ce_mask)) | cause;
 
         if in_delay_slot {
             self.cop0[14] = instr_pc.wrapping_sub(4);
@@ -132,11 +145,11 @@ impl Cpu {
 
         let instr_pc = self.pc;
         if instr_pc & 3 != 0 {
-            self.enter_exception(0x04, Some(instr_pc), instr_pc, false, false);
+            self.enter_exception(0x04, Some(instr_pc), instr_pc, false, false, None);
             return;
         }
         if Bus::fetch_causa_bus_error(instr_pc) {
-            self.enter_exception(0x06, Some(instr_pc), instr_pc, false, false);
+            self.enter_exception(0x06, Some(instr_pc), instr_pc, false, false, None);
             return;
         }
         let instr = bus.read32::<BusRead>(instr_pc);
@@ -186,7 +199,8 @@ impl Cpu {
 
         if let Some(exc_code) = self.pending_exception.take() {
             let bad_vaddr = self.exception_badvaddr.take();
-            self.enter_exception(exc_code, bad_vaddr, instr_pc, in_delay_slot, was_taken);
+            let ce = self.pending_ce.take();
+            self.enter_exception(exc_code, bad_vaddr, instr_pc, in_delay_slot, was_taken, ce);
             return;
         }
 
@@ -306,6 +320,7 @@ impl Cpu {
             0x10 | 0x11 | 0x12 | 0x13 | 0x30 | 0x31 | 0x32 | 0x33 | 0x38 | 0x39 | 0x3A | 0x3B => {
                 let unit = primary & 3;
                 if !self.cop_usable(unit, primary & 0x20 == 0) {
+                    self.pending_ce = Some(unit as u8);
                     self.raise_exception(0x0B, None);
                     return None;
                 }

@@ -7,27 +7,32 @@
 
 ## Última iteração concluída
 
-**0208 — acumulador fracionário de timers (0208.1), branch `iter/0208-timer-acumulador-fracionario`,
-PR não aberto.** Urgência do usuário: rodei os 14 jogos comerciais (`../roms/extraido/`); só
-Crash funciona, os outros 13 travam (11 na tela SCEA, Tomb Raider I/II com tela preta),
-confirmado até 1,6 bilhão de passos — não é boot lento. Workflow de 5 agentes (ff7, tekken3,
-re2, tomb-raider, ctr) caçou o PC de cada travamento. **Achado e corrigido:** Tekken 3 e RE2
-travam no double-read do Timer 1 (idiom PsyQ, `05-timers.md` L79-86) porque `Timers::tick()`
-escalava o resto acumulado por `denom` de novo a cada chamada — Timer 0/1 em dotclock/hblank
-saltava centenas/milhares de unidades por tick. Bateria 6/6+2/2 (0059 reexecutada 7/7+2/2,
-sem regressão). **Não medi ainda se o fix destrava os jogos de verdade.** Causas diferentes
-abertas: 0208.2 (FF7), 0208.3 (Tomb Raider), 0208.4 (CTR), 0208.5 (8 jogos não investigados).
-PRs #218/#219/#220 de rodadas anteriores seguem abertos, não mesclados.
+**0209 — Degrau 1 da escada de timing CPU/barramento (0209.1), branch
+`iter/0209-ciclos-excecao`, PR não aberto.** Usuário mandou atacar CPU/barramento direto
+(achado 0193.4 é a suspeita: CPU roda rápido demais por não cobrar custo de acesso, e RE2
+trava num laço vsync-com-timeout cujo orçamento corre contra o contador real de vblank).
+Investigação prévia (3 Explore + 1 Plan) achou que custo de load por região já está
+implementado e testado; o que falta é MULT/DIV, GTE, DMA (ciclo zero) e um vazamento real:
+`load_extra_cycles` não era zerado em `enter_exception`, então um load que falta (AdEL)
+cobrava seu custo da PRÓXIMA instrução que completasse. Fix + invariante 34. Bateria
+5/5+2/2. **Escada completa (10 degraus) no plano aprovado — não repetir aqui, ver Degrau 2
+abaixo e o arquivo de plano se precisar do resto.**
 
 ## Próxima tarefa
 
-**Prioridade: compatibilidade de jogos, não a lista `10.x`.** Abrir o PR da 0208, depois
-rodar Tekken 3/RE2 de novo pra confirmar que passam da tela SCEA (bateria verde não prova
-isso). Investigar Achado 0208.2 (FF7, RAM 0x80089D9C só escrita pela BIOS), Achado 0208.3
-(Tomb Raider, CD-ROM ISO9660 ou ciclos), Achado 0208.4 (CTR, elo IRQ→contador do jogo), depois
-os 8 jogos do Achado 0208.5 um a um, mesmo método (`--sample-pcs`/`--watch-mem`/`--dump-mem`).
-Lista legado `10.x`
-(10.45/10.83/10.85/10.102/10.114/10.116) fica em segundo plano até isso avançar.
+Escada motivada pelo Achado 0193.4 (CPU sem custo de acesso a memória).
+
+**Degrau 2 da escada de timing: LWC2 paga o custo de região do load** (hoje só opcodes
+`0x20..=0x26` disparam `load_extra_cycles`; LWC2 é `0x32` e custa 1 ciclo até vindo da
+BIOS). Mesma spec já usada (`02-cpu.md` L260-269). Depois: Degrau 3 (MULT/DIV, stall de
+HI/LO, `02-cpu.md` L420-440).
+Degrau 4 vem depois: tabela de custo por comando GTE, cada opcode com seu próprio custo.
+Cada degrau é uma iteração normal (branch → teste vermelho → fix → bateria → docs → PR).
+Depois dos degraus 1-6, Degrau 7 remede os jogos travados (ff7/tekken3/re2/tomb-raider/
+ctr) antes de decidir se DMA (degraus 8-9, os mais arriscados) ainda é necessário.
+
+PRs #218/#219/#220 de rodadas anteriores seguem abertos, não mesclados. Lista legado `10.x`
+(10.45/10.83/10.85/10.102/10.114/10.116) fica em segundo plano até a escada avançar.
 
 Rodar Crash: `--bios bios/SCPH1001.BIN --disc "../roms/extraido/Crash Bandicoot (USA).cue"
 --max-steps 1200000000 --pad --press start@330000000 --press cross@700000000`.
@@ -43,7 +48,8 @@ Achados abertos em `docs/achados.md`. Lotes do oráculo: tarefa-modelo em
 `K/M` no CSV é **K linhas divergentes de M**. `timers` tem jitter real e nunca dará
 `identico`. **Antes de medir CD-ROM, monte disco** (10.108).
 
-Invariantes relevantes: nenhuma.
+Invariantes relevantes: 17 (orçamento fixo de espera da BIOS cobrindo um frame — reconferir a
+cada degrau da escada de timing), 34 (acumulador de ciclos extras é estado de pipeline).
 
 ## Repositório
 
@@ -59,7 +65,7 @@ Invariantes relevantes: nenhuma.
 
 ## Placar de testes
 
-Workspace: **1266** testes.
+Workspace: **1269** testes.
 - **NUNCA rodar `cargo test`/`nextest` nem a bateria de mutação junto com o oráculo**: a
   disputa de CPU faz o `Start-Process` ler stdout antes do flush e reportar `sem-saida`
   falso. Derrubou 16/21 numa medição da 0170; rodada limpa deu 21/21.

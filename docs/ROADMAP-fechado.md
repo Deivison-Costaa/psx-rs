@@ -267,3 +267,9 @@ da escada valer so para o que FALTA. Narrativa de cada item continua em
   jogos comerciais travados a pedido do usuario; confirmado travando Tekken 3 e Resident
   Evil 2. Outros 3 casos investigados (FF7, Tomb Raider, CTR) tem causas DIFERENTES, ainda
   abertas como 0208.2/0208.3/0208.4
+
+## Fechado na iteração 0209
+- [x] 0209.1 `load_extra_cycles` nao sobrevivia a excecao: setado antes da checagem de
+  alinhamento, nunca zerado se o load falta (AdEL/CpU) — o custo da regiao vazava pra
+  proxima instrucao que completasse, tipicamente a primeira do handler (02-cpu.md L262-269)
+  (iter 0209) — Degrau 1 da escada de timing de CPU/barramento (achado motivador 0193.4)

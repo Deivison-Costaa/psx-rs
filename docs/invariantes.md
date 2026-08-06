@@ -253,3 +253,11 @@ Regra imposta por `status_handoff.rs`.
     de PCs por amostragem periodica exige passo PRIMO — passo composto alia com o periodo do
     laco (82% das amostras num unico PC com passo 200k); (b) nunca reescrever fonte com
     Get-Content|Set-Content — vira CRLF e toda ancora de mutacao passa a falhar em cascata.
+
+34. **O acumulador de ciclos extras de load e estado de pipeline: vetorar excecao o zera
+    junto com `branch_target`/`delay_slot_pending`/`load_delay` (fix na 0209).** Custo de
+    load e cobrado da instrucao que de fato acessa o barramento (`docs/reference/02-cpu.md`
+    L262-269); um load que falta (AdEL, CpU) nunca chega la e nao cobra nada — a spec so
+    tabela o acesso concluido. Qualquer novo mecanismo de stall de CPU (mult/div, GTE, DMA)
+    que grave num acumulador parecido tem que ser zerado no mesmo lugar, ou herda o mesmo
+    vazamento.

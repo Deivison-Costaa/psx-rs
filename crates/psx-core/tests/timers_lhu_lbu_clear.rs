@@ -71,9 +71,10 @@ fn read16_no_meio_da_transferencia_nao_corrompe_o_segundo_byte() {
 
     let half = bus.read16::<BusRead>(T0_MODE);
     assert_eq!(
-        half, 0x0808,
-        "MODE=0x0008 (bit3) com bit11 setado (0x0800) = 0x0808 — os dois bytes \
-         do read16 tem que vir do MESMO valor pre-clear, nao um par \
-         inconsistente onde o segundo byte ja saiu zerado"
+        half, 0x0C08,
+        "MODE=0x0008 (bit3, escrito) | 0x0400 (bit10, setado pela propria escrita \
+         em MODE) | 0x0800 (bit11, target alcancado) = 0x0C08 — os dois bytes do \
+         read16 tem que vir do MESMO valor pre-clear, nao um par inconsistente \
+         onde o segundo byte ja saiu zerado"
     );
 }

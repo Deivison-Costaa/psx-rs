@@ -85,26 +85,31 @@ fn disco_com_um_setor() -> Vec<u8> {
     bin
 }
 
+// Setloc a 00:02:00 + ReadN completo: deixa `has_last_sector` verdadeiro, como qualquer
+// cenario real em que o driver ja pediu ao menos um setor antes de checar a posicao.
+fn le_um_setor(bus: &mut Bus) {
+    param_write(bus, 0x00);
+    param_write(bus, 0x02);
+    param_write(bus, 0x00);
+    manda_comando(bus, 0x02); // Setloc
+    let _ = result_read(bus);
+    ack(bus);
+
+    manda_comando(bus, 0x06); // ReadN
+    let _ = result_read(bus); // INT3
+    ack(bus);
+    bus.tick_timers(ESPERA_SEGUNDA_RESPOSTA);
+    let _ = result_read(bus); // INT1
+    ack(bus);
+}
+
 // § GetlocL - Command 10h (L1052) de docs/reference/06-cdrom.md.
 #[test]
 fn getlocl_devolve_cabecalho_e_subheader_do_ultimo_setor_lido() {
     let mut bus = bus();
     bus.inject_disc(layout_vazia(), disco_com_um_setor());
     bus.cdrom_mut().insert_disc();
-
-    param_write(&mut bus, 0x00);
-    param_write(&mut bus, 0x02);
-    param_write(&mut bus, 0x00);
-    manda_comando(&mut bus, 0x02); // Setloc
-    let _ = result_read(&mut bus);
-    ack(&mut bus);
-
-    manda_comando(&mut bus, 0x06); // ReadN
-    let _ = result_read(&mut bus); // INT3
-    ack(&mut bus);
-    bus.tick_timers(ESPERA_SEGUNDA_RESPOSTA);
-    let _ = result_read(&mut bus); // INT1
-    ack(&mut bus);
+    le_um_setor(&mut bus);
 
     manda_comando(&mut bus, 0x10); // GetlocL
     assert_eq!(
@@ -136,10 +141,40 @@ fn getlocl_erro_80h_com_motor_parado() {
     assert_eq!(result_read(&mut bus), 0x80, "byte de erro = 80h");
 }
 
+// Le um setor primeiro (has_last_sector=true) e SO DEPOIS para o motor (Stop, 08h), para que
+// o teste isole a checagem de motor: sem o setor ja lido, um GetlocL com motor parado erraria
+// pela razao errada (nenhum setor lido ainda), sem provar que a checagem de motor existe.
+#[test]
+fn getlocl_erro_80h_com_motor_parado_apos_leitura() {
+    let mut bus = bus();
+    bus.inject_disc(layout_vazia(), disco_com_um_setor());
+    bus.cdrom_mut().insert_disc();
+    le_um_setor(&mut bus);
+
+    manda_comando(&mut bus, 0x08); // Stop: para o motor
+    let _ = result_read(&mut bus);
+    ack(&mut bus);
+
+    manda_comando(&mut bus, 0x10); // GetlocL com motor parado, mas setor ja bufferizado
+
+    assert_eq!(
+        hintsts(&mut bus),
+        5,
+        "INT5: spec § GetlocL — 'Error if disc is spun down', mesmo com setor ja lido"
+    );
+    let stat = result_read(&mut bus);
+    assert_eq!(stat & 0x01, 0x01, "stat.bit0 (erro) ligado");
+    assert_eq!(result_read(&mut bus), 0x80, "byte de erro = 80h");
+}
+
+// Le um setor primeiro (has_last_sector=true) para isolar a checagem de play: sem ele, um
+// GetlocL durante o play erraria pela razao errada (nenhum setor lido ainda).
 #[test]
 fn getlocl_erro_80h_durante_play() {
     let mut bus = bus();
+    bus.inject_disc(layout_vazia(), disco_com_um_setor());
     bus.cdrom_mut().insert_disc();
+    le_um_setor(&mut bus);
 
     manda_comando(&mut bus, 0x03); // Play (sem report: sem 2a resposta)
     let _ = result_read(&mut bus);
@@ -150,7 +185,7 @@ fn getlocl_erro_80h_durante_play() {
     assert_eq!(
         hintsts(&mut bus),
         5,
-        "INT5: spec § GetlocL (L1062) — 'fails ... when playing Audio CDs'"
+        "INT5: spec § GetlocL (L1062) — 'fails ... when playing Audio CDs', mesmo com setor ja lido"
     );
     let stat = result_read(&mut bus);
     assert_eq!(stat & 0x01, 0x01, "stat.bit0 (erro) ligado");

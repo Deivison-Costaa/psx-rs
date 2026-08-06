@@ -36,10 +36,10 @@ fn dma6_otc_fora_da_ram_levanta_bus_error_no_dicr() {
 #[test]
 fn dma2_burst_fora_da_ram_levanta_bus_error_no_dicr() {
     let mut bus = bus_com_dma();
-    bus.write32::<BusRead>(D2_MADR, 0x001F_FFFC);
-    bus.write32::<BusRead>(D2_BCR, 1);
+    bus.write32::<BusRead>(D2_MADR, 0);
+    bus.write32::<BusRead>(D2_BCR, 2);
     bus.write32::<BusRead>(DPCR, 0x0765_4321 | (1 << 11));
-    bus.write32::<BusRead>(D2_CHCR, 0x1100_0001);
+    bus.write32::<BusRead>(D2_CHCR, 0x1100_0003);
 
     let dicr = bus.read32::<BusRead>(DICR);
     assert_eq!(

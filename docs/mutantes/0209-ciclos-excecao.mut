@@ -1,0 +1,66 @@
+# Manifesto de mutação da iteração 0209 — ciclos-excecao
+formato: 1
+iteracao: 0209
+item: 0209.1
+alvo: crates/psx-core/src/cpu.rs
+teste: cpu_ciclos_excecao
+
+mutante: m1
+rotulo: reset vira no-op (nao zera o acumulador)
+@@DE
+        self.load_extra_cycles = 0;
+@@PARA
+        let _ = self.load_extra_cycles;
+@@FIM
+
+mutante: m2
+rotulo: zera pro valor errado
+@@DE
+        self.load_extra_cycles = 0;
+@@PARA
+        self.load_extra_cycles = 1;
+@@FIM
+
+mutante: m3
+rotulo: zera o campo errado (written_gpr em vez do acumulador)
+@@DE
+        self.load_extra_cycles = 0;
+@@PARA
+        self.written_gpr = None;
+@@FIM
+
+mutante: m4
+rotulo: mem::take vira leitura simples (acumulador nunca esvazia no consumo)
+@@DE
+        bus.tick_timers(1 + std::mem::take(&mut self.load_extra_cycles));
+@@PARA
+        bus.tick_timers(1 + self.load_extra_cycles);
+@@FIM
+
+mutante: m5
+rotulo: reset so acontece pra excecao BREAK (exc_code 09h), nao pras demais
+@@DE
+        self.load_extra_cycles = 0;
+@@PARA
+        if exc_code == 0x09 {
+            self.load_extra_cycles = 0;
+        }
+@@FIM
+
+controle: c1
+rotulo: comentario antes do reset do acumulador
+@@DE
+        self.load_extra_cycles = 0;
+@@PARA
+        // acumulador de custo extra de load pendente
+        self.load_extra_cycles = 0;
+@@FIM
+
+controle: c2
+rotulo: comentario antes do consumo do acumulador em tick_timers
+@@DE
+        bus.tick_timers(1 + std::mem::take(&mut self.load_extra_cycles));
+@@PARA
+        // 1 ciclo de emissao + o resto pendente do load desta instrucao
+        bus.tick_timers(1 + std::mem::take(&mut self.load_extra_cycles));
+@@FIM

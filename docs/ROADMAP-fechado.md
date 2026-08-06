@@ -222,3 +222,6 @@ da escada valer so para o que FALTA. Narrativa de cada item continua em
 - [x] 9.6 Fast-forward + recentes + tempo de jogo (iter 0198)
 - [x] 10.23 Scoreboard com veredito de VRAM via diffvram: 13 suítes ganharam veredito gráfico (iter 0199)
 - [x] 10.11 Retângulos texturizados (raw+CLUT+STP+wrap); rectangles 11.560px → 7.265px (iter 0200)
+
+## Fechado na iteração 0202
+- [x] 10.13 GP0(24h) e modulacao, nao raw texture (03-gpu.md L264/L1610) (0110) (iter 0202)

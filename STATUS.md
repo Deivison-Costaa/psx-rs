@@ -7,25 +7,30 @@
 
 ## Última iteração concluída
 
-**0200 — retângulos texturizados (fechou 10.11).** `render_rect_textured`: raw 15bpp +
-CLUT, texel 0 transparente, STP, wrap de 256, clip; e o blend passou a escrever o bit 15
-do texel (03-gpu.md L585 — t1-t4 antigos fixavam o defeito e foram atualizados). Régua:
-`rectangles` 11.560px → **7.265px** (resto é modulação 10.13/flip 0193.7);
-`texture-overflow` → **vram-ok 0px**; `vram-to-vram-overlap` 14.474 → 7.557px. Bateria
-6/6 + 2/2 (m5 sobreviveu na 1ª rodada por texel transparente no teste — endurecido e
-reexecutada). Manifestos 0042/0047 arquivados (âncoras envelhecidas). **Exceção de
-executor vigente: o orquestrador implementa a escada** (`docs/orquestracao.md`).
+**0202 — poligono modulado (fechou 10.13).** `render_triangle` sempre desenhava o texel cru;
+GP0(24h) e variantes (bit24=0) exigem `finalChannel=texel*cor/128` (03-gpu.md L1604).
+`modulate_texel` nova, com `raw_texture` viajando por `PolygonRender`. 5 testes em
+`gpu_poligono_modulacao.rs`; migrados 21 usos de GP0(24h) com cor preta (só testavam
+fetch de texel) para GP0(25h) raw em 5 arquivos. Scoreboard local não mudou (rectangles
+é RECT, não polígono — achado 10.13 não cobre isso; oráculos de polígono já divergem por
+outros defeitos maiores). Evidência real: dump do Crash em 900M passos, **200.749/524.288
+px (38%) mudaram** entre antes/depois. Bateria 5/5 + 2/2.
+**PR #211 (0201, achado 10.53) ainda aberto sem merge** — STATUS/achados.md/ROADMAP-fechado
+vão divergir até lá reconciliar; revisar os dois na hora do merge.
+**Exceção de executor vigente: o orquestrador implementa a escada** (`docs/orquestracao.md`).
 
 ## Próxima tarefa
 
-**Achado 10.115 — âncoras relativas nos rayman_*.** Converter os ~97 literais de passo
-absoluto nos 10 `rayman_*.rs` para gatilhos por evento (modelo: `rayman_evcb_descritores`
-dispara na primeira condição válida), com tetos frouxos de guarda. PR só de testes —
-pré-requisito da iteração de timing (0193.4), que sem isso quebra as âncoras em lote.
-
-Depois, na ordem: 0193.4 (custo de ciclo de memória; oráculo `cpu/access-time`),
-0193.5/0193.3/0189.1 (áudio), 0193.2 (24bpp), 10.13 (modulação — deve zerar boa parte
-dos 7.265px do `rectangles`). Depois: ROADMAP 11.2, 11.3, remedir Amidog e lote TTY.
+Seguir a lista de achados legado `10.x` em `docs/achados.md` (pedido do usuário: "vá passando
+por essa lista enorme... resolver esses bugs... faça o máximo possível", uma iteração por
+achado, PR sem merge, reportar e continuar). Candidatos bem escopados e ainda não tentados
+(citação exata de spec de cada um mora em `docs/achados.md`, não repetida aqui): 10.4
+(CAUSE.CE), 10.6 (GP0 80h vram→vram), 10.7 (mask GP0 E6h), 10.8 (SWL/SWR porta destrutiva),
+10.14 (gouraud/UV sobre span recortado), 10.45 (load shadow), 10.50 (GP0 C0h sem
+transferência), 10.52 (timer lhu/lbu bits 11/12), 10.55/10.56/10.57 (CD-ROM).
+**Achado 10.115 — âncoras relativas nos rayman_*** segue pendente (não é bug de jogo, é
+manutenção de teste): ~97 literais de passo absoluto nos 10 `rayman_*.rs` → gatilhos por
+evento, pré-requisito de 0193.4.
 
 Rodar Crash: `--bios bios/SCPH1001.BIN --disc "../roms/extraido/Crash Bandicoot (USA).cue"
 --max-steps 1200000000 --pad --press start@330000000 --press cross@700000000`.
@@ -57,7 +62,7 @@ Invariantes relevantes: nenhuma.
 
 ## Placar de testes
 
-Workspace: **1242** testes.
+Workspace: **1246** testes.
 - **NUNCA rodar `cargo test`/`nextest` nem a bateria de mutação junto com o oráculo**: a
   disputa de CPU faz o `Start-Process` ler stdout antes do flush e reportar `sem-saida`
   falso. Derrubou 16/21 numa medição da 0170; rodada limpa deu 21/21.

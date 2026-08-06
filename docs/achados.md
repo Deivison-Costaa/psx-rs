@@ -91,3 +91,4 @@
 - [ ] 0198.5 `saves::lista` nao confere o magico `MC` da imagem de cartao; imagem lixo lista saves fantasmas (0198)
 - [ ] 0198.6 Maquina sintetica dos testes de snapshot executa so NOPs: scheduler/IRQ/DMA nunca exercitados no roundtrip (0198)
 - [ ] 0203.1 render_triangle_dithered tem o mesmo bug de 10.14 (reinterpola gouraud sobre o span ja recortado pela drawing area), caminho dither+gouraud+nao-texturizado; sem teste dedicado ainda (0203)
+- [ ] 0203.2 PR #214 (10.30, retrigger de DMA no DPCR): so o canal OTC e exercitado; mutantes m3/m4/m5 do manifesto "matam" por efeito colateral (return precoce tambem pula o OTC, que vem depois no codigo), nao porque testam os canais 0/1/2 de fato — CDROM (dma3) e SPU (dma4) nunca sao exercitados nem pela bateria nem pelo teste (revisao do orquestrador no PR #214)

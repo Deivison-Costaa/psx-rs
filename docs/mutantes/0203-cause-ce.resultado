@@ -1,0 +1,10 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: be6cba83eadf5588067697edec3133775cc787e6
+# rodado_em: 2026-08-05T21:18:14-03:00
+m1,mutante,morreu,morreu,1.5,cause_ce_registra_o_numero_do_coprocessador_da_excecao
+m2,mutante,morreu,morreu,1.3,cause_ce_registra_o_numero_do_coprocessador_da_excecao
+m3,mutante,morreu,morreu,1.2,cause_ce_registra_o_numero_do_coprocessador_da_excecao
+m4,mutante,morreu,morreu,1.2,cause_ce_registra_o_numero_do_coprocessador_da_excecao
+m5,mutante,morreu,morreu,1.2,cause_ce_registra_o_numero_do_coprocessador_da_excecao
+c1,controle,sobreviveu,sobreviveu,1.2,
+c2,controle,sobreviveu,sobreviveu,1.1,

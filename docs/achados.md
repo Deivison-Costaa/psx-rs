@@ -17,7 +17,6 @@
 ## Legado (numeração `10.x`, anterior à iteração 0181)
 - [ ] 10.1 Timings finos (ps1-tests de timing)
 - [ ] 10.2 Passe de compatibilidade (bugs viram itens 10.x)
-- [ ] 10.4 CAUSE.CE nao preenchido no Coprocessor Unusable (02-cpu.md L681)
 - [ ] 10.5 Amidog psxtest_cpu para apos "args: 0" — causa nao investigada (iter 0032)
 - [ ] 10.6 GP0(80h) VRAM->VRAM blit (hoje consumido e ignorado)
 - [ ] 10.7 Mask GP0(E6h) em CPU->VRAM e VRAM->VRAM (`docs/reference/03-gpu.md` L590)

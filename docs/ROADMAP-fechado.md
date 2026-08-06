@@ -258,3 +258,7 @@ da escada valer so para o que FALTA. Narrativa de cada item continua em
 - [x] 10.109 SyncMode=0 com chopping: MADR e BC atualizados no fim do burst do DMA2
   (04-dma.md L48-50, L80-81) (iter 0203) — so o estado final, sem cycle-stealing real
   (achados 10.102/10.114 continuam abertos)
+
+## Fechado na iteração 0205
+- [x] 10.52 `lhu`/`lbu` no MODE do timer limpam os bits 11/12 igual `lw` ja fazia (0118)
+  (iter 0205)

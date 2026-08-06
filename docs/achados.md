@@ -36,7 +36,6 @@
 - [ ] 10.44 Manifesto com alvo em documento vivo (STATUS.md) envelhece sempre
 - [ ] 10.45 Load shadow sobrepoe as instrucoes seguintes (`docs/reference/02-cpu.md` L281)
 - [ ] 10.46 `justificativa:` do equivalente nao aceita continuacao de linha
-- [ ] 10.52 `lhu`/`lbu` no modo do timer nao limpa bits 11/12 (0118)
 - [ ] 10.49 Bit 15 do `DICR` gravavel mas nada o levanta; DMA fora da RAM ignorada (0116)
 - [ ] 10.57 Regiao do GetID fixada em SCEA; ler o setor de licenca do `.bin` (0122)
 - [ ] 10.56 Result FIFO anterior legivel na janela da primeira resposta (0121)

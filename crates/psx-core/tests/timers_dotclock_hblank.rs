@@ -34,8 +34,9 @@ fn timer0_dotclock_256px_razao_11_por_70_cpu_cycles() {
     tick_timer(&mut bus, T0_CNT, 100);
     assert_eq!(
         bus.read32::<BusRead>(T0_CNT) & 0xFFFF,
-        76,
-        "acumulado: resto=30 + 100*11=1100 → 1100+30*70=3200/70=45 → CNT=31+45=76"
+        47,
+        "acumulado: resto=30 (fracao pendente, NAO escalada por denom de novo) + 100*11=1100 \
+         → 1130/70=16 → CNT=31+16=47"
     );
 }
 
@@ -66,8 +67,33 @@ fn timer1_hblank_ntsc_razao_11_por_23891_cpu_cycles() {
     tick_timer(&mut bus, T1_CNT, 10000);
     assert_eq!(
         bus.read32::<BusRead>(T1_CNT) & 0xFFFF,
-        7224,
-        "acumulado: 2 + floor((7218*23891+10000*11)/23891) = 2+7222=7224"
+        6,
+        "acumulado: resto=7218 (fracao pendente) + 10000*11=110000 → 117218/23891=4 → CNT=2+4=6"
+    );
+}
+
+// § Dotclock/Hblank (L79-86) de docs/reference/05-timers.md: o driver da PsyQ le o contador
+// duas vezes seguidas e so aceita quando as leituras batem. Se o acumulador fracionario
+// vazar o resto inteiro a cada chamada (em vez de reter so a fracao ate cruzar o proximo
+// pulso), duas leituras a poucos ciclos de distancia NUNCA batem — e o laco do jogo trava
+// pra sempre. Bug real medido em Tekken 3 e Resident Evil 2 travando no boot.
+#[test]
+fn duas_leituras_a_poucos_ciclos_de_distancia_batem_como_o_driver_da_psyq_espera() {
+    let mut bus = bus();
+    bus.timers_mut().update_gpu_timing(10, 3413);
+    bus.write32::<BusRead>(T1_MODE, 0x0100);
+    // Alimenta o acumulador com uma fracao pendente grande antes das duas leituras rapidas,
+    // do mesmo jeito que o driver real chega com resto acumulado de ticks anteriores.
+    tick_timer(&mut bus, T1_CNT, 5000);
+    let primeira = bus.read32::<BusRead>(T1_CNT) & 0xFFFF;
+
+    tick_timer(&mut bus, T1_CNT, 8); // poucos ciclos: menos de 1/23891 de pulso de hblank
+    let segunda = bus.read32::<BusRead>(T1_CNT) & 0xFFFF;
+
+    assert_eq!(
+        segunda, primeira,
+        "8 ciclos de CPU nao completam nem 1/2000 de um pulso de hblank (denom=23891); a \
+         leitura tem de ficar igual, nao saltar centenas de unidades"
     );
 }
 

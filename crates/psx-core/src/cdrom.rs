@@ -52,6 +52,8 @@ pub struct Cdrom {
     play_track: Cell<u8>,
     audio_fifo: RefCell<VecDeque<(i16, i16)>>,
     xa_state: Cell<XaState>,
+    last_sector_header: Cell<[u8; 8]>,
+    has_last_sector: Cell<bool>,
 }
 
 /// Quatro setores de CD-DA. Se o jogo le mais rapido do que o SPU consome, o excedente
@@ -101,6 +103,8 @@ impl Cdrom {
             play_track: Cell::new(0),
             audio_fifo: RefCell::new(VecDeque::new()),
             xa_state: Cell::new(XaState::default()),
+            last_sector_header: Cell::new([0u8; 8]),
+            has_last_sector: Cell::new(false),
         }
     }
 
@@ -311,7 +315,7 @@ impl Cdrom {
         self.second_cycles.get()
     }
 
-    pub fn deliver_first(&self) -> bool {
+    pub fn deliver_first(&self, disc_layout: Option<&DiscLayout>) -> bool {
         // § First Response (06-cdrom.md L1984): o mainloop so executa o comando se NAO
         // houver INT pendente — qualquer INT sem ack, nao so int1_pending/int2_pending
         // (essas flags marcam "resposta ainda devida", nao "intsts sem ack").
@@ -325,12 +329,12 @@ impl Cdrom {
         };
         self.param_buf.set(self.pending_params.get());
         self.param_count.set(self.pending_param_count.get());
-        self.send_command(cmd);
+        self.send_command(cmd, disc_layout);
         self.second_dirty.set(true);
         true
     }
 
-    fn send_command(&self, cmd: u8) {
+    fn send_command(&self, cmd: u8, disc_layout: Option<&DiscLayout>) {
         self.busy.set(true);
         self.result_clear();
         match cmd {
@@ -458,6 +462,46 @@ impl Cdrom {
                 self.intsts.set(3);
                 self.busy.set(false);
             }
+            // § GetlocL - Command 10h (L1052-1071) de docs/reference/06-cdrom.md: falha (80h)
+            // com o motor parado ou durante o play; e docs/iterations/0175-cdrom-oraculo.md,
+            // que mediu no hardware real que tambem falha antes de qualquer setor ter sido lido.
+            0x10 => {
+                if !self.motor_on.get() || self.playing.get() || !self.has_last_sector.get() {
+                    self.result_push(self.stat_byte() | 0x01);
+                    self.result_push(0x80);
+                    self.intsts.set(5);
+                } else {
+                    for b in self.last_sector_header.get() {
+                        self.result_push(b);
+                    }
+                    self.intsts.set(3);
+                }
+                self.busy.set(false);
+            }
+            // § GetlocP - Command 11h (L1073-1088) de docs/reference/06-cdrom.md.
+            0x11 => {
+                if !self.motor_on.get() {
+                    self.result_push(self.stat_byte() | 0x01);
+                    self.result_push(0x80);
+                    self.intsts.set(5);
+                } else {
+                    let amm = self.read_pos_mm.get();
+                    let ass = self.read_pos_ss.get();
+                    let asect = self.read_pos_ff.get();
+                    let (track, index, inicio) = self.trilha_em(disc_layout, amm, ass, asect);
+                    let (mm, ss, ff) = subtrai_msf((amm, ass, asect), inicio);
+                    self.result_push(track);
+                    self.result_push(index);
+                    self.result_push(mm);
+                    self.result_push(ss);
+                    self.result_push(ff);
+                    self.result_push(amm);
+                    self.result_push(ass);
+                    self.result_push(asect);
+                    self.intsts.set(3);
+                }
+                self.busy.set(false);
+            }
             0x1E => {
                 self.result_push(self.stat_byte());
                 self.intsts.set(3);
@@ -569,7 +613,7 @@ impl Cdrom {
         &self,
         offset: u32,
         val: u8,
-        _disc_layout: Option<&DiscLayout>,
+        disc_layout: Option<&DiscLayout>,
         _disc_bin: Option<&[u8]>,
     ) {
         match offset & 0x3 {
@@ -597,7 +641,7 @@ impl Cdrom {
                             self.second_request.set(true);
                             self.irq_line.set(false);
                         } else if self.pending_cmd.get().is_some() {
-                            self.deliver_first();
+                            self.deliver_first(disc_layout);
                         }
                     }
                 }
@@ -719,6 +763,17 @@ impl Cdrom {
                 self.hchpctl.set(0);
                 if self.mode.get() & 0x40 != 0 {
                     self.decodifica_xa(disc_bin);
+                }
+                if let Some(bin) = disc_bin {
+                    if let Some(cabecalho) = read_sector_header(
+                        bin,
+                        self.read_pos_mm.get(),
+                        self.read_pos_ss.get(),
+                        self.read_pos_ff.get(),
+                    ) {
+                        self.last_sector_header.set(cabecalho);
+                        self.has_last_sector.set(true);
+                    }
                 }
                 advance_read_pos(&self.read_pos_mm, &self.read_pos_ss, &self.read_pos_ff);
             }
@@ -862,6 +917,29 @@ fn advance_read_pos(mm: &Cell<u8>, ss: &Cell<u8>, ff: &Cell<u8>) {
     }
 }
 
+// Offset do inicio do setor bruto (2352 bytes) no .bin, a partir do MSF absoluto — usado
+// tanto pelo cabecalho (GetlocL) quanto pelos dados de usuario (ReadN/ReadS).
+fn sector_bin_offset(min_bcd: u8, sec_bcd: u8, sect_bcd: u8) -> Option<usize> {
+    let abs_sector =
+        bcd_to_int(min_bcd) * 60 * 75 + bcd_to_int(sec_bcd) * 75 + bcd_to_int(sect_bcd);
+    let file_sector = abs_sector.checked_sub(150)?;
+    let offset = file_sector as usize * 2352;
+    Some(offset)
+}
+
+// § GetlocL - Command 10h (L1052-1064) de docs/reference/06-cdrom.md: os 8 bytes crus do
+// cabecalho (amm,ass,asect,mode) e sub-header (file,channel,sm,ci) ficam em 00Ch..013h do
+// setor bruto, os mesmos 8 bytes que o comando devolve, na mesma ordem.
+fn read_sector_header(bin: &[u8], min_bcd: u8, sec_bcd: u8, sect_bcd: u8) -> Option<[u8; 8]> {
+    let offset = sector_bin_offset(min_bcd, sec_bcd, sect_bcd)?;
+    if offset + 0x14 > bin.len() {
+        return None;
+    }
+    let mut cabecalho = [0u8; 8];
+    cabecalho.copy_from_slice(&bin[offset + 0x0C..offset + 0x14]);
+    Some(cabecalho)
+}
+
 fn read_sector_from_disc(
     _layout: &DiscLayout,
     bin: &[u8],
@@ -869,10 +947,7 @@ fn read_sector_from_disc(
     sec_bcd: u8,
     sect_bcd: u8,
 ) -> Option<[u8; 2048]> {
-    let abs_sector =
-        bcd_to_int(min_bcd) * 60 * 75 + bcd_to_int(sec_bcd) * 75 + bcd_to_int(sect_bcd);
-    let file_sector = abs_sector.checked_sub(150)?;
-    let offset = file_sector as usize * 2352;
+    let offset = sector_bin_offset(min_bcd, sec_bcd, sect_bcd)?;
     if offset + 0x10 > bin.len() {
         return None;
     }

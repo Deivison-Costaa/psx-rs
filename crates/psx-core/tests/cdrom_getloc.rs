@@ -107,7 +107,11 @@ fn getlocl_devolve_cabecalho_e_subheader_do_ultimo_setor_lido() {
     ack(&mut bus);
 
     manda_comando(&mut bus, 0x10); // GetlocL
-    assert_eq!(hintsts(&mut bus), 3, "INT3: GetlocL responde de uma vez, sem 2a resposta");
+    assert_eq!(
+        hintsts(&mut bus),
+        3,
+        "INT3: GetlocL responde de uma vez, sem 2a resposta"
+    );
     assert_eq!(
         le_resultado(&mut bus, 8),
         CABECALHO,
@@ -122,7 +126,11 @@ fn getlocl_erro_80h_com_motor_parado() {
 
     manda_comando(&mut bus, 0x10); // GetlocL, sem insert_disc: motor parado
 
-    assert_eq!(hintsts(&mut bus), 5, "INT5: spec § GetlocL — 'Error if disc is spun down'");
+    assert_eq!(
+        hintsts(&mut bus),
+        5,
+        "INT5: spec § GetlocL — 'Error if disc is spun down'"
+    );
     let stat = result_read(&mut bus);
     assert_eq!(stat & 0x01, 0x01, "stat.bit0 (erro) ligado");
     assert_eq!(result_read(&mut bus), 0x80, "byte de erro = 80h");
@@ -171,7 +179,11 @@ fn getlocl_erro_80h_antes_de_qualquer_leitura() {
         5,
         "docs/iterations/0175-cdrom-oraculo.md: GetlocL falha antes de qualquer leitura"
     );
-    assert_eq!(result_read(&mut bus) & 0x01, 0x01, "stat.bit0 (erro) ligado");
+    assert_eq!(
+        result_read(&mut bus) & 0x01,
+        0x01,
+        "stat.bit0 (erro) ligado"
+    );
     assert_eq!(result_read(&mut bus), 0x80, "byte de erro = 80h");
 }
 
@@ -216,7 +228,11 @@ fn getlocp_erro_80h_com_motor_parado() {
 
     manda_comando(&mut bus, 0x11); // GetlocP, sem insert_disc: motor parado
 
-    assert_eq!(hintsts(&mut bus), 5, "INT5: spec § GetlocP — 'Error if disc is spun down'");
+    assert_eq!(
+        hintsts(&mut bus),
+        5,
+        "INT5: spec § GetlocP — 'Error if disc is spun down'"
+    );
     let stat = result_read(&mut bus);
     assert_eq!(stat & 0x01, 0x01, "stat.bit0 (erro) ligado");
     assert_eq!(result_read(&mut bus), 0x80, "byte de erro = 80h");

@@ -43,7 +43,8 @@ Placar da bateria: **6/6 mutantes mortos, 2/2 controles verdes, 0 equivalente.**
 - Workspace: 1242 -> 1243 testes, com um novo teste de integracao em `bus_gpu_byte_index_mask.rs`.
 - `cargo fmt --all -- --check`: verde.
 - `cargo clippy --all-targets -- -D warnings`: verde.
-- `cargo test --all`: verde.
+- `cargo test --all`: uma falha conhecida em `status_handoff::placar_do_status_bate_com_a_contagem_de_testes`,
+  pois `STATUS.md` ainda declara 1242 enquanto o workspace passou a ter 1243; os demais testes passaram.
 
 ## Revisao cruzada (orquestrador)
 

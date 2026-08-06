@@ -225,3 +225,9 @@ da escada valer so para o que FALTA. Narrativa de cada item continua em
 
 ## Fechado na iteração 0203
 - [x] 10.4 CAUSE.CE nao preenchido no Coprocessor Unusable (02-cpu.md L681) (iter 0203)
+- [x] 10.6 GP0(80h) VRAM->VRAM blit — achado ficou desatualizado: ja implementado com
+  mascara/wrap/coordenadas absolutas desde a iter 0105 (`execute_vram_to_vram`,
+  `crates/psx-core/src/gpu.rs`); confirmado sem mudanca de codigo na revisao da 0203
+- [x] 10.7 Mask GP0(E6h) em CPU->VRAM e VRAM->VRAM — achado ficou desatualizado: os dois
+  caminhos ja checam `force_bit15`/`check_mask` (GPUSTAT bits 11/12) desde a iter 0049/0105;
+  confirmado sem mudanca de codigo na revisao da 0203

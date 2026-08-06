@@ -18,8 +18,6 @@
 - [ ] 10.1 Timings finos (ps1-tests de timing)
 - [ ] 10.2 Passe de compatibilidade (bugs viram itens 10.x)
 - [ ] 10.5 Amidog psxtest_cpu para apos "args: 0" — causa nao investigada (iter 0032)
-- [ ] 10.6 GP0(80h) VRAM->VRAM blit (hoje consumido e ignorado)
-- [ ] 10.7 Mask GP0(E6h) em CPU->VRAM e VRAM->VRAM (`docs/reference/03-gpu.md` L590)
 - [ ] 10.8 SWL/SWR fazem read-modify-write e leem portas de I/O de leitura destrutiva
 - [ ] 10.10 Drawing Area GP0(E3h/E4h) e Offset GP0(E5h) sem suite que os meça
 - [ ] 10.28 Tabela por registro nos docs vs `.resultado`: 0071 errou 3/9, 0038 inflou 2

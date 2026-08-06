@@ -1,0 +1,116 @@
+# Manifesto de mutacao da iteracao 0203 — 10.50: GPUREAD como latch, nao zero fixo
+formato: 1
+iteracao: 0203
+item: 10.50
+alvo: crates/psx-core/src/gpu.rs
+teste: gpu_gpuread_latch
+
+mutante: m1
+rotulo: gpuread_word volta a devolver 0 fixo quando ocioso
+ocorrencias: 1
+teste: gpu_gpuread_latch
+@@DE
+            // § VRAM to CPU blitting / GP1(10h) (03-gpu.md L146, L939-940): GPUREAD e um
+            // latch compartilhado — sem transferencia em curso, devolve o ultimo valor
+            // lido, nao zero.
+            _ => self.gpuread_latch.get(),
+@@PARA
+            // § VRAM to CPU blitting / GP1(10h) (03-gpu.md L146, L939-940): GPUREAD e um
+            // latch compartilhado — sem transferencia em curso, devolve o ultimo valor
+            // lido, nao zero.
+            _ => 0,
+@@FIM
+
+mutante: m2
+rotulo: latch nunca atualizado — fica preso no valor inicial
+ocorrencias: 1
+teste: gpu_gpuread_latch
+@@DE
+                let word = (hw1 as u32) | ((hw2 as u32) << 16);
+                self.gpuread_latch.set(word);
+                word
+@@PARA
+                let word = (hw1 as u32) | ((hw2 as u32) << 16);
+                word
+@@FIM
+
+mutante: m3
+rotulo: latch sempre gravado como zero em vez da palavra real
+ocorrencias: 1
+teste: gpu_gpuread_latch
+@@DE
+                let word = (hw1 as u32) | ((hw2 as u32) << 16);
+                self.gpuread_latch.set(word);
+                word
+@@PARA
+                let word = (hw1 as u32) | ((hw2 as u32) << 16);
+                self.gpuread_latch.set(0);
+                word
+@@FIM
+
+mutante: m4
+rotulo: peek_gpuread (byte-a-byte) volta a devolver 0 fixo quando ocioso
+ocorrencias: 1
+teste: gpu_gpuread_latch
+@@DE
+            // § VRAM to CPU blitting / GP1(10h) (03-gpu.md L146, L939-940): mesmo latch
+            // compartilhado do gpuread_word — sem transferencia, devolve o ultimo valor.
+            _ => self.gpuread_latch.get(),
+@@PARA
+            // § VRAM to CPU blitting / GP1(10h) (03-gpu.md L146, L939-940): mesmo latch
+            // compartilhado do gpuread_word — sem transferencia, devolve o ultimo valor.
+            _ => 0,
+@@FIM
+
+mutante: m5
+rotulo: latch comeca com 1 em vez de 0 — GPU novo mente sobre nunca ter transferido
+ocorrencias: 1
+teste: gpu_gpuread_latch
+@@DE
+            gpuread_latch: Cell::new(0),
+@@PARA
+            gpuread_latch: Cell::new(1),
+@@FIM
+
+controle: c1
+rotulo: renomear a variavel local word (com os dois usos) nao muda o resultado
+ocorrencias: 1
+teste: gpu_gpuread_latch
+@@DE
+                let word = (hw1 as u32) | ((hw2 as u32) << 16);
+                self.gpuread_latch.set(word);
+                word
+@@PARA
+                let resultado = (hw1 as u32) | ((hw2 as u32) << 16);
+                self.gpuread_latch.set(resultado);
+                resultado
+@@FIM
+
+controle: c2
+rotulo: ordem de declaracao do campo gpuread_latch na struct/construtor nao importa
+ocorrencias: 1
+teste: gpu_gpuread_latch
+@@DE
+    hblank_active: Cell<bool>,
+    allow_upper_y: Cell<bool>,
+    gpuread_latch: Cell<u32>,
+}
+@@PARA
+    hblank_active: Cell<bool>,
+    gpuread_latch: Cell<u32>,
+    allow_upper_y: Cell<bool>,
+}
+@@FIM
+@@DE
+            hblank_active: Cell::new(false),
+            allow_upper_y: Cell::new(false),
+            gpuread_latch: Cell::new(0),
+        }
+    }
+@@PARA
+            hblank_active: Cell::new(false),
+            gpuread_latch: Cell::new(0),
+            allow_upper_y: Cell::new(false),
+        }
+    }
+@@FIM

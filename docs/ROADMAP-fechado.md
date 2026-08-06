@@ -231,3 +231,8 @@ da escada valer so para o que FALTA. Narrativa de cada item continua em
 
 ## Fechado na iteração 0202
 - [x] 10.13 GP0(24h) e modulacao, nao raw texture (03-gpu.md L264/L1610) (0110) (iter 0202)
+
+## Fechado na iteração 0204
+- [x] 0203.4 Máscara final do índice de byte em `region_read_byte` aplicada aos 4 sítios
+  irmãos do 10.51 (MEM_CTRL, espelho do MEM_CTRL, BCC, DMA) que o PR #215 não cobriu
+  (iter 0204)

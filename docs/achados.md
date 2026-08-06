@@ -68,7 +68,6 @@
 - [ ] 10.114 DMA sem custo por ciclo: SPU testDMA*Timing exigem poll (0174)
 - [ ] 10.115 Provas do Rayman fixam passo absoluto: melhoria legitima reprova (0174)
 - [ ] 10.116 gpu/bandwidth sem timing de desenho; spec omissa (03-gpu.md L1107)
-- [ ] 10.117 timers: hblank nunca agendado; System Clock diverge ~13-70x (0176)
 
 ## Iteração 0181 em diante (`NNNN.k`)
 
@@ -92,3 +91,4 @@
 - [ ] 0198.6 Maquina sintetica dos testes de snapshot executa so NOPs: scheduler/IRQ/DMA nunca exercitados no roundtrip (0198)
 - [ ] 0203.1 render_triangle_dithered tem o mesmo bug de 10.14 (reinterpola gouraud sobre o span ja recortado pela drawing area), caminho dither+gouraud+nao-texturizado; sem teste dedicado ainda (0203)
 - [ ] 0203.2 PR #214 (10.30, retrigger de DMA no DPCR): so o canal OTC e exercitado; mutantes m3/m4/m5 do manifesto "matam" por efeito colateral (return precoce tambem pula o OTC, que vem depois no codigo), nao porque testam os canais 0/1/2 de fato — CDROM (dma3) e SPU (dma4) nunca sao exercitados nem pela bateria nem pelo teste (revisao do orquestrador no PR #214)
+- [ ] 0203.3 "System Clock" diverge ~13-70x do gabarito do oraculo `timers` (ex-10.117); a iteracao 0176 ja tentou achar a causa raiz (inclusive corrigindo a propagacao de timing da GPU pros timers) e nao moveu esse numero — hblank agora e agendado de verdade (0203, ex-10.117 parcial) mas isso tambem nao deve mudar o "System Clock" (nao depende de GPU/hblank per a nota da 0176); causa raiz ainda desconhecida (0203)

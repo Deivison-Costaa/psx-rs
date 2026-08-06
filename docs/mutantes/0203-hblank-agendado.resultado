@@ -1,0 +1,10 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: e1c0f938a2cbad232356206dab17e164fc76913c
+# rodado_em: 2026-08-06T13:45:30-03:00
+m1,mutante,morreu,morreu,1.3,hblank_entra_uma_vez_por_scanline_na_proporcao_do_horizontal_display_range
+m2,mutante,morreu,morreu,1.1,hblank_entra_uma_vez_por_scanline_na_proporcao_do_horizontal_display_range
+m3,mutante,morreu,morreu,1.1,hblank_entra_uma_vez_por_scanline_na_proporcao_do_horizontal_display_range
+m4,mutante,morreu,morreu,1.1,hblank_entra_uma_vez_por_scanline_na_proporcao_do_horizontal_display_range
+m5,mutante,morreu,morreu,1.1,hblank_entra_uma_vez_por_scanline_na_proporcao_do_horizontal_display_range
+c1,controle,sobreviveu,sobreviveu,1.1,
+c2,controle,sobreviveu,sobreviveu,1.1,

@@ -237,3 +237,7 @@ da escada valer so para o que FALTA. Narrativa de cada item continua em
   fica pra depois sem teste dedicado; ver achado 0203.1
 - [x] 10.42 Linhas tremulas: captura sem sync com vblank (03-gpu.md L1426) (iter 0203) —
   framebuffer() passa a ler um snapshot de VRAM latchado em enter_vblank(), nao VRAM ao vivo
+- [x] 10.117 (parcial) hblank nunca agendado — HBLANK_ENTER/HBLANK_EXIT agora sao eventos
+  reais do scheduler, uma vez por scanline (03-gpu.md L826/L1469) (iter 0203); a outra metade
+  do achado ("System Clock" diverge ~13-70x, causa raiz desconhecida desde a 0176) continua
+  aberta como 0203.3

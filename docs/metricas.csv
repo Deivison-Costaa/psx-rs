@@ -214,3 +214,15 @@ ts,iter,resultado,custo_usd,tokens_in,tokens_out,steps,duracao_ms,head_antes,hea
 2026-08-03T23:59:00-03:00,0193,ok,,,,,,59aaadc,a439f1a,claude-fable-5,orquestrador
 2026-08-04T10:10:00-03:00,0199,ok,,,,,,af56462,,claude-fable-5,orquestrador
 2026-08-04T10:45:00-03:00,0200,ok,,,,,,f35c1c5,,claude-fable-5,orquestrador
+2026-08-05T20:37:35-03:00,0201,ok,,,,,,,d12527e,claude-sonnet-5,orquestrador
+2026-08-05T21:09:15-03:00,0202,ok,,,,,,d12527e,c180538,claude-sonnet-5,orquestrador
+2026-08-05T21:19:28-03:00,0203,ok,,,,,,c180538,18320a4,claude-sonnet-5,orquestrador
+2026-08-05T21:34:08-03:00,0203,ok,,,,,,18320a4,7dd0de2,claude-sonnet-5,orquestrador
+2026-08-05T21:55:00-03:00,0203,ok,,,,,,7dd0de2,f9859e6,claude-sonnet-5,orquestrador
+2026-08-05T22:09:46-03:00,0201,ok,0.0998,195,11628,65,660000,f9859e6,96e9859,opencode-go/gpt-5.6-luna,trabalhador
+2026-08-05T22:23:29-03:00,0201,ok,0.0854,168,12276,56,600000,96e9859,69d7e29,opencode-go/gpt-5.6-luna,trabalhador
+2026-08-05T22:27:26-03:00,0203,ok,,,,,,69d7e29,42d2547,claude-sonnet-5,orquestrador
+2026-08-06T13:46:37-03:00,0201,ok,0.0948,216,12572,72,780000,42d2547,6cf8816,opencode-go/gpt-5.6-luna,trabalhador
+2026-08-06T13:48:25-03:00,0203,ok,,,,,,6cf8816,157e9e6,claude-sonnet-5,orquestrador
+2026-08-06T13:57:07-03:00,0203,ok,,,,,,157e9e6,f3667b4,claude-sonnet-5,orquestrador
+2026-08-06T14:01:52-03:00,0204,ok,,,,,,f3667b4,41ee7d1,claude-sonnet-5,orquestrador

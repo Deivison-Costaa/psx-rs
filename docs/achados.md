@@ -28,7 +28,7 @@
 - [ ] 10.26 Nenhum dos 9 testes de `ci_scoreboard.rs` afirma que o job mede algo
 - [ ] 10.27 Placar local (gitignored) e o unico com veredito real e nao e versionado
 - [ ] 10.18 Nada torna `arquivada:` caro: 0052 e 0059 largaram 17 registros, 12 casavam
-- [ ] 10.33 `mutantes.ps1` so roda `cargo test -p psx-core` (L290); outros crates a mao
+- [ ] 10.33 `scripts/mutantes.ps1` so roda `cargo test -p psx-core`; outros crates a mao
 - [ ] 10.34 Nenhum meta-teste reprova `#[test]` sem assercao (T10 da 0080 passou assim)
 - [ ] 10.35 `mutantes.ps1` grava nome qualificado, `mutation_battery` busca fn literal
 - [ ] 10.40 `mutantes.ps1` so casa ancora em LF; CRLF da 'encontrada 0 vez(es)'

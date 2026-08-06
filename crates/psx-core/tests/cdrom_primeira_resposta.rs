@@ -95,6 +95,7 @@ fn nenhuma_resposta_na_mesma_instrucao_da_escrita_do_comando() {
 fn nenhuma_resposta_um_ciclo_antes_do_prazo_da_spec() {
     let mut bus = bus();
     intmsk_write(&mut bus, 0x1F);
+    bus.cdrom_mut().insert_disc(); // motor ligado: este teste mede o atraso "normal"
 
     manda_comando(&mut bus, 0x01);
     avanca(&mut bus, PRIMEIRA_RESPOSTA - 1);
@@ -246,6 +247,7 @@ fn limpar_a_fifo_de_parametros_na_janela_nao_altera_o_comando_em_voo() {
 #[test]
 fn comando_novo_na_janela_nao_faz_o_evento_velho_entregar_cedo() {
     let mut bus = bus();
+    bus.cdrom_mut().insert_disc(); // motor ligado: este teste mede o atraso "normal"
     let atraso_do_segundo: u64 = 1_000;
 
     manda_comando(&mut bus, 0x01);

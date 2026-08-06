@@ -109,6 +109,10 @@ impl Cdrom {
         self.motor_on.set(true);
     }
 
+    pub fn motor_on(&self) -> bool {
+        self.motor_on.get()
+    }
+
     fn stat_byte(&self) -> u8 {
         let mut s = 0u8;
         if self.playing.get() {
@@ -286,10 +290,11 @@ impl Cdrom {
         self.issued_cmd.take()
     }
 
-    pub fn first_response_cycles(cmd: u8) -> u64 {
+    pub fn first_response_cycles(cmd: u8, motor_on: bool) -> u64 {
         match cmd {
             0x0A | 0x1E => 0x1_3CCE,
-            _ => 0xC4E1,
+            _ if motor_on => 0xC4E1,
+            _ => 0x5CF4,
         }
     }
 

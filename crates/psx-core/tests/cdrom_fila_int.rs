@@ -108,3 +108,39 @@ fn segunda_nao_atropela_a_primeira_sem_ack() {
         "sem ack do INT3, o INT2 fica enfileirado para sempre (fila da spec, L333-337)"
     );
 }
+
+#[test]
+fn comando_novo_durante_int_pendente_e_entregue_apos_o_ack() {
+    let mut bus = bus();
+    init_ate_int3(&mut bus);
+
+    hclrctl_write(&mut bus, 0x07);
+    bus.tick_timers(ATRASO_SEGUNDA);
+    let pre = hintsts_read_bank1(&mut bus);
+    assert_eq!(
+        pre & 0x7,
+        2,
+        "pre-condicao: INT2 do Init pendente e sem ack"
+    );
+
+    // com o INT2 ainda pendente, o jogo manda GetStat (01h) — a spec exige que o comando
+    // so execute "nos ciclos seguintes... assim que o INT for reconhecido" (06-cdrom.md L1984)
+    send_command(&mut bus, 0x01);
+    let ainda_bloqueado = hintsts_read_bank1(&mut bus);
+    assert_eq!(
+        ainda_bloqueado & 0x7,
+        2,
+        "GetStat nao pode responder enquanto o INT2 do Init segue sem ack"
+    );
+
+    hclrctl_write(&mut bus, 0x07);
+    bus.tick_timers(ESPERA_PRIMEIRA_RESPOSTA);
+
+    let apos_ack = hintsts_read_bank1(&mut bus);
+    assert_eq!(
+        apos_ack & 0x7,
+        3,
+        "GetStat deveria ser entregue (INT3) assim que o INT2 pendente for reconhecido \
+         (06-cdrom.md L1984); travado, e o jogo fica esperando um IRQ que nunca chega"
+    );
+}

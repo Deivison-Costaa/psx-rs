@@ -1,0 +1,84 @@
+# Manifesto de mutacao da iteracao 0201 — 10.53: comando nao pode executar com INT pendente
+formato: 1
+iteracao: 0201
+item: 10.53
+alvo: crates/psx-core/src/cdrom.rs
+teste: cdrom_fila_int
+
+mutante: m1
+rotulo: volta a checagem antiga (so int1/int2_pending, nao intsts bruto)
+ocorrencias: 1
+teste: cdrom_fila_int
+@@DE
+        let blocked = self.intsts.get() != 0;
+@@PARA
+        let blocked = self.intsts.get() != 0 && (self.int2_pending.get() || self.int1_pending.get());
+@@FIM
+
+mutante: m2
+rotulo: condicao de bloqueio invertida (== em vez de !=)
+ocorrencias: 1
+teste: cdrom_fila_int
+@@DE
+        let blocked = self.intsts.get() != 0;
+@@PARA
+        let blocked = self.intsts.get() == 0;
+@@FIM
+
+mutante: m3
+rotulo: bloqueio checa pending_cmd em vez de intsts (logica invertida)
+ocorrencias: 1
+teste: cdrom_fila_int
+@@DE
+        let blocked = self.intsts.get() != 0;
+@@PARA
+        let blocked = self.pending_cmd.get().is_none();
+@@FIM
+
+mutante: m4
+rotulo: bloqueio desligado — comando sempre executa
+ocorrencias: 1
+teste: cdrom_fila_int
+@@DE
+        let blocked = self.intsts.get() != 0;
+@@PARA
+        let blocked = false;
+@@FIM
+
+mutante: m5
+rotulo: bloqueio sempre ligado — nenhum comando executa
+ocorrencias: 1
+teste: cdrom_fila_int
+@@DE
+        let blocked = self.intsts.get() != 0;
+@@PARA
+        let blocked = true;
+@@FIM
+
+controle: c1
+rotulo: renomear a variavel local blocked nao muda comportamento
+ocorrencias: 1
+teste: cdrom_fila_int
+@@DE
+        let blocked = self.intsts.get() != 0;
+        if blocked {
+            return false;
+        }
+@@PARA
+        let bloqueado_para_novo_comando = self.intsts.get() != 0;
+        if bloqueado_para_novo_comando {
+            return false;
+        }
+@@FIM
+
+controle: c2
+rotulo: ordem de param_buf e param_count nao importa — campos independentes
+ocorrencias: 1
+teste: cdrom_fila_int
+@@DE
+        self.param_buf.set(self.pending_params.get());
+        self.param_count.set(self.pending_param_count.get());
+@@PARA
+        self.param_count.set(self.pending_param_count.get());
+        self.param_buf.set(self.pending_params.get());
+@@FIM

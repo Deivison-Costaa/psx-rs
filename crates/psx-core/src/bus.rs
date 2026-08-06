@@ -593,6 +593,16 @@ impl Bus {
                 self.service_spu_irq();
                 true
             }
+            0x1F80_1044..=0x1F80_104F => {
+                let bytes = val.to_le_bytes();
+                self.sio.write_byte(phys, bytes[0]);
+                self.sio.write_byte(phys + 1, bytes[1]);
+                self.sio.write_byte(phys + 2, bytes[2]);
+                self.sio.write_byte(phys + 3, bytes[3]);
+                self.schedule_sio_ack();
+                self.service_sio_irq();
+                true
+            }
             0x1F80_1024..=0x1F80_103F
             | 0x1F80_1041..=0x1F80_105F
             | 0x1F80_1061..=0x1F80_10FF

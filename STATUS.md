@@ -7,25 +7,24 @@
 
 ## Última iteração concluída
 
-**0200 — retângulos texturizados (fechou 10.11).** `render_rect_textured`: raw 15bpp +
-CLUT, texel 0 transparente, STP, wrap de 256, clip; e o blend passou a escrever o bit 15
-do texel (03-gpu.md L585 — t1-t4 antigos fixavam o defeito e foram atualizados). Régua:
-`rectangles` 11.560px → **7.265px** (resto é modulação 10.13/flip 0193.7);
-`texture-overflow` → **vram-ok 0px**; `vram-to-vram-overlap` 14.474 → 7.557px. Bateria
-6/6 + 2/2 (m5 sobreviveu na 1ª rodada por texel transparente no teste — endurecido e
-reexecutada). Manifestos 0042/0047 arquivados (âncoras envelhecidas). **Exceção de
-executor vigente: o orquestrador implementa a escada** (`docs/orquestracao.md`).
+**0201/0202 — lote de achados 10.x, primeira leva mesclada.** Consolidação de várias
+branches independentes (0201 fechou 10.53: `deliver_first()` bloqueava por
+`int2_pending`/`int1_pending` em vez de `intsts` bruto, 06-cdrom.md L1984-1989; expôs fixture
+`setloc()` sem ack em 6 testes de CD-ROM. 0202 fechou 10.13: `render_triangle` desenhava texel
+cru em vez de modular pela cor do vértice em GP0(24h), 03-gpu.md L1604; evidência real —
+200.749/524.288px, 38%, mudaram no Crash em 900M passos). **O travamento do Silent Hill
+CONTINUA** — repro byte-a-byte idêntico antes/depois do fix de 10.53; achado **0201.1** aberto.
+Baterias 5/5 + 2/2 cada. **Exceção de executor vigente: o orquestrador implementa a escada**
+(`docs/orquestracao.md`).
 
 ## Próxima tarefa
 
-**Achado 10.115 — âncoras relativas nos rayman_*.** Converter os ~97 literais de passo
-absoluto nos 10 `rayman_*.rs` para gatilhos por evento (modelo: `rayman_evcb_descritores`
-dispara na primeira condição válida), com tetos frouxos de guarda. PR só de testes —
-pré-requisito da iteração de timing (0193.4), que sem isso quebra as âncoras em lote.
-
-Depois, na ordem: 0193.4 (custo de ciclo de memória; oráculo `cpu/access-time`),
-0193.5/0193.3/0189.1 (áudio), 0193.2 (24bpp), 10.13 (modulação — deve zerar boa parte
-dos 7.265px do `rectangles`). Depois: ROADMAP 11.2, 11.3, remedir Amidog e lote TTY.
+Seguir a lista de achados legado `10.x` em `docs/achados.md` (pedido do usuário: "vá passando
+por essa lista enorme... resolver esses bugs... faça o máximo possível", uma iteração por
+achado, PR a cada ~10 itens, reportar e continuar). Ver `docs/achados.md` para os itens ainda
+abertos e suas citações de spec. **Achado 10.115 — âncoras relativas nos rayman_*** segue
+pendente (não é bug de jogo, é manutenção de teste): ~97 literais de passo absoluto nos 10
+`rayman_*.rs` → gatilhos por evento, pré-requisito de 0193.4.
 
 Rodar Crash: `--bios bios/SCPH1001.BIN --disc "../roms/extraido/Crash Bandicoot (USA).cue"
 --max-steps 1200000000 --pad --press start@330000000 --press cross@700000000`.
@@ -57,7 +56,7 @@ Invariantes relevantes: nenhuma.
 
 ## Placar de testes
 
-Workspace: **1242** testes.
+Workspace: **1247** testes.
 - **NUNCA rodar `cargo test`/`nextest` nem a bateria de mutação junto com o oráculo**: a
   disputa de CPU faz o `Start-Process` ler stdout antes do flush e reportar `sem-saida`
   falso. Derrubou 16/21 numa medição da 0170; rodada limpa deu 21/21.

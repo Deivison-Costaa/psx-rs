@@ -14,7 +14,7 @@ fn triangulo_texturizado(
     texpage: u32,
     verts: &[((i16, i16), u8, u8); 3],
 ) {
-    gpu.write32(0, 0x2400_0000);
+    gpu.write32(0, 0x2500_0000);
     for (idx, &((sx, sy), u, v)) in verts.iter().enumerate() {
         gpu.write32(0, ((sy as u32 & 0xFFFF) << 16) | (sx as u32 & 0xFFFF));
         let mut uv = ((v as u32) << 8) | (u as u32);

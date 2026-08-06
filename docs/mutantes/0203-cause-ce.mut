@@ -1,0 +1,110 @@
+# Manifesto de mutacao da iteracao 0203 — 10.4: CAUSE.CE no Coprocessor Unusable
+formato: 1
+iteracao: 0203
+item: 10.4
+alvo: crates/psx-core/src/cpu.rs
+teste: cpu_coprocessador_usavel
+
+mutante: m1
+rotulo: CE gravado no deslocamento errado (26 em vez de 28)
+ocorrencias: 1
+teste: cpu_coprocessador_usavel
+@@DE
+                cause |= (unit as u32 & 0x3) << 28;
+@@PARA
+                cause |= (unit as u32 & 0x3) << 26;
+@@FIM
+
+mutante: m2
+rotulo: pending_ce nunca setado — CAUSE.CE fica sempre 0
+ocorrencias: 1
+teste: cpu_coprocessador_usavel
+@@DE
+                    self.pending_ce = Some(unit as u8);
+                    self.raise_exception(0x0B, None);
+@@PARA
+                    self.raise_exception(0x0B, None);
+@@FIM
+
+mutante: m3
+rotulo: mascara perde o bit alto do coprocessador (0x1 em vez de 0x3)
+ocorrencias: 1
+teste: cpu_coprocessador_usavel
+@@DE
+                cause |= (unit as u32 & 0x3) << 28;
+                0x3000_0000
+@@PARA
+                cause |= (unit as u32 & 0x1) << 28;
+                0x3000_0000
+@@FIM
+
+mutante: m4
+rotulo: ramos Some/None do match invertidos
+ocorrencias: 1
+teste: cpu_coprocessador_usavel
+@@DE
+        let ce_mask = match ce {
+            Some(unit) => {
+                cause |= (unit as u32 & 0x3) << 28;
+                0x3000_0000
+            }
+            None => 0,
+        };
+@@PARA
+        let ce_mask = match ce {
+            Some(_unit) => 0,
+            None => 0x3000_0000,
+        };
+@@FIM
+
+mutante: m5
+rotulo: CE sempre reporta coprocessador 0, ignora qual disparou
+ocorrencias: 1
+teste: cpu_coprocessador_usavel
+@@DE
+                cause |= (unit as u32 & 0x3) << 28;
+                0x3000_0000
+            }
+            None => 0,
+        };
+@@PARA
+                let _ = unit;
+                cause |= 0 << 28;
+                0x3000_0000
+            }
+            None => 0,
+        };
+@@FIM
+
+controle: c1
+rotulo: ordem entre pending_ce e raise_exception nao importa — ambos consumidos juntos depois
+ocorrencias: 1
+teste: cpu_coprocessador_usavel
+@@DE
+                    self.pending_ce = Some(unit as u8);
+                    self.raise_exception(0x0B, None);
+                    return None;
+@@PARA
+                    self.raise_exception(0x0B, None);
+                    self.pending_ce = Some(unit as u8);
+                    return None;
+@@FIM
+
+controle: c2
+rotulo: renomear o parametro ce (com o uso) para coprocessador nao muda o resultado
+ocorrencias: 1
+teste: cpu_coprocessador_usavel
+@@DE
+        was_taken: bool,
+        ce: Option<u8>,
+    ) {
+@@PARA
+        was_taken: bool,
+        coprocessador: Option<u8>,
+    ) {
+@@FIM
+@@DE
+        let ce_mask = match ce {
+@@PARA
+        let ce_mask = match coprocessador {
+@@FIM

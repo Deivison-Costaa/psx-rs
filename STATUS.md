@@ -7,30 +7,24 @@
 
 ## Última iteração concluída
 
-**0202 — poligono modulado (fechou 10.13).** `render_triangle` sempre desenhava o texel cru;
-GP0(24h) e variantes (bit24=0) exigem `finalChannel=texel*cor/128` (03-gpu.md L1604).
-`modulate_texel` nova, com `raw_texture` viajando por `PolygonRender`. 5 testes em
-`gpu_poligono_modulacao.rs`; migrados 21 usos de GP0(24h) com cor preta (só testavam
-fetch de texel) para GP0(25h) raw em 5 arquivos. Scoreboard local não mudou (rectangles
-é RECT, não polígono — achado 10.13 não cobre isso; oráculos de polígono já divergem por
-outros defeitos maiores). Evidência real: dump do Crash em 900M passos, **200.749/524.288
-px (38%) mudaram** entre antes/depois. Bateria 5/5 + 2/2.
-**PR #211 (0201, achado 10.53) ainda aberto sem merge** — STATUS/achados.md/ROADMAP-fechado
-vão divergir até lá reconciliar; revisar os dois na hora do merge.
-**Exceção de executor vigente: o orquestrador implementa a escada** (`docs/orquestracao.md`).
+**0201/0202 — lote de achados 10.x, primeira leva mesclada.** Consolidação de várias
+branches independentes (0201 fechou 10.53: `deliver_first()` bloqueava por
+`int2_pending`/`int1_pending` em vez de `intsts` bruto, 06-cdrom.md L1984-1989; expôs fixture
+`setloc()` sem ack em 6 testes de CD-ROM. 0202 fechou 10.13: `render_triangle` desenhava texel
+cru em vez de modular pela cor do vértice em GP0(24h), 03-gpu.md L1604; evidência real —
+200.749/524.288px, 38%, mudaram no Crash em 900M passos). **O travamento do Silent Hill
+CONTINUA** — repro byte-a-byte idêntico antes/depois do fix de 10.53; achado **0201.1** aberto.
+Baterias 5/5 + 2/2 cada. **Exceção de executor vigente: o orquestrador implementa a escada**
+(`docs/orquestracao.md`).
 
 ## Próxima tarefa
 
 Seguir a lista de achados legado `10.x` em `docs/achados.md` (pedido do usuário: "vá passando
 por essa lista enorme... resolver esses bugs... faça o máximo possível", uma iteração por
-achado, PR sem merge, reportar e continuar). Candidatos bem escopados e ainda não tentados
-(citação exata de spec de cada um mora em `docs/achados.md`, não repetida aqui): 10.4
-(CAUSE.CE), 10.6 (GP0 80h vram→vram), 10.7 (mask GP0 E6h), 10.8 (SWL/SWR porta destrutiva),
-10.14 (gouraud/UV sobre span recortado), 10.45 (load shadow), 10.50 (GP0 C0h sem
-transferência), 10.52 (timer lhu/lbu bits 11/12), 10.55/10.56/10.57 (CD-ROM).
-**Achado 10.115 — âncoras relativas nos rayman_*** segue pendente (não é bug de jogo, é
-manutenção de teste): ~97 literais de passo absoluto nos 10 `rayman_*.rs` → gatilhos por
-evento, pré-requisito de 0193.4.
+achado, PR a cada ~10 itens, reportar e continuar). Ver `docs/achados.md` para os itens ainda
+abertos e suas citações de spec. **Achado 10.115 — âncoras relativas nos rayman_*** segue
+pendente (não é bug de jogo, é manutenção de teste): ~97 literais de passo absoluto nos 10
+`rayman_*.rs` → gatilhos por evento, pré-requisito de 0193.4.
 
 Rodar Crash: `--bios bios/SCPH1001.BIN --disc "../roms/extraido/Crash Bandicoot (USA).cue"
 --max-steps 1200000000 --pad --press start@330000000 --press cross@700000000`.
@@ -62,7 +56,7 @@ Invariantes relevantes: nenhuma.
 
 ## Placar de testes
 
-Workspace: **1246** testes.
+Workspace: **1247** testes.
 - **NUNCA rodar `cargo test`/`nextest` nem a bateria de mutação junto com o oráculo**: a
   disputa de CPU faz o `Start-Process` ler stdout antes do flush e reportar `sem-saida`
   falso. Derrubou 16/21 numa medição da 0170; rodada limpa deu 21/21.

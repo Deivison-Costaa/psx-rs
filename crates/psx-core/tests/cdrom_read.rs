@@ -88,6 +88,7 @@ fn read_n_retorna_int3_depois_int1_com_dados() {
     param_write(&mut bus, bcd_sector(0x00));
     send_command(&mut bus, 0x02);
     let _ = result_read(&mut bus);
+    hclrctl_write(&mut bus, 0x07);
 
     send_command(&mut bus, 0x06);
     let hintsts = hintsts_read_bank1(&mut bus);
@@ -121,6 +122,7 @@ fn read_s_retorna_int3_depois_int1_com_dados() {
     param_write(&mut bus, bcd_sector(0x00));
     send_command(&mut bus, 0x02);
     let _ = result_read(&mut bus);
+    hclrctl_write(&mut bus, 0x07);
 
     send_command(&mut bus, 0x1B);
     let hintsts = hintsts_read_bank1(&mut bus);
@@ -210,6 +212,7 @@ fn rddata_retorna_sequencia_de_bytes() {
     param_write(&mut bus, bcd_sector(0x00));
     send_command(&mut bus, 0x02);
     let _ = result_read(&mut bus);
+    hclrctl_write(&mut bus, 0x07);
 
     send_command(&mut bus, 0x06);
     let _ = result_read(&mut bus);
@@ -236,6 +239,7 @@ fn read_n_sem_disco_retorna_int5() {
     param_write(&mut bus, bcd_sector(0x00));
     send_command(&mut bus, 0x02);
     let _ = result_read(&mut bus);
+    hclrctl_write(&mut bus, 0x07);
 
     send_command(&mut bus, 0x06);
     let hintsts = hintsts_read_bank1(&mut bus);
@@ -255,6 +259,7 @@ fn read_s_sem_disco_retorna_int5() {
     param_write(&mut bus, bcd_sector(0x00));
     send_command(&mut bus, 0x02);
     let _ = result_read(&mut bus);
+    hclrctl_write(&mut bus, 0x07);
 
     send_command(&mut bus, 0x1B);
     let hintsts = hintsts_read_bank1(&mut bus);
@@ -412,6 +417,7 @@ fn read_n_retorna_dados_do_bin_no_setor_correto() {
     send_command(&mut bus, 0x02);
     let stat_setloc = result_read(&mut bus);
     assert_eq!(stat_setloc & 0x01, 0, "Setloc sem erro");
+    hclrctl_write(&mut bus, 0x07);
 
     send_command(&mut bus, 0x06);
     let _ = result_read(&mut bus);

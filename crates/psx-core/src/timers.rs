@@ -184,7 +184,7 @@ impl Timers {
         };
 
         let prev_acc = t.cycle_acc.get() as u64;
-        let total = prev_acc * denom + (cycles as u64) * numer;
+        let total = prev_acc + (cycles as u64) * numer;
         let effective = (total / denom) as u32;
         t.cycle_acc.set((total % denom) as u32);
 

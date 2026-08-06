@@ -231,3 +231,4 @@ da escada valer so para o que FALTA. Narrativa de cada item continua em
 - [x] 10.7 Mask GP0(E6h) em CPU->VRAM e VRAM->VRAM — achado ficou desatualizado: os dois
   caminhos ja checam `force_bit15`/`check_mask` (GPUSTAT bits 11/12) desde a iter 0049/0105;
   confirmado sem mudanca de codigo na revisao da 0203
+- [x] 10.50 `GP0(C0h)` sem transferencia devolve zero (0117) (iter 0203)

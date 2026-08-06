@@ -312,8 +312,10 @@ impl Cdrom {
     }
 
     pub fn deliver_first(&self) -> bool {
-        let blocked =
-            self.intsts.get() != 0 && (self.int2_pending.get() || self.int1_pending.get());
+        // § First Response (06-cdrom.md L1984): o mainloop so executa o comando se NAO
+        // houver INT pendente — qualquer INT sem ack, nao so int1_pending/int2_pending
+        // (essas flags marcam "resposta ainda devida", nao "intsts sem ack").
+        let blocked = self.intsts.get() != 0;
         if blocked {
             return false;
         }

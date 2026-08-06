@@ -535,6 +535,13 @@ impl Bus {
             }
             0x1F80_10F0 => {
                 self.dma.write_dpcr(val);
+                self.dma.try_execute_dma0(&self.ram.data, &mut self.mdec);
+                self.dma.try_execute_dma1(&mut self.ram.data, &self.mdec);
+                self.dma.try_execute_dma2(&mut self.ram.data, &mut self.gpu);
+                self.dma.try_execute_dma3(&mut self.ram.data, &self.cdrom);
+                self.dma.try_execute_dma4(&mut self.ram.data, &mut self.spu);
+                self.dma.try_execute_otc(&mut self.ram.data);
+                self.service_dma_irq();
                 true
             }
             0x1F80_10F4 => {
@@ -584,6 +591,16 @@ impl Bus {
                 self.spu.write16(phys, val as u16);
                 self.spu.write16(phys + 2, (val >> 16) as u16);
                 self.service_spu_irq();
+                true
+            }
+            0x1F80_1044..=0x1F80_104F => {
+                let bytes = val.to_le_bytes();
+                self.sio.write_byte(phys, bytes[0]);
+                self.sio.write_byte(phys + 1, bytes[1]);
+                self.sio.write_byte(phys + 2, bytes[2]);
+                self.sio.write_byte(phys + 3, bytes[3]);
+                self.schedule_sio_ack();
+                self.service_sio_irq();
                 true
             }
             0x1F80_1024..=0x1F80_103F

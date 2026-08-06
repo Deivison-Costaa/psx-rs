@@ -273,3 +273,9 @@ da escada valer so para o que FALTA. Narrativa de cada item continua em
   alinhamento, nunca zerado se o load falta (AdEL/CpU) — o custo da regiao vazava pra
   proxima instrucao que completasse, tipicamente a primeira do handler (02-cpu.md L262-269)
   (iter 0209) — Degrau 1 da escada de timing de CPU/barramento (achado motivador 0193.4)
+
+## Fechado na iteração 0210
+- [x] 0210.1 LWC2 nao pagava o custo de regiao do load: o predicado que dispara
+  `load_extra_cycles` so cobria 0x20..=0x26, deixando LWC2 (0x32) de fora — custava 1 ciclo
+  fixo mesmo vindo da ROM da BIOS (02-cpu.md L260-269) (iter 0210) — Degrau 2 da escada de
+  timing de CPU/barramento

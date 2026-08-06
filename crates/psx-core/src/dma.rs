@@ -211,6 +211,13 @@ impl Dma {
                 addr.wrapping_add(4)
             };
         }
+        // § D#_MADR / D#_BCR (04-dma.md L48-50, L80-81): em SyncMode=0 o hardware so
+        // atualiza MADR e zera o campo BC se o chopping (CHCR.8) estiver ligado; sem
+        // chopping os dois ficam congelados nos valores escritos antes do start.
+        if self.chcr[2] & (1 << 8) != 0 {
+            self.madr[2] = addr;
+            self.bcr[2] &= !0xFFFF;
+        }
         self.chcr[2] &= !(1 << 24);
         self.signal_completion(2);
     }

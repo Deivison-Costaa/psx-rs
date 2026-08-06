@@ -1,0 +1,86 @@
+# Manifesto de mutacao da iteracao 0206 — 10.55: 1a resposta olha o motor
+formato: 1
+iteracao: 0206
+item: 10.55
+alvo: crates/psx-core/src/cdrom.rs
+teste: cdrom_primeira_resposta_motor
+
+mutante: m1
+rotulo: guarda do motor invertida — motor ligado usa o atraso de parado
+ocorrencias: 1
+teste: cdrom_primeira_resposta_motor
+@@DE
+            _ if motor_on => 0xC4E1,
+            _ => 0x5CF4,
+@@PARA
+            _ if !motor_on => 0xC4E1,
+            _ => 0x5CF4,
+@@FIM
+
+mutante: m2
+rotulo: sempre usa o atraso de motor ligado, ignorando o parametro
+ocorrencias: 1
+teste: cdrom_primeira_resposta_motor
+@@DE
+            _ if motor_on => 0xC4E1,
+            _ => 0x5CF4,
+@@PARA
+            _ => 0xC4E1,
+@@FIM
+
+mutante: m3
+rotulo: sempre usa o atraso de motor parado, ignorando o parametro
+ocorrencias: 1
+teste: cdrom_primeira_resposta_motor
+@@DE
+            _ if motor_on => 0xC4E1,
+            _ => 0x5CF4,
+@@PARA
+            _ => 0x5CF4,
+@@FIM
+
+mutante: m4
+rotulo: constante do motor parado com off-by-one
+ocorrencias: 1
+teste: cdrom_primeira_resposta_motor
+@@DE
+            _ => 0x5CF4,
+@@PARA
+            _ => 0x5CF5,
+@@FIM
+
+mutante: m5
+rotulo: bus.rs passa motor sempre ligado em vez do estado real
+ocorrencias: 1
+teste: cdrom_primeira_resposta_motor
+@@DE
+            let prazo =
+                self.total_cycles + Cdrom::first_response_cycles(cmd, self.cdrom.motor_on());
+@@PARA
+            let prazo = self.total_cycles + Cdrom::first_response_cycles(cmd, true);
+@@FIM
+arquivo: crates/psx-core/src/bus.rs
+
+controle: c1
+rotulo: getter de motor_on com parenteses redundantes nao muda o valor
+ocorrencias: 1
+teste: cdrom_primeira_resposta_motor
+@@DE
+    pub fn motor_on(&self) -> bool {
+        self.motor_on.get()
+    }
+@@PARA
+    pub fn motor_on(&self) -> bool {
+        (self.motor_on.get())
+    }
+@@FIM
+
+controle: c2
+rotulo: constante do motor ligado escrita com separador de milhar diferente
+ocorrencias: 1
+teste: cdrom_primeira_resposta_motor
+@@DE
+            _ if motor_on => 0xC4E1,
+@@PARA
+            _ if motor_on => 0x0000_C4E1,
+@@FIM

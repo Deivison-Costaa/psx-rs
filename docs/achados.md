@@ -25,7 +25,6 @@
 - [ ] 10.30 Habilitar canal no DPCR nao dispara transferencia pendente (so no CHCR)
 - [ ] 10.25 `unwrap_or` de caminho nos meta-testes silencia `strip_prefix` que falha (10.12)
 - [ ] 10.13 GP0(24h) e modulacao, nao raw texture (03-gpu.md L264/L1610) (0110)
-- [ ] 10.14 U/V e gouraud reinterpolados sobre span recortado (03-gpu.md L452)
 - [ ] 10.17 `mutantes.ps1` recusa arvore suja; permitir `docs/mutantes/*.mut`
 - [ ] 10.24 Job `scoreboard` da CI sai VERDE medindo zero (0072)
 - [ ] 10.26 Nenhum dos 9 testes de `ci_scoreboard.rs` afirma que o job mede algo
@@ -92,3 +91,4 @@
 - [ ] 0198.4 Teste com BIOS+disco reais do snapshot nunca roda na CI; so a maquina sintetica (de NOPs) cobre o save state la (0198)
 - [ ] 0198.5 `saves::lista` nao confere o magico `MC` da imagem de cartao; imagem lixo lista saves fantasmas (0198)
 - [ ] 0198.6 Maquina sintetica dos testes de snapshot executa so NOPs: scheduler/IRQ/DMA nunca exercitados no roundtrip (0198)
+- [ ] 0203.1 render_triangle_dithered tem o mesmo bug de 10.14 (reinterpola gouraud sobre o span ja recortado pela drawing area), caminho dither+gouraud+nao-texturizado; sem teste dedicado ainda (0203)

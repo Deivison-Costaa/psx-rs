@@ -75,7 +75,7 @@ fn gouraud_sobre_span_recortado_da_a_mesma_cor_do_span_inteiro() {
     assert_eq!(
         recortado.vram_pixel(X_AMOSTRA as u16, Y_AMOSTRA as u16),
         esperado,
-        "spec § GPU Rendering Attributes (03-gpu.md L452): recortar a area de \
+        "spec § Vertex, GPU Rendering Attributes (03-gpu.md L452): recortar a area de \
          desenho muda so QUAIS pixels sao visiveis, nao a cor interpolada nos \
          pixels que continuam visiveis — a cor em (150,75) tem que ser igual \
          nos dois renders"
@@ -99,10 +99,7 @@ fn escreve_linha_15bpp(gpu: &mut Gpu, y: u16, largura: u16, texel_em: impl Fn(u1
     }
 }
 
-fn prepara_triangulo_texturizado_raw(
-    gpu: &mut Gpu,
-    vertices_uvs: &[((i16, i16), u8, u8)],
-) {
+fn prepara_triangulo_texturizado_raw(gpu: &mut Gpu, vertices_uvs: &[((i16, i16), u8, u8)]) {
     let cmd: u32 = 0x2500_0000;
     gpu.write32(0, cmd);
     for (idx, &((sx, sy), u, v)) in vertices_uvs.iter().enumerate() {
@@ -129,11 +126,7 @@ fn uv_sobre_span_recortado_amostra_o_mesmo_texel_do_span_inteiro() {
     gp0_e1h(&mut inteiro, 2 << 7);
     prepara_triangulo_texturizado_raw(
         &mut inteiro,
-        &[
-            (V_TOPO, 0, 0),
-            (V_MEIO, 100, 0),
-            (V_BASE, 250, 0),
-        ],
+        &[(V_TOPO, 0, 0), (V_MEIO, 100, 0), (V_BASE, 250, 0)],
     );
     let esperado = inteiro.vram_pixel(X_AMOSTRA as u16, Y_AMOSTRA as u16);
     assert_ne!(
@@ -147,11 +140,7 @@ fn uv_sobre_span_recortado_amostra_o_mesmo_texel_do_span_inteiro() {
     gp0_e3h_x1(&mut recortado, X1_RECORTE);
     prepara_triangulo_texturizado_raw(
         &mut recortado,
-        &[
-            (V_TOPO, 0, 0),
-            (V_MEIO, 100, 0),
-            (V_BASE, 250, 0),
-        ],
+        &[(V_TOPO, 0, 0), (V_MEIO, 100, 0), (V_BASE, 250, 0)],
     );
 
     assert_eq!(
@@ -162,7 +151,7 @@ fn uv_sobre_span_recortado_amostra_o_mesmo_texel_do_span_inteiro() {
     assert_eq!(
         recortado.vram_pixel(X_AMOSTRA as u16, Y_AMOSTRA as u16),
         esperado,
-        "spec § GPU Rendering Attributes (03-gpu.md L452): recortar a area de \
+        "spec § Vertex, GPU Rendering Attributes (03-gpu.md L452): recortar a area de \
          desenho nao pode mudar o texel amostrado nos pixels que continuam \
          visiveis — o U/V em (150,75) tem que ser igual nos dois renders"
     );
@@ -189,11 +178,7 @@ fn v_sobre_span_recortado_amostra_o_mesmo_texel_do_span_inteiro() {
     gp0_e1h(&mut inteiro, 2 << 7);
     prepara_triangulo_texturizado_raw(
         &mut inteiro,
-        &[
-            (V_TOPO, 0, 0),
-            (V_MEIO, 0, 100),
-            (V_BASE, 0, 250),
-        ],
+        &[(V_TOPO, 0, 0), (V_MEIO, 0, 100), (V_BASE, 0, 250)],
     );
     let esperado = inteiro.vram_pixel(X_AMOSTRA as u16, Y_AMOSTRA as u16);
     assert_ne!(
@@ -207,11 +192,7 @@ fn v_sobre_span_recortado_amostra_o_mesmo_texel_do_span_inteiro() {
     gp0_e3h_x1(&mut recortado, X1_RECORTE);
     prepara_triangulo_texturizado_raw(
         &mut recortado,
-        &[
-            (V_TOPO, 0, 0),
-            (V_MEIO, 0, 100),
-            (V_BASE, 0, 250),
-        ],
+        &[(V_TOPO, 0, 0), (V_MEIO, 0, 100), (V_BASE, 0, 250)],
     );
 
     assert_eq!(
@@ -222,7 +203,7 @@ fn v_sobre_span_recortado_amostra_o_mesmo_texel_do_span_inteiro() {
     assert_eq!(
         recortado.vram_pixel(X_AMOSTRA as u16, Y_AMOSTRA as u16),
         esperado,
-        "spec § GPU Rendering Attributes (03-gpu.md L452): mesma garantia do \
+        "spec § Vertex, GPU Rendering Attributes (03-gpu.md L452): mesma garantia do \
          teste de U, agora para V — o texel amostrado em (150,75) tem que ser \
          igual nos dois renders"
     );

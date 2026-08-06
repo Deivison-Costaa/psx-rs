@@ -232,3 +232,6 @@ da escada valer so para o que FALTA. Narrativa de cada item continua em
   caminhos ja checam `force_bit15`/`check_mask` (GPUSTAT bits 11/12) desde a iter 0049/0105;
   confirmado sem mudanca de codigo na revisao da 0203
 - [x] 10.50 `GP0(C0h)` sem transferencia devolve zero (0117) (iter 0203)
+- [x] 10.14 U/V e gouraud reinterpolados sobre span recortado (03-gpu.md L452) (iter 0203) —
+  caminho dither+gouraud+nao-texturizado (`render_triangle_dithered`) tem o mesmo padrao mas
+  fica pra depois sem teste dedicado; ver achado 0203.1

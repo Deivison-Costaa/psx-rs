@@ -75,7 +75,7 @@ fn a2_texpage_colors_3_se_comporta_como_15bpp() {
 
     stat_com_e1h(&mut gpu, 3 << 7);
 
-    let cmd: u32 = 0x2400_0000;
+    let cmd: u32 = 0x2500_0000;
     let verts = [
         ((10_i16, 10_i16), 0_u8, 0_u8),
         ((11_i16, 10_i16), 0_u8, 0_u8),
@@ -108,7 +108,7 @@ fn a3_texpage_attribute_nao_muda_bits_9_10_12_13() {
 
     escreve_vram_halfword(&mut gpu, 0, 0, 0x1111);
 
-    let cmd: u32 = 0x2400_0000;
+    let cmd: u32 = 0x2500_0000;
     gpu.write32(0, cmd);
     gpu.write32(0, (10_u32 << 16) | 10_u32);
     let texpage_attr: u32 = 2 << 7;
@@ -141,7 +141,7 @@ fn a4_poligono_texturizado_15bpp_confere_texel_exato() {
 
     stat_com_e1h(&mut gpu, 2 << 7);
 
-    let cmd: u32 = 0x2400_0000;
+    let cmd: u32 = 0x2500_0000;
     let verts = [
         ((10_i16, 10_i16), 0_u8, 0_u8),
         ((26_i16, 10_i16), 16_u8, 0_u8),
@@ -187,7 +187,7 @@ fn a5_texel_0000h_nao_e_desenhado() {
 
     stat_com_e1h(&mut gpu, 2 << 7);
 
-    let cmd: u32 = 0x2400_0000;
+    let cmd: u32 = 0x2500_0000;
     let verts = [
         ((10_i16, 10_i16), 0_u8, 0_u8),
         ((14_i16, 10_i16), 4_u8, 0_u8),
@@ -229,7 +229,7 @@ fn a6_texpage_base_diferente_de_zero() {
         (1 << 0) | (1 << 4) | 2 << 7,
     );
 
-    let cmd: u32 = 0x2400_0000;
+    let cmd: u32 = 0x2500_0000;
     let verts = [
         ((10_i16, 10_i16), 0_u8, 0_u8),
         ((11_i16, 10_i16), 0_u8, 0_u8),

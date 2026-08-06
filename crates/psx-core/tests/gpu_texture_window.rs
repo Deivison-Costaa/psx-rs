@@ -36,7 +36,7 @@ fn t1_u_0_7_amostra_16_23_com_mask_31_offset_2() {
 
     stat_com_e1h(&mut gpu, 2 << 7);
 
-    let cmd: u32 = 0x2400_0000;
+    let cmd: u32 = 0x2500_0000;
     gpu.write32(0, cmd);
     let verts: [((i16, i16), u8, u8); 3] = [
         ((10_i16, 10_i16), 0, 0),
@@ -85,7 +85,7 @@ fn t2_mask_x_7_offset_x_6_janela_48_55() {
 
     stat_com_e1h(&mut gpu, 2 << 7);
 
-    let cmd: u32 = 0x2400_0000;
+    let cmd: u32 = 0x2500_0000;
     gpu.write32(0, cmd);
     let verts: [((i16, i16), u8, u8); 3] = [
         ((10_i16, 10_i16), 0, 0),
@@ -139,7 +139,7 @@ fn t3_window_reseta_com_gp1_00h() {
 
     stat_com_e1h(&mut gpu, 2 << 7);
 
-    let cmd: u32 = 0x2400_0000;
+    let cmd: u32 = 0x2500_0000;
     gpu.write32(0, cmd);
     let verts: [((i16, i16), u8, u8); 3] = [
         ((10_i16, 10_i16), 0, 0),
@@ -177,7 +177,7 @@ fn t4_janela_com_offset_maior_que_mask() {
 
     stat_com_e1h(&mut gpu, 2 << 7);
 
-    let cmd: u32 = 0x2400_0000;
+    let cmd: u32 = 0x2500_0000;
     gpu.write32(0, cmd);
     let verts: [((i16, i16), u8, u8); 3] = [
         ((10_i16, 10_i16), 8, 0),
@@ -223,7 +223,7 @@ fn t5_offset_y_independente_de_offset_x() {
 
     stat_com_e1h(&mut gpu, 2 << 7);
 
-    let cmd: u32 = 0x2400_0000;
+    let cmd: u32 = 0x2500_0000;
     gpu.write32(0, cmd);
     let verts: [((i16, i16), u8, u8); 3] = [
         ((10_i16, 10_i16), 0, 0),

@@ -50,7 +50,7 @@ fn b1_8bpp_amostra_palette_index_e_clut() {
 
     stat_com_e1h(&mut gpu, 1 << 7);
 
-    let cmd: u32 = 0x2400_0000;
+    let cmd: u32 = 0x2500_0000;
     let verts = [
         ((10_i16, 10_i16), 0_u8, 0_u8),
         ((12_i16, 10_i16), 2_u8, 0_u8),
@@ -88,7 +88,7 @@ fn b2_4bpp_amostra_4_pixels_por_halfword() {
 
     stat_com_e1h(&mut gpu, 0);
 
-    let cmd: u32 = 0x2400_0000;
+    let cmd: u32 = 0x2500_0000;
     let verts = [
         ((10_i16, 10_i16), 0_u8, 0_u8),
         ((14_i16, 10_i16), 4_u8, 0_u8),
@@ -136,7 +136,7 @@ fn b3_clut_em_posicao_arbitraria() {
 
     let clut_attr: u16 = 3 | (50 << 6);
 
-    let cmd: u32 = 0x2400_0000;
+    let cmd: u32 = 0x2500_0000;
     let verts = [
         ((10_i16, 10_i16), 0_u8, 0_u8),
         ((12_i16, 10_i16), 2_u8, 0_u8),
@@ -178,7 +178,7 @@ fn b4_clut_entry_0000h_nao_e_desenhado() {
 
     let clut_attr: u16 = 2;
 
-    let cmd: u32 = 0x2400_0000;
+    let cmd: u32 = 0x2500_0000;
     let verts = [
         ((10_i16, 10_i16), 0_u8, 0_u8),
         ((12_i16, 10_i16), 2_u8, 0_u8),
@@ -219,7 +219,7 @@ fn b5_8bpp_com_page_nao_zero() {
         1 | (1 << 4) | 1 << 7,
     );
 
-    let cmd: u32 = 0x2400_0000;
+    let cmd: u32 = 0x2500_0000;
     let verts = [
         ((10_i16, 10_i16), 0_u8, 0_u8),
         ((11_i16, 10_i16), 0_u8, 0_u8),
@@ -248,7 +248,7 @@ fn b6_modos_misturados_8bpp_4bpp_15bpp() {
     gpu.write32(0, texel_8bpp);
 
     stat_com_e1h(&mut gpu, 1 << 7);
-    let cmd: u32 = 0x2400_0000;
+    let cmd: u32 = 0x2500_0000;
     let verts_8bpp = [
         ((10_i16, 10_i16), 0_u8, 0_u8),
         ((11_i16, 10_i16), 0_u8, 0_u8),
@@ -282,7 +282,7 @@ fn b6_modos_misturados_8bpp_4bpp_15bpp() {
         ((31_i16, 30_i16), 0_u8, 0_u8),
         ((30_i16, 31_i16), 0_u8, 0_u8),
     ];
-    let cmd_15bpp: u32 = 0x2400_0000;
+    let cmd_15bpp: u32 = 0x2500_0000;
     gpu.write32(0, cmd_15bpp);
     for (idx, &((sx, sy), u, v)) in verts_15bpp.iter().enumerate() {
         gpu.write32(0, ((sy as u16 as u32) << 16) | (sx as u16 as u32));

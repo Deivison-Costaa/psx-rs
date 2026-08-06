@@ -611,16 +611,16 @@ impl Bus {
             }
             0x1F80_1000..=0x1F80_1023 => {
                 let val = self.mem_ctrl.read32(phys);
-                let byte_index = (phys & 3) + offset;
+                let byte_index = ((phys & 3) + offset) & 3;
                 Some(((val >> (byte_index * 8)) & 0xFF) as u8)
             }
             0x1F80_1060..=0x1F80_1063 => {
                 let val = self.mem_ctrl.read32(0x1F80_1060);
-                let byte_index = (phys - 0x1F80_1060) + offset;
+                let byte_index = (phys - 0x1F80_1060 + offset) & 3;
                 Some(((val >> (byte_index * 8)) & 0xFF) as u8)
             }
             0xFFFE_0130..=0xFFFE_0133 => {
-                let byte_index = (phys - 0xFFFE_0130) + offset;
+                let byte_index = (phys - 0xFFFE_0130 + offset) & 3;
                 Some(((self.bcc.0 >> (byte_index * 8)) & 0xFF) as u8)
             }
             0x1F80_1810..=0x1F80_1817 => {
@@ -648,7 +648,7 @@ impl Bus {
             0x1F80_1080..=0x1F80_10EC | 0x1F80_10F0 | 0x1F80_10F4 => {
                 let base = phys & !3;
                 let val = self.dma_register_value(base).unwrap_or(0);
-                let byte_index = (phys & 3) + offset;
+                let byte_index = ((phys & 3) + offset) & 3;
                 Some(((val >> (byte_index * 8)) & 0xFF) as u8)
             }
             0x1F80_1024..=0x1F80_103F | 0x1F80_1041..=0x1F80_1043 | 0x1F80_1064..=0x1F80_1FFF => {

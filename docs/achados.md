@@ -25,7 +25,6 @@
 - [ ] 10.10 Drawing Area GP0(E3h/E4h) e Offset GP0(E5h) sem suite que os meça
 - [ ] 10.28 Tabela por registro nos docs vs `.resultado`: 0071 errou 3/9, 0038 inflou 2
 - [ ] 10.29 `dma_dpcr_gate.rs:141`: `assert_ne!` como unica assercao de uma correcao
-- [ ] 10.30 Habilitar canal no DPCR nao dispara transferencia pendente (so no CHCR)
 - [ ] 10.25 `unwrap_or` de caminho nos meta-testes silencia `strip_prefix` que falha (10.12)
 - [ ] 10.13 GP0(24h) e modulacao, nao raw texture (03-gpu.md L264/L1610) (0110)
 - [ ] 10.14 U/V e gouraud reinterpolados sobre span recortado (03-gpu.md L452)

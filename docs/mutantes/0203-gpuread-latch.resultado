@@ -1,10 +1,10 @@
 # gerado por scripts/mutantes.ps1 — NAO editar a mao
-# commit: 5df88da4be0fa640eb4c42d5a223c6f558fcae6f
-# rodado_em: 2026-08-05T21:32:08-03:00
+# commit: 08793f50cddbca31070806c26614b7a36c211f1d
+# rodado_em: 2026-08-05T21:48:38-03:00
 m1,mutante,morreu,morreu,1.2,gpuread_apos_transferencia_concluida_devolve_o_ultimo_valor_nao_zero
-m2,mutante,morreu,morreu,1.2,gpuread_apos_transferencia_concluida_devolve_o_ultimo_valor_nao_zero;peek32_do_gpuread_tambem_usa_o_latch_apos_a_transferencia
+m2,mutante,morreu,morreu,1.3,gpuread_apos_transferencia_concluida_devolve_o_ultimo_valor_nao_zero;peek32_do_gpuread_tambem_usa_o_latch_apos_a_transferencia
 m3,mutante,morreu,morreu,1.3,gpuread_apos_transferencia_concluida_devolve_o_ultimo_valor_nao_zero;peek32_do_gpuread_tambem_usa_o_latch_apos_a_transferencia
-m4,mutante,morreu,morreu,1.1,peek32_do_gpuread_tambem_usa_o_latch_apos_a_transferencia
-m5,mutante,morreu,morreu,1.1,gpuread_sem_transferencia_nenhuma_comeca_em_zero
-c1,controle,sobreviveu,sobreviveu,1.2,
-c2,controle,sobreviveu,sobreviveu,3.3,
+m4,mutante,morreu,morreu,1.2,peek32_do_gpuread_tambem_usa_o_latch_apos_a_transferencia
+m5,mutante,morreu,morreu,1.2,gpuread_sem_transferencia_nenhuma_comeca_em_zero
+c1,controle,sobreviveu,sobreviveu,1.3,
+c2,controle,sobreviveu,sobreviveu,3.4,

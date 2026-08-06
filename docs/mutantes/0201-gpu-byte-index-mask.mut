@@ -1,0 +1,102 @@
+# Manifesto de mutacao da iteracao 0201 — mascara do indice de byte da GPU
+formato: 1
+iteracao: 0201
+item: 10.51
+alvo: crates/psx-core/src/bus.rs
+teste: bus_gpu_byte_index_mask
+
+mutante: m1
+rotulo: remover a mascara final reintroduz o shift invalido
+ocorrencias: 1
+teste: bus_gpu_byte_index_mask
+@@DE
+                let val = self.gpu.peek32(base - 0x1F80_1810);
+                let byte_index = ((phys & 3) + offset) & 3;
+@@PARA
+                let val = self.gpu.peek32(base - 0x1F80_1810);
+                let byte_index = (phys & 3) + offset;
+@@FIM
+
+mutante: m2
+rotulo: mascara com dois bits perde o byte superior correto
+ocorrencias: 1
+teste: bus_gpu_byte_index_mask
+@@DE
+                let val = self.gpu.peek32(base - 0x1F80_1810);
+                let byte_index = ((phys & 3) + offset) & 3;
+@@PARA
+                let val = self.gpu.peek32(base - 0x1F80_1810);
+                let byte_index = ((phys & 3) + offset) & 2;
+@@FIM
+
+mutante: m3
+rotulo: mascara com um bit seleciona o byte errado
+ocorrencias: 1
+teste: bus_gpu_byte_index_mask
+@@DE
+                let val = self.gpu.peek32(base - 0x1F80_1810);
+                let byte_index = ((phys & 3) + offset) & 3;
+@@PARA
+                let val = self.gpu.peek32(base - 0x1F80_1810);
+                let byte_index = ((phys & 3) + offset) & 1;
+@@FIM
+
+mutante: m4
+rotulo: mascara larga permite deslocamento alem da palavra
+ocorrencias: 1
+teste: bus_gpu_byte_index_mask
+@@DE
+                let val = self.gpu.peek32(base - 0x1F80_1810);
+                let byte_index = ((phys & 3) + offset) & 3;
+@@PARA
+                let val = self.gpu.peek32(base - 0x1F80_1810);
+                let byte_index = ((phys & 3) + offset) & 7;
+@@FIM
+
+mutante: m5
+rotulo: mascara zero fixa todas as leituras no primeiro byte
+ocorrencias: 1
+teste: bus_gpu_byte_index_mask
+@@DE
+                let val = self.gpu.peek32(base - 0x1F80_1810);
+                let byte_index = ((phys & 3) + offset) & 3;
+@@PARA
+                let val = self.gpu.peek32(base - 0x1F80_1810);
+                let byte_index = ((phys & 3) + offset) & 0;
+@@FIM
+
+mutante: m6
+rotulo: mascara fisica errada troca a posicao do byte lido
+ocorrencias: 1
+teste: bus_gpu_byte_index_mask
+@@DE
+                let val = self.gpu.peek32(base - 0x1F80_1810);
+                let byte_index = ((phys & 3) + offset) & 3;
+@@PARA
+                let val = self.gpu.peek32(base - 0x1F80_1810);
+                let byte_index = ((phys & 2) + offset) & 3;
+@@FIM
+
+controle: c1
+rotulo: trocar a ordem da soma preserva o indice mascarado
+ocorrencias: 1
+teste: bus_gpu_byte_index_mask
+@@DE
+                let val = self.gpu.peek32(base - 0x1F80_1810);
+                let byte_index = ((phys & 3) + offset) & 3;
+@@PARA
+                let val = self.gpu.peek32(base - 0x1F80_1810);
+                let byte_index = (offset + (phys & 3)) & 3;
+@@FIM
+
+controle: c2
+rotulo: mascarar o offset antes da soma preserva este contrato
+ocorrencias: 1
+teste: bus_gpu_byte_index_mask
+@@DE
+                let val = self.gpu.peek32(base - 0x1F80_1810);
+                let byte_index = ((phys & 3) + offset) & 3;
+@@PARA
+                let val = self.gpu.peek32(base - 0x1F80_1810);
+                let byte_index = ((phys & 3) + (offset & 3)) & 3;
+@@FIM

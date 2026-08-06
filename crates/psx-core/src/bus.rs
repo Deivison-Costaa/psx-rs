@@ -626,7 +626,7 @@ impl Bus {
             0x1F80_1810..=0x1F80_1817 => {
                 let base = phys & !3;
                 let val = self.gpu.peek32(base - 0x1F80_1810);
-                let byte_index = (phys & 3) + offset;
+                let byte_index = ((phys & 3) + offset) & 3;
                 Some(((val >> (byte_index * 8)) & 0xFF) as u8)
             }
             0x1F80_1800..=0x1F80_1803 => {

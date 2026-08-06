@@ -1,10 +1,10 @@
 # gerado por scripts/mutantes.ps1 — NAO editar a mao
-# commit: 98197c7a3a7636f7cd885dc20cb188bcc6dd7c48
-# rodado_em: 2026-08-05T22:24:38-03:00
-m1,mutante,morreu,morreu,1.4,framebuffer_so_muda_no_proximo_vblank_nao_a_cada_escrita_em_vram
+# commit: 543d46eb99302ad54fdb33f3ccbfc079cbebb4f0
+# rodado_em: 2026-08-06T13:43:38-03:00
+m1,mutante,morreu,morreu,1.6,framebuffer_so_muda_no_proximo_vblank_nao_a_cada_escrita_em_vram
 m2,mutante,morreu,morreu,1.3,framebuffer_so_muda_no_proximo_vblank_nao_a_cada_escrita_em_vram
-m3,mutante,morreu,morreu,1.2,framebuffer_so_muda_no_proximo_vblank_nao_a_cada_escrita_em_vram
-m4,mutante,morreu,morreu,1.1,framebuffer_so_muda_no_proximo_vblank_nao_a_cada_escrita_em_vram
-m5,mutante,morreu,morreu,1.2,framebuffer_so_muda_no_proximo_vblank_nao_a_cada_escrita_em_vram
-c1,controle,sobreviveu,sobreviveu,3.4,
-c2,controle,sobreviveu,sobreviveu,3.4,
+m3,mutante,morreu,morreu,1.3,framebuffer_so_muda_no_proximo_vblank_nao_a_cada_escrita_em_vram
+m4,mutante,morreu,morreu,1.5,framebuffer_so_muda_no_proximo_vblank_nao_a_cada_escrita_em_vram
+m5,mutante,morreu,morreu,1.4,framebuffer_so_muda_no_proximo_vblank_nao_a_cada_escrita_em_vram
+c1,controle,sobreviveu,sobreviveu,3.5,
+c2,controle,sobreviveu,sobreviveu,3.5,

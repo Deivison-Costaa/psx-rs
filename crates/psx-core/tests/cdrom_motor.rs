@@ -18,9 +18,9 @@ const PAUSE_LENDO_MAX: u32 = 0x24_0000;
 const ESPERA_GENEROSA: u32 = 0x24_0000;
 // § Sector Buffer (06-cdrom.md L2118-2126): o drive gira sozinho, entao esperar "generoso"
 // numa leitura em andamento nao e' neutro — passam varios setores e os antigos se perdem.
-// Pra observar setor a setor a espera tem que ser a exata: 4A00h ate o primeiro setor
-// depois do ack do ReadN, e a cadencia da spec (INT1 Rate, L2093-2101) dai em diante.
-const ESPERA_PRIMEIRO_SETOR: u32 = 0x4A00;
+// Pra observar setor a setor a espera tem que ser a exata: o tempo de BUSCA ate o primeiro
+// setor depois do ack do ReadN (L2077-2078 — depende da distancia e varia a cada seek, por
+// isso sai do estado do drive), e a cadencia da spec (INT1 Rate, L2093-2101) dai em diante.
 const CADENCIA_VELOCIDADE_NORMAL: u32 = 451_584;
 
 fn bus() -> Bus {
@@ -162,7 +162,9 @@ fn comando_com_int_pendente_so_executa_apos_ack() {
     );
 
     ack(&mut bus);
-    bus.tick_timers(GETID_SEGUNDA_MAX);
+    // § L2077-2078: o Init tambem responde depois de uma busca, nao no tempo do GetID.
+    let ciclos_da_busca = bus.cdrom().second_response_cycles() as u32;
+    bus.tick_timers(ciclos_da_busca);
     assert_eq!(
         hintsts(&mut bus),
         2,
@@ -237,7 +239,8 @@ fn pause_durante_leitura_leva_o_tempo_de_5_setores() {
     // atraso da o INT3 do Pause direto. Com atraso (L2225-2231) a spec mediu um
     // "Process INT1 --> 0:2:1 (oldest)" ANTES do INT3 — esperar generoso aqui punha um
     // setor bufferizado na frente do Pause e nao media mais o tempo do Pause.
-    bus.tick_timers(ESPERA_PRIMEIRO_SETOR);
+    let ciclos_da_busca = bus.cdrom().second_response_cycles() as u32;
+    bus.tick_timers(ciclos_da_busca);
     assert_eq!(hintsts(&mut bus), 1, "INT1 do primeiro setor");
     let _ = result_read(&mut bus);
     ack(&mut bus);
@@ -275,7 +278,8 @@ fn read_n_avanca_de_setor_a_cada_int1() {
     send_command(&mut bus, 0x06);
     let _ = result_read(&mut bus);
     ack(&mut bus);
-    bus.tick_timers(ESPERA_PRIMEIRO_SETOR);
+    let ciclos_da_busca = bus.cdrom().second_response_cycles() as u32;
+    bus.tick_timers(ciclos_da_busca);
     assert_eq!(hintsts(&mut bus), 1, "INT1 do primeiro setor");
     let _ = result_read(&mut bus);
     let primeiro = le_4_bytes_do_setor(&mut bus);
@@ -306,7 +310,8 @@ fn read_s_tambem_avanca_de_setor() {
     send_command(&mut bus, 0x1B);
     let _ = result_read(&mut bus);
     ack(&mut bus);
-    bus.tick_timers(ESPERA_PRIMEIRO_SETOR);
+    let ciclos_da_busca = bus.cdrom().second_response_cycles() as u32;
+    bus.tick_timers(ciclos_da_busca);
     assert_eq!(hintsts(&mut bus), 1, "INT1 do primeiro setor do ReadS");
     let _ = result_read(&mut bus);
     let primeiro = le_4_bytes_do_setor(&mut bus);

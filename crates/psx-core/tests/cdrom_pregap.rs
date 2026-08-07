@@ -89,7 +89,9 @@ fn setloc_readn_primeiro_byte(bus: &mut Bus, mm: u8, ss: u8, ff: u8) -> u8 {
     assert_eq!(hintsts & 0x7, 3, "INT3 apos ReadN (06h)");
     let _ = result_read(bus);
     hclrctl_write(bus, 0x07);
-    bus.tick_timers(0x6000);
+    // § L2077-2078: o primeiro setor do ReadN paga o tempo de busca, que varia.
+    let ciclos = bus.cdrom().second_response_cycles() as u32;
+    bus.tick_timers(ciclos);
 
     let hintsts2 = hintsts_read_bank1(bus);
     assert_eq!(

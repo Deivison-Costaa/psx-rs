@@ -9,8 +9,8 @@ fn bus_com_dma() -> Bus {
 
 const CD_BASE: u32 = 0x1F80_1800;
 const ESPERA_PRIMEIRA_RESPOSTA: u32 = 0x1_4000;
-// 06-cdrom.md L333-337: 2a resposta so apos o ack, com atraso fisico (divida 10.53).
-const ESPERA_SEGUNDA_RESPOSTA: u32 = 0x6000;
+// 06-cdrom.md L333-337 + L2077-2078: 2a resposta so apos o ack, e o atraso do ReadN e' o
+// tempo de busca — depende da distancia e varia a cada seek.
 const D2_MADR: u32 = 0x1F80_10A0;
 const D2_BCR: u32 = 0x1F80_10A4;
 const D2_CHCR: u32 = 0x1F80_10A8;
@@ -70,7 +70,8 @@ fn preparar_cdrom_para_dma3(bus: &mut Bus) {
 
     set_bank(bus, 1);
     cd_write(bus, 3, 0x07);
-    bus.tick_timers(ESPERA_SEGUNDA_RESPOSTA);
+    let ciclos_da_segunda = bus.cdrom().second_response_cycles() as u32;
+    bus.tick_timers(ciclos_da_segunda);
     let hintsts = cd_read(bus, 3) & 0x7;
     set_bank(bus, 0);
     assert_eq!(

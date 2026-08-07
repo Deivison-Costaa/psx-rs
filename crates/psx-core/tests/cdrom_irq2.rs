@@ -192,7 +192,9 @@ fn segunda_resposta_do_init_tambem_levanta_irq2() {
 
     ack_i_stat_irq2(&mut bus);
     ack_hclrctl(&mut bus, 0x07);
-    bus.tick_timers(0x6000);
+    // § L2077-2078: o Init tambem responde depois de uma busca, nao de um tempo fixo.
+    let ciclos = bus.cdrom().second_response_cycles() as u32;
+    bus.tick_timers(ciclos);
 
     assert_eq!(
         i_stat(&bus) & IRQ2,

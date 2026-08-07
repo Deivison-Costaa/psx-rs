@@ -6,10 +6,9 @@ use support::asm;
 
 const CD_BASE: u32 = 0x1F80_1800;
 const ESPERA_PRIMEIRA_RESPOSTA: u32 = 0x1_4000;
-// § INT1 Rate (06-cdrom.md L2093-2101): cadencia real de relatorio em velocidade normal
-// (nenhum destes testes liga o bit7/Speed do Setmode) — 451584 ciclos, nao os 0x6000
-// que valiam so pro modelo antigo de custo fixo.
-const ESPERA_SEGUNDA_RESPOSTA: u32 = 451_584;
+// § INT1 Rate (L2093-2101) para os relatorios seguintes e § L2077-2078 ("Play ... sending
+// second responses which depend on seek time") para o primeiro: nao ha um numero unico.
+// A espera de cada entrega sai do proprio estado do drive.
 
 // § Setmode - Command 0Eh,mode (L685) de docs/reference/06-cdrom.md: bit1 = autopause,
 // bit2 = report. O Rayman manda 07h, medido na iteracao 0180.
@@ -35,7 +34,8 @@ fn ack(bus: &mut Bus) {
     set_bank(bus, 1);
     cd_write(bus, 3, 0x07);
     set_bank(bus, 0);
-    bus.tick_timers(ESPERA_SEGUNDA_RESPOSTA);
+    let ciclos = bus.cdrom().second_response_cycles() as u32;
+    bus.tick_timers(ciclos);
 }
 
 fn result_read(bus: &mut Bus) -> u8 {

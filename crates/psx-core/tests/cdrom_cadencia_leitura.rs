@@ -65,10 +65,14 @@ fn setmode(bus: &mut Bus, mode: u8) {
 
 // § Sector Buffer (06-cdrom.md L2118-2126) + Incoming Data Timings (L929-931): o drive
 // gira sozinho, entao a cadencia se conta da ENTREGA do setor anterior, nao do ack da CPU.
-// O tick abaixo para exatamente no vencimento do primeiro setor (PRIMEIRO_SETOR ciclos
-// depois do ack do INT3 do ReadN), pra que "zero ciclos decorridos" seja o ponto de
-// partida da medicao.
-const PRIMEIRO_SETOR: u32 = 0x4A00;
+// O tick abaixo para exatamente no vencimento do primeiro setor, pra que "zero ciclos
+// decorridos" seja o ponto de partida da medicao. Esse primeiro vencimento nao e' mais
+// constante: paga o tempo de BUSCA, que depende da distancia e varia por seek
+// (06-cdrom.md L2077-2078). O valor exato vem do proprio estado do drive.
+fn tick_ate_o_primeiro_setor(bus: &mut Bus) {
+    let ciclos = bus.cdrom().second_response_cycles() as u32;
+    bus.tick_timers(ciclos);
+}
 
 /// Prepara um ReadN em andamento (Setloc + ReadN + acknowledge do primeiro INT1) e
 /// devolve o bus pronto pra medir a cadencia do SEGUNDO setor em diante.
@@ -84,7 +88,7 @@ fn read_n_em_andamento(bus: &mut Bus) {
     send_command(bus, 0x06);
     let _ = result_read(bus);
     hclrctl_write(bus, 0x07);
-    bus.tick_timers(PRIMEIRO_SETOR);
+    tick_ate_o_primeiro_setor(bus);
     let _ = result_read(bus);
     hclrctl_write(bus, 0x07);
 }

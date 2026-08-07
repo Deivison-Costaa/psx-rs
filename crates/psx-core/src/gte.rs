@@ -104,6 +104,42 @@ impl Gte {
         }
     }
 
+    // § Custo por comando (07-gte.md, cabecalho de cada secao "#### COP2 <imm25>h - N
+    // Cycles - <NOME>"): cada opcode (bits 0-5 de `func`, mesma extracao que
+    // `execute_command` usa pra despachar) tem seu proprio custo documentado. sf/lm nao
+    // entram na tabela -- sao flags de comportamento numerico, nao mudam o tempo de
+    // execucao. CC e CDP caem no MESMO braco de `execute_command` (`color_color`) mas tem
+    // custos diferentes na spec -- por isso esta tabela deriva dos cabecalhos, nao copia o
+    // dispatch. Comando fora dos 22 documentados (o `_ => {}` de `execute_command`) nao tem
+    // numero pra citar: custa 0, nao um valor inventado.
+    pub fn command_cycles(func: u32) -> u32 {
+        match func & 0x3F {
+            0x01 => 15, // RTPS
+            0x30 => 23, // RTPT
+            0x06 => 8,  // NCLIP
+            0x2D => 5,  // AVSZ3
+            0x2E => 6,  // AVSZ4
+            0x28 => 5,  // SQR
+            0x3D => 5,  // GPF
+            0x3E => 5,  // GPL
+            0x0C => 6,  // OP
+            0x12 => 8,  // MVMVA
+            0x1E => 14, // NCS
+            0x20 => 30, // NCT
+            0x1B => 17, // NCCS
+            0x3F => 39, // NCCT
+            0x13 => 19, // NCDS
+            0x16 => 44, // NCDT
+            0x1C => 11, // CC
+            0x14 => 13, // CDP
+            0x29 => 8,  // DCPL
+            0x11 => 8,  // INTPL
+            0x10 => 8,  // DPCS
+            0x2A => 17, // DPCT
+            _ => 0,
+        }
+    }
+
     pub fn execute_command(&mut self, func: u32) {
         let cmd = func & 0x3F;
         let sf = (func >> 19) & 1;

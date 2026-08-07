@@ -285,3 +285,9 @@ da escada valer so para o que FALTA. Narrativa de cada item continua em
   terminar deveria travar a CPU pelo resto do custo (multu/mult 6/9/13 por faixa de rs,
   div/divu fixo em 36; 02-cpu.md L420-436) (iter 0211) — Degrau 3 da escada de timing de
   CPU/barramento; `load_extra_cycles` renomeado pra `extra_cycles` (mecanismo generalizado)
+
+## Fechado na iteração 0212
+- [x] 0212.1 `Gte::command_cycles(func)`: tabela pura de custo por comando GTE, 22 comandos
+  derivados dos cabecalhos de secao da spec, nao do dispatch de `execute_command` (que tem
+  bracos compartilhados, ex. CC/CDP no mesmo `color_color` com custos diferentes) (07-gte.md
+  L481-642) (iter 0212) — Degrau 4 da escada de timing de CPU/barramento; sem chamador ainda

@@ -1,4 +1,5 @@
 use crate::bus::{Bus, BusRead, BusWrite};
+use crate::gte::Gte;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Cpu {
@@ -16,6 +17,7 @@ pub struct Cpu {
     pending_ce: Option<u8>,
     extra_cycles: u32,
     hilo_busy_until: u64,
+    gte_busy_until: u64,
     written_gpr: Option<usize>,
     pub irq_handler_entries: u64,
 }
@@ -47,6 +49,7 @@ impl Cpu {
             pending_ce: None,
             extra_cycles: 0,
             hilo_busy_until: 0,
+            gte_busy_until: 0,
             written_gpr: None,
             irq_handler_entries: 0,
         }
@@ -484,6 +487,16 @@ impl Cpu {
     // `divu` tambem, pra marcar ate quando HI/LO ficam ocupados.
     fn hilo_stall(&mut self, bus: &Bus) {
         let atraso = self.hilo_busy_until.saturating_sub(bus.total_cycles());
+        self.extra_cycles += atraso as u32;
+    }
+
+    // § GTE Load Delay Slots (07-gte.md L112-114): "If an instruction that reads a GTE
+    // register or a GTE command is executed before the current GTE command is finished,
+    // the CPU will hold until the instruction has finished." MFC2/CFC2/SWC2 (leitura) e um
+    // comando GTE novo chamam isto antes de prosseguir; MTC2/CTC2/LWC2 (escrita) nao chamam
+    // -- a spec so documenta espera pra leitura.
+    fn gte_stall(&mut self, bus: &Bus) {
+        let atraso = self.gte_busy_until.saturating_sub(bus.total_cycles());
         self.extra_cycles += atraso as u32;
     }
 
@@ -987,12 +1000,14 @@ impl Cpu {
                 let rt = ((instr >> 16) & 0x1F) as usize;
                 let rd = ((instr >> 11) & 0x1F) as usize;
                 let val = bus.gte().read_data(rd);
+                self.gte_stall(bus);
                 Some((rt, val))
             }
             0x02 => {
                 let rt = ((instr >> 16) & 0x1F) as usize;
                 let rd = ((instr >> 11) & 0x1F) as usize;
                 let val = bus.gte().read_control(rd);
+                self.gte_stall(bus);
                 Some((rt, val))
             }
             0x04 => {
@@ -1011,7 +1026,15 @@ impl Cpu {
             }
             0x10..=0x1F => {
                 let func = instr & 0x01FF_FFFF;
+                // Um comando novo tambem espera o anterior terminar (07-gte.md L112-114).
+                // O prazo do comando novo conta a partir de QUANDO ELE REALMENTE COMECA --
+                // ou seja, depois dessa espera, que `gte_stall` acabou de empilhar em
+                // `extra_cycles` (ainda nao cobrado; so vira ciclo de verdade no fim do
+                // `step`). Por isso o prazo soma `self.extra_cycles`, nao so `bus.total_cycles()`.
+                self.gte_stall(bus);
+                let custo = Gte::command_cycles(func) as u64;
                 bus.gte_mut().execute_command(func);
+                self.gte_busy_until = bus.total_cycles() + 1 + self.extra_cycles as u64 + custo;
                 None
             }
             _ => None,
@@ -1034,6 +1057,7 @@ impl Cpu {
         let imm = (instr & 0xFFFF) as u16 as i16 as i32 as u32;
         let addr = self.regs[rs].wrapping_add(imm);
         let val = bus.gte().read_data(rt);
+        self.gte_stall(bus);
         bus.write32::<BusWrite>(addr, val);
         None
     }

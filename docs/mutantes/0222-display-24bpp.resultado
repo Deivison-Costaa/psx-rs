@@ -1,0 +1,10 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: 299611fb42c14af5b5c90f7a31d8142dde147377
+# rodado_em: 2026-08-07T13:31:32-03:00
+m1,mutante,morreu,morreu,1.3,t2_pixels_de_24_bits_ocupam_tres_bytes_cada;t3_24bpp_usa_os_oito_bits_de_cada_canal;t4_display_start_x_continua_em_halfwords_no_modo_24bpp
+m2,mutante,morreu,morreu,1.2,t2_pixels_de_24_bits_ocupam_tres_bytes_cada;t3_24bpp_usa_os_oito_bits_de_cada_canal;t4_display_start_x_continua_em_halfwords_no_modo_24bpp
+m3,mutante,morreu,morreu,1.2,t2_pixels_de_24_bits_ocupam_tres_bytes_cada;t3_24bpp_usa_os_oito_bits_de_cada_canal
+m4,mutante,morreu,morreu,1.2,t2_pixels_de_24_bits_ocupam_tres_bytes_cada;t3_24bpp_usa_os_oito_bits_de_cada_canal;t4_display_start_x_continua_em_halfwords_no_modo_24bpp
+m5,mutante,morreu,morreu,1.2,t2_pixels_de_24_bits_ocupam_tres_bytes_cada;t3_24bpp_usa_os_oito_bits_de_cada_canal;t4_display_start_x_continua_em_halfwords_no_modo_24bpp
+c1,controle,sobreviveu,sobreviveu,1.2,
+c2,controle,sobreviveu,sobreviveu,1.2,

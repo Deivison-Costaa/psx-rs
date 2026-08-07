@@ -1,10 +1,10 @@
 # gerado por scripts/mutantes.ps1 — NAO editar a mao
-# commit: 7b1bd2118b3fb3711bc9b1f325c9ee9d788b5b7c
-# rodado_em: 2026-08-06T13:55:10-03:00
-m1,mutante,morreu,morreu,1.2,hblank_entra_uma_vez_por_scanline_na_proporcao_do_horizontal_display_range
-m2,mutante,morreu,morreu,1.1,hblank_entra_uma_vez_por_scanline_na_proporcao_do_horizontal_display_range
-m3,mutante,morreu,morreu,1.1,hblank_entra_uma_vez_por_scanline_na_proporcao_do_horizontal_display_range
-m4,mutante,morreu,morreu,1,hblank_entra_uma_vez_por_scanline_na_proporcao_do_horizontal_display_range
-m5,mutante,morreu,morreu,1.1,hblank_entra_uma_vez_por_scanline_na_proporcao_do_horizontal_display_range
-c1,controle,sobreviveu,sobreviveu,1.1,
-c2,controle,sobreviveu,sobreviveu,1,
+# commit: f45390179d732f953a467336e4b6d9e447373856
+# rodado_em: 2026-08-06T21:54:51-03:00
+m1,mutante,morreu,morreu,1.7,hblank_entra_uma_vez_por_scanline_na_proporcao_do_horizontal_display_range
+m2,mutante,morreu,morreu,1.7,hblank_entra_uma_vez_por_scanline_na_proporcao_do_horizontal_display_range
+m3,mutante,morreu,morreu,1.6,hblank_entra_uma_vez_por_scanline_na_proporcao_do_horizontal_display_range
+m4,mutante,morreu,morreu,1.6,hblank_entra_uma_vez_por_scanline_na_proporcao_do_horizontal_display_range
+m5,mutante,morreu,morreu,1.7,hblank_entra_uma_vez_por_scanline_na_proporcao_do_horizontal_display_range
+c1,controle,sobreviveu,sobreviveu,1.5,
+c2,controle,sobreviveu,sobreviveu,1.6,

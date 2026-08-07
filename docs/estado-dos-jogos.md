@@ -103,6 +103,14 @@ nos jogos que já funcionavam.
 **GPU**
 - Semi-transparência não era aplicada a primitiva **sem textura** (bit25 sozinho).
 
+**Barramento**
+- Acesso a região não mapeada caía na RAM mascarada por `0x1FFFFF` nos **seis** caminhos
+  (`write32/16/8`, `read32/16/8`). Um ponteiro lixo que no hardware não faz nada corrompia
+  RAM do kernel silenciosamente. Dois buracos extras junto: SIO1 (`0x1F801050-5F`) e fetch
+  de instrução além do fim da BIOS, que lia zeros da RAM e executava como NOP.
+  Achado colateral: o teste `desktop_boot.rs` **dependia** desse último bug — andava 1M
+  passos quando a BIOS só tem 131.072 instruções.
+
 ## Hipóteses já refutadas — não reabrir sem dado novo
 
 - **"O CD-ROM entrega dados errados/incompletos."** Refutado com sonda: a entrega ao jogo é
@@ -120,6 +128,17 @@ nos jogos que já funcionavam.
 - **"A tela branca do FF9 é um retângulo de fade semi-transparente virando opaco."**
   Refutado por inspeção da VRAM: não existe retângulo branco opaco, nem antes nem depois da
   correção de blending.
+- **"O DMA3 fica preso esperando o CD e nunca retoma."** Refutado por medição direta: em 600M
+  passos, nos 5 jogos travados, `try_execute_dma3` **nunca** terminou com o canal ainda
+  ocupado — zero ocorrências. Os jogos só armam o canal quando o setor já está no buffer.
+  (O canal 1/MDECout fica pendente no TR2 e no Silent Hill, mas ele já tem gancho de
+  retomada: fica pendente porque nada volta a alimentar o MDEC — sintoma, não causa.)
+- **"Escrita em endereço não mapeado corrompe a RAM e mata o Tomb Raider."** O bug era real e
+  foi corrigido (ver abaixo), mas **não é a causa**: medi que o TR não escreve em nenhum
+  endereço fora da RAM. O `0x80200080` que ele escreve é espelho legítimo dos 2 MB.
+- **"O custo de DMA do canal 3 está alto demais."** Rejeitado: a spec dá `24 clks/word` em
+  duas formas consistentes (`04-dma.md` L217-222) e é o que implementamos. Aqui o DuckStation
+  é que se afasta da spec — não trocamos citação clara por imitação.
 - **"É bug do próprio jogo"** — foi a conclusão anterior para estes 6, e estava **errada**.
   Foi derrubada ao rodá-los no DuckStation. Lição: prova interna consistente (dados batendo
   byte-a-byte, spec citada, teste passando) não substitui comparação com uma referência

@@ -96,10 +96,10 @@ rotulo: inverte ordem de force bit15 e write-protect (independentes, cosmetico)
 controle: K2
 rotulo: declara variavel local nao usada _cosmetic dentro de write_pixel (cosmetico)
 @@DE
-    fn write_pixel(&mut self, idx: usize, pixel: u16, semi_transparent: bool) {
+    fn write_pixel(&mut self, idx: usize, pixel: u16, blend: bool) {
         let stat = self.stat.get();
 @@PARA
-    fn write_pixel(&mut self, idx: usize, pixel: u16, semi_transparent: bool) {
+    fn write_pixel(&mut self, idx: usize, pixel: u16, blend: bool) {
         let _cosmetic = 0u32;
         let stat = self.stat.get();
 @@FIM

@@ -68,6 +68,12 @@ fn modulate_texel(texel: u16, color: u16) -> u16 {
     r | (g << 5) | (b << 10) | (texel & 0x8000)
 }
 
+/// § Semi-transparency (03-gpu.md L1596): so em primitiva TEXTURIZADA o bit15 do texel
+/// decide o blending; sem textura o bit25 do comando decide sozinho (L1516).
+fn blend_texturizado(semi_transparent: bool, texel: u16) -> bool {
+    semi_transparent && (texel & 0x8000) != 0
+}
+
 fn lerp_color(a: u16, b: u16, t: i32, t_max: i32) -> u16 {
     if t_max == 0 {
         return a;
@@ -1202,7 +1208,7 @@ impl Gpu {
         }
     }
 
-    fn write_pixel(&mut self, idx: usize, pixel: u16, semi_transparent: bool) {
+    fn write_pixel(&mut self, idx: usize, pixel: u16, blend: bool) {
         let stat = self.stat.get();
         if (stat & (1 << 12)) != 0 && (self.vram[idx] & 0x8000) != 0 {
             return;
@@ -1211,7 +1217,7 @@ impl Gpu {
         if (stat & (1 << 11)) != 0 {
             pixel |= 0x8000;
         }
-        if semi_transparent && (pixel & 0x8000) != 0 {
+        if blend {
             let back = self.vram[idx];
             let mode = (stat >> 5) & 3;
             let r_b = back & 0x1F;
@@ -1515,8 +1521,13 @@ impl Gpu {
                 } else {
                     pct
                 };
+                let blend = if textured {
+                    blend_texturizado(semi_transparent, pixel)
+                } else {
+                    semi_transparent
+                };
                 let idx = y as usize * 1024 + x as usize;
-                self.write_pixel(idx, pixel, semi_transparent);
+                self.write_pixel(idx, pixel, blend);
             }
         }
     }
@@ -1766,7 +1777,8 @@ impl Gpu {
                 if texel == 0 {
                     continue;
                 }
-                self.write_pixel(py as usize * 1024 + px as usize, texel, semi_transparent);
+                let blend = blend_texturizado(semi_transparent, texel);
+                self.write_pixel(py as usize * 1024 + px as usize, texel, blend);
             }
         }
     }

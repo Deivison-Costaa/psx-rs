@@ -7,12 +7,14 @@
 
 ## Última iteração concluída
 
-**0213 — Degrau 5 da escada de timing CPU/barramento (0213.1), branch `iter/0213-gte-stall`,
-PR não aberto.** GTE agora trava a CPU: MFC2/CFC2/SWC2 (leitura) esperam o comando GTE em
-voo terminar; MTC2/CTC2/LWC2 (escrita) não esperam — spec só fala em espera pra leitura
-(`07-gte.md` L112-114). Comando novo emitido cedo demais também espera, fórmula composta
-(`busy_until = total_cycles + 1 + extra_cycles_já_empilhado + custo`). Bateria 7/7+2/2 (mutante achou lacuna real: nenhum teste dependia de `extra_cycles` —
-corrigido). `gte_fuzz_hardware` (1100/1100) e invariante 17 iguais.
+**0214 — Degrau 6 da escada de timing CPU/barramento (0214.1), branch
+`iter/0214-scheduler-periodico`, PR não aberto.** Scheduler não perde mais evento periódico
+sob tick grande: `advance_to` devolve `(prazo, EventId)` em vez de só `EventId`; VBLANK/
+HBLANK/SPU_TICK reagendam a partir do prazo que venceu, não de `total_cycles` — um tick que
+cobre N períodos agora dispara N vezes via catch-up, não 1. Bug do próprio scheduler, não
+spec (R2). **O risco de regressão previsto pelo plano não se concretizou**: as 19 suítes de
+CD-ROM/áudio (152 testes) passaram sem alteração. Invariante 17 e `irq0_periodo_ntsc`
+iguais.
 
 ## Próxima tarefa
 
@@ -20,17 +22,11 @@ Escada motivada pelo Achado 0193.4 (CPU sem custo de acesso a memória/periféri
 degraus, plano completo (números da spec de cada degrau) em
 `~/.claude/plans/smooth-swimming-manatee.md`.
 
-**Degrau 6: scheduler não perde/atrasa evento periódico sob tick grande.** Bug do próprio
-scheduler, não spec de hardware (R2/`CLAUDE.md`). `Scheduler::advance_to`
-(`scheduler.rs:46-56`) descarta o prazo que venceu; `Bus::tick_timers` reagenda VBLANK/
-HBLANK/SPU_TICK a partir de `total_cycles` (`bus.rs:369-395`) em vez do prazo — reagendar do
-prazo, laço de catch-up disparando um evento por período coberto. **Maior risco**: ~25
-chamadas a `bus.tick_timers(N)` grandes em `cdrom_*.rs`/`audio_ring.rs` assumem "tick grande
-dispara o evento no máximo uma vez" — vão disparar múltiplas vezes; trocar por asserção de
-comportamento (IRQ subiu), não contagem fixa. Teste novo `bus_scheduler_periodico.rs`.
-Pré-requisito duro do Degrau 9 (DMA: 1 setor CD-ROM = 12288 ciclos perderia amostras de
-SPU/hblanks sem isso). Degrau 7 remede os 5 jogos (RE2/Tekken3 no mesmo lugar em 1-4) antes
-de decidir se DMA (8-9) é necessário.
+**Degrau 7 (não é degrau de código): remedir os 5 jogos travados (FF7/Tekken3/RE2/
+TombRaider/CTR) contra os degraus 1-6**, com `--sample-pcs`/`--watch-mem` (método da 0208).
+RE2/Tekken3 ainda no mesmo lugar contra 1-4 (0212); ainda não remedidos contra 5-6. Decidir
+se DMA (degraus 8-9, os mais arriscados) ainda é necessário ou se algo já destravou. Sem
+bateria de mutação — registrar achados novos em vez disso.
 
 PRs #218/#219/#220 seguem abertos. Lista legado `10.x` em segundo plano até a escada avançar.
 
@@ -65,7 +61,7 @@ escada de timing), 34 (acumulador de ciclos extras é estado de pipeline).
 
 ## Placar de testes
 
-Workspace: **1326** testes.
+Workspace: **1331** testes.
 - **NUNCA rodar `cargo test`/`nextest` nem a bateria de mutação junto com o oráculo**: a
   disputa de CPU faz o `Start-Process` ler stdout antes do flush e reportar `sem-saida`
   falso. Derrubou 16/21 numa medição da 0170; rodada limpa deu 21/21.
@@ -79,7 +75,9 @@ Workspace: **1326** testes.
   kernel terminam. O `rayman_evcb_descritores` deixou de fixar passo: dispara no primeiro
   instante em que os dois descritores estão habilitados.
 - **`mutantes.ps1` herda o último `teste:` visto (10.71)**: declare `teste:` em TODO
-  registro do manifesto, não só no cabeçalho. Custou uma rodada de 9/18 falsos na 0187.
+  registro do manifesto, não só no cabeçalho. Custou 9/18 falsos na 0187 e, na 0214, um
+  mutante de scheduler rodando contra o alvo errado **travou ~520s de CPU num laço infinito**
+  (mate o processo via `Get-Process`/`Stop-Process`, não só re-rode).
 - **Ele maiúsculo seguido de dígito é lido como citação de spec** pelo `spec_citations`
   (é a forma de citar linha). Nomear os ombros do controle assim em doc reprova; escreva em
   minúscula. Custou duas correções: `docs/como-rodar.md` e o doc da 0196.

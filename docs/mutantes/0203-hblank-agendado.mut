@@ -46,15 +46,11 @@ rotulo: HBLANK_ENTER reagenda a cada frame em vez de a cada scanline
 ocorrencias: 1
 teste: timers_hblank_agendado
 @@DE
-                    self.scheduler.schedule(
-                        ScheduleKey::new(self.total_cycles + cpu_per_sl),
-                        EventId(HBLANK_ENTER),
-                    );
+                    self.scheduler
+                        .schedule(ScheduleKey::new(prazo + cpu_per_sl), EventId(HBLANK_ENTER));
 @@PARA
-                    self.scheduler.schedule(
-                        ScheduleKey::new(self.total_cycles + frame),
-                        EventId(HBLANK_ENTER),
-                    );
+                    self.scheduler
+                        .schedule(ScheduleKey::new(prazo + frame), EventId(HBLANK_ENTER));
 @@FIM
 
 mutante: m5
@@ -62,15 +58,11 @@ rotulo: HBLANK_EXIT reagenda a cada frame em vez de a cada scanline
 ocorrencias: 1
 teste: timers_hblank_agendado
 @@DE
-                    self.scheduler.schedule(
-                        ScheduleKey::new(self.total_cycles + cpu_per_sl),
-                        EventId(HBLANK_EXIT),
-                    );
+                    self.scheduler
+                        .schedule(ScheduleKey::new(prazo + cpu_per_sl), EventId(HBLANK_EXIT));
 @@PARA
-                    self.scheduler.schedule(
-                        ScheduleKey::new(self.total_cycles + frame),
-                        EventId(HBLANK_EXIT),
-                    );
+                    self.scheduler
+                        .schedule(ScheduleKey::new(prazo + frame), EventId(HBLANK_EXIT));
 @@FIM
 
 controle: c1
@@ -92,31 +84,23 @@ teste: timers_hblank_agendado
 @@DE
                 HBLANK_ENTER => {
                     self.gpu.set_hblank_active(true);
-                    self.scheduler.schedule(
-                        ScheduleKey::new(self.total_cycles + cpu_per_sl),
-                        EventId(HBLANK_ENTER),
-                    );
+                    self.scheduler
+                        .schedule(ScheduleKey::new(prazo + cpu_per_sl), EventId(HBLANK_ENTER));
                 }
                 HBLANK_EXIT => {
                     self.gpu.set_hblank_active(false);
-                    self.scheduler.schedule(
-                        ScheduleKey::new(self.total_cycles + cpu_per_sl),
-                        EventId(HBLANK_EXIT),
-                    );
+                    self.scheduler
+                        .schedule(ScheduleKey::new(prazo + cpu_per_sl), EventId(HBLANK_EXIT));
                 }
 @@PARA
                 HBLANK_EXIT => {
                     self.gpu.set_hblank_active(false);
-                    self.scheduler.schedule(
-                        ScheduleKey::new(self.total_cycles + cpu_per_sl),
-                        EventId(HBLANK_EXIT),
-                    );
+                    self.scheduler
+                        .schedule(ScheduleKey::new(prazo + cpu_per_sl), EventId(HBLANK_EXIT));
                 }
                 HBLANK_ENTER => {
                     self.gpu.set_hblank_active(true);
-                    self.scheduler.schedule(
-                        ScheduleKey::new(self.total_cycles + cpu_per_sl),
-                        EventId(HBLANK_ENTER),
-                    );
+                    self.scheduler
+                        .schedule(ScheduleKey::new(prazo + cpu_per_sl), EventId(HBLANK_ENTER));
                 }
 @@FIM

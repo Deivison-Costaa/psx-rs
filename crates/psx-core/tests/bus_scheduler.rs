@@ -108,9 +108,12 @@ fn scheduler_eventos_ordem() {
 
     // B (ticks=5) deve vir antes de A (ticks=10)
     let ev = sched.advance_to(5);
-    assert!(ev == Some(CB_B), "primeiro evento deve ser B (ticks=5)");
+    assert!(ev == Some((5, CB_B)), "primeiro evento deve ser B, prazo 5");
     let ev = sched.advance_to(10);
-    assert!(ev == Some(CB_A), "segundo evento deve ser A (ticks=10)");
+    assert!(
+        ev == Some((10, CB_A)),
+        "segundo evento deve ser A, prazo 10"
+    );
 }
 
 #[test]
@@ -142,7 +145,7 @@ fn scheduler_cancela_todas_as_pendencias_de_um_id() {
         "nenhum evento de A pode vencer depois de cancelado"
     );
     assert!(
-        sched.advance_to(30) == Some(CB_B),
+        sched.advance_to(30) == Some((30, CB_B)),
         "o evento de B sobrevive ao cancelamento de A"
     );
 }
@@ -152,7 +155,21 @@ fn scheduler_evento_imediatamente() {
     let mut sched = Scheduler::new();
     sched.schedule(ScheduleKey::new(0), CB_A);
     let ev = sched.advance_to(0);
-    assert!(ev == Some(CB_A), "evento no tick 0 deve disparar");
+    assert!(ev == Some((0, CB_A)), "evento no tick 0 deve disparar");
+}
+
+#[test]
+fn scheduler_devolve_o_prazo_que_venceu_nao_o_instante_de_avanco() {
+    // e' exatamente esse prazo (nao `ticks`) que quem reagenda um evento periodico precisa
+    // usar como base -- senao um avanco grande demais salta o proximo agendamento pra
+    // frente e perde os periodos intermediarios (0214.1).
+    let mut sched = Scheduler::new();
+    sched.schedule(ScheduleKey::new(5), CB_A);
+    let ev = sched.advance_to(500);
+    assert!(
+        ev == Some((5, CB_A)),
+        "prazo devolvido tem que ser 5 (quando venceu), nao 500 (quando foi percebido)"
+    );
 }
 
 #[test]

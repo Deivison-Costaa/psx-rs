@@ -43,7 +43,11 @@ impl Scheduler {
         self.events.retain(|(_, e)| *e != id);
     }
 
-    pub fn advance_to(&mut self, ticks: u64) -> Option<EventId> {
+    // Devolve o PRAZO que venceu junto do evento, nao so o evento: quem reagenda um evento
+    // periodico precisa contar o proximo prazo a partir de QUANDO ELE VENCEU, nao de
+    // `ticks` (o instante em que o chamador percebeu) -- senao um tick grande que cobre
+    // varios periodos reagenda o unico evento restante la na frente e perde os demais.
+    pub fn advance_to(&mut self, ticks: u64) -> Option<(u64, EventId)> {
         self.current_tick = ticks;
         if self.events.is_empty() {
             return None;
@@ -52,7 +56,8 @@ impl Scheduler {
         if next_tick > self.current_tick {
             return None;
         }
-        Some(self.events.remove(0).1)
+        let (key, id) = self.events.remove(0);
+        Some((key.tick, id))
     }
 
     pub fn pending_events(&self) -> &[(ScheduleKey, EventId)] {

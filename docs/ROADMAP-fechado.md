@@ -298,3 +298,10 @@ da escada valer so para o que FALTA. Narrativa de cada item continua em
   custo em voo; MTC2/CTC2/LWC2 (escrita) nao esperam, a spec so documenta espera pra leitura
   (07-gte.md L112-114) (iter 0213) — Degrau 5 da escada de timing de CPU/barramento; reusa o
   modelo `busy_until` do Degrau 3, formula do comando novo soma `extra_cycles` ja empilhado
+
+## Fechado na iteração 0214
+- [x] 0214.1 Scheduler perdia/atrasava evento periodico (VBLANK/HBLANK/SPU_TICK) sob tick
+  grande: reagendava a partir de `total_cycles` no instante em que percebeu o disparo, nao
+  do prazo que venceu, entao um tick cobrindo N periodos so disparava 1 e o resto sumia; bug
+  do proprio scheduler, nao spec de hardware (iter 0214) — Degrau 6 da escada de timing de
+  CPU/barramento; pre-requisito do Degrau 9 (DMA cobrando ciclos de verdade)

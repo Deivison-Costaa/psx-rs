@@ -1,0 +1,86 @@
+# Manifesto de mutação da iteração 0214 — scheduler-periodico
+formato: 1
+iteracao: 0214
+item: 0214.1
+alvo: crates/psx-core/src/scheduler.rs
+teste: bus_scheduler
+
+mutante: m1
+rotulo: advance_to volta a devolver o instante notado em vez do prazo que venceu (o bug original)
+teste: bus_scheduler
+@@DE
+        let (key, id) = self.events.remove(0);
+        Some((key.tick, id))
+@@PARA
+        let (key, id) = self.events.remove(0);
+        Some((ticks, id))
+@@FIM
+
+mutante: m2
+rotulo: evento no prazo exato deixa de disparar (off-by-one na fronteira)
+teste: bus_scheduler
+@@DE
+        if next_tick > self.current_tick {
+@@PARA
+        if next_tick >= self.current_tick {
+@@FIM
+
+mutante: m3
+rotulo: remove o ultimo evento pendente em vez do primeiro (quebra a ordem por prazo)
+teste: bus_scheduler
+@@DE
+        let (key, id) = self.events.remove(0);
+@@PARA
+        let (key, id) = self.events.remove(self.events.len() - 1);
+@@FIM
+
+mutante: m4
+rotulo: SPU_TICK volta a reagendar a partir de total_cycles em vez do prazo que venceu
+arquivo: crates/psx-core/src/bus.rs
+teste: bus_scheduler_periodico
+@@DE
+                    self.scheduler.schedule(
+                        ScheduleKey::new(prazo + spu::CPU_CYCLES_PER_SAMPLE),
+                        EventId(SPU_TICK),
+                    );
+@@PARA
+                    self.scheduler.schedule(
+                        ScheduleKey::new(self.total_cycles + spu::CPU_CYCLES_PER_SAMPLE),
+                        EventId(SPU_TICK),
+                    );
+@@FIM
+
+mutante: m5
+rotulo: VBLANK_ENTER volta a reagendar a partir de total_cycles em vez do prazo que venceu
+arquivo: crates/psx-core/src/bus.rs
+teste: bus_scheduler_periodico
+@@DE
+                    self.scheduler
+                        .schedule(ScheduleKey::new(prazo + frame), EventId(VBLANK_ENTER));
+@@PARA
+                    self.scheduler
+                        .schedule(ScheduleKey::new(self.total_cycles + frame), EventId(VBLANK_ENTER));
+@@FIM
+
+controle: c1
+rotulo: comentario antes de advance_to
+teste: bus_scheduler
+@@DE
+    pub fn advance_to(&mut self, ticks: u64) -> Option<(u64, EventId)> {
+@@PARA
+    // usado por Bus::tick_timers pra reagendar eventos periodicos
+    pub fn advance_to(&mut self, ticks: u64) -> Option<(u64, EventId)> {
+@@FIM
+
+controle: c2
+rotulo: comentario antes do braco SPU_TICK do match em bus.rs
+arquivo: crates/psx-core/src/bus.rs
+teste: bus_scheduler_periodico
+@@DE
+                SPU_TICK => {
+                    let (cd_l, cd_r) = self.cdrom.take_audio_frame().unwrap_or((0, 0));
+@@PARA
+                SPU_TICK => {
+                    // uma amostra de audio por periodo
+                    let (cd_l, cd_r) = self.cdrom.take_audio_frame().unwrap_or((0, 0));
+@@FIM

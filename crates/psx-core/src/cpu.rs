@@ -14,7 +14,8 @@ pub struct Cpu {
     pending_exception: Option<u8>,
     exception_badvaddr: Option<u32>,
     pending_ce: Option<u8>,
-    load_extra_cycles: u32,
+    extra_cycles: u32,
+    hilo_busy_until: u64,
     written_gpr: Option<usize>,
     pub irq_handler_entries: u64,
 }
@@ -44,7 +45,8 @@ impl Cpu {
             pending_exception: None,
             exception_badvaddr: None,
             pending_ce: None,
-            load_extra_cycles: 0,
+            extra_cycles: 0,
+            hilo_busy_until: 0,
             written_gpr: None,
             irq_handler_entries: 0,
         }
@@ -106,7 +108,7 @@ impl Cpu {
         self.branch_target = None;
         self.delay_slot_pending = false;
         self.branch_taken = false;
-        self.load_extra_cycles = 0;
+        self.extra_cycles = 0;
         if let Some((reg, val)) = self.load_delay.take() {
             self.set_reg(reg, val);
         }
@@ -216,7 +218,7 @@ impl Cpu {
                 self.load_delay = Some((reg, val));
             }
         }
-        bus.tick_timers(1 + std::mem::take(&mut self.load_extra_cycles));
+        bus.tick_timers(1 + std::mem::take(&mut self.extra_cycles));
     }
 
     fn execute(&mut self, instr: u32, bus: &mut Bus) -> Option<(usize, u32)> {
@@ -224,11 +226,11 @@ impl Cpu {
         if (0x20..=0x26).contains(&primary) || primary == 0x32 {
             let rs = ((instr >> 21) & 0x1F) as usize;
             let addr = self.reg(rs).wrapping_add(Self::sign_extend_imm(instr));
-            self.load_extra_cycles = Bus::load_cycles(addr) - 1;
+            self.extra_cycles = Bus::load_cycles(addr) - 1;
         }
         match primary {
             0x00 => {
-                self.special(instr);
+                self.special(instr, bus);
                 None
             }
             0x01 => {
@@ -340,7 +342,7 @@ impl Cpu {
         }
     }
 
-    fn special(&mut self, instr: u32) {
+    fn special(&mut self, instr: u32, bus: &Bus) {
         let secondary = instr & 0x3F;
         let rs = ((instr >> 21) & 0x1F) as usize;
         let rt = ((instr >> 16) & 0x1F) as usize;
@@ -412,16 +414,16 @@ impl Cpu {
             0x09 => {
                 self.jalr(instr);
             }
-            0x10 => self.mfhi(instr),
+            0x10 => self.mfhi(instr, bus),
             0x11 => self.mthi(instr),
-            0x12 => self.mflo(instr),
+            0x12 => self.mflo(instr, bus),
             0x13 => self.mtlo(instr),
             0x0C => self.raise_exception(0x08, None),
             0x0D => self.raise_exception(0x09, None),
-            0x18 => self.mult(instr),
-            0x19 => self.multu(instr),
-            0x1A => self.div(instr),
-            0x1B => self.divu(instr),
+            0x18 => self.mult(instr, bus),
+            0x19 => self.multu(instr, bus),
+            0x1A => self.div(instr, bus),
+            0x1B => self.divu(instr, bus),
             0x20 => {
                 let a = self.reg(rs) as i32;
                 let b = self.reg(rt) as i32;
@@ -476,9 +478,19 @@ impl Cpu {
         self.branch_target = Some(target);
     }
 
-    fn mfhi(&mut self, instr: u32) {
+    // § MULT/DIV timing (02-cpu.md L420-436): iniciar custa 1 ciclo, ja cobrado pelo `1 +`
+    // fixo de `tick_timers`. Ler HI/LO (mfhi/mflo) antes do calculo terminar trava a CPU
+    // pelo resto do custo -- por isso `mfhi`/`mflo` recebem `bus` e `mult`/`multu`/`div`/
+    // `divu` tambem, pra marcar ate quando HI/LO ficam ocupados.
+    fn hilo_stall(&mut self, bus: &Bus) {
+        let atraso = self.hilo_busy_until.saturating_sub(bus.total_cycles());
+        self.extra_cycles += atraso as u32;
+    }
+
+    fn mfhi(&mut self, instr: u32, bus: &Bus) {
         let rd = ((instr >> 11) & 0x1F) as usize;
         self.set_reg(rd, self.hi);
+        self.hilo_stall(bus);
     }
 
     fn mthi(&mut self, instr: u32) {
@@ -486,9 +498,10 @@ impl Cpu {
         self.hi = self.reg(rs);
     }
 
-    fn mflo(&mut self, instr: u32) {
+    fn mflo(&mut self, instr: u32, bus: &Bus) {
         let rd = ((instr >> 11) & 0x1F) as usize;
         self.set_reg(rd, self.lo);
+        self.hilo_stall(bus);
     }
 
     fn mtlo(&mut self, instr: u32) {
@@ -496,25 +509,50 @@ impl Cpu {
         self.lo = self.reg(rs);
     }
 
-    fn mult(&mut self, instr: u32) {
+    // Faixas de `rs` com sinal (02-cpu.md L428-430): Fast tambem cobre o lado negativo
+    // FFFFF800h..FFFFFFFFh. O teto impresso da faixa Med negativa (FFFFF801h) sobrepoe 2
+    // valores com o inicio da Fast -- resolvido a favor da Fast (mais apertada), entao o
+    // teto usado aqui e FFFFF7FFh.
+    fn mult_cost(rs: u32) -> u32 {
+        match rs {
+            0x0000_0000..=0x0000_07FF | 0xFFFF_F800..=0xFFFF_FFFF => 6,
+            0x0000_0800..=0x000F_FFFF | 0xFFF0_0000..=0xFFFF_F7FF => 9,
+            _ => 13,
+        }
+    }
+
+    // Faixas de `rs` sem sinal (02-cpu.md L424-426).
+    fn multu_cost(rs: u32) -> u32 {
+        match rs {
+            0x0000_0000..=0x0000_07FF => 6,
+            0x0000_0800..=0x000F_FFFF => 9,
+            _ => 13,
+        }
+    }
+
+    fn mult(&mut self, instr: u32, bus: &Bus) {
         let rs = ((instr >> 21) & 0x1F) as usize;
         let rt = ((instr >> 16) & 0x1F) as usize;
-        let a = self.reg(rs) as i32 as i64;
+        let rs_val = self.reg(rs);
+        let a = rs_val as i32 as i64;
         let b = self.reg(rt) as i32 as i64;
         let prod = a.wrapping_mul(b);
         self.lo = prod as u32;
         self.hi = (prod >> 32) as u32;
+        self.hilo_busy_until = bus.total_cycles() + 1 + Self::mult_cost(rs_val) as u64;
     }
 
-    fn multu(&mut self, instr: u32) {
+    fn multu(&mut self, instr: u32, bus: &Bus) {
         let rs = ((instr >> 21) & 0x1F) as usize;
         let rt = ((instr >> 16) & 0x1F) as usize;
-        let prod = (self.reg(rs) as u64).wrapping_mul(self.reg(rt) as u64);
+        let rs_val = self.reg(rs);
+        let prod = (rs_val as u64).wrapping_mul(self.reg(rt) as u64);
         self.lo = prod as u32;
         self.hi = (prod >> 32) as u32;
+        self.hilo_busy_until = bus.total_cycles() + 1 + Self::multu_cost(rs_val) as u64;
     }
 
-    fn div(&mut self, instr: u32) {
+    fn div(&mut self, instr: u32, bus: &Bus) {
         let rs = ((instr >> 21) & 0x1F) as usize;
         let rt = ((instr >> 16) & 0x1F) as usize;
         let rs_val = self.reg(rs) as i32;
@@ -529,9 +567,11 @@ impl Cpu {
             self.lo = (rs_val / rt_val) as u32;
             self.hi = (rs_val % rt_val) as u32;
         }
+        // 02-cpu.md L432: divu/div sao fixos em 36 ciclos, "no matter of rs and rt values".
+        self.hilo_busy_until = bus.total_cycles() + 1 + 36;
     }
 
-    fn divu(&mut self, instr: u32) {
+    fn divu(&mut self, instr: u32, bus: &Bus) {
         let rs = ((instr >> 21) & 0x1F) as usize;
         let rt = ((instr >> 16) & 0x1F) as usize;
         let rs_val = self.reg(rs);
@@ -546,6 +586,7 @@ impl Cpu {
                 self.hi = rs_val;
             }
         }
+        self.hilo_busy_until = bus.total_cycles() + 1 + 36;
     }
 
     fn branch_taken(&mut self, offset: u32) {

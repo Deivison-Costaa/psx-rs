@@ -436,6 +436,18 @@ impl Cdrom {
                 };
                 self.second_cycles.set(timing);
             }
+            0x0D => {
+                // § Setfilter (06-cdrom.md L676-683): 2 parametros (file, channel), so
+                // muda o filtro de canal XA-ADPCM — precisa consumir os params da fila
+                // como qualquer comando suportado, senao eles vazam pro proximo comando
+                // (a rota generica de baixo nao le nem limpa param_buf; Setfilter(file,
+                // channel) sobrava e virava prefixo do Setloc seguinte, corrompendo
+                // mm/ss/ff dele).
+                self.param_clear();
+                self.result_push(self.stat_byte());
+                self.intsts.set(3);
+                self.busy.set(false);
+            }
             0x0A => {
                 if self.int2_pending.get() && self.pending_second.get() == 1 {
                     self.busy.set(false);

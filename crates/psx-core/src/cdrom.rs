@@ -771,6 +771,27 @@ impl Cdrom {
                         .set(self.second_response_cycles_for(0x15));
                 }
             }
+            // § SeekP (06-cdrom.md L811-820): 16h --> INT3(stat) --> INT2(stat), busca em
+            // modo audio (Subchannel Q) e vale tanto em disco de audio quanto de dados;
+            // apos a busca o stat.bit7 fica 0 ate um novo Play.
+            0x16 => {
+                if !self.disc_inserted.get() {
+                    self.result_push(self.stat_byte() | 0x01);
+                    self.result_push(0x80);
+                    self.intsts.set(5);
+                    self.busy.set(false);
+                } else {
+                    self.motor_on.set(true);
+                    self.seeking.set(true);
+                    self.sector_ready.set(false);
+                    self.result_push(self.stat_byte());
+                    self.intsts.set(3);
+                    self.int2_pending.set(true);
+                    self.pending_second.set(7);
+                    self.second_cycles
+                        .set(self.second_response_cycles_for(0x16));
+                }
+            }
             0x19 => {
                 self.intsts.set(3);
                 let sub = self.param_pop();
@@ -1085,6 +1106,18 @@ impl Cdrom {
             4 => {
                 self.busy.set(false);
                 self.reading.set(false);
+                self.result_clear();
+                self.result_push(self.stat_byte());
+                self.intsts.set(2);
+            }
+            // Conclusao do SeekP: igual a do SeekL, mais o bit7 zerado (06-cdrom.md L819-820).
+            7 => {
+                self.busy.set(false);
+                self.seeking.set(false);
+                self.playing.set(false);
+                self.read_pos_mm.set(self.seek_min.get());
+                self.read_pos_ss.set(self.seek_sec.get());
+                self.read_pos_ff.set(self.seek_sect.get());
                 self.result_clear();
                 self.result_push(self.stat_byte());
                 self.intsts.set(2);

@@ -118,6 +118,22 @@ fn comando_gte_espera_o_comando_anterior() {
 }
 
 #[test]
+fn prazo_do_segundo_comando_conta_do_instante_em_que_ele_realmente_comecou() {
+    // RTPS (15) trava NCLIP (segundo comando) por 15 -- NCLIP so comeca de verdade
+    // depois dessa espera, entao seu proprio prazo tem que contar 1+15(espera)+8(custo)
+    // a partir do total_cycles ANTES da espera, nao so 1+8. Um terceiro comando/leitura
+    // prova a diferenca: se o prazo do NCLIP tivesse esquecido a espera ja empilhada,
+    // ele teria terminado cedo demais e o mfc2 nao esperaria nada.
+    assert_eq!(
+        total_de(&[gte_cmd(RTPS), gte_cmd(NCLIP), mfc2(1, 0)]),
+        26,
+        "rtps custa 1 (total=1), nclip espera 15 do rtps (extra_cycles=15, custa 16, \
+         total=17): seu prazo real e' total-antes-da-espera(1) + 1 + 15 + custo(8) = 25, \
+         nao 1+1+8=10. mfc2 entao espera 25-17=8: 17+1+8=26"
+    );
+}
+
+#[test]
 fn swc2_espera_o_comando() {
     assert_eq!(
         total_de(&[gte_cmd(RTPS), swc2(1, 8, 0)]),

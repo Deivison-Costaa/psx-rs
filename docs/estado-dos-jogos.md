@@ -26,11 +26,11 @@ Depois `md5sum pref-*.vram`. Hash que para de mudar = travado.
 Hash mudando ainda pode ser ruído de textura na VRAM. Confirme com
 `--vram-to-png entrada.vram saida.png` antes de comemorar.
 
-## Funcionando (10 de 15 títulos)
+## Funcionando (13 de 15 títulos)
 
-Tekken 3, Final Fantasy VII, Final Fantasy VIII, **Resident Evil 2**, Resident Evil 3,
+Tekken 3, Final Fantasy VII, Final Fantasy VIII, Resident Evil 2, Resident Evil 3,
 Metal Gear Solid, Crash Team Racing, Crash Bandicoot, Gran Turismo 2 (Arcade **e**
-Simulation).
+Simulation), **Tomb Raider I**, **Tomb Raider III**, **Silent Hill**.
 
 CTR, GT2 e Resident Evil 2 foram destravados nesta sessão. O RE2 chega na tela de título
 completa (logo, menu LOAD GAME / NEW GAME / OPTION) — antes ficava 97% do tempo num
@@ -44,14 +44,11 @@ secundários (FF7 2/3, FF8 2/3/4, MGS 2) só passaram por boot sanity check de 3
 ninguém chegou a testar troca de disco. O feedback mais útil é jogar de verdade e mais fundo
 do que a medição automática vai.
 
-## Ainda travando (5)
+## Ainda travando (2)
 
 | Jogo | Trava em | Tela no congelamento |
 |---|---|---|
-| Tomb Raider I | ~200M passos | **preta** — trava antes de desenhar |
-| Tomb Raider II | ~275M | congelada |
-| Tomb Raider III | ~275M | **preta** |
-| Silent Hill | ~500M | título "SILENT HILL" desenhado e parado |
+| Tomb Raider II | ~275M | mudou de comportamento com o fix do DICR, mas não confirmado |
 | Final Fantasy IX | ~400M | **branca**, logo já carregado na VRAM (travou num fade) |
 
 Os sintomas são diferentes entre si — **não presuma causa única**. TR1/TR3 travam sem
@@ -102,6 +99,17 @@ nos jogos que já funcionavam.
 
 **GPU**
 - Semi-transparência não era aplicada a primitiva **sem textura** (bit25 sozinho).
+
+**DMA / barramento**
+- **Escrita de byte nos offsets 1-3 dos registradores de DMA era descartada, e a leitura
+  devolvia zero fixo.** O jogo liga/desliga a máscara do canal no DICR por read-modify-write
+  de 1 byte em `1F8010F6h` (bits 16-23 = máscara por canal + master enable), para que a
+  interrupção de fim de DMA exista **só no setor que carrega o último chunk do quadro**.
+  Sem isso o IRQ subia a cada setor, o quadro era marcado pronto com 1/9 dos dados, e o
+  decoder de FMV consumia 18.144 bytes de onde só havia 2.016 — saindo pela RAM até zerar o
+  vetor de exceção. **Destravou Tomb Raider I e III e Silent Hill**, e fez Tekken 3 e RE2
+  avançarem (o Tekken agora sai da tela de título e entra no FMV de atração).
+  Não era timing: era decodificação de endereço de I/O.
 
 **Barramento**
 - Acesso a região não mapeada caía na RAM mascarada por `0x1FFFFF` nos **seis** caminhos
@@ -155,6 +163,13 @@ depois           CPU presa oscilando em 0x80000080-90 pra sempre
 `0x80060E30` é o loop do decoder de vídeo **do próprio jogo**: o ponteiro de saída dele
 desce até a RAM baixa e apaga o vetor de exceção. Como o dado de entrada está provadamente
 correto, o que resta é timing.
+
+## Defeito conhecido e aberto: FMV sai ruidosa
+
+Agora que as FMVs finalmente decodificam de ponta a ponta, apareceu um defeito que estava
+escondido atrás dos travamentos: **a imagem sai granulada**. O logo da Eidos e o título do
+Silent Hill são legíveis, mas sobre fundo ruidoso. É MDEC ou o decodificador de bitstream —
+ninguém tinha visto antes porque nenhuma FMV chegava a decodificar.
 
 ## Corrigido depois: tempo de seek (destravou o RE2)
 

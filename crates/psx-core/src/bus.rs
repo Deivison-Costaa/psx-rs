@@ -148,6 +148,12 @@ pub struct Bus {
     pub(crate) tty_buffer: Vec<u8>,
     pub(crate) scheduler: Scheduler,
     pub(crate) total_cycles: u64,
+    // Custo de transferencia DMA (Dma::transfer_cost, Degrau 8) acumulado durante a
+    // execucao sincrona do canal (dentro do write32 que dispara o DMA) e drenado no
+    // proximo tick_timers -- mesmo padrao de Cpu::extra_cycles pros stalls de load/mult/
+    // GTE. Sempre 0 entre instrucoes completas da CPU, entao fora do snapshot (Bus nao e
+    // serializado como struct inteira; ver snapshot.rs).
+    dma_extra_cycles: u32,
 }
 
 impl Bus {
@@ -225,6 +231,7 @@ impl Bus {
             tty_buffer: Vec::new(),
             scheduler,
             total_cycles: 0,
+            dma_extra_cycles: 0,
         }
     }
 
@@ -315,6 +322,13 @@ impl Bus {
         }
     }
 
+    // Degrau 9 da escada de timing de CPU/barramento (achado 0193.4): cada `try_execute_*`
+    // devolve as palavras que passaram pelo barramento nesta chamada; aqui viram ciclos
+    // (Dma::transfer_cost, Degrau 8) empilhados ate o proximo tick_timers.
+    fn charge_dma(&mut self, channel: usize, words: usize) {
+        self.dma_extra_cycles += Dma::transfer_cost(channel, words as u32) as u32;
+    }
+
     fn service_cdrom_irq(&mut self) {
         if self.cdrom.take_irq2_edge() {
             let ints = self.cdrom.intsts();
@@ -353,6 +367,7 @@ impl Bus {
     }
 
     pub fn tick_timers(&mut self, cycles: u32) {
+        let cycles = cycles + std::mem::take(&mut self.dma_extra_cycles);
         self.total_cycles += cycles as u64;
 
         self.timers.update_gpu_timing(
@@ -543,14 +558,33 @@ impl Bus {
                         self.dma.write_chcr(ch, val);
                         match ch {
                             0 => {
-                                self.dma.try_execute_dma0(&self.ram.data, &mut self.mdec);
-                                self.dma.try_execute_dma1(&mut self.ram.data, &self.mdec);
+                                let w0 = self.dma.try_execute_dma0(&self.ram.data, &mut self.mdec);
+                                self.charge_dma(0, w0);
+                                let w1 = self.dma.try_execute_dma1(&mut self.ram.data, &self.mdec);
+                                self.charge_dma(1, w1);
                             }
-                            1 => self.dma.try_execute_dma1(&mut self.ram.data, &self.mdec),
-                            2 => self.dma.try_execute_dma2(&mut self.ram.data, &mut self.gpu),
-                            3 => self.dma.try_execute_dma3(&mut self.ram.data, &self.cdrom),
-                            4 => self.dma.try_execute_dma4(&mut self.ram.data, &mut self.spu),
-                            6 => self.dma.try_execute_otc(&mut self.ram.data),
+                            1 => {
+                                let w = self.dma.try_execute_dma1(&mut self.ram.data, &self.mdec);
+                                self.charge_dma(1, w);
+                            }
+                            2 => {
+                                let w =
+                                    self.dma.try_execute_dma2(&mut self.ram.data, &mut self.gpu);
+                                self.charge_dma(2, w);
+                            }
+                            3 => {
+                                let w = self.dma.try_execute_dma3(&mut self.ram.data, &self.cdrom);
+                                self.charge_dma(3, w);
+                            }
+                            4 => {
+                                let w =
+                                    self.dma.try_execute_dma4(&mut self.ram.data, &mut self.spu);
+                                self.charge_dma(4, w);
+                            }
+                            6 => {
+                                let w = self.dma.try_execute_otc(&mut self.ram.data);
+                                self.charge_dma(6, w);
+                            }
                             _ => {}
                         }
                     }
@@ -561,12 +595,18 @@ impl Bus {
             }
             0x1F80_10F0 => {
                 self.dma.write_dpcr(val);
-                self.dma.try_execute_dma0(&self.ram.data, &mut self.mdec);
-                self.dma.try_execute_dma1(&mut self.ram.data, &self.mdec);
-                self.dma.try_execute_dma2(&mut self.ram.data, &mut self.gpu);
-                self.dma.try_execute_dma3(&mut self.ram.data, &self.cdrom);
-                self.dma.try_execute_dma4(&mut self.ram.data, &mut self.spu);
-                self.dma.try_execute_otc(&mut self.ram.data);
+                let w0 = self.dma.try_execute_dma0(&self.ram.data, &mut self.mdec);
+                self.charge_dma(0, w0);
+                let w1 = self.dma.try_execute_dma1(&mut self.ram.data, &self.mdec);
+                self.charge_dma(1, w1);
+                let w2 = self.dma.try_execute_dma2(&mut self.ram.data, &mut self.gpu);
+                self.charge_dma(2, w2);
+                let w3 = self.dma.try_execute_dma3(&mut self.ram.data, &self.cdrom);
+                self.charge_dma(3, w3);
+                let w4 = self.dma.try_execute_dma4(&mut self.ram.data, &mut self.spu);
+                self.charge_dma(4, w4);
+                let w6 = self.dma.try_execute_otc(&mut self.ram.data);
+                self.charge_dma(6, w6);
                 self.service_dma_irq();
                 true
             }
@@ -591,7 +631,8 @@ impl Bus {
                 self.mdec.write32(phys - 0x1F80_1820, val);
                 // Um DMA1 ja armado espera saida do MDEC: alimentar o MDEC pela CPU tem de
                 // retomar o canal, como o DREQ faria no console.
-                self.dma.try_execute_dma1(&mut self.ram.data, &self.mdec);
+                let w = self.dma.try_execute_dma1(&mut self.ram.data, &self.mdec);
+                self.charge_dma(1, w);
                 self.service_dma_irq();
                 true
             }

@@ -104,12 +104,15 @@ impl Dma {
         borda
     }
 
-    pub fn try_execute_otc(&mut self, ram: &mut [u8]) {
+    // As funcoes `try_execute_*`/`execute_*` devolvem o numero de palavras REALMENTE
+    // movidas pelo barramento nesta chamada (0 se o canal nem chegou a rodar) -- e o que
+    // `Dma::transfer_cost` (Degrau 8) precisa pra cobrar ciclos de verdade (Degrau 9).
+    pub fn try_execute_otc(&mut self, ram: &mut [u8]) -> usize {
         if self.dpcr & (1 << 27) == 0 {
-            return;
+            return 0;
         }
         if (self.chcr[6] & ((1 << 24) | (1 << 28))) != ((1 << 24) | (1 << 28)) {
-            return;
+            return 0;
         }
         let madr = self.madr[6] & 0x00FF_FFFC;
         let bcr = self.bcr[6] & 0xFFFF;
@@ -129,17 +132,18 @@ impl Dma {
         }
         self.chcr[6] &= !((1 << 24) | (1 << 28));
         self.signal_completion(6);
+        count
     }
 
-    pub fn try_execute_dma3(&mut self, ram: &mut [u8], cdrom: &Cdrom) {
+    pub fn try_execute_dma3(&mut self, ram: &mut [u8], cdrom: &Cdrom) -> usize {
         if self.dpcr & (1 << 15) == 0 {
-            return;
+            return 0;
         }
         if (self.chcr[3] & ((1 << 24) | (1 << 28))) != ((1 << 24) | (1 << 28)) {
-            return;
+            return 0;
         }
         if !cdrom.drqsts_active() {
-            return;
+            return 0;
         }
         let bcr = self.bcr[3];
         let word_count = if (bcr & 0xFFFF) == 0 {
@@ -164,25 +168,26 @@ impl Dma {
         self.madr[3] = (self.madr[3] & !0x00FF_FFFF) | (addr & 0x00FF_FFFF);
         self.chcr[3] &= !((1 << 24) | (1 << 28));
         self.signal_completion(3);
+        word_count
     }
 
-    pub fn try_execute_dma2(&mut self, ram: &mut [u8], gpu: &mut Gpu) {
+    pub fn try_execute_dma2(&mut self, ram: &mut [u8], gpu: &mut Gpu) -> usize {
         if self.dpcr & (1 << 11) == 0 {
-            return;
+            return 0;
         }
         if self.chcr[2] & (1 << 24) == 0 {
-            return;
+            return 0;
         }
         let sync_mode = (self.chcr[2] >> 9) & 3;
         match sync_mode {
             0 => self.execute_burst(ram, gpu),
             1 => self.execute_block(ram, gpu),
             2 => self.execute_linked_list(ram, gpu),
-            _ => {}
+            _ => 0,
         }
     }
 
-    fn execute_burst(&mut self, ram: &mut [u8], gpu: &mut Gpu) {
+    fn execute_burst(&mut self, ram: &mut [u8], gpu: &mut Gpu) -> usize {
         let bc = self.bcr[2] & 0xFFFF;
         let count = if bc == 0 { 0x1_0000 } else { bc as usize };
         let step: i32 = if self.chcr[2] & 2 != 0 { -4 } else { 4 };
@@ -220,9 +225,10 @@ impl Dma {
         }
         self.chcr[2] &= !(1 << 24);
         self.signal_completion(2);
+        count
     }
 
-    fn execute_block(&mut self, ram: &mut [u8], gpu: &mut Gpu) {
+    fn execute_block(&mut self, ram: &mut [u8], gpu: &mut Gpu) -> usize {
         let bcr = self.bcr[2];
         let bs = if (bcr & 0xFFFF) == 0 {
             0x10000
@@ -265,6 +271,7 @@ impl Dma {
         self.madr[2] = (self.madr[2] & !0x00FF_FFFF) | (addr & 0x00FF_FFFF);
         self.chcr[2] &= !(1 << 24);
         self.signal_completion(2);
+        bs * ba
     }
 
     // O teto de nos NAO e escolha de projeto: cada no comeca num endereco alinhado
@@ -273,11 +280,15 @@ impl Dma {
     // portanto tem ciclo. Ciclo nunca completa em hardware (dma/chain-looping).
     // Um teto menor que esse corta cadeia legitima: a do Crash tem >4096 nos e o
     // jogo respondia `GPU timeout` em laco (achado 0185.2).
-    fn execute_linked_list(&mut self, ram: &mut [u8], gpu: &mut Gpu) {
+    fn execute_linked_list(&mut self, ram: &mut [u8], gpu: &mut Gpu) -> usize {
         let mut addr = self.madr[2] & 0x00FF_FFFC;
         let mut node_count = 0;
         let mut alcancou_fim = false;
         let teto_de_nos = ram.len() / 4;
+        // Lista encadeada conta as palavras de cabecalho como transferidas, alem dos dados
+        // (inferencia declarada do Degrau 8: a spec da tabela de custo por canal, mas nao
+        // fala explicitamente do overhead do cabecalho no modo de lista).
+        let mut palavras_transferidas = 0usize;
 
         loop {
             node_count += 1;
@@ -297,6 +308,7 @@ impl Dma {
             ]);
             let next_addr = header & 0x00FF_FFFF;
             let word_count = (header >> 24) as usize;
+            palavras_transferidas += 1 + word_count;
 
             let mut data_addr = addr.wrapping_add(4);
             for _ in 0..word_count {
@@ -325,6 +337,7 @@ impl Dma {
             self.chcr[2] &= !(1 << 24);
             self.signal_completion(2);
         }
+        palavras_transferidas
     }
 
     // § D#_BCR (docs/reference/04-dma.md L36-58): formato depende do SyncMode
@@ -345,16 +358,17 @@ impl Dma {
     }
 
     /// DMA0 (MDECin, RAM->MDEC). § DMA (docs/reference/09-mdec.md L114-124).
-    pub fn try_execute_dma0(&mut self, ram: &[u8], mdec: &mut Mdec) {
+    pub fn try_execute_dma0(&mut self, ram: &[u8], mdec: &mut Mdec) -> usize {
         if self.dpcr & (1 << 3) == 0 {
-            return;
+            return 0;
         }
         if self.chcr[0] & (1 << 24) == 0 {
-            return;
+            return 0;
         }
+        let words = self.total_words(0);
         let step: i32 = if self.chcr[0] & 2 != 0 { -4 } else { 4 };
         let mut addr = self.madr[0] & 0x00FF_FFFC;
-        for _ in 0..self.total_words(0) {
+        for _ in 0..words {
             let offset = (addr & 0x1F_FFFF) as usize;
             if offset + 4 <= ram.len() {
                 let word = u32::from_le_bytes([
@@ -374,6 +388,7 @@ impl Dma {
         self.madr[0] = (self.madr[0] & !0x00FF_FFFF) | (addr & 0x00FF_FFFF);
         self.chcr[0] &= !(1 << 24);
         self.signal_completion(0);
+        words
     }
 
     /// DMA1 (MDECout, MDEC->RAM). Transfere no maximo o que o MDEC realmente
@@ -383,12 +398,12 @@ impl Dma {
     /// palavra — o canal fica "em andamento" (bit24 mantido) em vez de
     /// completar, igual a uma DMA real que nunca recebe mais DREQ
     /// (docs/reference/09-mdec.md L108-112).
-    pub fn try_execute_dma1(&mut self, ram: &mut [u8], mdec: &Mdec) {
+    pub fn try_execute_dma1(&mut self, ram: &mut [u8], mdec: &Mdec) -> usize {
         if self.dpcr & (1 << 7) == 0 {
-            return;
+            return 0;
         }
         if self.chcr[1] & (1 << 24) == 0 {
-            return;
+            return 0;
         }
         let requested = self.total_words(1);
         // Em cor o DMA1 costura quatro blocos 8x8 num macrobloco 16x16: so pode levar
@@ -418,20 +433,22 @@ impl Dma {
             self.chcr[1] &= !(1 << 24);
             self.signal_completion(1);
         }
+        available
     }
 
     /// DMA4 (SPU). § SPU RAM DMA-Write/-Read (docs/reference/08-spu.md L755-773).
-    pub fn try_execute_dma4(&mut self, ram: &mut [u8], spu: &mut Spu) {
+    pub fn try_execute_dma4(&mut self, ram: &mut [u8], spu: &mut Spu) -> usize {
         if self.dpcr & (1 << 19) == 0 {
-            return;
+            return 0;
         }
         if self.chcr[4] & (1 << 24) == 0 {
-            return;
+            return 0;
         }
+        let words = self.total_words(4);
         let from_ram = self.chcr[4] & 1 != 0;
         let step: i32 = if self.chcr[4] & 2 != 0 { -4 } else { 4 };
         let mut addr = self.madr[4] & 0x00FF_FFFC;
-        for _ in 0..self.total_words(4) {
+        for _ in 0..words {
             let offset = (addr & 0x1F_FFFF) as usize;
             if from_ram {
                 if offset + 4 <= ram.len() {
@@ -458,6 +475,7 @@ impl Dma {
         self.madr[4] = (self.madr[4] & !0x00FF_FFFF) | (addr & 0x00FF_FFFF);
         self.chcr[4] &= !(1 << 24);
         self.signal_completion(4);
+        words
     }
 }
 

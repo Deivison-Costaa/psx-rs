@@ -235,12 +235,39 @@ impl Cdrom {
         self.bank.set(val & 0x3);
     }
 
+    // § Command Summary (06-cdrom.md L546-601): comandos que respondem so' com INT3
+    // (sem INT2 de completion) e nao tocam motor/leitura — Nop, Getparam, GetlocL,
+    // GetlocP, GetTN, GetTD. GetlocL explicitamente "pode ser mandado durante Read
+    // ativo" (L1054-1056) sem perturba-lo. Um comando desse tipo, ACEITO (latched)
+    // enquanto ReadN/Play continua entregando setores, nao pode contar como "a CPU
+    // aceitou um comando novo, descarte a 2a resposta obsoleta".
+    fn e_comando_passivo(cmd: u8) -> bool {
+        matches!(cmd, 0x01 | 0x0F | 0x10 | 0x11 | 0x13 | 0x14)
+    }
+
+    // § "cancela resposta armada ao aceitar comando" (commit 7b57967) descarta um 2o
+    // response OBSOLETO de um comando anterior ja concluido. Mas um comando passivo
+    // (Nop, GetlocL, ...) ACEITO ou DESPACHADO enquanto ReadN/Play continua entregando
+    // setores (reading/playing) nao pode contar como "a CPU aceitou um comando novo,
+    // descarte a 2a resposta obsoleta" — senao a entrega ainda a caminho e cancelada e
+    // a leitura nunca completa (GT2 fazia ReadN;ack;Nop e ficava preso num retry
+    // infinito de Setloc/Setmode/ReadN/GetlocL sem nunca ver o setor chegar). Usado
+    // tanto no latch (write8) quanto no dispatch de fato (deliver_first) — sao dois
+    // pontos independentes que hoje descartam CDROM_SECOND.
+    fn preserva_entrega_em_voo(&self, cmd: u8) -> bool {
+        (self.reading.get() || self.playing.get()) && Self::e_comando_passivo(cmd)
+    }
+
     fn latch_command(&self, cmd: u8) {
         self.pending_cmd.set(Some(cmd));
         self.pending_params.set(self.param_buf.get());
         self.pending_param_count.set(self.param_count.get());
         self.issued_cmd.set(Some(cmd));
-        if self.intsts.get() == 0 && !self.int2_pending.get() && !self.int1_pending.get() {
+        if self.intsts.get() == 0
+            && !self.int2_pending.get()
+            && !self.int1_pending.get()
+            && !self.preserva_entrega_em_voo(cmd)
+        {
             self.second_dirty.set(true);
         }
     }
@@ -348,10 +375,13 @@ impl Cdrom {
             Some(cmd) => cmd,
             None => return false,
         };
+        let preserva = self.preserva_entrega_em_voo(cmd);
         self.param_buf.set(self.pending_params.get());
         self.param_count.set(self.pending_param_count.get());
         self.send_command(cmd, disc_layout, disc_bin);
-        self.second_dirty.set(true);
+        if !preserva {
+            self.second_dirty.set(true);
+        }
         true
     }
 

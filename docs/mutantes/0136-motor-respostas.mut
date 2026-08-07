@@ -5,12 +5,21 @@ item: 4.4ad
 alvo: crates/psx-core/src/cdrom.rs
 teste: cdrom_motor
 
+# reancorado apos o fix do freeze do GT2 — a checagem "comando novo cancela 2a
+# resposta obsoleta" virou o metodo preserva_entrega_em_voo (usado tanto no
+# latch quanto no dispatch, pra nao cancelar entrega de ReadN/Play ainda em
+# voo quando o comando e' passivo); a intencao do mutante (Pause deixa de
+# preemptar o setor armado) agora se expressa invertendo esse metodo.
 mutante: m1
 rotulo: comando deixa de preemptar setor armado
 @@DE
-        if self.intsts.get() == 0 && !self.int2_pending.get() && !self.int1_pending.get() {
+    fn preserva_entrega_em_voo(&self, cmd: u8) -> bool {
+        (self.reading.get() || self.playing.get()) && Self::e_comando_passivo(cmd)
+    }
 @@PARA
-        if self.intsts.get() != 0 && !self.int2_pending.get() && !self.int1_pending.get() {
+    fn preserva_entrega_em_voo(&self, cmd: u8) -> bool {
+        (self.reading.get() || self.playing.get()) && !Self::e_comando_passivo(cmd)
+    }
 @@FIM
 
 mutante: m2

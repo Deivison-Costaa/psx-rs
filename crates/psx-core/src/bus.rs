@@ -411,10 +411,15 @@ impl Bus {
                     }
                 }
                 CDROM_RESPONSE => {
-                    if self
-                        .cdrom
-                        .deliver_first(self.disc_layout.as_ref(), self.disc_bin.as_deref())
-                    {
+                    self.cdrom
+                        .deliver_first(self.disc_layout.as_ref(), self.disc_bin.as_deref());
+                    // § mesmo guard de latch_command/deliver_first (comando passivo com
+                    // leitura/play em voo NAO cancela o CDROM_SECOND ja agendado) — antes
+                    // este cancelamento era incondicional em qualquer despacho bem-sucedido,
+                    // ignorando esse guard e cancelando a entrega do proximo setor sempre
+                    // que um comando como Nop despachava por este caminho (o scheduler, nao
+                    // a escrita sincrona em write8).
+                    if self.cdrom.take_second_dirty() {
                         self.scheduler.cancel(EventId(CDROM_SECOND));
                     }
                     if self.cdrom.take_irq2_edge() {

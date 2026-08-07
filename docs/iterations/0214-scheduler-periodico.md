@@ -27,6 +27,21 @@ Rodei as 19 suítes (`audio_ring.rs` + 18 arquivos `cdrom_*.rs`, 152 testes) dep
 SPU_TICK/HBLANK/VBLANK, ou as asserções já checavam comportamento (IRQ subiu, resposta
 chegou) em vez de contagem de disparo — o risco previsto não se concretizou.
 
+Na bateria de mutação, sim: escrevi o manifesto confiando na herança de `teste:` do
+cabeçalho pros registros m1/m2/m3/c1 (só declarei explicitamente nos que miram `bus.rs`).
+STATUS.md já registrava esse gotcha há muito (10.71/0187: "`mutantes.ps1` herda o último
+`teste:` visto"), e caí nele de novo: `m3` (que remove o elemento errado da fila do
+scheduler — `self.events.remove(self.events.len() - 1)` em vez de `remove(0)`) acabou
+rodando contra `bus_scheduler_periodico` em vez de `bus_scheduler`. Como esse alvo TEM
+testes que chamam `bus.tick_timers` com um tick gigante, a mutação reintroduz exatamente o
+cenário que ela quebra: o evento devido no topo da fila nunca é removido (o laço sempre
+remove o do fim), então o `while let Some(...)` de `tick_timers` nunca esvazia — cada
+evento indevidamente "disparado" reagenda outro, que vira o novo fim da fila, para sempre.
+O processo ficou preso ~520s de CPU (confirmado via `Get-Process`) antes de eu matá-lo.
+Corrigido declarando `teste: bus_scheduler` em TODO registro do manifesto, não só no
+cabeçalho — com isso `m3` roda contra `bus_scheduler.rs` (sem `tick_timers` em loop) e
+morre limpo em <1s.
+
 ## Implementação
 
 `Scheduler::advance_to` devolve `(u64, EventId)` em vez de só `EventId` — o prazo que
@@ -37,11 +52,14 @@ corretamente — o bug era só a base errada do reagendamento, não a falta de l
 
 ## Bateria de mutação
 
-Sem manifesto novo: nenhum mutante de comportamento numérico cabe aqui além do que a
-mudança de tipo já força o compilador a checar (assinatura `(u64, EventId)` propagada em
-todo call site). A cobertura de regressão veio de `bus_scheduler.rs` (teste novo
-`scheduler_devolve_o_prazo_que_venceu_nao_o_instante_de_avanco`) e `bus_scheduler_
-periodico.rs` (3 testes novos, valores derivados de `spu::CPU_CYCLES_PER_SAMPLE`).
+Placar da bateria: 5/5 mutantes mortos, 2/2 controles verdes, 0 equivalente —
+docs/mutantes/0214-scheduler-periodico.mut
+
+m1 reintroduz o bug original (`advance_to` devolve `ticks` em vez de `key.tick`); m2 quebra
+a fronteira exata (`>` vira `>=`, evento no prazo exato deixa de disparar); m3 remove o
+elemento errado da fila (incidente acima); m4/m5 reintroduzem o bug especificamente nos
+braços SPU_TICK e VBLANK_ENTER de `bus.rs` (reagendar a partir de `total_cycles`). Todos
+mortos por `bus_scheduler.rs`/`bus_scheduler_periodico.rs`.
 
 O manifesto antigo `docs/mutantes/0203-hblank-agendado.mut` teve as âncoras m4/m5/c2
 reescritas (mesmo `@@DE`/`@@PARA` semântico, só a forma da linha mudou pelo `rustfmt`) e a
@@ -50,7 +68,7 @@ cobriam este trecho.
 
 ## Placar antes → depois
 
-Workspace: **1326 → 1330** testes (3 novos em `bus_scheduler_periodico.rs`, 1 novo em
+Workspace: **1326 → 1331** testes (4 novos em `bus_scheduler_periodico.rs`, 1 novo em
 `bus_scheduler.rs`).
 
 ## Revisão cruzada (orquestrador)
@@ -61,7 +79,7 @@ o laço da BIOS não passa por eventos periódicos. `irq0_periodo_ntsc.rs` sem m
 ciclo por vez, nunca exercitou o catch-up). As 19 suítes de CD-ROM/áudio apontadas como
 risco pelo plano (152 testes) passam sem alteração. `cargo fmt --all -- --check` e
 `cargo clippy --all-targets -- -D warnings` limpos. `cargo nextest run --workspace`:
-1330/1330 (a única falha antes deste doc era o placar do `STATUS.md`, corrigido agora).
+1331/1331 (a única falha antes deste doc era o placar do `STATUS.md`, corrigido agora).
 
 ## Decisões e notas
 

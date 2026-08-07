@@ -61,7 +61,7 @@ escada de timing), 34 (acumulador de ciclos extras é estado de pipeline).
 
 ## Placar de testes
 
-Workspace: **1330** testes.
+Workspace: **1331** testes.
 - **NUNCA rodar `cargo test`/`nextest` nem a bateria de mutação junto com o oráculo**: a
   disputa de CPU faz o `Start-Process` ler stdout antes do flush e reportar `sem-saida`
   falso. Derrubou 16/21 numa medição da 0170; rodada limpa deu 21/21.
@@ -75,7 +75,9 @@ Workspace: **1330** testes.
   kernel terminam. O `rayman_evcb_descritores` deixou de fixar passo: dispara no primeiro
   instante em que os dois descritores estão habilitados.
 - **`mutantes.ps1` herda o último `teste:` visto (10.71)**: declare `teste:` em TODO
-  registro do manifesto, não só no cabeçalho. Custou uma rodada de 9/18 falsos na 0187.
+  registro do manifesto, não só no cabeçalho. Custou 9/18 falsos na 0187 e, na 0214, um
+  mutante de scheduler rodando contra o alvo errado **travou ~520s de CPU num laço infinito**
+  (mate o processo via `Get-Process`/`Stop-Process`, não só re-rode).
 - **Ele maiúsculo seguido de dígito é lido como citação de spec** pelo `spec_citations`
   (é a forma de citar linha). Nomear os ombros do controle assim em doc reprova; escreva em
   minúscula. Custou duas correções: `docs/como-rodar.md` e o doc da 0196.

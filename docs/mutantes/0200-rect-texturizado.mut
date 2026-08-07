@@ -90,13 +90,15 @@ teste: gpu_rect_textured
                 if texel == 0 {
                     continue;
                 }
-                self.write_pixel(py as usize * 1024 + px as usize, texel, semi_transparent);
+                let blend = blend_texturizado(semi_transparent, texel);
+                self.write_pixel(py as usize * 1024 + px as usize, texel, blend);
 @@PARA
                 let amostra = self.sample_texel(u, v);
                 if amostra == 0 {
                     continue;
                 }
-                self.write_pixel(py as usize * 1024 + px as usize, amostra, semi_transparent);
+                let blend = blend_texturizado(semi_transparent, amostra);
+                self.write_pixel(py as usize * 1024 + px as usize, amostra, blend);
 @@FIM
 
 controle: c2

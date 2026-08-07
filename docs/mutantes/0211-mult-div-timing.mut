@@ -1,0 +1,75 @@
+# Manifesto de mutação da iteração 0211 — mult-div-timing
+formato: 1
+iteracao: 0211
+item: 0211.1
+alvo: crates/psx-core/src/cpu.rs
+teste: cpu_mult_div_timing
+
+mutante: m1
+rotulo: saturating_sub vira wrapping_sub (atraso vira lixo quando nao ha mult/div pendente)
+@@DE
+        let atraso = self.hilo_busy_until.saturating_sub(bus.total_cycles());
+@@PARA
+        let atraso = self.hilo_busy_until.wrapping_sub(bus.total_cycles());
+@@FIM
+
+mutante: m2
+rotulo: mult usa a tabela de custo do multu (sem sinal em vez de com sinal)
+@@DE
+        self.hilo_busy_until = bus.total_cycles() + 1 + Self::mult_cost(rs_val) as u64;
+@@PARA
+        self.hilo_busy_until = bus.total_cycles() + 1 + Self::multu_cost(rs_val) as u64;
+@@FIM
+
+mutante: m3
+rotulo: multu usa a tabela de custo do mult (com sinal em vez de sem sinal)
+@@DE
+        self.hilo_busy_until = bus.total_cycles() + 1 + Self::multu_cost(rs_val) as u64;
+@@PARA
+        self.hilo_busy_until = bus.total_cycles() + 1 + Self::mult_cost(rs_val) as u64;
+@@FIM
+
+mutante: m4
+rotulo: div/divu custam 35 em vez de 36
+ocorrencias: 2
+@@DE
+        self.hilo_busy_until = bus.total_cycles() + 1 + 36;
+@@PARA
+        self.hilo_busy_until = bus.total_cycles() + 1 + 35;
+@@FIM
+
+mutante: m5
+rotulo: mfhi nao chama o stall de hi/lo
+@@DE
+        self.set_reg(rd, self.hi);
+        self.hilo_stall(bus);
+@@PARA
+        self.set_reg(rd, self.hi);
+@@FIM
+
+mutante: m6
+rotulo: mflo nao chama o stall de hi/lo
+@@DE
+        self.set_reg(rd, self.lo);
+        self.hilo_stall(bus);
+@@PARA
+        self.set_reg(rd, self.lo);
+@@FIM
+
+controle: c1
+rotulo: comentario antes da faixa de custo do mult
+@@DE
+    fn mult_cost(rs: u32) -> u32 {
+@@PARA
+    // tabela derivada da spec, nao do codigo
+    fn mult_cost(rs: u32) -> u32 {
+@@FIM
+
+controle: c2
+rotulo: comentario antes do stall de hi/lo
+@@DE
+    fn hilo_stall(&mut self, bus: &Bus) {
+@@PARA
+    // consumido por mfhi/mflo, nao por mtc/mtlo (a spec so fala de LEITURA)
+    fn hilo_stall(&mut self, bus: &Bus) {
+@@FIM

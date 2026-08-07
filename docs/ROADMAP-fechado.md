@@ -326,3 +326,9 @@ da escada valer so para o que FALTA. Narrativa de cada item continua em
   `Bus::charge_dma` converte em ciclos via `Dma::transfer_cost` e acumula ate o proximo
   `tick_timers`, que drena ANTES de avancar `total_cycles` (04-dma.md L217-227) (iter 0217)
   — Degrau 9 (ultimo) da escada de timing de CPU/barramento, fecha o achado 0193.4
+- [x] 0222.1 As FMVs nao estavam "granuladas": a decodificacao MDEC->DMA1->VRAM ja estava
+  certa e `Gpu::framebuffer()` e que lia a area de display sempre como 15bpp, ignorando
+  GPUSTAT.21 (Display Area Color Depth, 03-gpu.md L1019 e L1279-1285). Como a FMV e o unico
+  uso real do modo de 24 bits, tudo que o app desktop e o `--vram-to-png` mostravam durante
+  um video era ruido. Medido com o GPUSTAT nos dumps de Silent Hill: bit21=1 nos dumps
+  10-12; 52 dumps de VRAM identicos antes/depois nos 13 jogos da regressao (iter 0222)

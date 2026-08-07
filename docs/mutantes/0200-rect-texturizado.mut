@@ -10,11 +10,11 @@ rotulo: texel 0 deixa de ser transparente e pinta o fundo
 ocorrencias: 1
 teste: gpu_rect_textured
 @@DE
-                let u = (u_base + (px - x_start)) & 0xFF;
+                let u = (u_base + u_step * (px - x_start) + u_bias) & 0xFF;
                 let texel = self.sample_texel(u, v);
                 if texel == 0 {
 @@PARA
-                let u = (u_base + (px - x_start)) & 0xFF;
+                let u = (u_base + u_step * (px - x_start) + u_bias) & 0xFF;
                 let texel = self.sample_texel(u, v);
                 if false {
 @@FIM
@@ -24,9 +24,9 @@ rotulo: wrap de U em 128 em vez de 256
 ocorrencias: 1
 teste: gpu_rect_textured
 @@DE
-                let u = (u_base + (px - x_start)) & 0xFF;
+                let u = (u_base + u_step * (px - x_start) + u_bias) & 0xFF;
 @@PARA
-                let u = (u_base + (px - x_start)) & 0x7F;
+                let u = (u_base + u_step * (px - x_start) + u_bias) & 0x7F;
 @@FIM
 
 mutante: m3
@@ -44,7 +44,7 @@ rotulo: V congelado na primeira linha
 ocorrencias: 1
 teste: gpu_rect_textured
 @@DE
-            let v = (v_base + (py - y_start)) & 0xFF;
+            let v = (v_base + v_step * (py - y_start)) & 0xFF;
 @@PARA
             let v = v_base & 0xFF;
 @@FIM
@@ -54,18 +54,16 @@ rotulo: tamanho variavel vira 8x8 fixo
 ocorrencias: 1
 teste: gpu_rect_textured
 @@DE
-        uv: u32,
-        w: u16,
-        h: u16,
         semi_transparent: bool,
+        raw_texture: bool,
+        color: u32,
     ) {
         let (w_actual, h_actual) = match size {
             0 => (w as u32, h as u32),
 @@PARA
-        uv: u32,
-        w: u16,
-        h: u16,
         semi_transparent: bool,
+        raw_texture: bool,
+        color: u32,
     ) {
         let (w_actual, h_actual) = match size {
             0 => (8, 8),
@@ -90,15 +88,25 @@ teste: gpu_rect_textured
                 if texel == 0 {
                     continue;
                 }
+                let pixel = if raw_texture {
+                    texel
+                } else {
+                    modulate_texel(texel, color24_to_16(color))
+                };
                 let blend = blend_texturizado(semi_transparent, texel);
-                self.write_pixel(py as usize * 1024 + px as usize, texel, blend);
+                self.write_pixel(py as usize * 1024 + px as usize, pixel, blend);
 @@PARA
                 let amostra = self.sample_texel(u, v);
                 if amostra == 0 {
                     continue;
                 }
+                let pixel = if raw_texture {
+                    amostra
+                } else {
+                    modulate_texel(amostra, color24_to_16(color))
+                };
                 let blend = blend_texturizado(semi_transparent, amostra);
-                self.write_pixel(py as usize * 1024 + px as usize, amostra, blend);
+                self.write_pixel(py as usize * 1024 + px as usize, pixel, blend);
 @@FIM
 
 controle: c2

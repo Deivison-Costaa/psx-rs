@@ -726,7 +726,7 @@ impl Bus {
                 let byte_index = ((phys & 1) + offset) & 1;
                 Some(((val >> (byte_index * 8)) & 0xFF) as u8)
             }
-            0x1F80_1080..=0x1F80_10EC | 0x1F80_10F0 | 0x1F80_10F4 => {
+            0x1F80_1080..=0x1F80_10F7 => {
                 let base = phys & !3;
                 let val = self.dma_register_value(base).unwrap_or(0);
                 let byte_index = ((phys & 3) + offset) & 3;
@@ -753,6 +753,12 @@ impl Bus {
             }
             0x1F80_1000..=0x1F80_1023 | 0x1F80_1060 | 0xFFFE_0130 => true,
             0x1F80_1810..=0x1F80_1817 => true, // Registradores da GPU sao de 32 bits; escrita de byte e descartada
+            0x1F80_10F5..=0x1F80_10F7 => {
+                let byte_index = ((phys & 3) + offset) & 3;
+                self.dma.write_dicr_byte(byte_index, val);
+                self.service_dma_irq();
+                true
+            }
             0x1F80_1800..=0x1F80_1803 => {
                 let reg = (phys - 0x1F80_1800 + offset) & 0x3;
                 self.cdrom.write8(

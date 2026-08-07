@@ -7,6 +7,7 @@ teste: bus_scheduler
 
 mutante: m1
 rotulo: advance_to volta a devolver o instante notado em vez do prazo que venceu (o bug original)
+teste: bus_scheduler
 @@DE
         let (key, id) = self.events.remove(0);
         Some((key.tick, id))
@@ -17,6 +18,7 @@ rotulo: advance_to volta a devolver o instante notado em vez do prazo que venceu
 
 mutante: m2
 rotulo: evento no prazo exato deixa de disparar (off-by-one na fronteira)
+teste: bus_scheduler
 @@DE
         if next_tick > self.current_tick {
 @@PARA
@@ -25,6 +27,7 @@ rotulo: evento no prazo exato deixa de disparar (off-by-one na fronteira)
 
 mutante: m3
 rotulo: remove o ultimo evento pendente em vez do primeiro (quebra a ordem por prazo)
+teste: bus_scheduler
 @@DE
         let (key, id) = self.events.remove(0);
 @@PARA
@@ -61,6 +64,7 @@ teste: bus_scheduler_periodico
 
 controle: c1
 rotulo: comentario antes de advance_to
+teste: bus_scheduler
 @@DE
     pub fn advance_to(&mut self, ticks: u64) -> Option<(u64, EventId)> {
 @@PARA

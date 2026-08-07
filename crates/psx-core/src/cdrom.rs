@@ -55,6 +55,10 @@ pub struct Cdrom {
     xa_state: Cell<XaState>,
     filter_file: Cell<u8>,
     filter_channel: Cell<u8>,
+    // § GetlocL (06-cdrom.md L1052-1071): devolve cabecalho+subcabecalho do setor de DADO
+    // mais recente entregue — precisa da posicao de ANTES do advance_read_pos, que ja
+    // avancou pra proxima leitura no momento em que o jogo manda GetlocL.
+    last_data_sector: Cell<Option<(u8, u8, u8)>>,
 }
 
 /// Quatro setores de CD-DA. Se o jogo le mais rapido do que o SPU consome, o excedente
@@ -107,6 +111,7 @@ impl Cdrom {
             xa_state: Cell::new(XaState::default()),
             filter_file: Cell::new(0),
             filter_channel: Cell::new(0),
+            last_data_sector: Cell::new(None),
         }
     }
 
@@ -262,10 +267,20 @@ impl Cdrom {
 
     /// Setor cru do disco na posicao corrente de leitura.
     fn setor_cru(&self, bin: Option<&[u8]>) -> Option<Vec<u8>> {
+        self.setor_cru_em(
+            bin,
+            self.read_pos_mm.get(),
+            self.read_pos_ss.get(),
+            self.read_pos_ff.get(),
+        )
+    }
+
+    /// Setor cru do disco numa posicao MSF (BCD) arbitraria — usado por GetlocL (06-cdrom.md
+    /// L1052-1071) pra reler o cabecalho/subcabecalho do ultimo setor de dado entregue, que
+    /// nao e mais a posicao corrente (ja avancada por advance_read_pos).
+    fn setor_cru_em(&self, bin: Option<&[u8]>, mm: u8, ss: u8, ff: u8) -> Option<Vec<u8>> {
         let bin = bin?;
-        let abs = bcd_to_int(self.read_pos_mm.get()) * 60 * 75
-            + bcd_to_int(self.read_pos_ss.get()) * 75
-            + bcd_to_int(self.read_pos_ff.get());
+        let abs = bcd_to_int(mm) * 60 * 75 + bcd_to_int(ss) * 75 + bcd_to_int(ff);
         let inicio = abs.checked_sub(150)? as usize * cdrom_xa::RAW_SECTOR_BYTES;
         let fim = inicio + cdrom_xa::RAW_SECTOR_BYTES;
         (fim <= bin.len()).then(|| bin[inicio..fim].to_vec())
@@ -479,6 +494,59 @@ impl Cdrom {
                 }
                 self.param_clear();
                 self.result_push(self.stat_byte());
+                self.intsts.set(3);
+                self.busy.set(false);
+            }
+            // § GetlocL (06-cdrom.md L1052-1071): INT3(amm,ass,asect,mode,file,channel,
+            // sm,ci) — cabecalho+subcabecalho do setor de DADO mais recente entregue (nao
+            // funciona em Audio CD/trilha de audio, nem durante Seek — INT5(stat,80h) nos
+            // dois casos, exatamente como falha quando nao ha nenhum setor de dado ainda
+            // reportado).
+            0x10 => {
+                let cru = if self.seeking.get() {
+                    None
+                } else {
+                    self.last_data_sector
+                        .get()
+                        .and_then(|(mm, ss, ff)| self.setor_cru_em(disc_bin, mm, ss, ff))
+                };
+                match cru {
+                    Some(c) if c.len() >= 0x14 => {
+                        self.result_push(c[0x0C]);
+                        self.result_push(c[0x0D]);
+                        self.result_push(c[0x0E]);
+                        self.result_push(c[0x0F]);
+                        self.result_push(c[0x10]);
+                        self.result_push(c[0x11]);
+                        self.result_push(c[0x12]);
+                        self.result_push(c[0x13]);
+                        self.intsts.set(3);
+                    }
+                    _ => {
+                        self.result_push(self.stat_byte() | 0x01);
+                        self.result_push(0x80);
+                        self.intsts.set(5);
+                    }
+                }
+                self.busy.set(false);
+            }
+            // § GetlocP (06-cdrom.md L1073-1088): INT3(track,index,mm,ss,sect,amm,ass,
+            // asect) — posicao atual em BCD, relativa a trilha e absoluta no disco.
+            // Funciona durante Seek (diferente de GetlocL).
+            0x11 => {
+                let amm = self.read_pos_mm.get();
+                let ass = self.read_pos_ss.get();
+                let asect = self.read_pos_ff.get();
+                let (track, index, inicio) = self.trilha_em(disc_layout, amm, ass, asect);
+                let (mm, ss, ff) = subtrai_msf((amm, ass, asect), inicio);
+                self.result_push(track);
+                self.result_push(index);
+                self.result_push(mm);
+                self.result_push(ss);
+                self.result_push(ff);
+                self.result_push(amm);
+                self.result_push(ass);
+                self.result_push(asect);
                 self.intsts.set(3);
                 self.busy.set(false);
             }
@@ -858,6 +926,11 @@ impl Cdrom {
                     self.data_len.set(sector_size);
                     self.data_pos.set(0);
                     self.hchpctl.set(0);
+                    self.last_data_sector.set(Some((
+                        self.read_pos_mm.get(),
+                        self.read_pos_ss.get(),
+                        self.read_pos_ff.get(),
+                    )));
                     advance_read_pos(&self.read_pos_mm, &self.read_pos_ss, &self.read_pos_ff);
                 }
             }

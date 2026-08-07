@@ -114,6 +114,18 @@ fn multu_medio_custa_9() {
 }
 
 #[test]
+fn multu_com_valor_grande_e_sem_sinal_custa_13() {
+    // rs=FFFFFF00h interpretado SEM sinal (multu) e um numero enorme -- faixa Slow (13).
+    // Com sinal (mult) o mesmo bit pattern seria -256, faixa Fast (6) -- a diferenca entre
+    // as duas tabelas so aparece com um valor assim, negativo em complemento de dois.
+    assert_eq!(
+        total_de(0xFFFF_FF00, &[multu(8, 9), mflo(1)]),
+        15,
+        "rs=FFFFFF00h sem sinal esta na faixa Slow (13 ciclos): 1 + 1+13 = 15"
+    );
+}
+
+#[test]
 fn multu_lento_custa_13() {
     assert_eq!(
         total_de(0x0010_0000, &[multu(8, 9), mflo(1)]),

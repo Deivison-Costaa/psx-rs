@@ -362,37 +362,29 @@ impl Bus {
 
         let frame = self.gpu.frame_cycles();
         let cpu_per_sl = self.gpu.cpu_cycles_per_scanline();
-        while let Some(EventId(id)) = self.scheduler.advance_to(self.total_cycles) {
+        while let Some((prazo, EventId(id))) = self.scheduler.advance_to(self.total_cycles) {
             match id {
                 HBLANK_ENTER => {
                     self.gpu.set_hblank_active(true);
-                    self.scheduler.schedule(
-                        ScheduleKey::new(self.total_cycles + cpu_per_sl),
-                        EventId(HBLANK_ENTER),
-                    );
+                    self.scheduler
+                        .schedule(ScheduleKey::new(prazo + cpu_per_sl), EventId(HBLANK_ENTER));
                 }
                 HBLANK_EXIT => {
                     self.gpu.set_hblank_active(false);
-                    self.scheduler.schedule(
-                        ScheduleKey::new(self.total_cycles + cpu_per_sl),
-                        EventId(HBLANK_EXIT),
-                    );
+                    self.scheduler
+                        .schedule(ScheduleKey::new(prazo + cpu_per_sl), EventId(HBLANK_EXIT));
                 }
                 VBLANK_ENTER => {
                     self.gpu.enter_vblank();
                     self.irq.raise(0);
-                    self.scheduler.schedule(
-                        ScheduleKey::new(self.total_cycles + frame),
-                        EventId(VBLANK_ENTER),
-                    );
+                    self.scheduler
+                        .schedule(ScheduleKey::new(prazo + frame), EventId(VBLANK_ENTER));
                 }
                 VBLANK_EXIT => {
                     self.gpu.exit_vblank();
                     self.gpu.toggle_odd_line();
-                    self.scheduler.schedule(
-                        ScheduleKey::new(self.total_cycles + frame),
-                        EventId(VBLANK_EXIT),
-                    );
+                    self.scheduler
+                        .schedule(ScheduleKey::new(prazo + frame), EventId(VBLANK_EXIT));
                 }
                 SPU_TICK => {
                     let (cd_l, cd_r) = self.cdrom.take_audio_frame().unwrap_or((0, 0));
@@ -402,7 +394,7 @@ impl Bus {
                         self.irq.raise(9);
                     }
                     self.scheduler.schedule(
-                        ScheduleKey::new(self.total_cycles + spu::CPU_CYCLES_PER_SAMPLE),
+                        ScheduleKey::new(prazo + spu::CPU_CYCLES_PER_SAMPLE),
                         EventId(SPU_TICK),
                     );
                 }

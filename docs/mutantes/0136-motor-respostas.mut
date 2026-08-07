@@ -104,16 +104,8 @@ fn advance_read_pos(mm: &Cell<u8>, ss: &Cell<u8>, ff: &Cell<u8>) {
 controle: c2
 rotulo: comentario antes da primeira resposta
 @@DE
-    pub fn deliver_first(
-        &self,
-        disc_layout: Option<&DiscLayout>,
-        disc_bin: Option<&[u8]>,
-    ) -> bool {
+    pub fn deliver_first(&self, disc_layout: Option<&DiscLayout>, disc_bin: Option<&[u8]>) -> bool {
 @@PARA
     // entrega INT3 somente quando o gate de IRQ permite
-    pub fn deliver_first(
-        &self,
-        disc_layout: Option<&DiscLayout>,
-        disc_bin: Option<&[u8]>,
-    ) -> bool {
+    pub fn deliver_first(&self, disc_layout: Option<&DiscLayout>, disc_bin: Option<&[u8]>) -> bool {
 @@FIM

@@ -32,21 +32,47 @@ Estão em três níveis, porque "não trava" **não** é a mesma coisa que "joga
 
 ### Jogável confirmado (2) — testado por humano
 
-**Crash Bandicoot** e **Rayman**. Renderizam a gameplay corretamente e respondem a input.
+**Crash Bandicoot** e **Rayman**. Renderizam a gameplay e respondem a input.
 
-### Passa do travamento, jogabilidade NÃO validada (11)
+### Navegação por menu confirmada (2) — exigiu input real
 
-Tekken 3, Final Fantasy VII, Final Fantasy VIII, Resident Evil 2, Resident Evil 3,
-Metal Gear Solid, Crash Team Racing, Gran Turismo 2 (Arcade **e** Simulation),
-Tomb Raider I, Tomb Raider III, Silent Hill.
+- **Tekken 3** — chega em `STAGE 1 — EDDY VS LAW`, ou seja, passou por menu, seleção de
+  personagem e entrou numa luta.
+- **Tomb Raider II** — chega no seletor de fase `Lara's Home` com `Select / Go Back`.
 
-Esses deixaram de congelar e chegam a desenhar tela de título ou FMV. O "ruído" que vários
-mostravam depois de bootar bem **foi resolvido** — era o modo de display de 24 bits nunca
-implementado (seção abaixo). Falta reteste humano para reclassificá-los.
+Não é o mesmo que jogar até o fim, mas exigiu navegar, então o caminho de input funciona.
 
-### Ainda trava (2)
+### Renderizando corretamente, progressão não confirmada (8)
 
-Tomb Raider II e Final Fantasy IX (detalhe na seção abaixo).
+Validado por inspeção visual do framebuffer (2B passos, com presses sintéticos):
+
+| Jogo | O que aparece na tela |
+|---|---|
+| Resident Evil 2 | prompt `Use memory card` (passou do título) |
+| Resident Evil 3 | menu `NEW GAME / LOAD GAME / GAME CONFIG` |
+| Final Fantasy VII | menu de título com a Buster Sword |
+| Final Fantasy VIII | cutscene de abertura em 640x480, preto-e-branco |
+| Tomb Raider I | tela de título com o rosto da Lara |
+| Tomb Raider III | cena 3D dentro do veículo |
+| Silent Hill | FMV de abertura (veículo na estrada) |
+| Metal Gear Solid | cena escura de abertura, coerente |
+| Crash Team Racing | personagem 3D no cenário |
+| Gran Turismo 2 (Arcade) | FMV de corrida em 24bpp |
+
+Alguns pararam em tela de título. **Isso não prova que não respondem a input** — os presses
+sintéticos podem simplesmente não ter acertado a sequência de botões daquele jogo. Precisa
+de teste humano para separar as duas coisas.
+
+### Quebrado (1)
+
+**Final Fantasy IX.** Morre logo depois da tela `Published by Square Electronic Arts L.L.C.`
+Framebuffer **byte-idêntico** (PNG de 782 bytes, preto sólido) do passo 600M ao 2B — oito
+amostras iguais ao longo de 1,4 bilhão de passos, então não é fade nem transição.
+
+Mecanismo já rastreado: gira em `0x800A9A6C` esperando o bit1 do byte em `0x80076B14`
+zerar. Esse byte **não é o stat do CD-ROM** (verificado) — é campo do próprio jogo,
+sobrescrito por um `memcpy` em `pc=0x800226CC` cuja origem passou a conter `0x80015509` no
+passo 408.411.249.
 
 ## A armadilha da métrica — leia antes de confiar em qualquer número aqui
 
@@ -55,8 +81,17 @@ A medição automática desta sessão (**hash de VRAM mudando + histograma de PC
 lixo**: medidos lado a lado, Crash Bandicoot (jogável) e Tekken 3 (renderiza ruído) produzem
 o mesmo veredito — VRAM mudando até o fim e áudio do mesmo tamanho.
 
-O que separa os dois só aparece **olhando a imagem** (`--vram-to-png`) ou jogando. Foi um
-teste humano que corrigiu o placar de "13 de 15 funcionam" para "2 jogáveis".
+O que separa os dois só aparece **olhando a imagem** ou jogando. Foi um teste humano que
+corrigiu o placar de "13 de 15 funcionam" para "2 jogáveis".
+
+Pior: a régua de diagnóstico tinha o **mesmo** defeito do emulador. O `--vram-to-png`
+renderizava sempre como 15bpp, então em jogo que estava em 24bpp era a própria ferramenta
+que gerava o ruído — e o sintoma parecia corrupção de VRAM. Use `-fb.png` (gerado a cada
+`--dump-vram`), que respeita área de display e formato de cor reais.
+
+**Um quadro preto não prova travamento.** Amostre vários pontos e compare o hash entre eles:
+o FF9 já foi declarado "não travado" por medição feita num único ponto que era justamente a
+transição.
 
 Isso é o caso clássico de métrica que mede o que é fácil medir em vez do que importa — o
 mesmo padrão que o projeto já registrou no scoreboard da 1.11b. **Antes de declarar um jogo
@@ -65,18 +100,16 @@ bom, renderize o framebuffer e olhe.**
 Os discos secundários (FF7 2/3, FF8 2/3/4, MGS 2) só passaram por boot sanity check de 300M
 passos; ninguém testou troca de disco.
 
-## Detalhe dos 2 que ainda travam
+## Nota: o Tomb Raider II nunca esteve travado
 
-| Jogo | Trava em | Tela no congelamento |
-|---|---|---|
-| Tomb Raider II | ~275M | mudou de comportamento com o fix do DICR, não confirmado |
-| Final Fantasy IX | ~400M | **branca**, logo já carregado na VRAM (travou num fade) |
+Ele foi listado como travado por boa parte da sessão. Estava errado: chega no seletor de
+fase `Lara's Home`. A classificação vinha da régua de 15bpp, que mostrava ruído onde havia
+imagem. **Reclassificado depois do fix de 24bpp.**
 
-**Rodam perfeitamente no DuckStation**, com o mesmo BIOS e as mesmas imagens de disco
-(verificado por captura de tela). Ou seja: são bugs nossos, não dos jogos.
+Serve de aviso: reconfira classificação antiga sempre que a ferramenta de medição mudar.
 
-Quando eram 6 os travados, os sintomas eram distintos entre si — **não presuma causa
-única**, e não presuma que estes 2 compartilham causa.
+O único quebrado hoje é o **Final Fantasy IX** (detalhe na classificação acima). Ele roda
+perfeitamente no DuckStation com o mesmo BIOS e o mesmo disco, então é bug nosso.
 
 ## Corrigido nesta sessão
 

@@ -1,12 +1,12 @@
 # gerado por scripts/mutantes.ps1 — NAO editar a mao
-# commit: 4e894dfeb9e0f04849eeef21227a73f6a28a7f61
-# rodado_em: 2026-07-29T19:50:41-03:00
-m1,mutante,morreu,morreu,0.8,otc_nao_transfere_com_canal_desabilitado_no_dpcr
-m2,mutante,morreu,morreu,0.7,dma3_nao_transfere_com_canal_desabilitado_no_dpcr
-m3,mutante,morreu,morreu,0.8,dma2_nao_transfere_com_canal_desabilitado_no_dpcr
-m4,mutante,morreu,morreu,0.7,otc_nao_transfere_com_canal_desabilitado_no_dpcr
-m5,mutante,morreu,morreu,0.7,dma2_transfere_com_canal_habilitado_no_dpcr
-m6,mutante,morreu,morreu,0.8,dma3_nao_transfere_com_canal_desabilitado_no_dpcr;dma3_transfere_com_canal_habilitado_no_dpcr
-m7,mutante,morreu,morreu,0.7,dma3_nao_transfere_com_canal_desabilitado_no_dpcr
-c1,controle,sobreviveu,sobreviveu,0.7,
-c2,controle,sobreviveu,sobreviveu,0.8,
+# commit: a5afd41f198d0f21c5a20bc1f685735ba65dfcfd
+# rodado_em: 2026-08-06T23:24:50-03:00
+m1,mutante,morreu,morreu,1.2,otc_nao_transfere_com_canal_desabilitado_no_dpcr
+m2,mutante,morreu,morreu,1.2,dma3_nao_transfere_com_canal_desabilitado_no_dpcr
+m3,mutante,morreu,morreu,1.1,dma2_nao_transfere_com_canal_desabilitado_no_dpcr
+m4,mutante,morreu,morreu,1.3,otc_nao_transfere_com_canal_desabilitado_no_dpcr
+m5,mutante,morreu,morreu,1.1,dma2_transfere_com_canal_habilitado_no_dpcr
+m6,mutante,morreu,morreu,1.1,dma3_nao_transfere_com_canal_desabilitado_no_dpcr;dma3_transfere_com_canal_habilitado_no_dpcr
+m7,mutante,morreu,morreu,1.1,dma3_nao_transfere_com_canal_desabilitado_no_dpcr
+c1,controle,sobreviveu,sobreviveu,1.1,
+c2,controle,sobreviveu,sobreviveu,1.1,

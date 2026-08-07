@@ -7,27 +7,26 @@
 
 ## Última iteração concluída
 
-**0210 — Degrau 2 da escada de timing CPU/barramento (0210.1), branch
-`iter/0210-lwc2-timing`, PR não aberto.** LWC2 (0x32) não disparava `load_extra_cycles`
-(só 0x20..=0x26 disparavam), custando 1 ciclo fixo mesmo vindo da ROM da BIOS — mesma spec
-já usada no Degrau 1 (`02-cpu.md` L260-269). Sem erro de primeira tentativa: o padrão e o
-teste-controle (CU2 desligado) já vinham prontos do Degrau 1. Bateria 5/5+2/2.
+**0211 — Degrau 3 da escada de timing CPU/barramento (0211.1), branch
+`iter/0211-mult-div-timing`, PR não aberto.** MULT/MULTU/DIV/DIVU custavam 0 ciclos de HI/LO
+(`02-cpu.md` L420-436: multu/mult 6/9/13 por faixa de `rs`, div/divu fixo em 36). Modelo:
+`busy_until = emissão + 1 + custo`, reusado no Degrau 5 (GTE). `load_extra_cycles`
+renomeado pra `extra_cycles` (mecanismo generalizado). `Cpu` ganhou `hilo_busy_until: u64` →
+`snapshot::VERSAO` 1→2. Bateria 6/6+2/2 (0209/0210 reexecutadas após o rename, sem
+regressão).
 
 ## Próxima tarefa
 
-Escada motivada pelo Achado 0193.4 (CPU sem custo de acesso a memória/periférico), 10
-degraus, plano completo em `~/.claude/plans/smooth-swimming-manatee.md`.
+Escada motivada pelo Achado 0193.4 (CPU sem custo de acesso a memória/periférico); 10
+degraus, plano completo (números da spec de cada degrau) em
+`~/.claude/plans/smooth-swimming-manatee.md`.
 
-**Degrau 3: MULT/MULTU/DIV/DIVU custam ciclos de HI/LO** (`02-cpu.md` L420-440) — iniciar
-custa 1 ciclo (já correto), mas ler HI/LO (MFHI/MFLO) antes do fim trava a CPU: multu/mult
-6/9/13 ciclos por faixa de `rs` (cuidado com a sobreposição de 1 unidade nas faixas com
-sinal do mult — resolver a favor da faixa mais apertada), div/divu fixo em 36. Modelo de
-stall: `busy_until = inicio + 1 + custo` (ancorado no exemplo da spec "seis opcodes ALU
-cabem de graça entre multu e mflo"). Campo novo em `Cpu` → bump `snapshot::VERSAO`. Depois:
-Degrau 4 (tabela pura de custo por comando GTE) e Degrau 5 (o stall do GTE ligado na CPU).
+**Degrau 4: tabela pura de custo por comando GTE** (`docs/reference/07-gte.md`) —
+`Gte::command_cycles(func) -> u32`, sem chamador ainda, zero risco de regressão (isola o
+risco real pro Degrau 5, que liga o stall na CPU reusando o modelo `busy_until` do Degrau 3).
 Cada degrau é uma iteração normal (branch → teste vermelho → fix → bateria → docs → PR).
-Depois dos degraus 1-6, Degrau 7 remede os jogos travados (ff7/tekken3/re2/tomb-raider/
-ctr) antes de decidir se DMA (degraus 8-9, os mais arriscados) ainda é necessário.
+Depois dos degraus 1-6, Degrau 7 remede os jogos travados (ff7/tekken3/re2/tomb-raider/ctr)
+antes de decidir se DMA (degraus 8-9, os mais arriscados) ainda é necessário.
 
 PRs #218/#219/#220 de rodadas anteriores seguem abertos, não mesclados. Lista legado `10.x`
 (10.45/10.83/10.85/10.102/10.114/10.116) fica em segundo plano até a escada avançar.
@@ -63,7 +62,7 @@ cada degrau da escada de timing), 34 (acumulador de ciclos extras é estado de p
 
 ## Placar de testes
 
-Workspace: **1275** testes.
+Workspace: **1289** testes.
 - **NUNCA rodar `cargo test`/`nextest` nem a bateria de mutação junto com o oráculo**: a
   disputa de CPU faz o `Start-Process` ler stdout antes do flush e reportar `sem-saida`
   falso. Derrubou 16/21 numa medição da 0170; rodada limpa deu 21/21.

@@ -279,3 +279,9 @@ da escada valer so para o que FALTA. Narrativa de cada item continua em
   `load_extra_cycles` so cobria 0x20..=0x26, deixando LWC2 (0x32) de fora — custava 1 ciclo
   fixo mesmo vindo da ROM da BIOS (02-cpu.md L260-269) (iter 0210) — Degrau 2 da escada de
   timing de CPU/barramento
+
+## Fechado na iteração 0211
+- [x] 0211.1 MULT/MULTU/DIV/DIVU custavam 0 ciclos de HI/LO: ler o resultado antes do calculo
+  terminar deveria travar a CPU pelo resto do custo (multu/mult 6/9/13 por faixa de rs,
+  div/divu fixo em 36; 02-cpu.md L420-436) (iter 0211) — Degrau 3 da escada de timing de
+  CPU/barramento; `load_extra_cycles` renomeado pra `extra_cycles` (mecanismo generalizado)

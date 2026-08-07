@@ -40,9 +40,9 @@ Tekken 3, Final Fantasy VII, Final Fantasy VIII, Resident Evil 2, Resident Evil 
 Metal Gear Solid, Crash Team Racing, Gran Turismo 2 (Arcade **e** Simulation),
 Tomb Raider I, Tomb Raider III, Silent Hill.
 
-Esses deixaram de congelar e chegam a desenhar tela de título ou FMV. **Vários renderizam
-ruído depois de bootar bem** — o Tekken 3, por exemplo, desenha "NAMCO PRESENTS" e o logo da
-PlayStation perfeitamente aos 300M passos e degrada para ruído puro no framebuffer depois.
+Esses deixaram de congelar e chegam a desenhar tela de título ou FMV. O "ruído" que vários
+mostravam depois de bootar bem **foi resolvido** — era o modo de display de 24 bits nunca
+implementado (seção abaixo). Falta reteste humano para reclassificá-los.
 
 ### Ainda trava (2)
 
@@ -184,20 +184,53 @@ depois           CPU presa oscilando em 0x80000080-90 pra sempre
 desce até a RAM baixa e apaga o vetor de exceção. Como o dado de entrada está provadamente
 correto, o que resta é timing.
 
-## Defeito aberto e mais importante: jogos renderizam ruído
+## RESOLVIDO: o "ruído" era o modo de display de 24 bits nunca implementado
 
-Vários jogos bootam e desenham corretamente, e depois passam a renderizar **ruído puro no
-framebuffer**. O Tekken 3 é o caso mais limpo de reproduzir: desenha "NAMCO PRESENTS" e o
-logo da PlayStation perfeitamente aos 300M passos, e aos 1.2B o framebuffer é só estática.
-As FMVs de Silent Hill e Tomb Raider III mostram os logos legíveis sobre fundo granulado.
+Vários jogos bootavam bem e depois passavam a renderizar **ruído puro no framebuffer**. A
+causa não estava na VRAM, no MDEC, no CD nem na rasterização: **`Gpu::framebuffer()`
+decodificava todo pixel como 5:5:5, ignorando GPUSTAT.21**. Quando o jogo entra em FMV ele
+liga o modo 24 bits por GP1(08h).4; a partir daí a mesma VRAM correta era lida com o
+formato errado, e 3 bytes de RGB888 interpretados como halfwords 5:5:5 dão exatamente
+estática colorida.
 
-**O MDEC foi descartado como causa, por medição.** Os quatro oráculos de hardware do repo
-passam limpos: `tests/exes/ps1-tests/mdec/frame/{15,24}bit{,-dma}.exe` e
-`.../movie/movie-15bit.exe` (4.255 linhas `ok`, zero falhas). O `frame-15bit` decodifica a
-imagem de referência sem nenhum ruído — um pôr do sol sobre uma cidade costeira, limpo.
+`03-gpu.md` L1279-1285: em 24bpp os bits 0-7 são R, 8-15 G, 16-23 B, e **cada 6 bytes
+contêm dois pixels** — o pixel não está alinhado a halfword. L1019: GPUSTAT.21 é
+`Display Area Color Depth (0=15bit, 1=24bit)`, escrito por GP1(08h).4.
 
-Então o defeito está em outro lugar do caminho de vídeo: upload para a VRAM, área de
-display, formato de pixel, ou a rasterização da GPU. **Ainda não investigado.**
+**Como foi medido.** Sonda de `GPUSTAT` a cada dump de VRAM, com o mesmo dump renderizado
+nas duas interpretações:
+
+| Jogo | Entra em 24bpp | Como 15bpp (antes) | Como 24bpp (depois) |
+|---|---|---|---|
+| Tekken 3 | entre 300M e 350M, e fica | estática colorida | Heihachi nítido, FMV limpo |
+| Silent Hill | ~525M, e fica | estática colorida | retrato da menina, limpo |
+| Tomb Raider III | ~300M, e fica | estática colorida | logo CORE Design com starfield |
+| Resident Evil 2 | ~375M-600M, depois volta | estática colorida | barril Umbrella legível |
+| Resident Evil 3 | ~450M-600M, depois volta | estática colorida | — |
+| **Crash Bandicoot** | **nunca** | limpo | limpo (byte-a-byte igual) |
+
+O controle positivo fecha o argumento: **Crash é jogável justamente porque nunca liga o
+bit21**. A correlação é perfeita nos 6 jogos — quem entra em 24bpp exibia ruído, quem não
+entra exibia imagem.
+
+Medição A/B com dois binários de hash diferente, 12 quadros por jogo pelo caminho real de
+`framebuffer()`: os jogos afetados passam de estática a FMV legível, e **Crash sai com os
+12 quadros byte-a-byte idênticos** (zero regressão).
+
+**Duas armadilhas de medição que essa investigação expôs:**
+
+1. `--vram-to-png` renderiza a VRAM crua **sempre como 15bpp**. Em jogo que está em 24bpp,
+   a ferramenta de diagnóstico produzia o ruído por conta própria — o emulador e a régua
+   erravam igual, o que fez o defeito parecer "corrupção de VRAM" por uma sessão inteira.
+   Por isso `--dump-vram-every` agora grava também `<prefixo>-N-fb.png`, gerado pelo
+   `framebuffer()` de verdade, com a profundidade correta e o GPUSTAT no log.
+2. A "FMV granulada" de Silent Hill e Tomb Raider III nunca foi granulação: era o mesmo
+   defeito, visto num quadro escuro.
+
+**O MDEC já tinha sido descartado, e corretamente.** Os quatro oráculos de hardware passam
+limpos: `tests/exes/ps1-tests/mdec/frame/{15,24}bit{,-dma}.exe` e `.../movie/movie-15bit.exe`
+(4.255 linhas `ok`, zero falhas). O MDEC vinha entregando pixels certos o tempo todo — só
+eram exibidos errado.
 
 ## Corrigido depois: tempo de seek (destravou o RE2)
 

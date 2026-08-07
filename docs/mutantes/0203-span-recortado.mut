@@ -10,12 +10,12 @@ rotulo: cor gouraud volta a interpolar pelo span ja recortado (xl/xr pos-clip)
 ocorrencias: 1
 teste: gpu_span_recortado
 @@DE
-                } else if gouraud && dx_span > 0 {
-                    lerp_color(cl, cr, x - xl_span, dx_span)
+                } else if gouraud {
+                    color24_to_16(lerp_color24_attrib(cl, cr, x - xl_span, dx_span))
                 } else {
 @@PARA
-                } else if gouraud && dx_span > 0 {
-                    lerp_color(cl, cr, x - xl, xr - xl)
+                } else if gouraud {
+                    color24_to_16(lerp_color24_attrib(cl, cr, x - xl, xr - xl))
                 } else {
 @@FIM
 
@@ -24,17 +24,9 @@ rotulo: tex_u volta a interpolar pelo span ja recortado
 ocorrencias: 1
 teste: gpu_span_recortado
 @@DE
-                    let tex_u = if dx_span > 0 {
-                        lerp_i32(ul, ur, x - xl_span, dx_span)
-                    } else {
-                        ul
-                    };
+                    let tex_u = attrib_at(ul, step_u, x - xl_span);
 @@PARA
-                    let tex_u = if dx_span > 0 {
-                        lerp_i32(ul, ur, x - xl, xr - xl)
-                    } else {
-                        ul
-                    };
+                    let tex_u = attrib_at(ul, attrib_step(ul, ur, xr - xl), x - xl);
 @@FIM
 
 mutante: m3
@@ -42,17 +34,9 @@ rotulo: tex_v volta a interpolar pelo span ja recortado
 ocorrencias: 1
 teste: gpu_span_recortado
 @@DE
-                    let tex_v = if dx_span > 0 {
-                        lerp_i32(vl, vr, x - xl_span, dx_span)
-                    } else {
-                        vl
-                    };
+                    let tex_v = attrib_at(vl, step_v, x - xl_span);
 @@PARA
-                    let tex_v = if dx_span > 0 {
-                        lerp_i32(vl, vr, x - xl, xr - xl)
-                    } else {
-                        vl
-                    };
+                    let tex_v = attrib_at(vl, attrib_step(vl, vr, xr - xl), x - xl);
 @@FIM
 
 mutante: m4

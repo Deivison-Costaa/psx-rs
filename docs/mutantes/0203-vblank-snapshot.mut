@@ -20,9 +20,9 @@ rotulo: framebuffer volta a ler VRAM ao vivo em vez do snapshot
 ocorrencias: 1
 teste: gpu_vblank_snapshot
 @@DE
-                let pixel = self.display_snapshot[vy * 1024 + vx];
+                    let pixel = self.display_snapshot[row + ((start_x + x) & 0x3FF)];
 @@PARA
-                let pixel = self.vram[vy * 1024 + vx];
+                    let pixel = self.vram[row + ((start_x + x) & 0x3FF)];
 @@FIM
 
 mutante: m3

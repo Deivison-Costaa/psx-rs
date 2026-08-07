@@ -512,7 +512,8 @@ fn main() {
                     Err(e) => {
                         eprintln!(
                             "Erro: '--disasm' espera numero de instrucoes, '{}': {}",
-                            args[i + 2], e
+                            args[i + 2],
+                            e
                         );
                         std::process::exit(1);
                     }

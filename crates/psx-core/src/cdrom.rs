@@ -342,7 +342,18 @@ impl Cdrom {
     fn aborta_leitura(cmd: u8) -> bool {
         matches!(
             cmd,
-            0x03 | 0x06 | 0x07 | 0x08 | 0x09 | 0x0A | 0x12 | 0x15 | 0x16 | 0x1A | 0x1B | 0x1C | 0x1E
+            0x03 | 0x06
+                | 0x07
+                | 0x08
+                | 0x09
+                | 0x0A
+                | 0x12
+                | 0x15
+                | 0x16
+                | 0x1A
+                | 0x1B
+                | 0x1C
+                | 0x1E
         )
     }
 
@@ -457,11 +468,7 @@ impl Cdrom {
         self.second_cycles.get()
     }
 
-    pub fn deliver_first(
-        &self,
-        disc_layout: Option<&DiscLayout>,
-        disc_bin: Option<&[u8]>,
-    ) -> bool {
+    pub fn deliver_first(&self, disc_layout: Option<&DiscLayout>, disc_bin: Option<&[u8]>) -> bool {
         // § First Response (06-cdrom.md L1984): o mainloop so executa o comando se NAO
         // houver INT pendente — qualquer INT sem ack, nao so int1_pending/int2_pending
         // (essas flags marcam "resposta ainda devida", nao "intsts sem ack").

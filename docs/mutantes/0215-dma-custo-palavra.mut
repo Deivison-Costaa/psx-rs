@@ -1,0 +1,80 @@
+# Manifesto de mutação da iteração 0215 — dma-custo-palavra
+formato: 1
+iteracao: 0215
+item: 0215.1
+alvo: crates/psx-core/src/dma.rs
+teste: dma_custo_transferencia
+
+mutante: m1
+rotulo: CDROM troca de custo com SPU
+@@DE
+            3 => 6144,            // CDROM (BIOS default)
+            4 => 1056,            // SPU
+@@PARA
+            3 => 1056,            // CDROM (BIOS default)
+            4 => 6144,            // SPU
+@@FIM
+
+mutante: m2
+rotulo: SPU troca de custo com PIO
+@@DE
+            4 => 1056,            // SPU
+            5 => 5120,            // PIO
+@@PARA
+            4 => 5120,            // SPU
+            5 => 1056,            // PIO
+@@FIM
+
+mutante: m3
+rotulo: MDEC/GPU/OTC perdem a fracao 17/16 e viram 1 clk/palavra plano
+@@DE
+            0 | 1 | 2 | 6 => 272, // MDEC.IN, MDEC.OUT, GPU, OTC
+@@PARA
+            0 | 1 | 2 | 6 => 256, // MDEC.IN, MDEC.OUT, GPU, OTC
+@@FIM
+
+mutante: m4
+rotulo: divisor da razao vira 255 em vez de 256 (100h)
+@@DE
+        words as u64 * Self::word_cost_per_256(channel) as u64 / 256
+@@PARA
+        words as u64 * Self::word_cost_per_256(channel) as u64 / 255
+@@FIM
+
+mutante: m5
+rotulo: transfer_cost perde a divisao — custo bruto sem normalizar por palavra
+@@DE
+        words as u64 * Self::word_cost_per_256(channel) as u64 / 256
+@@PARA
+        words as u64 * Self::word_cost_per_256(channel) as u64
+@@FIM
+
+mutante: m6
+rotulo: canal invalido (7+) custa como MDEC.IN em vez de zero
+@@DE
+            _ => 0,
+        }
+    }
+@@PARA
+            _ => 272,
+        }
+    }
+@@FIM
+
+controle: c1
+rotulo: comentario antes da tabela
+@@DE
+    pub fn word_cost_per_256(channel: usize) -> u32 {
+@@PARA
+    // tabela derivada da spec, um braco por canal
+    pub fn word_cost_per_256(channel: usize) -> u32 {
+@@FIM
+
+controle: c2
+rotulo: comentario antes de transfer_cost
+@@DE
+    pub fn transfer_cost(channel: usize, words: u32) -> u64 {
+@@PARA
+    // funcao pura, sem chamador ainda -- o Degrau 9 liga isso no tick de verdade
+    pub fn transfer_cost(channel: usize, words: u32) -> u64 {
+@@FIM

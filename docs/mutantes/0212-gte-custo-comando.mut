@@ -1,0 +1,73 @@
+# Manifesto de mutação da iteração 0212 — gte-custo-comando
+formato: 1
+iteracao: 0212
+item: 0212.1
+alvo: crates/psx-core/src/gte.rs
+teste: gte_custo_comando
+
+mutante: m1
+rotulo: RTPT troca de custo com RTPS
+@@DE
+            0x30 => 23, // RTPT
+@@PARA
+            0x30 => 15, // RTPT
+@@FIM
+
+mutante: m2
+rotulo: NCDT troca de custo com NCCT
+@@DE
+            0x16 => 44, // NCDT
+@@PARA
+            0x16 => 39, // NCDT
+@@FIM
+
+mutante: m3
+rotulo: CDP herda o custo de CC (a armadilha do braco compartilhado color_color)
+@@DE
+            0x14 => 13, // CDP
+@@PARA
+            0x14 => 11, // CDP
+@@FIM
+
+mutante: m4
+rotulo: AVSZ4 troca de custo com AVSZ3/SQR
+@@DE
+            0x2E => 6,  // AVSZ4
+@@PARA
+            0x2E => 5,  // AVSZ4
+@@FIM
+
+mutante: m5
+rotulo: mascara do opcode perde o bit 5 (0x3F vira 0x1F)
+@@DE
+        match func & 0x3F {
+@@PARA
+        match func & 0x1F {
+@@FIM
+
+mutante: m6
+rotulo: comando nao documentado custa 1 em vez de 0
+@@DE
+            0x2A => 17, // DPCT
+            _ => 0,
+@@PARA
+            0x2A => 17, // DPCT
+            _ => 1,
+@@FIM
+
+controle: c1
+rotulo: comentario antes da funcao
+@@DE
+    pub fn command_cycles(func: u32) -> u32 {
+@@PARA
+    // funcao pura, sem chamador ainda -- o Degrau 5 liga isso na CPU
+    pub fn command_cycles(func: u32) -> u32 {
+@@FIM
+
+controle: c2
+rotulo: comentario antes do primeiro braco da tabela
+@@DE
+            0x01 => 15, // RTPS
+@@PARA
+            0x01 => 15, // RTPS (perspective transformation, vertice unico)
+@@FIM

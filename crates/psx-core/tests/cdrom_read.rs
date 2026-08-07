@@ -145,6 +145,12 @@ fn read_s_retorna_int3_depois_int1_com_dados() {
     assert_ne!(data0, 0, "RDDATA retorna dados validos apos INT1");
 }
 
+// § INT1 Rate (06-cdrom.md L2093-2101): a cadencia de setores subsequentes de um
+// ReadN/ReadS e SystemClock*930h/4/44100Hz — 451584 ciclos em velocidade normal
+// (Setmode bit7=0, o padrao apos `Cdrom::new()`), nao os 0x6000 usados so pro primeiro
+// INT1 (que inclui tempo de seek, ainda desconhecido pela spec).
+const CADENCIA_SETOR_VELOCIDADE_NORMAL: u32 = 451_584;
+
 #[test]
 fn read_n_continua_apos_primeiro_acknowledge() {
     let mut bus = bus();
@@ -163,7 +169,7 @@ fn read_n_continua_apos_primeiro_acknowledge() {
 
     hclrctl_write(&mut bus, 0x07);
 
-    bus.tick_timers(0x6000);
+    bus.tick_timers(CADENCIA_SETOR_VELOCIDADE_NORMAL);
 
     let hintsts3 = hintsts_read_bank1(&mut bus);
     assert_eq!(
@@ -191,7 +197,7 @@ fn read_s_continua_apos_primeiro_acknowledge() {
 
     hclrctl_write(&mut bus, 0x07);
 
-    bus.tick_timers(0x6000);
+    bus.tick_timers(CADENCIA_SETOR_VELOCIDADE_NORMAL);
 
     let hintsts3 = hintsts_read_bank1(&mut bus);
     assert_eq!(

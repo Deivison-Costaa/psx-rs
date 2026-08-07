@@ -644,20 +644,26 @@ impl Cdrom {
         if pending == 6 && self.playing.get() && self.mode.get() & 0x04 != 0 {
             self.pending_second.set(6);
             self.int1_pending.set(true);
-            self.second_cycles
-                .set(Self::second_response_cycles_for(0x03));
+            self.second_cycles.set(self.sector_interval_cycles());
             return;
         }
         if pending == 5 && self.read_mode.get() != 0 {
             self.pending_second.set(5);
             self.int1_pending.set(true);
-            let read_cmd = if self.read_mode.get() == 2 {
-                0x1B
-            } else {
-                0x06
-            };
-            self.second_cycles
-                .set(Self::second_response_cycles_for(read_cmd));
+            self.second_cycles.set(self.sector_interval_cycles());
+        }
+    }
+
+    // § INT1 Rate (06-cdrom.md L2093-2101): a cadencia de INT1 durante streaming
+    // (CD-DA/CD-XA) precisa ser exata — SystemClock*930h/4/44100Hz em velocidade normal,
+    // metade disso em dobro de velocidade (bit7 do Setmode). SystemClock/44100 e
+    // CPU_CYCLES_PER_SAMPLE (spu.rs), ja usado pro tick do SPU.
+    fn sector_interval_cycles(&self) -> u64 {
+        const NORMAL: u64 = crate::spu::CPU_CYCLES_PER_SAMPLE * 0x930 / 4;
+        if self.mode.get() & 0x80 != 0 {
+            NORMAL / 2
+        } else {
+            NORMAL
         }
     }
 

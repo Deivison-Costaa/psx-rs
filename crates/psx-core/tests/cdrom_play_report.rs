@@ -5,7 +5,9 @@ use support::asm;
 
 const CD_BASE: u32 = 0x1F80_1800;
 const ESPERA_PRIMEIRA_RESPOSTA: u32 = 0x1_4000;
-const ESPERA_SEGUNDA_RESPOSTA: u32 = 0x6000;
+// § INT1 Rate (06-cdrom.md L2093-2101): cadencia real de relatorio em velocidade normal
+// (nenhum destes testes liga o bit7/Speed do Setmode) — 451584 ciclos.
+const ESPERA_SEGUNDA_RESPOSTA: u32 = 451_584;
 
 // § Setmode - Command 0Eh,mode (L685) de docs/reference/06-cdrom.md: bit2 = report.
 const MODE_REPORT: u8 = 0x04;

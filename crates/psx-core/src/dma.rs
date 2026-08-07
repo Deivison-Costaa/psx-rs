@@ -461,6 +461,26 @@ impl Dma {
     }
 }
 
+impl Dma {
+    // § DMA Transfer Rates (04-dma.md L217-227): ciclos por 100h(=256) palavras, a razao
+    // PRECISA (nao o "N clks/word" arredondado do cabecalho). Canal 3 (CDROM) fica no
+    // padrao da BIOS (24); jogos que reconfiguram pra 40 sao achado aberto -- a spec nao
+    // da a formula do registrador de memory control que decide (nota da L231).
+    pub fn word_cost_per_256(channel: usize) -> u32 {
+        match channel {
+            0 | 1 | 2 | 6 => 272, // MDEC.IN, MDEC.OUT, GPU, OTC
+            3 => 6144,            // CDROM (BIOS default)
+            4 => 1056,            // SPU
+            5 => 5120,            // PIO
+            _ => 0,
+        }
+    }
+
+    pub fn transfer_cost(channel: usize, words: u32) -> u64 {
+        words as u64 * Self::word_cost_per_256(channel) as u64 / 256
+    }
+}
+
 impl Default for Dma {
     fn default() -> Self {
         Self::new()

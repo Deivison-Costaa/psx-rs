@@ -26,37 +26,57 @@ Depois `md5sum pref-*.vram`. Hash que para de mudar = travado.
 Hash mudando ainda pode ser ruído de textura na VRAM. Confirme com
 `--vram-to-png entrada.vram saida.png` antes de comemorar.
 
-## Funcionando (13 de 15 títulos)
+## Classificação honesta
+
+Estão em três níveis, porque "não trava" **não** é a mesma coisa que "joga".
+
+### Jogável confirmado (2) — testado por humano
+
+**Crash Bandicoot** e **Rayman**. Renderizam a gameplay corretamente e respondem a input.
+
+### Passa do travamento, jogabilidade NÃO validada (11)
 
 Tekken 3, Final Fantasy VII, Final Fantasy VIII, Resident Evil 2, Resident Evil 3,
-Metal Gear Solid, Crash Team Racing, Crash Bandicoot, Gran Turismo 2 (Arcade **e**
-Simulation), **Tomb Raider I**, **Tomb Raider III**, **Silent Hill**.
+Metal Gear Solid, Crash Team Racing, Gran Turismo 2 (Arcade **e** Simulation),
+Tomb Raider I, Tomb Raider III, Silent Hill.
 
-CTR, GT2 e Resident Evil 2 foram destravados nesta sessão. O RE2 chega na tela de título
-completa (logo, menu LOAD GAME / NEW GAME / OPTION) — antes ficava 97% do tempo num
-busy-wait de 2 instruções em `0x80031D20/24`. O GT2 chega no menu de título no Arcade e numa
-corrida em andamento no Simulation.
+Esses deixaram de congelar e chegam a desenhar tela de título ou FMV. **Vários renderizam
+ruído depois de bootar bem** — o Tekken 3, por exemplo, desenha "NAMCO PRESENTS" e o logo da
+PlayStation perfeitamente aos 300M passos e degrada para ruído puro no framebuffer depois.
 
-**"Funcionando" aqui significa: rodou sem congelar pela janela medida, com a VRAM mudando
-continuamente e confirmação visual onde deu.** Nenhum foi jogado até o fim. Pode haver bug
-de gameplay, áudio, ou travamento mais adiante que a medição não alcança. Os discos
-secundários (FF7 2/3, FF8 2/3/4, MGS 2) só passaram por boot sanity check de 300M passos —
-ninguém chegou a testar troca de disco. O feedback mais útil é jogar de verdade e mais fundo
-do que a medição automática vai.
+### Ainda trava (2)
 
-## Ainda travando (2)
+Tomb Raider II e Final Fantasy IX (detalhe na seção abaixo).
+
+## A armadilha da métrica — leia antes de confiar em qualquer número aqui
+
+A medição automática desta sessão (**hash de VRAM mudando + histograma de PC**) prova
+**ausência de um travamento específico**, e nada além disso. Ela **não distingue jogável de
+lixo**: medidos lado a lado, Crash Bandicoot (jogável) e Tekken 3 (renderiza ruído) produzem
+o mesmo veredito — VRAM mudando até o fim e áudio do mesmo tamanho.
+
+O que separa os dois só aparece **olhando a imagem** (`--vram-to-png`) ou jogando. Foi um
+teste humano que corrigiu o placar de "13 de 15 funcionam" para "2 jogáveis".
+
+Isso é o caso clássico de métrica que mede o que é fácil medir em vez do que importa — o
+mesmo padrão que o projeto já registrou no scoreboard da 1.11b. **Antes de declarar um jogo
+bom, renderize o framebuffer e olhe.**
+
+Os discos secundários (FF7 2/3, FF8 2/3/4, MGS 2) só passaram por boot sanity check de 300M
+passos; ninguém testou troca de disco.
+
+## Detalhe dos 2 que ainda travam
 
 | Jogo | Trava em | Tela no congelamento |
 |---|---|---|
-| Tomb Raider II | ~275M | mudou de comportamento com o fix do DICR, mas não confirmado |
+| Tomb Raider II | ~275M | mudou de comportamento com o fix do DICR, não confirmado |
 | Final Fantasy IX | ~400M | **branca**, logo já carregado na VRAM (travou num fade) |
 
-Os sintomas são diferentes entre si — **não presuma causa única**. TR1/TR3 travam sem
-desenhar nada; RE2/SH travam com a UI inteira pronta; FF9 no meio de uma transição.
+**Rodam perfeitamente no DuckStation**, com o mesmo BIOS e as mesmas imagens de disco
+(verificado por captura de tela). Ou seja: são bugs nossos, não dos jogos.
 
-**Todos os 6 rodam perfeitamente no DuckStation**, com o mesmo BIOS e as mesmas imagens de
-disco (verificado por captura de tela: os 6 passam do ponto de travamento e chegam a jogar).
-Ou seja: são bugs nossos, não dos jogos.
+Quando eram 6 os travados, os sintomas eram distintos entre si — **não presuma causa
+única**, e não presuma que estes 2 compartilham causa.
 
 ## Corrigido nesta sessão
 
@@ -164,12 +184,20 @@ depois           CPU presa oscilando em 0x80000080-90 pra sempre
 desce até a RAM baixa e apaga o vetor de exceção. Como o dado de entrada está provadamente
 correto, o que resta é timing.
 
-## Defeito conhecido e aberto: FMV sai ruidosa
+## Defeito aberto e mais importante: jogos renderizam ruído
 
-Agora que as FMVs finalmente decodificam de ponta a ponta, apareceu um defeito que estava
-escondido atrás dos travamentos: **a imagem sai granulada**. O logo da Eidos e o título do
-Silent Hill são legíveis, mas sobre fundo ruidoso. É MDEC ou o decodificador de bitstream —
-ninguém tinha visto antes porque nenhuma FMV chegava a decodificar.
+Vários jogos bootam e desenham corretamente, e depois passam a renderizar **ruído puro no
+framebuffer**. O Tekken 3 é o caso mais limpo de reproduzir: desenha "NAMCO PRESENTS" e o
+logo da PlayStation perfeitamente aos 300M passos, e aos 1.2B o framebuffer é só estática.
+As FMVs de Silent Hill e Tomb Raider III mostram os logos legíveis sobre fundo granulado.
+
+**O MDEC foi descartado como causa, por medição.** Os quatro oráculos de hardware do repo
+passam limpos: `tests/exes/ps1-tests/mdec/frame/{15,24}bit{,-dma}.exe` e
+`.../movie/movie-15bit.exe` (4.255 linhas `ok`, zero falhas). O `frame-15bit` decodifica a
+imagem de referência sem nenhum ruído — um pôr do sol sobre uma cidade costeira, limpo.
+
+Então o defeito está em outro lugar do caminho de vídeo: upload para a VRAM, área de
+display, formato de pixel, ou a rasterização da GPU. **Ainda não investigado.**
 
 ## Corrigido depois: tempo de seek (destravou o RE2)
 

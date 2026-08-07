@@ -31,8 +31,9 @@ pub struct Cdrom {
     seek_sec: Cell<u8>,
     seek_sect: Cell<u8>,
     #[serde(with = "crate::serde_grande::em_cell")]
-    data_buffer: Cell<[u8; 2048]>,
+    data_buffer: Cell<[u8; 2340]>,
     data_pos: Cell<usize>,
+    data_len: Cell<usize>,
     read_mode: Cell<u8>,
     hchpctl: Cell<u8>,
     irq_line: Cell<bool>,
@@ -80,8 +81,9 @@ impl Cdrom {
             seek_min: Cell::new(0),
             seek_sec: Cell::new(0),
             seek_sect: Cell::new(0),
-            data_buffer: Cell::new([0u8; 2048]),
+            data_buffer: Cell::new([0u8; 2340]),
             data_pos: Cell::new(0),
+            data_len: Cell::new(2048),
             read_mode: Cell::new(0),
             hchpctl: Cell::new(0),
             irq_line: Cell::new(false),
@@ -208,7 +210,7 @@ impl Cdrom {
         if !self.result_is_empty() {
             s |= 1 << 5;
         }
-        if self.data_pos.get() < 2048
+        if self.data_pos.get() < self.data_len.get()
             && self.read_mode.get() != 0
             && (self.hchpctl.get() & 0x80) != 0
         {
@@ -545,7 +547,7 @@ impl Cdrom {
             2 => {
                 let buf = self.data_buffer.get();
                 let pos = self.data_pos.get();
-                if pos < 2048 {
+                if pos < self.data_len.get() {
                     let val = buf[pos];
                     self.data_pos.set(pos + 1);
                     val
@@ -695,6 +697,15 @@ impl Cdrom {
                 self.result_clear();
                 self.result_push(self.stat_byte());
                 self.intsts.set(1);
+                // § Setmode (06-cdrom.md L685-703): bit5 troca entre 800h=DataOnly (2048,
+                // so os dados) e 924h=WholeSectorExceptSyncBytes (2340, cabecalho+subcabecalho+
+                // dados+EDC/ECC) — jogos que filtram quadro de FMV pelo subcabecalho dependem
+                // do segundo modo.
+                let sector_size = if self.mode.get() & 0x20 != 0 {
+                    2340
+                } else {
+                    2048
+                };
                 let buf = if let (Some(layout), Some(bin)) = (disc_layout, disc_bin) {
                     read_sector_from_disc(
                         layout,
@@ -702,6 +713,7 @@ impl Cdrom {
                         self.read_pos_mm.get(),
                         self.read_pos_ss.get(),
                         self.read_pos_ff.get(),
+                        sector_size,
                     )
                 } else {
                     None
@@ -709,12 +721,13 @@ impl Cdrom {
                 if let Some(buf) = buf {
                     self.data_buffer.set(buf);
                 } else {
-                    let mut stub = [0u8; 2048];
-                    for (i, b) in stub.iter_mut().enumerate() {
+                    let mut stub = [0u8; 2340];
+                    for (i, b) in stub.iter_mut().enumerate().take(sector_size) {
                         *b = (i as u8).wrapping_add(1);
                     }
                     self.data_buffer.set(stub);
                 }
+                self.data_len.set(sector_size);
                 self.data_pos.set(0);
                 self.hchpctl.set(0);
                 if self.mode.get() & 0x40 != 0 {
@@ -792,7 +805,9 @@ impl Cdrom {
     }
 
     pub fn drqsts_active(&self) -> bool {
-        self.data_pos.get() < 2048 && self.read_mode.get() != 0 && (self.hchpctl.get() & 0x80) != 0
+        self.data_pos.get() < self.data_len.get()
+            && self.read_mode.get() != 0
+            && (self.hchpctl.get() & 0x80) != 0
     }
 
     pub fn irq_pending(&self) -> bool {
@@ -868,7 +883,8 @@ fn read_sector_from_disc(
     min_bcd: u8,
     sec_bcd: u8,
     sect_bcd: u8,
-) -> Option<[u8; 2048]> {
+    sector_size: usize,
+) -> Option<[u8; 2340]> {
     let abs_sector =
         bcd_to_int(min_bcd) * 60 * 75 + bcd_to_int(sec_bcd) * 75 + bcd_to_int(sect_bcd);
     let file_sector = abs_sector.checked_sub(150)?;
@@ -881,13 +897,19 @@ fn read_sector_from_disc(
     } else {
         0x10
     };
-    let data_start = offset + cabecalho;
-    let data_end = data_start + 2048;
+    // § Setmode (06-cdrom.md L685-703): DataOnly comeca depois do cabecalho (Mode1=10h,
+    // Mode2=18h); WholeSectorExceptSyncBytes comeca logo apos os 12 bytes de sync.
+    let data_start = if sector_size == 2340 {
+        offset + 0x0C
+    } else {
+        offset + cabecalho
+    };
+    let data_end = data_start + sector_size;
     if data_end > bin.len() {
         return None;
     }
-    let mut buf = [0u8; 2048];
-    buf.copy_from_slice(&bin[data_start..data_end]);
+    let mut buf = [0u8; 2340];
+    buf[..sector_size].copy_from_slice(&bin[data_start..data_end]);
     Some(buf)
 }
 

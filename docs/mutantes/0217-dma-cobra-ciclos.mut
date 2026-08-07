@@ -1,0 +1,68 @@
+# Manifesto de mutação da iteração 0217 — dma-cobra-ciclos
+formato: 1
+iteracao: 0217
+item: 0217.1
+alvo: crates/psx-core/src/bus.rs
+teste: dma_cobra_ciclos
+
+mutante: m1
+rotulo: charge_dma calcula o custo mas nao o acumula (DMA volta a custar 0)
+@@DE
+    fn charge_dma(&mut self, channel: usize, words: usize) {
+        self.dma_extra_cycles += Dma::transfer_cost(channel, words as u32) as u32;
+    }
+@@PARA
+    fn charge_dma(&mut self, channel: usize, words: usize) {
+        let _ = Dma::transfer_cost(channel, words as u32) as u32;
+    }
+@@FIM
+
+mutante: m2
+rotulo: tick_timers para de somar o custo de DMA pendente
+@@DE
+        let cycles = cycles + std::mem::take(&mut self.dma_extra_cycles);
+@@PARA
+        let _ = std::mem::take(&mut self.dma_extra_cycles);
+@@FIM
+
+mutante: m3
+rotulo: charge_dma ignora a contagem de palavras (custo fixo por canal)
+@@DE
+        self.dma_extra_cycles += Dma::transfer_cost(channel, words as u32) as u32;
+@@PARA
+        self.dma_extra_cycles += Dma::word_cost_per_256(channel);
+@@FIM
+
+mutante: m4
+rotulo: tick_timers le o acumulador sem drenar — custo de DMA se repete no proximo tick
+@@DE
+        let cycles = cycles + std::mem::take(&mut self.dma_extra_cycles);
+@@PARA
+        let cycles = cycles + self.dma_extra_cycles;
+@@FIM
+
+mutante: m5
+rotulo: charge_dma sobrescreve em vez de acumular — dois DMAs no mesmo tick perdem o primeiro
+@@DE
+        self.dma_extra_cycles += Dma::transfer_cost(channel, words as u32) as u32;
+@@PARA
+        self.dma_extra_cycles = Dma::transfer_cost(channel, words as u32) as u32;
+@@FIM
+
+controle: c1
+rotulo: comentario antes de charge_dma
+@@DE
+    fn charge_dma(&mut self, channel: usize, words: usize) {
+@@PARA
+    // chamado logo apos cada try_execute_* que efetivamente rodou
+    fn charge_dma(&mut self, channel: usize, words: usize) {
+@@FIM
+
+controle: c2
+rotulo: comentario antes de tick_timers
+@@DE
+    pub fn tick_timers(&mut self, cycles: u32) {
+@@PARA
+    // ponto unico onde o tempo da CPU avanca de verdade
+    pub fn tick_timers(&mut self, cycles: u32) {
+@@FIM

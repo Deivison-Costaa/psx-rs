@@ -26,12 +26,15 @@ Depois `md5sum pref-*.vram`. Hash que para de mudar = travado.
 Hash mudando ainda pode ser ruído de textura na VRAM. Confirme com
 `--vram-to-png entrada.vram saida.png` antes de comemorar.
 
-## Funcionando (9 de 15 títulos)
+## Funcionando (10 de 15 títulos)
 
-Tekken 3, Final Fantasy VII, Final Fantasy VIII, Resident Evil 3, Metal Gear Solid,
-Crash Team Racing, Crash Bandicoot, Gran Turismo 2 (Arcade **e** Simulation).
+Tekken 3, Final Fantasy VII, Final Fantasy VIII, **Resident Evil 2**, Resident Evil 3,
+Metal Gear Solid, Crash Team Racing, Crash Bandicoot, Gran Turismo 2 (Arcade **e**
+Simulation).
 
-CTR e GT2 foram destravados nesta sessão. O GT2 chega no menu de título no Arcade e numa
+CTR, GT2 e Resident Evil 2 foram destravados nesta sessão. O RE2 chega na tela de título
+completa (logo, menu LOAD GAME / NEW GAME / OPTION) — antes ficava 97% do tempo num
+busy-wait de 2 instruções em `0x80031D20/24`. O GT2 chega no menu de título no Arcade e numa
 corrida em andamento no Simulation.
 
 **"Funcionando" aqui significa: rodou sem congelar pela janela medida, com a VRAM mudando
@@ -41,14 +44,13 @@ secundários (FF7 2/3, FF8 2/3/4, MGS 2) só passaram por boot sanity check de 3
 ninguém chegou a testar troca de disco. O feedback mais útil é jogar de verdade e mais fundo
 do que a medição automática vai.
 
-## Ainda travando (6)
+## Ainda travando (5)
 
 | Jogo | Trava em | Tela no congelamento |
 |---|---|---|
 | Tomb Raider I | ~200M passos | **preta** — trava antes de desenhar |
 | Tomb Raider II | ~275M | congelada |
 | Tomb Raider III | ~275M | **preta** |
-| Resident Evil 2 | ~300M | tela de título desenhada e parada |
 | Silent Hill | ~500M | título "SILENT HILL" desenhado e parado |
 | Final Fantasy IX | ~400M | **branca**, logo já carregado na VRAM (travou num fade) |
 
@@ -135,11 +137,12 @@ depois           CPU presa oscilando em 0x80000080-90 pra sempre
 desce até a RAM baixa e apaga o vetor de exceção. Como o dado de entrada está provadamente
 correto, o que resta é timing.
 
-## Suspeita atual (em investigação)
+## Corrigido depois: tempo de seek (destravou o RE2)
 
-**O tempo de seek é uma constante fixa.** `second_response_cycles_for` devolve `0x4A00`
+O tempo de seek era uma **constante fixa**: `second_response_cycles_for` devolvia `0x4A00`
 (18.944 ciclos ≈ 0,56 ms) para praticamente todo comando, incluindo SeekL/SeekP —
-independente da distância e idêntico em toda repetição.
+independente da distância e idêntico em toda repetição. Agora depende da distância em
+quadros e varia por busca (LCG determinístico no estado, para não quebrar save state).
 
 Dois problemas:
 1. A própria spec mede um `Pause` em `0x21181C` (~2,1 milhões de ciclos). Fazemos um *seek

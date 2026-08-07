@@ -7,10 +7,11 @@
 
 ## Última iteração concluída
 
-**0221 — escrita de byte nos offsets 1-3 dos registradores de DMA.** O jogo liga/desliga a
-máscara do canal no DICR por read-modify-write de 1 byte em `1F8010F6h`; a leitura devolvia
-zero fixo e a escrita era descartada. **Destravou Tomb Raider I e III e Silent Hill.**
-Estado de cada jogo em `docs/estado-dos-jogos.md` (leia antes de investigar travamento).
+**0222 — a área de display em 24bpp (FMV).** `Gpu::framebuffer()` lia sempre 15bpp e
+ignorava GPUSTAT.21, então toda FMV saía como ruído no app e no `--vram-to-png` (o MDEC
+estava certo). Silent Hill, Tomb Raider I e III agora exibem os vídeos. `--dump-vram-every`
+grava também `<dump>.tela.png`: a VRAM crua não carrega a profundidade e mentia. Achados
+abertos 0222.2/0222.3 (oráculo `mdec/frame`). Estado por jogo em `docs/estado-dos-jogos.md`.
 
 ## Próxima tarefa
 

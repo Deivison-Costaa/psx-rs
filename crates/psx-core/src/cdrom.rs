@@ -606,6 +606,7 @@ impl Cdrom {
                     self.busy.set(false);
                 } else {
                     let busca = self.second_response_cycles_for(0x06);
+                    self.motor_on.set(true);
                     self.reading.set(true);
                     self.read_mode.set(1);
                     self.read_pos_mm.set(self.seek_min.get());
@@ -759,6 +760,7 @@ impl Cdrom {
                     self.intsts.set(5);
                     self.busy.set(false);
                 } else {
+                    self.motor_on.set(true);
                     self.seeking.set(true);
                     self.sector_ready.set(false);
                     self.result_push(self.stat_byte());
@@ -805,6 +807,7 @@ impl Cdrom {
                     self.busy.set(false);
                 } else {
                     let busca = self.second_response_cycles_for(0x1B);
+                    self.motor_on.set(true);
                     self.reading.set(true);
                     self.read_mode.set(2);
                     self.read_pos_mm.set(self.seek_min.get());
@@ -873,6 +876,30 @@ impl Cdrom {
                         self.result_push(0x10);
                         self.intsts.set(5);
                     }
+                }
+                self.busy.set(false);
+            }
+            // § MotorOn (06-cdrom.md L727-733): liga o motor e SO funciona se ele estava
+            // parado — com o motor ja ligado falha com INT5(stat,20h), que normalmente
+            // significa "numero errado de parametros" mas aqui significa "motor ja ligado".
+            // Sem disco, INT5(stat,80h).
+            0x07 => {
+                if !self.disc_inserted.get() {
+                    self.result_push(self.stat_byte() | 0x01);
+                    self.result_push(0x80);
+                    self.intsts.set(5);
+                } else if self.motor_on.get() {
+                    self.result_push(self.stat_byte() | 0x01);
+                    self.result_push(0x20);
+                    self.intsts.set(5);
+                } else {
+                    self.motor_on.set(true);
+                    self.result_push(self.stat_byte());
+                    self.intsts.set(3);
+                    self.int2_pending.set(true);
+                    self.pending_second.set(1);
+                    self.second_cycles
+                        .set(self.second_response_cycles_for(0x07));
                 }
                 self.busy.set(false);
             }

@@ -168,6 +168,7 @@ enum VramState {
         size: u8,
         textured: bool,
         semi_transparent: bool,
+        raw_texture: bool,
         color: u32,
         vertex: (i16, i16),
         uv: u32,
@@ -205,6 +206,8 @@ pub struct Gpu {
     odd_line: Cell<bool>,
     hblank_active: Cell<bool>,
     allow_upper_y: Cell<bool>,
+    rect_flip_x: Cell<bool>,
+    rect_flip_y: Cell<bool>,
     gpuread_latch: Cell<u32>,
     display_snapshot: Vec<u16>,
 }
@@ -251,6 +254,8 @@ impl Gpu {
             odd_line: Cell::new(false),
             hblank_active: Cell::new(false),
             allow_upper_y: Cell::new(false),
+            rect_flip_x: Cell::new(false),
+            rect_flip_y: Cell::new(false),
             gpuread_latch: Cell::new(0),
             display_snapshot: vec![0u16; 1024 * 512],
         }
@@ -614,11 +619,13 @@ impl Gpu {
                             let size = (cmd >> 3) & 0x3;
                             let textured = (cmd & 0x04) != 0;
                             let semi_transparent = (cmd & 0x02) != 0;
+                            let raw_texture = (cmd & 0x01) != 0;
                             let color = val & 0x00FF_FFFF;
                             VramState::RectRender {
                                 size,
                                 textured,
                                 semi_transparent,
+                                raw_texture,
                                 color,
                                 vertex: (0, 0),
                                 uv: 0,
@@ -655,6 +662,8 @@ impl Gpu {
                             }
                             let s = self.stat.get();
                             self.stat.set((s & !mask) | bits);
+                            self.rect_flip_x.set((param & (1 << 12)) != 0);
+                            self.rect_flip_y.set((param & (1 << 13)) != 0);
                             VramState::Idle
                         }
                         _ => VramState::Idle,
@@ -972,6 +981,7 @@ impl Gpu {
                 size,
                 textured,
                 semi_transparent,
+                raw_texture,
                 color,
                 mut vertex,
                 mut uv,
@@ -990,6 +1000,7 @@ impl Gpu {
                             size,
                             textured,
                             semi_transparent,
+                            raw_texture,
                             color,
                             vertex,
                             uv,
@@ -1003,6 +1014,7 @@ impl Gpu {
                             size,
                             textured,
                             semi_transparent,
+                            raw_texture,
                             color,
                             vertex,
                             uv,
@@ -1024,6 +1036,7 @@ impl Gpu {
                                 size,
                                 textured,
                                 semi_transparent,
+                                raw_texture,
                                 color,
                                 vertex,
                                 uv,
@@ -1039,6 +1052,8 @@ impl Gpu {
                                 width,
                                 height,
                                 semi_transparent,
+                                raw_texture,
+                                color,
                             );
                             self.stat.set(self.stat.get() | (1 << 26));
                             self.vram_state.set(VramState::Idle);
@@ -1050,6 +1065,7 @@ impl Gpu {
                             size,
                             textured,
                             semi_transparent,
+                            raw_texture,
                             color,
                             vertex,
                             uv,
@@ -1074,6 +1090,8 @@ impl Gpu {
                             width,
                             height,
                             semi_transparent,
+                            raw_texture,
+                            color,
                         );
                         self.stat.set(self.stat.get() | (1 << 26));
                         self.vram_state.set(VramState::Idle);
@@ -1757,6 +1775,8 @@ impl Gpu {
         w: u16,
         h: u16,
         semi_transparent: bool,
+        raw_texture: bool,
+        color: u32,
     ) {
         let (w_actual, h_actual) = match size {
             0 => (w as u32, h as u32),
@@ -1785,16 +1805,28 @@ impl Gpu {
         let draw_y0 = y_start.max(area_y1).max(0);
         let draw_y1 = (y_start + h_actual as i32).min(area_y2 + 1).min(512);
 
+        let (u_step, u_bias) = if self.rect_flip_x.get() {
+            (-1, 1)
+        } else {
+            (1, 0)
+        };
+        let v_step = if self.rect_flip_y.get() { -1 } else { 1 };
+
         for py in draw_y0..draw_y1 {
-            let v = (v_base + (py - y_start)) & 0xFF;
+            let v = (v_base + v_step * (py - y_start)) & 0xFF;
             for px in draw_x0..draw_x1 {
-                let u = (u_base + (px - x_start)) & 0xFF;
+                let u = (u_base + u_step * (px - x_start) + u_bias) & 0xFF;
                 let texel = self.sample_texel(u, v);
                 if texel == 0 {
                     continue;
                 }
+                let pixel = if raw_texture {
+                    texel
+                } else {
+                    modulate_texel(texel, color24_to_16(color))
+                };
                 let blend = blend_texturizado(semi_transparent, texel);
-                self.write_pixel(py as usize * 1024 + px as usize, texel, blend);
+                self.write_pixel(py as usize * 1024 + px as usize, pixel, blend);
             }
         }
     }
@@ -1931,6 +1963,8 @@ impl Gpu {
                 self.odd_line.set(false);
                 self.hblank_active.set(false);
                 self.allow_upper_y.set(false);
+                self.rect_flip_x.set(false);
+                self.rect_flip_y.set(false);
             }
             0x01 => {
                 self.vram_state.set(VramState::Idle);

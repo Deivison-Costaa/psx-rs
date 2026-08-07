@@ -1,0 +1,11 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: 7c12693007aae4a80555c1631dbf6520e3a4be8c
+# rodado_em: 2026-08-06T21:22:41-03:00
+m1,mutante,morreu,morreu,1.1,rtpt_custa_23
+m2,mutante,morreu,morreu,1.1,ncdt_custa_44
+m3,mutante,morreu,morreu,1.1,cdp_custa_13
+m4,mutante,morreu,morreu,1.1,avsz4_custa_6
+m5,mutante,morreu,morreu,1.1,avsz3_custa_5;avsz4_custa_6;dcpl_custa_8;dpct_custa_17;gpf_custa_5;gpl_custa_5;ncct_custa_39;nct_custa_30;rtpt_custa_23;sqr_custa_5
+m6,mutante,morreu,morreu,1,comando_nao_implementado_custa_zero
+c1,controle,sobreviveu,sobreviveu,1.1,
+c2,controle,sobreviveu,sobreviveu,1.1,

@@ -125,6 +125,14 @@ fn setloc_0_2_0_e_read(bus: &mut Bus) {
 /// de dado mais NOVO recebido pelo controlador (06-cdrom.md L1057-1059).
 fn getloc_l_apos_ack(bus: &mut Bus) -> (u8, u8, u8) {
     hclrctl_write(bus, 0x07);
+    // § Sector Buffer (06-cdrom.md L2112-2117): reconhecer o INT1 antigo faz o controlador
+    // "jump directly to INT1 for the newest sector" na hora — com setor em buffer, o ack
+    // nao deixa a linha livre, levanta o INT1 seguinte. Reconhece esse tambem, senao o
+    // GetlocL fica retido e responde o stat do INT1 em vez do cabecalho.
+    if hintsts(bus) == 1 {
+        let _ = result_read(bus);
+        hclrctl_write(bus, 0x07);
+    }
     send_command(bus, 0x10);
     let amm = result_read(bus);
     let ass = result_read(bus);

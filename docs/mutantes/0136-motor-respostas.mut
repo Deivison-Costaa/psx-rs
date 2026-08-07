@@ -57,19 +57,11 @@ rotulo: Pause lendo usa timing de drive parado
 mutante: m4
 rotulo: Read nao avanca a posicao entre setores
 @@DE
-                    self.last_data_sector.set(Some((
-                        self.read_pos_mm.get(),
-                        self.read_pos_ss.get(),
-                        self.read_pos_ff.get(),
-                    )));
-                    advance_read_pos(&self.read_pos_mm, &self.read_pos_ss, &self.read_pos_ff);
+                advance_read_pos(&self.read_pos_mm, &self.read_pos_ss, &self.read_pos_ff);
+                self.write_slot.set(((completo as usize + 1) % SLOTS) as u8);
 @@PARA
-                    self.last_data_sector.set(Some((
-                        self.read_pos_mm.get(),
-                        self.read_pos_ss.get(),
-                        self.read_pos_ff.get(),
-                    )));
-                    self.read_pos_ff.set(self.read_pos_ff.get());
+                self.read_pos_ff.set(self.read_pos_ff.get());
+                self.write_slot.set(((completo as usize + 1) % SLOTS) as u8);
 @@FIM
 
 mutante: m5

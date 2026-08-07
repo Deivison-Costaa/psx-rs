@@ -9,6 +9,10 @@ const PAUSE_IDLE_CYCLES: u64 = 0x1DF2;
 const STOP_MOTOR_CYCLES: u64 = 0x0D3_8ACA;
 const STOP_STOPPED_CYCLES: u64 = 0x1D7B;
 
+// § Sector Buffer (06-cdrom.md L2109-2111): "The buffer is apparently divided into 8 slots".
+const SLOTS: usize = 8;
+const SLOT_BYTES: usize = 2340;
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Cdrom {
     bank: Cell<u8>,
@@ -55,10 +59,16 @@ pub struct Cdrom {
     xa_state: Cell<XaState>,
     filter_file: Cell<u8>,
     filter_channel: Cell<u8>,
-    // § GetlocL (06-cdrom.md L1052-1071): devolve cabecalho+subcabecalho do setor de DADO
-    // mais recente entregue — precisa da posicao de ANTES do advance_read_pos, que ja
-    // avancou pra proxima leitura no momento em que o jogo manda GetlocL.
+    // § GetlocL (06-cdrom.md L1057-1059): "the GetlocL command returns the header and
+    // subheader of the <newest> buffered sector" — o mais NOVO completo, que diverge do
+    // setor que o INT1 esta entregando.
     last_data_sector: Cell<Option<(u8, u8, u8)>>,
+    #[serde(with = "crate::serde_grande::em_cell")]
+    sector_slots: Cell<[u8; SLOTS * SLOT_BYTES]>,
+    write_slot: Cell<u8>,
+    newest_slot: Cell<u8>,
+    int1_slot: Cell<u8>,
+    sector_ready: Cell<bool>,
 }
 
 /// Quatro setores de CD-DA. Se o jogo le mais rapido do que o SPU consome, o excedente
@@ -112,7 +122,92 @@ impl Cdrom {
             filter_file: Cell::new(0),
             filter_channel: Cell::new(0),
             last_data_sector: Cell::new(None),
+            sector_slots: Cell::new([0u8; SLOTS * SLOT_BYTES]),
+            write_slot: Cell::new(0),
+            newest_slot: Cell::new(0),
+            int1_slot: Cell::new(0),
+            sector_ready: Cell::new(false),
         }
+    }
+
+    fn slot_escreve(&self, slot: u8, dados: &[u8; SLOT_BYTES]) {
+        let mut todos = self.sector_slots.get();
+        let inicio = (slot as usize % SLOTS) * SLOT_BYTES;
+        todos[inicio..inicio + SLOT_BYTES].copy_from_slice(dados);
+        self.sector_slots.set(todos);
+    }
+
+    fn slot_le(&self, slot: u8) -> [u8; SLOT_BYTES] {
+        let todos = self.sector_slots.get();
+        let inicio = (slot as usize % SLOTS) * SLOT_BYTES;
+        let mut saida = [0u8; SLOT_BYTES];
+        saida.copy_from_slice(&todos[inicio..inicio + SLOT_BYTES]);
+        saida
+    }
+
+    // § Setmode (06-cdrom.md L685-703): bit5 troca entre 800h=DataOnly (2048) e
+    // 924h=WholeSectorExceptSyncBytes (2340).
+    fn sector_size(&self) -> usize {
+        if self.mode.get() & 0x20 != 0 {
+            SLOT_BYTES
+        } else {
+            2048
+        }
+    }
+
+    /// Grava no slot corrente o setor que o drive esta recebendo agora. O slot recebe o
+    /// conteudo assim que o setor comeca a chegar — e' o que faz o slot 1 mostrar o setor
+    /// 17 enquanto o mais novo COMPLETO ainda e' o 16 (06-cdrom.md L2158-2168).
+    fn grava_setor_em_voo(&self, disc_layout: Option<&DiscLayout>, disc_bin: Option<&[u8]>) {
+        let tam = self.sector_size();
+        let lido = match (disc_layout, disc_bin) {
+            (Some(layout), Some(bin)) => read_sector_from_disc(
+                layout,
+                bin,
+                self.read_pos_mm.get(),
+                self.read_pos_ss.get(),
+                self.read_pos_ff.get(),
+                tam,
+            ),
+            _ => None,
+        };
+        let buf = lido.unwrap_or_else(|| {
+            let mut stub = [0u8; SLOT_BYTES];
+            for (i, b) in stub.iter_mut().enumerate().take(tam) {
+                *b = (i as u8).wrapping_add(1);
+            }
+            stub
+        });
+        self.slot_escreve(self.write_slot.get(), &buf);
+    }
+
+    fn inicia_ring(&self, disc_layout: Option<&DiscLayout>, disc_bin: Option<&[u8]>) {
+        self.write_slot.set(0);
+        self.newest_slot.set(0);
+        self.int1_slot.set(0);
+        self.sector_ready.set(false);
+        self.last_data_sector.set(None);
+        self.grava_setor_em_voo(disc_layout, disc_bin);
+    }
+
+    /// § Buffer Overrun Timings (06-cdrom.md L758-782): o Data Request TRAVA o setor
+    /// pedido ("the requested data is locked"), entao o conteudo do slot e' copiado no
+    /// instante do pedido — nao no instante do INT1.
+    fn carrega_do_slot(&self) {
+        self.data_buffer.set(self.slot_le(self.int1_slot.get()));
+        self.data_len.set(self.sector_size());
+        self.data_pos.set(0);
+    }
+
+    fn levanta_int1(&self) {
+        self.busy.set(false);
+        self.result_clear();
+        self.result_push(self.stat_byte());
+        self.intsts.set(1);
+        self.int1_slot.set(self.newest_slot.get());
+        self.sector_ready.set(false);
+        self.hchpctl.set(0);
+        self.carrega_do_slot();
     }
 
     pub fn insert_disc(&self) {
@@ -313,16 +408,13 @@ impl Cdrom {
         (fim <= bin.len()).then(|| bin[inicio..fim].to_vec())
     }
 
-    fn decodifica_xa(&self, bin: Option<&[u8]>) {
-        let Some(cru) = self.setor_cru(bin) else {
-            return;
-        };
-        if !cdrom_xa::is_xa_audio_sector(&cru) {
+    fn decodifica_cru(&self, cru: &[u8]) {
+        if !cdrom_xa::is_xa_audio_sector(cru) {
             return;
         }
         let coding = cru[0x13];
         let mut estado = self.xa_state.get();
-        let quadros = cdrom_xa::decode_sector(&cru, cdrom_xa::xa_is_stereo(coding), &mut estado);
+        let quadros = cdrom_xa::decode_sector(cru, cdrom_xa::xa_is_stereo(coding), &mut estado);
         self.xa_state.set(estado);
         self.enfileira_audio(cdrom_xa::resample_to_44100(
             &quadros,
@@ -449,6 +541,7 @@ impl Cdrom {
                     self.read_pos_mm.set(self.seek_min.get());
                     self.read_pos_ss.set(self.seek_sec.get());
                     self.read_pos_ff.set(self.seek_sect.get());
+                    self.inicia_ring(disc_layout, disc_bin);
                     self.result_push(self.stat_byte());
                     self.intsts.set(3);
                     self.int1_pending.set(true);
@@ -459,6 +552,7 @@ impl Cdrom {
             }
             0x08 => {
                 self.int1_pending.set(false);
+                self.sector_ready.set(false);
                 let stat = self.stat_byte();
                 self.result_push(stat);
                 self.intsts.set(3);
@@ -475,6 +569,7 @@ impl Cdrom {
             }
             0x09 => {
                 self.int1_pending.set(false);
+                self.sector_ready.set(false);
                 let stat = self.stat_byte();
                 self.result_push(stat);
                 self.intsts.set(3);
@@ -596,6 +691,7 @@ impl Cdrom {
                     self.busy.set(false);
                 } else {
                     self.seeking.set(true);
+                    self.sector_ready.set(false);
                     self.result_push(self.stat_byte());
                     self.intsts.set(3);
                     self.int2_pending.set(true);
@@ -644,6 +740,7 @@ impl Cdrom {
                     self.read_pos_mm.set(self.seek_min.get());
                     self.read_pos_ss.set(self.seek_sec.get());
                     self.read_pos_ff.set(self.seek_sect.get());
+                    self.inicia_ring(disc_layout, disc_bin);
                     self.result_push(self.stat_byte());
                     self.intsts.set(3);
                     self.int1_pending.set(true);
@@ -760,7 +857,11 @@ impl Cdrom {
                 self.intmsk.set(val & 0x1F);
             }
             3 if self.bank.get() == 0 => {
+                let antes = self.hchpctl.get();
                 self.hchpctl.set(val);
+                if val & 0x80 != 0 && antes & 0x80 == 0 {
+                    self.carrega_do_slot();
+                }
             }
             3 if self.bank.get() == 1 => {
                 if val & 0x7 != 0 {
@@ -778,6 +879,12 @@ impl Cdrom {
                             self.irq_line.set(false);
                         } else if self.pending_cmd.get().is_some() {
                             self.deliver_first(disc_layout, disc_bin);
+                        } else if self.sector_ready.get() && self.read_mode.get() != 0 {
+                            // § Buffer Overrun Timings (06-cdrom.md L758-782): depois do
+                            // acknowledge vem a proxima interrupcao. O setor anunciado e' o
+                            // mais NOVO do buffer neste instante — o controlador "jumps
+                            // directly to INT1 for the newest sector" (L2115-2117).
+                            self.levanta_int1();
                         }
                     }
                 }
@@ -882,92 +989,48 @@ impl Cdrom {
                 self.intsts.set(2);
             }
             5 => {
+                let msf = (
+                    self.read_pos_mm.get(),
+                    self.read_pos_ss.get(),
+                    self.read_pos_ff.get(),
+                );
+                let completo = self.write_slot.get();
+                // O drive nunca para: o setor seguinte ja comeca a entrar no proximo slot
+                // do ring (06-cdrom.md L2109-2111 + L2118-2126).
+                advance_read_pos(&self.read_pos_mm, &self.read_pos_ss, &self.read_pos_ff);
+                self.write_slot.set(((completo as usize + 1) % SLOTS) as u8);
+                self.grava_setor_em_voo(disc_layout, disc_bin);
+
                 // § Data/ADPCM Sector Filtering/Delivery (06-cdrom.md L760-782): um setor
                 // Mode2 com submode Audio+RealTime (is_xa_audio_sector) e' entregue
                 // EXCLUSIVAMENTE ao decoder XA-ADPCM quando o modo tem XA-ADPCM ligado —
-                // "reject data-delivery if try_deliver_as_adpcm_sector did do adpcm-delivery".
-                // Sem esse desvio, um setor de audio intercalado no meio de um stream de
-                // video vira lixo no decompressor do jogo (achado real: Tomb Raider grava
-                // fora dos limites de um buffer de 8 slots e ate corrompe o vetor de
-                // excecao em RAM baixa quando isso acontece).
-                let cru = self.setor_cru(disc_bin);
+                // "reject data-delivery if try_deliver_as_adpcm_sector did do
+                // adpcm-delivery". Com o filtro ligado (Setmode bit3, § Setfilter
+                // L676-683) so o file/channel pedidos contam; os demais audio+realtime nao
+                // vao nem pro decoder nem pra CPU.
+                let cru = self.setor_cru_em(disc_bin, msf.0, msf.1, msf.2);
                 let audio_realtime = cru.as_deref().is_some_and(cdrom_xa::is_xa_audio_sector);
-                // § Setfilter (06-cdrom.md L676-683) + Data/ADPCM Sector Filtering/Delivery
-                // (L760-782): com o filtro ligado (Setmode bit3), so o file/channel
-                // selecionados por Setfilter contam como o canal de audio "certo" — os
-                // demais setores audio+realtime nao vao pro decoder XA (nao e o canal
-                // pedido) e TAMBEM nao vao pra CPU como dado ("reject if filter_enabled
-                // AND submode is audio+realtime" vale pro caminho de dado tambem).
                 let filtro_ligado = self.mode.get() & 0x08 != 0;
                 let canal_bate = cru.as_deref().is_some_and(|c| {
                     c[0x10] == self.filter_file.get() && c[0x11] == self.filter_channel.get()
                 });
                 let xa_ligado = self.mode.get() & 0x40 != 0;
-                let vai_pro_adpcm =
-                    xa_ligado && audio_realtime && (!filtro_ligado || canal_bate);
+                let vai_pro_adpcm = xa_ligado && audio_realtime && (!filtro_ligado || canal_bate);
                 let descartado_pelo_filtro = !vai_pro_adpcm && audio_realtime && filtro_ligado;
                 if vai_pro_adpcm {
-                    self.decodifica_xa(disc_bin);
-                    advance_read_pos(&self.read_pos_mm, &self.read_pos_ss, &self.read_pos_ff);
-                } else if descartado_pelo_filtro {
-                    advance_read_pos(&self.read_pos_mm, &self.read_pos_ss, &self.read_pos_ff);
-                } else {
+                    if let Some(c) = cru.as_deref() {
+                        self.decodifica_cru(c);
+                    }
+                } else if !descartado_pelo_filtro {
+                    self.last_data_sector.set(Some(msf));
+                    self.newest_slot.set(completo);
+                    self.sector_ready.set(true);
                     // § Sector Buffer (06-cdrom.md L2118-2126): com a INT1 anterior ainda
-                    // sem ack nao ha como levantar outra — o setor antigo e' perdido
-                    // "without notice" (sem flag de overrun, sem INT de erro) e o novo
-                    // toma o lugar dele no buffer.
-                    let overrun = self.intsts.get() != 0;
-                    // § Buffer Overrun Timings (06-cdrom.md L952-954): overrun DEPOIS do
-                    // Data Request nao estraga o setor pedido — "the requested data is
-                    // locked, and the overrun will affect only the following sectors".
-                    let travado = overrun && self.hchpctl.get() & 0x80 != 0;
-                    if !overrun {
-                        self.busy.set(false);
-                        self.result_clear();
-                        self.result_push(self.stat_byte());
-                        self.intsts.set(1);
+                    // sem ack nao ha como levantar outra — os setores pulados somem
+                    // "without notice", sem flag de overrun e sem INT de erro.
+                    if self.intsts.get() == 0 {
+                        self.levanta_int1();
                     }
-                    // § Setmode (06-cdrom.md L685-703): bit5 troca entre 800h=DataOnly
-                    // (2048, so os dados) e 924h=WholeSectorExceptSyncBytes (2340,
-                    // cabecalho+subcabecalho+dados+EDC/ECC) — jogos que filtram quadro de
-                    // FMV pelo subcabecalho dependem do segundo modo.
-                    let sector_size = if self.mode.get() & 0x20 != 0 {
-                        2340
-                    } else {
-                        2048
-                    };
-                    if !travado {
-                        let buf = if let (Some(layout), Some(bin)) = (disc_layout, disc_bin) {
-                            read_sector_from_disc(
-                                layout,
-                                bin,
-                                self.read_pos_mm.get(),
-                                self.read_pos_ss.get(),
-                                self.read_pos_ff.get(),
-                                sector_size,
-                            )
-                        } else {
-                            None
-                        };
-                        if let Some(buf) = buf {
-                            self.data_buffer.set(buf);
-                        } else {
-                            let mut stub = [0u8; 2340];
-                            for (i, b) in stub.iter_mut().enumerate().take(sector_size) {
-                                *b = (i as u8).wrapping_add(1);
-                            }
-                            self.data_buffer.set(stub);
-                        }
-                        self.data_len.set(sector_size);
-                        self.data_pos.set(0);
-                        self.hchpctl.set(0);
-                    }
-                    self.last_data_sector.set(Some((
-                        self.read_pos_mm.get(),
-                        self.read_pos_ss.get(),
-                        self.read_pos_ff.get(),
-                    )));
-                    advance_read_pos(&self.read_pos_mm, &self.read_pos_ss, &self.read_pos_ff);
                 }
             }
             6 => {

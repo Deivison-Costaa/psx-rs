@@ -233,7 +233,11 @@ fn pause_durante_leitura_leva_o_tempo_de_5_setores() {
     send_command(&mut bus, 0x06);
     let _ = result_read(&mut bus);
     ack(&mut bus);
-    bus.tick_timers(ESPERA_GENEROSA);
+    // § Sector Buffer VS Pause Response Tests (06-cdrom.md L2216-2222): so' o caso SEM
+    // atraso da o INT3 do Pause direto. Com atraso (L2225-2231) a spec mediu um
+    // "Process INT1 --> 0:2:1 (oldest)" ANTES do INT3 — esperar generoso aqui punha um
+    // setor bufferizado na frente do Pause e nao media mais o tempo do Pause.
+    bus.tick_timers(ESPERA_PRIMEIRO_SETOR);
     assert_eq!(hintsts(&mut bus), 1, "INT1 do primeiro setor");
     let _ = result_read(&mut bus);
     ack(&mut bus);
@@ -242,7 +246,7 @@ fn pause_durante_leitura_leva_o_tempo_de_5_setores() {
     assert_eq!(
         hintsts(&mut bus),
         3,
-        "INT3 do Pause — nada de INT1 atropelando"
+        "INT3 do Pause — sem setor bufferizado, nada de INT1 atropelando"
     );
     let _ = result_read(&mut bus);
     ack(&mut bus);

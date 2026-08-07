@@ -73,6 +73,18 @@ impl Dma {
         self.recalc_master_flag();
     }
 
+    pub fn write_dicr_byte(&mut self, byte_index: u32, val: u8) {
+        let shift = byte_index * 8;
+        let val = (val as u32) << shift;
+        if byte_index == 3 {
+            self.dicr &= !(val & 0x7F00_0000);
+        } else {
+            let gravavel = 0x00FF_807F & (0xFFu32 << shift);
+            self.dicr = (self.dicr & !gravavel) | (val & gravavel);
+        }
+        self.recalc_master_flag();
+    }
+
     fn recalc_master_flag(&mut self) {
         let bus_error = self.dicr & (1 << 15) != 0;
         let master_enable = self.dicr & (1 << 23) != 0;

@@ -1,11 +1,11 @@
 # gerado por scripts/mutantes.ps1 — NAO editar a mao
-# commit: 9c07afa6682abd07716e5d12fd732164ec106d6f
-# rodado_em: 2026-08-06T13:59:07-03:00
-m1,mutante,morreu,morreu,1.2,mem_ctrl_read16_wraps_byte_index_at_word_end
-m2,mutante,morreu,morreu,1.2,mem_ctrl_mirror_read16_wraps_byte_index_at_word_end
+# commit: 90191824716b253a1080161bf0bb72a699ea31d8
+# rodado_em: 2026-08-07T12:36:50-03:00
+m1,mutante,morreu,morreu,1.1,mem_ctrl_read16_wraps_byte_index_at_word_end
+m2,mutante,morreu,morreu,1.1,mem_ctrl_mirror_read16_wraps_byte_index_at_word_end
 m3,mutante,morreu,morreu,1.1,bcc_read16_wraps_byte_index_at_word_end
-m4,mutante,morreu,morreu,1.2,dma_read16_wraps_byte_index_at_word_end
-m5,mutante,morreu,morreu,1.2,mem_ctrl_read16_wraps_byte_index_at_word_end
-m6,mutante,morreu,morreu,1.1,bcc_read16_wraps_byte_index_at_word_end
-c1,controle,sobreviveu,sobreviveu,1.2,
-c2,controle,sobreviveu,sobreviveu,1.1,
+m4,mutante,morreu,morreu,1.1,dma_read16_wraps_byte_index_at_word_end
+m5,mutante,morreu,morreu,2.1,mem_ctrl_read16_wraps_byte_index_at_word_end
+m6,mutante,morreu,morreu,1.2,bcc_read16_wraps_byte_index_at_word_end
+c1,controle,sobreviveu,sobreviveu,2.5,
+c2,controle,sobreviveu,sobreviveu,5.8,

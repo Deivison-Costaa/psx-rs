@@ -6,6 +6,7 @@ use support::asm;
 const DPCR: u32 = 0x1F80_10F0;
 const DICR: u32 = 0x1F80_10F4;
 const DICR_BYTE2: u32 = 0x1F80_10F6;
+const DICR_BYTE3: u32 = 0x1F80_10F7;
 const D6_MADR: u32 = 0x1F80_10E0;
 const D6_BCR: u32 = 0x1F80_10E4;
 const D6_CHCR: u32 = 0x1F80_10E8;
@@ -53,6 +54,48 @@ fn lhu_na_metade_alta_do_dicr_devolve_mascara_e_master() {
         0x0088,
         "a meia-palavra alta do DICR sao os bits 16-31; sem flag de conclusao e sem bus \
          error o b31 esta baixo e sobra 0088h"
+    );
+}
+
+#[test]
+fn sb_no_quarto_byte_do_dicr_reconhece_o_flag_de_conclusao() {
+    let mut bus = bus();
+    bus.write32::<BusWrite>(DICR, MASTER | MASCARA_CH6);
+    conclui_otc(&mut bus);
+    assert_ne!(
+        dicr(&bus) & FLAG_CH6,
+        0,
+        "pre-condicao: flag do canal 6 alto"
+    );
+
+    // O byte 3 do DICR sao os bits 24-31: escrever 1 no bit do canal reconhece o flag.
+    bus.write8_gpr_completo::<BusWrite>(DICR_BYTE3, 0x0000_0040);
+
+    assert_eq!(
+        dicr(&bus) & FLAG_CH6,
+        0,
+        "o byte alto mantem a semantica de ack por escrita de 1, mesmo alcancado por uma \
+         escrita de byte"
+    );
+}
+
+#[test]
+fn sb_no_quarto_byte_do_dicr_nao_acende_flag_que_estava_apagado() {
+    let mut bus = bus();
+    bus.write32::<BusWrite>(DICR, MASTER | MASCARA_CH6);
+    assert_eq!(
+        dicr(&bus) & FLAG_CH6,
+        0,
+        "pre-condicao: flag do canal 6 baixo"
+    );
+
+    bus.write8_gpr_completo::<BusWrite>(DICR_BYTE3, 0x0000_0040);
+
+    assert_eq!(
+        dicr(&bus) & FLAG_CH6,
+        0,
+        "escrever 1 nos bits 24-30 so reseta; nunca acende um flag de conclusao que o DMA \
+         nao levantou"
     );
 }
 

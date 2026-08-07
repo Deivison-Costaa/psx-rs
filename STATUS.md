@@ -7,11 +7,10 @@
 
 ## Última iteração concluída
 
-**0217 — Degrau 9 (ÚLTIMO da escada), branch `iter/0217-dma-cobra-ciclos`, PR não aberto.**
-DMA cobra ciclos de verdade: `try_execute_*`/`execute_*` (dma.rs) devolvem as palavras
-transferidas; `Bus::charge_dma` vira `Dma::transfer_cost` em `dma_extra_cycles`, drenado no
-próximo `tick_timers` (padrão de `Cpu::extra_cycles`). Bateria 5/5+2/2; 7 manifestos antigos
-reancorados (`()→usize`) sem regressão. **Rayman (0216) ainda sem disco real pra rerodar.**
+**0221 — escrita de byte nos offsets 1-3 dos registradores de DMA.** O jogo liga/desliga a
+máscara do canal no DICR por read-modify-write de 1 byte em `1F8010F6h`; a leitura devolvia
+zero fixo e a escrita era descartada. **Destravou Tomb Raider I e III e Silent Hill.**
+Estado de cada jogo em `docs/estado-dos-jogos.md` (leia antes de investigar travamento).
 
 ## Próxima tarefa
 
@@ -62,7 +61,7 @@ escada de timing), 34 (acumulador de ciclos extras é estado de pipeline).
 
 ## Placar de testes
 
-Workspace: **1392** testes.
+Workspace: **1400** testes.
 - **NUNCA rodar `cargo test`/`nextest` nem a bateria de mutação junto com o oráculo**: a
   disputa de CPU faz o `Start-Process` ler stdout antes do flush e reportar `sem-saida`
   falso. Derrubou 16/21 numa medição da 0170; rodada limpa deu 21/21.

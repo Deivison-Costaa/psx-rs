@@ -1,0 +1,82 @@
+# Manifesto de mutacao da iteracao 0221 — escrita de byte no DICR
+formato: 1
+iteracao: 0221
+item: 0221.1
+alvo: crates/psx-core/src/dma.rs
+teste: dma_dicr_escrita_de_byte
+
+mutante: m1
+rotulo: byte 3 deixa de ser ack e vira gravacao direta
+ocorrencias: 1
+teste: dma_dicr_escrita_de_byte
+@@DE
+        if byte_index == 3 {
+            self.dicr &= !(val & 0x7F00_0000);
+@@PARA
+        if byte_index == 3 {
+            self.dicr |= val & 0x7F00_0000;
+@@FIM
+
+mutante: m2
+rotulo: byte 2 escreve sem preservar o resto do registrador
+ocorrencias: 1
+teste: dma_dicr_escrita_de_byte
+@@DE
+            let gravavel = 0x00FF_807F & (0xFFu32 << shift);
+            self.dicr = (self.dicr & !gravavel) | (val & gravavel);
+@@PARA
+            let gravavel = 0x00FF_807F & (0xFFu32 << shift);
+            self.dicr = val & gravavel;
+@@FIM
+
+mutante: m3
+rotulo: mascara gravavel esquece os bits 16-23
+ocorrencias: 1
+teste: dma_dicr_escrita_de_byte
+@@DE
+            let gravavel = 0x00FF_807F & (0xFFu32 << shift);
+@@PARA
+            let gravavel = 0x0000_807F & (0xFFu32 << shift);
+@@FIM
+
+mutante: m4
+rotulo: o byte de ack passa a ser tratado como byte comum
+ocorrencias: 1
+teste: dma_dicr_escrita_de_byte
+@@DE
+        if byte_index == 3 {
+@@PARA
+        if byte_index == 4 {
+@@FIM
+
+mutante: m5
+rotulo: deslocamento do byte conta em bits errados
+ocorrencias: 1
+teste: dma_dicr_escrita_de_byte
+@@DE
+        let shift = byte_index * 8;
+        let val = (val as u32) << shift;
+@@PARA
+        let shift = byte_index * 4;
+        let val = (val as u32) << shift;
+@@FIM
+
+controle: c1
+rotulo: hexadecimal equivalente na mascara gravavel
+ocorrencias: 1
+teste: dma_dicr_escrita_de_byte
+@@DE
+            let gravavel = 0x00FF_807F & (0xFFu32 << shift);
+@@PARA
+            let gravavel = 0x00FF807F & (0xFFu32 << shift);
+@@FIM
+
+controle: c2
+rotulo: ordem invertida do and na mascara gravavel
+ocorrencias: 1
+teste: dma_dicr_escrita_de_byte
+@@DE
+            let gravavel = 0x00FF_807F & (0xFFu32 << shift);
+@@PARA
+            let gravavel = (0xFFu32 << shift) & 0x00FF_807F;
+@@FIM

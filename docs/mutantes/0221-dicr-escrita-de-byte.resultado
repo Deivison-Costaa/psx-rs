@@ -1,0 +1,10 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: 6404664f83567415d194e659581f00f9fe6cd5da
+# rodado_em: 2026-08-07T12:49:18-03:00
+m1,mutante,morreu,morreu,1,sb_no_quarto_byte_do_dicr_nao_acende_flag_que_estava_apagado;sb_no_quarto_byte_do_dicr_reconhece_o_flag_de_conclusao
+m2,mutante,morreu,morreu,1.1,sb_no_terceiro_byte_do_dicr_nao_reconhece_os_flags_de_conclusao
+m3,mutante,morreu,morreu,1.1,mascara_desligada_por_sb_impede_o_flag_de_conclusao;sb_no_terceiro_byte_do_dicr_desliga_a_mascara_do_canal;sb_no_terceiro_byte_do_dicr_liga_a_mascara_do_canal
+m4,mutante,morreu,morreu,1.1,sb_no_quarto_byte_do_dicr_reconhece_o_flag_de_conclusao
+m5,mutante,morreu,morreu,1,mascara_desligada_por_sb_impede_o_flag_de_conclusao;sb_no_quarto_byte_do_dicr_reconhece_o_flag_de_conclusao;sb_no_terceiro_byte_do_dicr_desliga_a_mascara_do_canal;sb_no_terceiro_byte_do_dicr_liga_a_mascara_do_canal
+c1,controle,sobreviveu,sobreviveu,1,
+c2,controle,sobreviveu,sobreviveu,1,

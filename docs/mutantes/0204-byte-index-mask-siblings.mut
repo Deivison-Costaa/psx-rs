@@ -52,12 +52,12 @@ rotulo: DMA sem mascara reintroduz o shift invalido
 ocorrencias: 1
 teste: bus_byte_index_mask_siblings
 @@DE
-            0x1F80_1080..=0x1F80_10EC | 0x1F80_10F0 | 0x1F80_10F4 => {
+            0x1F80_1080..=0x1F80_10F7 => {
                 let base = phys & !3;
                 let val = self.dma_register_value(base).unwrap_or(0);
                 let byte_index = ((phys & 3) + offset) & 3;
 @@PARA
-            0x1F80_1080..=0x1F80_10EC | 0x1F80_10F0 | 0x1F80_10F4 => {
+            0x1F80_1080..=0x1F80_10F7 => {
                 let base = phys & !3;
                 let val = self.dma_register_value(base).unwrap_or(0);
                 let byte_index = (phys & 3) + offset;

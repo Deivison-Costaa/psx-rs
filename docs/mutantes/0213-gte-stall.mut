@@ -1,0 +1,94 @@
+# Manifesto de mutação da iteração 0213 — gte-stall
+formato: 1
+iteracao: 0213
+item: 0213.1
+alvo: crates/psx-core/src/cpu.rs
+teste: cpu_gte_stall
+
+mutante: m1
+rotulo: MFC2 (leitura de dado) para de esperar o comando GTE pendente
+@@DE
+                let val = bus.gte().read_data(rd);
+                self.gte_stall(bus);
+                Some((rt, val))
+@@PARA
+                let val = bus.gte().read_data(rd);
+                Some((rt, val))
+@@FIM
+
+mutante: m2
+rotulo: CFC2 (leitura de controle) para de esperar o comando GTE pendente
+@@DE
+                let val = bus.gte().read_control(rd);
+                self.gte_stall(bus);
+                Some((rt, val))
+@@PARA
+                let val = bus.gte().read_control(rd);
+                Some((rt, val))
+@@FIM
+
+mutante: m3
+rotulo: SWC2 para de esperar o comando GTE pendente antes de escrever a memoria
+@@DE
+        let val = bus.gte().read_data(rt);
+        self.gte_stall(bus);
+        bus.write32::<BusWrite>(addr, val);
+@@PARA
+        let val = bus.gte().read_data(rt);
+        bus.write32::<BusWrite>(addr, val);
+@@FIM
+
+mutante: m4
+rotulo: comando GTE novo nao espera mais o comando anterior antes de emitir
+@@DE
+                self.gte_stall(bus);
+                let custo = Gte::command_cycles(func) as u64;
+@@PARA
+                let custo = Gte::command_cycles(func) as u64;
+@@FIM
+
+mutante: m5
+rotulo: prazo do comando novo perde o termo da espera ja empilhada (formula deixa de ser composta)
+@@DE
+                self.gte_busy_until = bus.total_cycles() + 1 + self.extra_cycles as u64 + custo;
+@@PARA
+                self.gte_busy_until = bus.total_cycles() + 1 + custo;
+@@FIM
+
+mutante: m6
+rotulo: prazo do comando novo perde o ciclo de emissao (+1)
+@@DE
+                self.gte_busy_until = bus.total_cycles() + 1 + self.extra_cycles as u64 + custo;
+@@PARA
+                self.gte_busy_until = bus.total_cycles() + self.extra_cycles as u64 + custo;
+@@FIM
+
+mutante: m7
+rotulo: gte_stall le o prazo errado (hilo_busy_until em vez de gte_busy_until -- cruza HI/LO com GTE)
+@@DE
+    fn gte_stall(&mut self, bus: &Bus) {
+        let atraso = self.gte_busy_until.saturating_sub(bus.total_cycles());
+@@PARA
+    fn gte_stall(&mut self, bus: &Bus) {
+        let atraso = self.hilo_busy_until.saturating_sub(bus.total_cycles());
+@@FIM
+
+controle: c1
+rotulo: comentario antes de gte_stall
+@@DE
+    fn gte_stall(&mut self, bus: &Bus) {
+@@PARA
+    // espelha hilo_stall (Degrau 3), mas para o comando GTE em voo
+    fn gte_stall(&mut self, bus: &Bus) {
+@@FIM
+
+controle: c2
+rotulo: comentario antes do braco de emissao de comando novo
+@@DE
+            0x10..=0x1F => {
+                let func = instr & 0x01FF_FFFF;
+@@PARA
+            0x10..=0x1F => {
+                // emitir comando GTE
+                let func = instr & 0x01FF_FFFF;
+@@FIM

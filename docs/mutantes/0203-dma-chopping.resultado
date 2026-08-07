@@ -1,10 +1,10 @@
 # gerado por scripts/mutantes.ps1 — NAO editar a mao
-# commit: 7b1bd2118b3fb3711bc9b1f325c9ee9d788b5b7c
-# rodado_em: 2026-08-06T13:55:02-03:00
+# commit: 908fe63d139bc0e426c0ddc3eab3f10b4c30b6d2
+# rodado_em: 2026-08-07T13:28:08-03:00
 m1,mutante,morreu,morreu,1.1,dma2_burst_sync_mode0_com_chopping_atualiza_madr_e_zera_bc
 m2,mutante,morreu,morreu,1.1,dma2_burst_sync_mode0_com_chopping_atualiza_madr_e_zera_bc
 m3,mutante,morreu,morreu,1.1,dma2_burst_sync_mode0_com_chopping_atualiza_madr_e_zera_bc
-m4,mutante,morreu,morreu,1.1,dma2_burst_sync_mode0_com_chopping_atualiza_madr_e_zera_bc
-m5,mutante,morreu,morreu,1,dma2_burst_sync_mode0_com_chopping_atualiza_madr_e_zera_bc
+m4,mutante,morreu,morreu,1,dma2_burst_sync_mode0_com_chopping_atualiza_madr_e_zera_bc
+m5,mutante,morreu,morreu,1.1,dma2_burst_sync_mode0_com_chopping_atualiza_madr_e_zera_bc
 c1,controle,sobreviveu,sobreviveu,1.1,
 c2,controle,sobreviveu,sobreviveu,1.1,

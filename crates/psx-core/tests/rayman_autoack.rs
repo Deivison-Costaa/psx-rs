@@ -72,7 +72,7 @@ fn start_pad_reabilita_o_auto_ack_que_o_jogo_tinha_desligado() {
     let mut start_pad_step = 0usize;
     let mut hook_install_step = 0usize;
 
-    for step in 1..=170_000_000usize {
+    for step in 1..=220_000_000usize {
         if step == 1 || step % 4096 == 0 {
             change_clear_pad = change_clear_pad.or_else(|| table_entry(&bus, 0xB0, 0x5B));
             start_pad = start_pad.or_else(|| table_entry(&bus, 0xB0, 0x13));
@@ -106,21 +106,32 @@ fn start_pad_reabilita_o_auto_ack_que_o_jogo_tinha_desligado() {
         .find(|c| c.arg == 0 && c.ra >= 0x8010_0000)
         .copied()
         .expect("o jogo deve desligar o auto-ack antes de instalar o proprio handler");
-    // Os quatro passos absolutos abaixo ja andaram duas vezes por melhoria legitima:
-    // +15.801 na 0185 (comandos de cor do GTE) e +6.372 na 0187 (o SPUSTAT passou a
-    // espelhar o SPUCNT, entao as esperas do kernel terminam em vez de girar). `arg` e
-    // `ra` ficaram identicos nas duas — a sequencia e a mesma, so mais tarde. E o achado
-    // 10.115 em acao; o que o teste mede de verdade sao a ordem e os enderecos, checados
-    // nos `assert!` abaixo.
-    assert_eq!(desliga.step, 164_131_178);
+    // Os passos absolutos abaixo ja andaram duas vezes por melhoria legitima: +15.801 na
+    // 0185 (comandos de cor do GTE) e +6.372 na 0187 (o SPUSTAT passou a espelhar o SPUCNT,
+    // entao as esperas do kernel terminam em vez de girar) — achado 10.115. Prender um
+    // passo exato reprova a cada melhoria de timing; a janela abaixo cobre folga generosa
+    // pro Degrau 9 (DMA cobrando ciclos de verdade), que pode deslocar isso de novo. O que
+    // o teste mede de verdade sao a ORDEM e os ENDERECOS, sempre exatos.
+    const JANELA: std::ops::Range<usize> = 140_000_000..200_000_000;
+    assert!(
+        JANELA.contains(&desliga.step),
+        "desligar o auto-ack deveria cair na janela de boot: {}",
+        desliga.step
+    );
     assert_eq!(desliga.ra, 0x801B_8BC0);
     assert!(
         desliga.step < hook_install_step,
         "o jogo desliga o auto-ack antes de instalar o hook"
     );
-    assert_eq!(hook_install_step, 164_131_925);
+    assert!(
+        JANELA.contains(&hook_install_step),
+        "instalar o hook deveria cair na janela de boot: {hook_install_step}"
+    );
 
-    assert_eq!(start_pad_step, 164_143_965);
+    assert!(
+        JANELA.contains(&start_pad_step),
+        "StartPAD2 deveria cair na janela de boot: {start_pad_step}"
+    );
     assert!(
         start_pad_step > desliga.step,
         "StartPAD2 vem depois do desligamento"
@@ -131,13 +142,14 @@ fn start_pad_reabilita_o_auto_ack_que_o_jogo_tinha_desligado() {
         .find(|c| c.step > start_pad_step)
         .copied()
         .expect("StartPAD2 deve reabilitar o auto-ack por dentro");
+    assert!(
+        JANELA.contains(&religa.step),
+        "a religada deveria cair na janela de boot: {}",
+        religa.step
+    );
     assert_eq!(
-        religa,
-        Chamada {
-            step: 164_144_442,
-            arg: 1,
-            ra: 0x0000_4BEC,
-        },
+        (religa.arg, religa.ra),
+        (1, 0x0000_4BEC),
         "a religada e do proprio kernel, nao do jogo: o retorno esta na RAM do kernel"
     );
 }

@@ -40,9 +40,9 @@ rotulo: dobra virou quadruplica
 mutante: m5
 rotulo: framebuffer pula linha da VRAM (entrelaca na leitura em vez de ler consecutivo)
 @@DE
-                let vy = (start_y + y) & 0x1FF;
+            let vy = (start_y + y) & 0x1FF;
 @@PARA
-                let vy = (start_y + y * 2) & 0x1FF;
+            let vy = (start_y + y * 2) & 0x1FF;
 @@FIM
 
 controle: c1

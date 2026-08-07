@@ -204,6 +204,52 @@ fn write_vram_dump(path: &str, bus: &Bus) {
         std::process::exit(1);
     }
     eprintln!("dump-vram: {} ({} bytes)", path, data.len());
+    escreve_tela(&format!("{path}.tela.png"), bus);
+}
+
+/// A VRAM crua nao diz em que profundidade a area de display esta sendo lida; um dump
+/// visto sempre como 15bpp faz FMV (24bpp) parecer ruido. Este PNG e o que o console
+/// mostraria, com a profundidade que a GPU esta usando.
+fn escreve_tela(saida: &str, bus: &Bus) {
+    let fb = bus.gpu().framebuffer();
+    if fb.width == 0 || fb.height == 0 {
+        return;
+    }
+    let mut rgb = Vec::with_capacity(fb.data.len() / 4 * 3);
+    for px in fb.data.chunks_exact(4) {
+        rgb.extend_from_slice(&px[..3]);
+    }
+    let arquivo = match std::fs::File::create(saida) {
+        Ok(f) => f,
+        Err(e) => {
+            eprintln!("Erro: nao criei '{saida}': {e}");
+            return;
+        }
+    };
+    let mut cod = png::Encoder::new(
+        std::io::BufWriter::new(arquivo),
+        fb.width as u32,
+        fb.height as u32,
+    );
+    cod.set_color(png::ColorType::Rgb);
+    cod.set_depth(png::BitDepth::Eight);
+    let escrita = cod
+        .write_header()
+        .and_then(|mut w| w.write_image_data(&rgb).map(|_| ()));
+    match escrita {
+        Ok(()) => eprintln!(
+            "dump-tela: {} ({}x{}, {}bpp)",
+            saida,
+            fb.width,
+            fb.height,
+            if bus.gpu().stat() & (1 << 21) != 0 {
+                24
+            } else {
+                15
+            }
+        ),
+        Err(e) => eprintln!("Erro: png '{saida}': {e}"),
+    }
 }
 
 fn load_disc(disc_path: &str) -> (DiscLayout, Vec<u8>) {

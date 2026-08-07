@@ -453,20 +453,41 @@ impl Gpu {
         }
     }
 
+    /// Byte `i` da linha `vy` da area de display, contando a partir de `start_x`
+    /// (que e endereco de halfword, § GP1(05h)).
+    fn byte_de_display(&self, start_x: usize, vy: usize, i: usize) -> u8 {
+        let vx = (start_x + i / 2) & 0x3FF;
+        (self.display_snapshot[vy * 1024 + vx] >> (8 * (i % 2))) as u8
+    }
+
+    /// § GPUSTAT.21 "Display Area Color Depth" e § 24bit Direct Display
+    /// (docs/reference/03-gpu.md L1019 e L1279-1285): em 24 bits cada pixel ocupa tres
+    /// bytes seguidos, logo dois pixels por seis bytes — e o modo das FMVs (MDEC).
     pub fn framebuffer(&self) -> Framebuffer {
         let w = self.display_width();
         let h = self.display_height();
         let start_x = self.display_start_x.get() as usize;
         let start_y = self.display_start_y.get() as usize;
+        let cor24 = self.stat.get() & (1 << 21) != 0;
         let mut data = Vec::with_capacity((w as usize) * (h as usize) * 4);
         for y in 0..(h as usize) {
+            let vy = (start_y + y) & 0x1FF;
             for x in 0..(w as usize) {
-                let vx = (start_x + x) & 0x3FF;
-                let vy = (start_y + y) & 0x1FF;
-                let pixel = self.display_snapshot[vy * 1024 + vx];
-                let r = ((pixel & 0x1F) as u8) << 3;
-                let g = (((pixel >> 5) & 0x1F) as u8) << 3;
-                let b = (((pixel >> 10) & 0x1F) as u8) << 3;
+                let (r, g, b) = if cor24 {
+                    (
+                        self.byte_de_display(start_x, vy, x * 3),
+                        self.byte_de_display(start_x, vy, x * 3 + 1),
+                        self.byte_de_display(start_x, vy, x * 3 + 2),
+                    )
+                } else {
+                    let vx = (start_x + x) & 0x3FF;
+                    let pixel = self.display_snapshot[vy * 1024 + vx];
+                    (
+                        ((pixel & 0x1F) as u8) << 3,
+                        (((pixel >> 5) & 0x1F) as u8) << 3,
+                        (((pixel >> 10) & 0x1F) as u8) << 3,
+                    )
+                };
                 data.push(r);
                 data.push(g);
                 data.push(b);

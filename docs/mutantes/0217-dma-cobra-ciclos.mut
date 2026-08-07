@@ -8,13 +8,9 @@ teste: dma_cobra_ciclos
 mutante: m1
 rotulo: charge_dma calcula o custo mas nao o acumula (DMA volta a custar 0)
 @@DE
-    fn charge_dma(&mut self, channel: usize, words: usize) {
-        self.dma_extra_cycles += Dma::transfer_cost(channel, words as u32) as u32;
-    }
+        self.dma_extra_cycles += ram_side as u32;
 @@PARA
-    fn charge_dma(&mut self, channel: usize, words: usize) {
-        let _ = Dma::transfer_cost(channel, words as u32) as u32;
-    }
+        let _ = ram_side as u32;
 @@FIM
 
 mutante: m2
@@ -28,9 +24,9 @@ rotulo: tick_timers para de somar o custo de DMA pendente
 mutante: m3
 rotulo: charge_dma ignora a contagem de palavras (custo fixo por canal)
 @@DE
-        self.dma_extra_cycles += Dma::transfer_cost(channel, words as u32) as u32;
+        let ram_side = Dma::stall_cost(words as u32);
 @@PARA
-        self.dma_extra_cycles += Dma::word_cost_per_256(channel);
+        let ram_side = Dma::stall_cost(1);
 @@FIM
 
 mutante: m4
@@ -44,9 +40,9 @@ rotulo: tick_timers le o acumulador sem drenar — custo de DMA se repete no pro
 mutante: m5
 rotulo: charge_dma sobrescreve em vez de acumular — dois DMAs no mesmo tick perdem o primeiro
 @@DE
-        self.dma_extra_cycles += Dma::transfer_cost(channel, words as u32) as u32;
+        self.dma_extra_cycles += ram_side as u32;
 @@PARA
-        self.dma_extra_cycles = Dma::transfer_cost(channel, words as u32) as u32;
+        self.dma_extra_cycles = ram_side as u32;
 @@FIM
 
 controle: c1

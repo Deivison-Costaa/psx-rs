@@ -11,6 +11,8 @@ pub struct Dma {
     dpcr: u32,
     dicr: u32,
     irq_line: bool,
+    completing: [bool; 7],
+    start_pending: [bool; 7],
 }
 
 impl Dma {
@@ -24,6 +26,8 @@ impl Dma {
             dpcr: 0x0765_4321,
             dicr: 0,
             irq_line: false,
+            completing: [false; 7],
+            start_pending: [false; 7],
         }
     }
 
@@ -105,6 +109,36 @@ impl Dma {
         }
     }
 
+    // § "Bit 24 is automatically cleared upon COMPLETION of the transfer" (04-dma.md L115-116):
+    // o fim do movimento de dados so ARMA a conclusao; quem derruba o bit24 e o evento
+    // agendado pelo Bus depois do prazo da taxa do canal.
+    fn arm_completion(&mut self, ch: usize) {
+        self.completing[ch] = true;
+        self.start_pending[ch] = true;
+    }
+
+    pub fn is_busy(&self, ch: usize) -> bool {
+        self.completing[ch]
+    }
+
+    pub fn take_start_pending(&mut self, ch: usize) -> bool {
+        core::mem::replace(&mut self.start_pending[ch], false)
+    }
+
+    pub fn complete_channel(&mut self, ch: usize) {
+        if !self.completing[ch] {
+            return;
+        }
+        self.completing[ch] = false;
+        let mascara = if ch == 3 || ch == 6 {
+            (1 << 24) | (1 << 28)
+        } else {
+            1 << 24
+        };
+        self.chcr[ch] &= !mascara;
+        self.signal_completion(ch);
+    }
+
     pub fn irq3_pending(&self) -> bool {
         self.dicr & (1 << 31) != 0
     }
@@ -120,6 +154,9 @@ impl Dma {
     // movidas pelo barramento nesta chamada (0 se o canal nem chegou a rodar) -- e o que
     // `Dma::transfer_cost` (Degrau 8) precisa pra cobrar ciclos de verdade (Degrau 9).
     pub fn try_execute_otc(&mut self, ram: &mut [u8]) -> usize {
+        if self.completing[6] {
+            return 0;
+        }
         if self.dpcr & (1 << 27) == 0 {
             return 0;
         }
@@ -142,12 +179,14 @@ impl Dma {
             }
             addr = addr.wrapping_sub(4);
         }
-        self.chcr[6] &= !((1 << 24) | (1 << 28));
-        self.signal_completion(6);
+        self.arm_completion(6);
         count
     }
 
     pub fn try_execute_dma3(&mut self, ram: &mut [u8], cdrom: &Cdrom) -> usize {
+        if self.completing[3] {
+            return 0;
+        }
         if self.dpcr & (1 << 15) == 0 {
             return 0;
         }
@@ -178,12 +217,14 @@ impl Dma {
             addr = addr.wrapping_add(4);
         }
         self.madr[3] = (self.madr[3] & !0x00FF_FFFF) | (addr & 0x00FF_FFFF);
-        self.chcr[3] &= !((1 << 24) | (1 << 28));
-        self.signal_completion(3);
+        self.arm_completion(3);
         word_count
     }
 
     pub fn try_execute_dma2(&mut self, ram: &mut [u8], gpu: &mut Gpu) -> usize {
+        if self.completing[2] {
+            return 0;
+        }
         if self.dpcr & (1 << 11) == 0 {
             return 0;
         }
@@ -235,8 +276,7 @@ impl Dma {
             self.madr[2] = addr;
             self.bcr[2] &= !0xFFFF;
         }
-        self.chcr[2] &= !(1 << 24);
-        self.signal_completion(2);
+        self.arm_completion(2);
         count
     }
 
@@ -281,8 +321,7 @@ impl Dma {
             }
         }
         self.madr[2] = (self.madr[2] & !0x00FF_FFFF) | (addr & 0x00FF_FFFF);
-        self.chcr[2] &= !(1 << 24);
-        self.signal_completion(2);
+        self.arm_completion(2);
         bs * ba
     }
 
@@ -346,8 +385,7 @@ impl Dma {
             addr = next_addr & 0x00FF_FFFC;
         }
         if alcancou_fim {
-            self.chcr[2] &= !(1 << 24);
-            self.signal_completion(2);
+            self.arm_completion(2);
         }
         palavras_transferidas
     }
@@ -371,6 +409,9 @@ impl Dma {
 
     /// DMA0 (MDECin, RAM->MDEC). § DMA (docs/reference/09-mdec.md L114-124).
     pub fn try_execute_dma0(&mut self, ram: &[u8], mdec: &mut Mdec) -> usize {
+        if self.completing[0] {
+            return 0;
+        }
         if self.dpcr & (1 << 3) == 0 {
             return 0;
         }
@@ -398,8 +439,7 @@ impl Dma {
             };
         }
         self.madr[0] = (self.madr[0] & !0x00FF_FFFF) | (addr & 0x00FF_FFFF);
-        self.chcr[0] &= !(1 << 24);
-        self.signal_completion(0);
+        self.arm_completion(0);
         words
     }
 
@@ -411,6 +451,9 @@ impl Dma {
     /// completar, igual a uma DMA real que nunca recebe mais DREQ
     /// (docs/reference/09-mdec.md L108-112).
     pub fn try_execute_dma1(&mut self, ram: &mut [u8], mdec: &Mdec) -> usize {
+        if self.completing[1] {
+            return 0;
+        }
         if self.dpcr & (1 << 7) == 0 {
             return 0;
         }
@@ -442,14 +485,16 @@ impl Dma {
         }
         self.madr[1] = (self.madr[1] & !0x00FF_FFFF) | (addr & 0x00FF_FFFF);
         if available == requested {
-            self.chcr[1] &= !(1 << 24);
-            self.signal_completion(1);
+            self.arm_completion(1);
         }
         available
     }
 
     /// DMA4 (SPU). § SPU RAM DMA-Write/-Read (docs/reference/08-spu.md L755-773).
     pub fn try_execute_dma4(&mut self, ram: &mut [u8], spu: &mut Spu) -> usize {
+        if self.completing[4] {
+            return 0;
+        }
         if self.dpcr & (1 << 19) == 0 {
             return 0;
         }
@@ -485,8 +530,7 @@ impl Dma {
             };
         }
         self.madr[4] = (self.madr[4] & !0x00FF_FFFF) | (addr & 0x00FF_FFFF);
-        self.chcr[4] &= !(1 << 24);
-        self.signal_completion(4);
+        self.arm_completion(4);
         words
     }
 }
@@ -508,6 +552,14 @@ impl Dma {
 
     pub fn transfer_cost(channel: usize, words: u32) -> u64 {
         words as u64 * Self::word_cost_per_256(channel) as u64 / 256
+    }
+
+    // § DRAM Hyper Page mode (04-dma.md L238-243): o lado da RAM roda a "around 17 clks per
+    // 16 words" em qualquer canal. E esse o custo que a CPU sofre parada; a tabela de
+    // Transfer Rates e a vazao do DISPOSITIVO ("plus single/double speed sector rate"),
+    // que define QUANDO o canal conclui, nao quanto a CPU fica travada.
+    pub fn stall_cost(words: u32) -> u64 {
+        words as u64 * 17 / 16
     }
 }
 

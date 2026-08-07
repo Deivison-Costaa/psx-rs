@@ -47,10 +47,24 @@ fn spu_de_8_palavras_cobra_33_ciclos_extras() {
     let antes = bus.total_cycles();
     bus.write32::<BusRead>(D4_CHCR, 0x0100_0001);
     bus.tick_timers(1);
+    // § DRAM Hyper Page mode (04-dma.md L238-243) x § DMA Transfer Rates (L217-226): os 33
+    // ciclos das 8 palavras do SPU sao a vazao do DISPOSITIVO e definem QUANDO o canal
+    // conclui; o que trava a CPU e so o lado da RAM (17 clks por 16 palavras).
     assert_eq!(
         bus.total_cycles() - antes,
-        1 + 33,
-        "1 ciclo nominal do tick + 33 do SPU (8 palavras a 33/8, Degrau 8)"
+        1 + 8,
+        "1 ciclo nominal do tick + 8 do lado da RAM (8 palavras a 17/16)"
+    );
+    assert_ne!(
+        bus.read32::<BusRead>(D4_CHCR) & (1 << 24),
+        0,
+        "aos 9 ciclos o canal ainda nao chegou aos 33 da taxa do SPU"
+    );
+    bus.tick_timers(33);
+    assert_eq!(
+        bus.read32::<BusRead>(D4_CHCR) & (1 << 24),
+        0,
+        "passados os 33 ciclos das 8 palavras do SPU o canal concluiu"
     );
 }
 
@@ -96,12 +110,12 @@ fn dois_dmas_disparados_antes_do_tick_acumulam_o_custo_de_cada_um() {
     bus.write32::<BusRead>(D4_BCR, 8);
     bus.write32::<BusRead>(DPCR, 0x0765_4321 | (1 << 27) | (1 << 19));
     let antes = bus.total_cycles();
-    bus.write32::<BusRead>(D6_CHCR, 0x1100_0002); // +17
-    bus.write32::<BusRead>(D4_CHCR, 0x0100_0001); // +33
+    bus.write32::<BusRead>(D6_CHCR, 0x1100_0002); // +17 (16 palavras)
+    bus.write32::<BusRead>(D4_CHCR, 0x0100_0001); // +8  (8 palavras)
     bus.tick_timers(1);
     assert_eq!(
         bus.total_cycles() - antes,
-        1 + 17 + 33,
+        1 + 17 + 8,
         "os dois custos se acumulam ate o proximo tick_timers, nao se sobrescrevem"
     );
 }

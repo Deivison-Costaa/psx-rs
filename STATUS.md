@@ -7,27 +7,27 @@
 
 ## Última iteração concluída
 
-**0216 — preparo do Degrau 9 (0216.1), branch `iter/0216-rayman-passo-vira-janela`, PR não
-aberto.** Os 3 testes do Rayman com passo absoluto (`rayman_autoack.rs`/
-`rayman_exception_chain.rs`/`rayman_tty_boot.rs`, achado 10.115) viraram janela generosa
-(140M-220M), exigência do plano ANTES do Degrau 9 tocar `bus.rs`. Um gate de lógica usava
-constante de timing antigo (`step > EXECUTE_STEP`) em vez de detecção dinâmica do
-"Execute !" — corrigido junto. **Não pude rodar contra o disco real** (não está em
-`../roms/extraido/` nesta sessão) — só compilação + skip gracioso verificados.
+**0217 — Degrau 9 (ÚLTIMO da escada), branch `iter/0217-dma-cobra-ciclos`, PR não aberto.**
+DMA cobra ciclos de verdade: `try_execute_*`/`execute_*` (dma.rs) devolvem as palavras
+transferidas; `Bus::charge_dma` vira `Dma::transfer_cost` em `dma_extra_cycles`, drenado no
+próximo `tick_timers` (padrão de `Cpu::extra_cycles`). Bateria 5/5+2/2; 7 manifestos antigos
+reancorados (`()→usize`) sem regressão. **Rayman (0216) ainda sem disco real pra rerodar.**
 
 ## Próxima tarefa
 
-Escada motivada pelo Achado 0193.4 (CPU sem custo de acesso a memória/periférico); 10
-degraus, plano completo (números da spec de cada degrau) em
-`~/.claude/plans/smooth-swimming-manatee.md`.
+**A escada de 9 degraus do achado 0193.4 está completa.** Falta só medir o resultado:
 
-**Degrau 9: DMA cobra ciclos de verdade — agora liberado pra tocar `bus.rs`.** Acumular
-`Dma::transfer_cost` (Degrau 8) e somar em `Bus::tick_timers` ANTES de drenar o scheduler e
-ANTES de `Timers::tick` (senão os timers ficam artificialmente lentos durante DMA). Depende
-do Degrau 6 (scheduler, pronto). Rodar oráculos `tests/exes/ps1-tests/dma`/`.../spu`
-antes/depois (10.114), e **rerodar os 3 testes do Rayman convertidos na 0216 contra o
-disco real** assim que disponível (não foi possível nesta sessão). Depois, Degrau 7 sugere
-remedir Tekken3/RE2/Tomb Raider — 3/5 jogos travavam perto de CD-ROM (0214.3-0214.5).
+1. **Remedir os 5 jogos do Degrau 7** (FF7/Tekken3/RE2/Tomb Raider/CTR) contra a escada
+   completa 1-9 — Tekken3/RE2/Tomb Raider travavam perto de CD-ROM (0214.3-0214.5), exatamente
+   o que o Degrau 9 deveria mexer. CTR não deveria mudar (bug de cadeia software, não timing).
+2. **Rerodar os 3 testes do Rayman convertidos na 0216** contra o disco real assim que
+   `../roms/extraido/Rayman (USA) DADOS.cue` estiver disponível — a janela (140M-220M) não
+   foi confirmada empiricamente ainda.
+3. Rodar oráculos `tests/exes/ps1-tests/dma`/`.../spu` contra a escada completa (10.114).
+
+Achado 0193.4 fica parcialmente aberto: GPU ainda desenha em 0 ciclos (tempo de desenho é
+declarado desconhecido pela spec, 10.116) — fora do escopo desta escada por decisão do
+Degrau 8. Degrau 10 (Load Shadow) segue **não recomendado** (dado insuficiente de hardware).
 
 PRs #218/#219/#220 seguem abertos. Lista legado `10.x` em segundo plano até a escada avançar.
 
@@ -62,7 +62,7 @@ escada de timing), 34 (acumulador de ciclos extras é estado de pipeline).
 
 ## Placar de testes
 
-Workspace: **1344** testes.
+Workspace: **1349** testes.
 - **NUNCA rodar `cargo test`/`nextest` nem a bateria de mutação junto com o oráculo**: a
   disputa de CPU faz o `Start-Process` ler stdout antes do flush e reportar `sem-saida`
   falso. Derrubou 16/21 numa medição da 0170; rodada limpa deu 21/21.

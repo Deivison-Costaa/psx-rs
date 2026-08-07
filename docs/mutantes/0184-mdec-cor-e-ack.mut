@@ -114,10 +114,13 @@ arquivo: crates/psx-core/src/bus.rs
 teste: mdec_registers_dma
 ocorrencias: 1
 @@DE
-                                self.dma.try_execute_dma0(&self.ram.data, &mut self.mdec);
-                                self.dma.try_execute_dma1(&mut self.ram.data, &self.mdec);
+                                let w0 = self.dma.try_execute_dma0(&self.ram.data, &mut self.mdec);
+                                self.charge_dma(0, w0);
+                                let w1 = self.dma.try_execute_dma1(&mut self.ram.data, &self.mdec);
+                                self.charge_dma(1, w1);
 @@PARA
-                                self.dma.try_execute_dma0(&self.ram.data, &mut self.mdec);
+                                let w0 = self.dma.try_execute_dma0(&self.ram.data, &mut self.mdec);
+                                self.charge_dma(0, w0);
 @@FIM
 
 mutante: m11

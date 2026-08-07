@@ -9,7 +9,7 @@ mutante: m1
 rotulo: DMA3 nao verifica DRQSTS — faz transferencia mesmo sem BFRD
 @@DE
         if !cdrom.drqsts_active() {
-            return;
+            return 0;
         }
 @@PARA
         let _ = cdrom.drqsts_active();
@@ -71,18 +71,18 @@ controle: K1
 rotulo: usar match em vez de if/else na verificacao de bits do CHCR (equivalente semântico)
 @@DE
         if (self.chcr[3] & ((1 << 24) | (1 << 28))) != ((1 << 24) | (1 << 28)) {
-            return;
+            return 0;
         }
         if !cdrom.drqsts_active() {
-            return;
+            return 0;
         }
 @@PARA
         let mask = (1 << 24) | (1 << 28);
         if (self.chcr[3] & mask) != mask {
-            return;
+            return 0;
         }
         if !cdrom.drqsts_active() {
-            return;
+            return 0;
         }
 @@FIM
 

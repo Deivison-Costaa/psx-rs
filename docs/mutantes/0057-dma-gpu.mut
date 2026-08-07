@@ -20,10 +20,10 @@ rotulo: SyncMode ignorado (qualquer modo executa linked-list)
             0 => self.execute_burst(ram, gpu),
             1 => self.execute_block(ram, gpu),
             2 => self.execute_linked_list(ram, gpu),
-            _ => {}
+            _ => 0,
         }
 @@PARA
-        self.execute_linked_list(ram, gpu);
+        self.execute_linked_list(ram, gpu)
 @@FIM
 
 mutante: m3

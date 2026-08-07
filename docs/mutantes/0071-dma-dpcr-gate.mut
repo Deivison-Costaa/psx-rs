@@ -9,7 +9,7 @@ mutante: m1
 rotulo: OTC sem gate DPCR — try_execute_otc nao verifica bit 27
 @@DE
         if self.dpcr & (1 << 27) == 0 {
-            return;
+            return 0;
         }
 @@PARA
         let _ = self.dpcr & (1 << 27);
@@ -19,7 +19,7 @@ mutante: m2
 rotulo: DMA3 sem gate DPCR — try_execute_dma3 nao verifica bit 15
 @@DE
         if self.dpcr & (1 << 15) == 0 {
-            return;
+            return 0;
         }
 @@PARA
         let _ = self.dpcr & (1 << 15);
@@ -29,7 +29,7 @@ mutante: m3
 rotulo: DMA2 sem gate DPCR — try_execute_dma2 nao verifica bit 11
 @@DE
         if self.dpcr & (1 << 11) == 0 {
-            return;
+            return 0;
         }
 @@PARA
         let _ = self.dpcr & (1 << 11);

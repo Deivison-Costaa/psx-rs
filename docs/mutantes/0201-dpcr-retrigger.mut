@@ -30,7 +30,8 @@ rotulo: retorno antes da tentativa do canal 0
 ocorrencias: 1
 teste: dma_dpcr_retrigger
 @@DE
-                self.dma.try_execute_dma0(&self.ram.data, &mut self.mdec);
+                let w0 = self.dma.try_execute_dma0(&self.ram.data, &mut self.mdec);
+                self.charge_dma(0, w0);
 @@PARA
                 return true;
 @@FIM
@@ -40,8 +41,10 @@ rotulo: retorno antes das tentativas dos canais 1 e 2
 ocorrencias: 1
 teste: dma_dpcr_retrigger
 @@DE
-                self.dma.try_execute_dma1(&mut self.ram.data, &self.mdec);
-                self.dma.try_execute_dma2(&mut self.ram.data, &mut self.gpu);
+                let w1 = self.dma.try_execute_dma1(&mut self.ram.data, &self.mdec);
+                self.charge_dma(1, w1);
+                let w2 = self.dma.try_execute_dma2(&mut self.ram.data, &mut self.gpu);
+                self.charge_dma(2, w2);
 @@PARA
                 return true;
 @@FIM
@@ -51,7 +54,8 @@ rotulo: retorno antes da tentativa do canal 2
 ocorrencias: 1
 teste: dma_dpcr_retrigger
 @@DE
-                self.dma.try_execute_dma2(&mut self.ram.data, &mut self.gpu);
+                let w2 = self.dma.try_execute_dma2(&mut self.ram.data, &mut self.gpu);
+                self.charge_dma(2, w2);
 @@PARA
                 return true;
 @@FIM
@@ -61,9 +65,9 @@ rotulo: OTC recebe uma RAM sem espaco
 ocorrencias: 1
 teste: dma_dpcr_retrigger
 @@DE
-                self.dma.try_execute_otc(&mut self.ram.data);
+                let w6 = self.dma.try_execute_otc(&mut self.ram.data);
 @@PARA
-                self.dma.try_execute_otc(&mut self.ram.data[0..0]);
+                let w6 = self.dma.try_execute_otc(&mut self.ram.data[0..0]);
 @@FIM
 
 controle: c1
@@ -81,7 +85,7 @@ rotulo: fatia completa preserva a RAM do OTC
 ocorrencias: 1
 teste: dma_dpcr_retrigger
 @@DE
-                self.dma.try_execute_otc(&mut self.ram.data);
+                let w6 = self.dma.try_execute_otc(&mut self.ram.data);
 @@PARA
-                self.dma.try_execute_otc(&mut self.ram.data[..]);
+                let w6 = self.dma.try_execute_otc(&mut self.ram.data[..]);
 @@FIM

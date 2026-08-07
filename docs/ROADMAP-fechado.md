@@ -319,3 +319,10 @@ da escada valer so para o que FALTA. Narrativa de cada item continua em
   asserções de identidade de codigo (enderecos, ordem de handlers). Um gate de logica usava
   uma constante de timing antigo em vez de deteccao dinamica — corrigido junto (iter 0216)
   — preparo obrigatorio do Degrau 9 (DMA cobra ciclos de verdade) antes de tocar `bus.rs`
+
+## Fechado na iteração 0217
+- [x] 0217.1 DMA calculava o custo por palavra (Degrau 8) mas nao cobrava: `try_execute_*`/
+  `execute_*` (dma.rs) passam a devolver as palavras que passaram pelo barramento;
+  `Bus::charge_dma` converte em ciclos via `Dma::transfer_cost` e acumula ate o proximo
+  `tick_timers`, que drena ANTES de avancar `total_cycles` (04-dma.md L217-227) (iter 0217)
+  — Degrau 9 (ultimo) da escada de timing de CPU/barramento, fecha o achado 0193.4

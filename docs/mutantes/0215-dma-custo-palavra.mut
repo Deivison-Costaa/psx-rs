@@ -52,10 +52,12 @@ rotulo: transfer_cost perde a divisao — custo bruto sem normalizar por palavra
 mutante: m6
 rotulo: canal invalido (7+) custa como MDEC.IN em vez de zero
 @@DE
+            5 => 5120,            // PIO
             _ => 0,
         }
     }
 @@PARA
+            5 => 5120,            // PIO
             _ => 272,
         }
     }

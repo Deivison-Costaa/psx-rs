@@ -49,11 +49,11 @@ mutante: m6
 rotulo: gate do DPCR do canal 2 deixa de valer
 @@DE
         if self.dpcr & (1 << 11) == 0 {
-            return;
+            return 0;
         }
 @@PARA
         if false {
-            return;
+            return 0;
         }
 @@FIM
 

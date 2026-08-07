@@ -1,0 +1,10 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: e09f5bc213504c86a1a5d361230d43317c1c231c
+# rodado_em: 2026-08-06T22:13:39-03:00
+m1,mutante,morreu,morreu,1.1,scheduler_devolve_o_prazo_que_venceu_nao_o_instante_de_avanco
+m2,mutante,morreu,morreu,1.1,scheduler_cancela_todas_as_pendencias_de_um_id;scheduler_evento_imediatamente;scheduler_eventos_ordem
+m3,mutante,morreu,morreu,1.1,scheduler_eventos_ordem
+m4,mutante,morreu,morreu,1.2,dois_ticks_gigantes_seguidos_nao_perdem_nem_duplicam_periodos;tick_gigante_dispara_todos_os_periodos_de_spu_cobertos_um_a_um
+m5,mutante,morreu,morreu,1.1,tick_gigante_dispara_dois_vblanks_cobertos_de_uma_vez
+c1,controle,sobreviveu,sobreviveu,1.1,
+c2,controle,sobreviveu,sobreviveu,2.2,

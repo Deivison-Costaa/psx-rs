@@ -7,11 +7,13 @@
 
 ## Última iteração concluída
 
-**0215 — Degrau 8 da escada de timing CPU/barramento (0215.1), branch
-`iter/0215-dma-custo-palavra`, PR não aberto.** `Dma::word_cost_per_256`/`transfer_cost`:
-tabela pura de custo por canal (`04-dma.md` L217-227) — MDEC.IN/OUT/GPU/OTC=17/16,
-CDROM=24/1 (padrão BIOS), SPU=33/8, PIO=20/1. Confere contra a própria nota de DRAM Hyper
-Page mode da spec (`transfer_cost(MDEC,16)==17`). Sem chamador ainda. Bateria 6/6+2/2.
+**0216 — preparo do Degrau 9 (0216.1), branch `iter/0216-rayman-passo-vira-janela`, PR não
+aberto.** Os 3 testes do Rayman com passo absoluto (`rayman_autoack.rs`/
+`rayman_exception_chain.rs`/`rayman_tty_boot.rs`, achado 10.115) viraram janela generosa
+(140M-220M), exigência do plano ANTES do Degrau 9 tocar `bus.rs`. Um gate de lógica usava
+constante de timing antigo (`step > EXECUTE_STEP`) em vez de detecção dinâmica do
+"Execute !" — corrigido junto. **Não pude rodar contra o disco real** (não está em
+`../roms/extraido/` nesta sessão) — só compilação + skip gracioso verificados.
 
 ## Próxima tarefa
 
@@ -19,15 +21,13 @@ Escada motivada pelo Achado 0193.4 (CPU sem custo de acesso a memória/periféri
 degraus, plano completo (números da spec de cada degrau) em
 `~/.claude/plans/smooth-swimming-manatee.md`.
 
-**Degrau 9: DMA cobra ciclos de verdade.** Acumular `Dma::transfer_cost` (Degrau 8) e somar
-em `Bus::tick_timers` ANTES de drenar o scheduler e ANTES de `Timers::tick` (senão os
-timers ficam artificialmente lentos durante DMA). Depende do Degrau 6 (scheduler, pronto —
-sem ele um tick de 12288 ciclos de 1 setor de CD-ROM perderia eventos periódicos).
-**Maior risco de todos**: testes do Rayman com passo absoluto (`rayman_autoack.rs`/
-`rayman_exception_chain.rs`/`rayman_tty_boot.rs`, achado 10.115) vão quebrar; converter pra
-condição-primeiro ANTES de tocar em `bus.rs`, não depois. Rodar oráculos `tests/exes/
-ps1-tests/dma`/`.../spu` antes/depois (10.114). Depois, Degrau 7 sugere remedir Tekken3/
-RE2/Tomb Raider de novo — 3/5 jogos travavam em algo CD-ROM-adjacente (0214.3-0214.5).
+**Degrau 9: DMA cobra ciclos de verdade — agora liberado pra tocar `bus.rs`.** Acumular
+`Dma::transfer_cost` (Degrau 8) e somar em `Bus::tick_timers` ANTES de drenar o scheduler e
+ANTES de `Timers::tick` (senão os timers ficam artificialmente lentos durante DMA). Depende
+do Degrau 6 (scheduler, pronto). Rodar oráculos `tests/exes/ps1-tests/dma`/`.../spu`
+antes/depois (10.114), e **rerodar os 3 testes do Rayman convertidos na 0216 contra o
+disco real** assim que disponível (não foi possível nesta sessão). Depois, Degrau 7 sugere
+remedir Tekken3/RE2/Tomb Raider — 3/5 jogos travavam perto de CD-ROM (0214.3-0214.5).
 
 PRs #218/#219/#220 seguem abertos. Lista legado `10.x` em segundo plano até a escada avançar.
 
@@ -71,9 +71,11 @@ Workspace: **1344** testes.
   registrador. Sem o arquivo o teste se ignora sozinho.
 - **Crash e Rayman animam e soam** (medido na 0192): 8 dumps de VRAM cada, nenhum intervalo
   sem pixel mudando; 3,0 M e 3,4 M quadros de áudio, 94% e 78% de amostras não-zero.
-- **Passo absoluto em teste de Rayman reprova por melhoria legítima (10.115).** `rayman_
-  evcb_descritores` já foi convertido pra condição (dispara no 1º instante em que os dois
-  descritores ligam, não passo fixo); os 3 que faltam são risco pro Degrau 9 (ver abaixo).
+- **Passo absoluto em teste de Rayman reprova por melhoria legítima (10.115).** Os 4 testes
+  (`evcb_descritores`, `autoack`, `exception_chain`, `tty_boot`) já usam janela/condição em
+  vez de passo fixo (0216). **Disco do Rayman não está em `../roms/extraido/` nesta
+  sessão** — os 4 arquivos rodam pelo caminho de skip gracioso, não testados contra dados
+  reais aqui; rode numa máquina com a imagem antes de confiar no resultado.
 - **`mutantes.ps1` herda o último `teste:` visto (10.71)**: declare `teste:` em TODO
   registro do manifesto, não só no cabeçalho. Custou 9/18 falsos na 0187 e, na 0214, um
   mutante de scheduler rodando contra o alvo errado **travou ~520s de CPU num laço infinito**

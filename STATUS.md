@@ -7,13 +7,14 @@
 
 ## Última iteração concluída
 
-**0211 — Degrau 3 da escada de timing CPU/barramento (0211.1), branch
-`iter/0211-mult-div-timing`, PR não aberto.** MULT/MULTU/DIV/DIVU custavam 0 ciclos de HI/LO
-(`02-cpu.md` L420-436: multu/mult 6/9/13 por faixa de `rs`, div/divu fixo em 36). Modelo:
-`busy_until = emissão + 1 + custo`, reusado no Degrau 5 (GTE). `load_extra_cycles`
-renomeado pra `extra_cycles` (mecanismo generalizado). `Cpu` ganhou `hilo_busy_until: u64` →
-`snapshot::VERSAO` 1→2. Bateria 6/6+2/2 (0209/0210 reexecutadas após o rename, sem
-regressão).
+**0212 — Degrau 4 da escada de timing CPU/barramento (0212.1), branch
+`iter/0212-gte-custo-comando`, PR não aberto.** `Gte::command_cycles(func)`: tabela pura de
+custo por comando, 22 comandos derivados dos cabeçalhos de seção da spec (`07-gte.md`
+L481-642), não do dispatch de `execute_command` (CC/CDP caem no mesmo braço Rust
+`color_color` mas têm custos diferentes — a armadilha que o manifesto testa). Sem chamador
+ainda. Bateria 6/6+2/2. **Checagem rápida pós-Degrau 3: RE2 e Tekken 3 ainda travam no mesmo
+lugar** (não usam mult/div/lwc2) — reforça que GTE é o próximo candidato mais provável pra
+jogos 3D.
 
 ## Próxima tarefa
 
@@ -21,15 +22,18 @@ Escada motivada pelo Achado 0193.4 (CPU sem custo de acesso a memória/periféri
 degraus, plano completo (números da spec de cada degrau) em
 `~/.claude/plans/smooth-swimming-manatee.md`.
 
-**Degrau 4: tabela pura de custo por comando GTE** (`docs/reference/07-gte.md`) —
-`Gte::command_cycles(func) -> u32`, sem chamador ainda, zero risco de regressão (isola o
-risco real pro Degrau 5, que liga o stall na CPU reusando o modelo `busy_until` do Degrau 3).
-Cada degrau é uma iteração normal (branch → teste vermelho → fix → bateria → docs → PR).
-Depois dos degraus 1-6, Degrau 7 remede os jogos travados (ff7/tekken3/re2/tomb-raider/ctr)
-antes de decidir se DMA (degraus 8-9, os mais arriscados) ainda é necessário.
+**Degrau 5: o stall do GTE ligado na CPU** (`07-gte.md` L112-115 — ler registrador GTE ou
+emitir novo comando antes do anterior terminar trava a CPU). MFC2/CFC2/SWC2 leem → esperam;
+MTC2/CTC2/LWC2 escrevem → spec não diz que esperam, não esperam. Mesmo modelo `busy_until =
+emissão + 1 + custo` do Degrau 3, reusando `Gte::command_cycles` do Degrau 4. Campo novo em
+`Cpu` → bump `snapshot::VERSAO` de novo. Checar `gte_fuzz_hardware` (oráculo, 1100/1100)
+continua igual — ciclos não mudam resultado. Depois de ligar, rodar RE2/Tekken3 de novo pra
+ver se muda alguma coisa (achado 0212 nesta rodada: não mudaram com só 1-4). Cada degrau é
+uma iteração normal. Depois dos degraus 1-6, Degrau 7 remede os jogos travados antes de
+decidir se DMA (degraus 8-9) ainda é necessário.
 
 PRs #218/#219/#220 de rodadas anteriores seguem abertos, não mesclados. Lista legado `10.x`
-(10.45/10.83/10.85/10.102/10.114/10.116) fica em segundo plano até a escada avançar.
+fica em segundo plano até a escada avançar.
 
 Rodar Crash: `--bios bios/SCPH1001.BIN --disc "../roms/extraido/Crash Bandicoot (USA).cue"
 --max-steps 1200000000 --pad --press start@330000000 --press cross@700000000`.
@@ -62,7 +66,7 @@ cada degrau da escada de timing), 34 (acumulador de ciclos extras é estado de p
 
 ## Placar de testes
 
-Workspace: **1289** testes.
+Workspace: **1313** testes.
 - **NUNCA rodar `cargo test`/`nextest` nem a bateria de mutação junto com o oráculo**: a
   disputa de CPU faz o `Start-Process` ler stdout antes do flush e reportar `sem-saida`
   falso. Derrubou 16/21 numa medição da 0170; rodada limpa deu 21/21.

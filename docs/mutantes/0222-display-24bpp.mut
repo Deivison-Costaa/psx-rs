@@ -1,0 +1,84 @@
+# Manifesto de mutacao da iteracao 0222 — area de display em 24bpp (FMV)
+formato: 1
+iteracao: 0222
+item: 0222.1
+alvo: crates/psx-core/src/gpu.rs
+teste: gpu_display_24bpp
+
+mutante: m1
+rotulo: framebuffer volta a ignorar GPUSTAT.21 e le tudo como 15bpp
+ocorrencias: 1
+teste: gpu_display_24bpp
+@@DE
+        let cor24 = self.stat.get() & (1 << 21) != 0;
+@@PARA
+        let cor24 = false;
+@@FIM
+
+mutante: m2
+rotulo: profundidade lida do bit 20 (Video Mode) em vez do bit 21
+ocorrencias: 1
+teste: gpu_display_24bpp
+@@DE
+        let cor24 = self.stat.get() & (1 << 21) != 0;
+@@PARA
+        let cor24 = self.stat.get() & (1 << 20) != 0;
+@@FIM
+
+mutante: m3
+rotulo: pixel de 24 bits ocupa quatro bytes em vez de tres
+ocorrencias: 1
+teste: gpu_display_24bpp
+@@DE
+                        self.byte_de_display(start_x, vy, x * 3),
+                        self.byte_de_display(start_x, vy, x * 3 + 1),
+                        self.byte_de_display(start_x, vy, x * 3 + 2),
+@@PARA
+                        self.byte_de_display(start_x, vy, x * 4),
+                        self.byte_de_display(start_x, vy, x * 4 + 1),
+                        self.byte_de_display(start_x, vy, x * 4 + 2),
+@@FIM
+
+mutante: m4
+rotulo: byte baixo e byte alto do halfword trocados
+ocorrencias: 1
+teste: gpu_display_24bpp
+@@DE
+        (self.display_snapshot[vy * 1024 + vx] >> (8 * (i % 2))) as u8
+@@PARA
+        (self.display_snapshot[vy * 1024 + vx] >> (8 * (1 - i % 2))) as u8
+@@FIM
+
+mutante: m5
+rotulo: canais em ordem BGR em vez de RGB no caminho de 24 bits
+ocorrencias: 1
+teste: gpu_display_24bpp
+@@DE
+                        self.byte_de_display(start_x, vy, x * 3),
+                        self.byte_de_display(start_x, vy, x * 3 + 1),
+                        self.byte_de_display(start_x, vy, x * 3 + 2),
+@@PARA
+                        self.byte_de_display(start_x, vy, x * 3 + 2),
+                        self.byte_de_display(start_x, vy, x * 3 + 1),
+                        self.byte_de_display(start_x, vy, x * 3),
+@@FIM
+
+controle: c1
+rotulo: mesmo teste do bit 21 escrito com deslocamento (equivalente)
+ocorrencias: 1
+teste: gpu_display_24bpp
+@@DE
+        let cor24 = self.stat.get() & (1 << 21) != 0;
+@@PARA
+        let cor24 = (self.stat.get() >> 21) & 1 == 1;
+@@FIM
+
+controle: c2
+rotulo: mascara redundante de 8 bits antes do cast (equivalente)
+ocorrencias: 1
+teste: gpu_display_24bpp
+@@DE
+        (self.display_snapshot[vy * 1024 + vx] >> (8 * (i % 2))) as u8
+@@PARA
+        ((self.display_snapshot[vy * 1024 + vx] >> (8 * (i % 2))) & 0xFF) as u8
+@@FIM

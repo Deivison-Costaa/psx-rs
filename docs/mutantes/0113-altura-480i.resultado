@@ -1,10 +1,10 @@
 # gerado por scripts/mutantes.ps1 — NAO editar a mao
-# commit: a8fa891c31769c0dc4d62e57f2c2819bd74ee60c
-# rodado_em: 2026-07-30T21:18:48-03:00
-m1,mutante,morreu,morreu,0.7,vres_480_sem_interlace_nao_dobra
-m2,mutante,morreu,morreu,0.8,interlace_sem_vres_480_nao_dobra
-m3,mutante,morreu,morreu,0.8,altura_480i_dobra_o_range_vertical;framebuffer_480i_le_linhas_consecutivas_da_vram
-m4,mutante,morreu,morreu,0.8,altura_480i_dobra_o_range_vertical
-m5,mutante,morreu,morreu,0.8,framebuffer_480i_le_linhas_consecutivas_da_vram
-c1,controle,sobreviveu,sobreviveu,0.8,
-c2,controle,sobreviveu,sobreviveu,0.7,
+# commit: 9403116c8d3b0af79b2480c7d8c67426ecaed799
+# rodado_em: 2026-08-07T13:29:00-03:00
+m1,mutante,morreu,morreu,2.6,vres_480_sem_interlace_nao_dobra
+m2,mutante,morreu,morreu,1.2,interlace_sem_vres_480_nao_dobra
+m3,mutante,morreu,morreu,1.2,altura_480i_dobra_o_range_vertical;framebuffer_480i_le_linhas_consecutivas_da_vram
+m4,mutante,morreu,morreu,1.2,altura_480i_dobra_o_range_vertical
+m5,mutante,morreu,morreu,1.2,framebuffer_480i_le_linhas_consecutivas_da_vram
+c1,controle,sobreviveu,sobreviveu,1.2,
+c2,controle,sobreviveu,sobreviveu,1.1,

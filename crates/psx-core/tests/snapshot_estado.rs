@@ -11,7 +11,7 @@ const SCRATCHPAD: u32 = 0x1F80_0000;
 // +8 bytes na iter 0211: Cpu ganhou `hilo_busy_until: u64` pro stall de MULT/DIV
 // (`load_extra_cycles` foi renomeado pra `extra_cycles`, mesmo tamanho, sem efeito aqui).
 // +8 bytes na iter 0213: Cpu ganhou `gte_busy_until: u64` pro stall do GTE.
-const TAMANHO_DO_ESTADO: usize = 4_858_412;
+const TAMANHO_DO_ESTADO: usize = 4_858_414;
 const SPU_VOZ0_VOL: u32 = 0x1F80_1C00;
 const I_MASK: u32 = 0x1F80_1074;
 const DMA6_MADR: u32 = 0x1F80_10E0;

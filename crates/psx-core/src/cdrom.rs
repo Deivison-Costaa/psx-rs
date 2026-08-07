@@ -53,6 +53,8 @@ pub struct Cdrom {
     play_track: Cell<u8>,
     audio_fifo: RefCell<VecDeque<(i16, i16)>>,
     xa_state: Cell<XaState>,
+    filter_file: Cell<u8>,
+    filter_channel: Cell<u8>,
 }
 
 /// Quatro setores de CD-DA. Se o jogo le mais rapido do que o SPU consome, o excedente
@@ -103,6 +105,8 @@ impl Cdrom {
             play_track: Cell::new(0),
             audio_fifo: RefCell::new(VecDeque::new()),
             xa_state: Cell::new(XaState::default()),
+            filter_file: Cell::new(0),
+            filter_channel: Cell::new(0),
         }
     }
 
@@ -437,12 +441,14 @@ impl Cdrom {
                 self.second_cycles.set(timing);
             }
             0x0D => {
-                // § Setfilter (06-cdrom.md L676-683): 2 parametros (file, channel), so
-                // muda o filtro de canal XA-ADPCM — precisa consumir os params da fila
-                // como qualquer comando suportado, senao eles vazam pro proximo comando
-                // (a rota generica de baixo nao le nem limpa param_buf; Setfilter(file,
-                // channel) sobrava e virava prefixo do Setloc seguinte, corrompendo
-                // mm/ss/ff dele).
+                // § Setfilter (06-cdrom.md L676-683): 2 parametros (file, channel) que
+                // passam a valer pro filtro XA-ADPCM (Setmode bit3) — precisa consumir os
+                // params da fila como qualquer comando suportado, senao eles vazam pro
+                // proximo comando (a rota generica de baixo nao le nem limpa param_buf;
+                // Setfilter(file, channel) sobrava e virava prefixo do Setloc seguinte,
+                // corrompendo mm/ss/ff dele).
+                self.filter_file.set(self.param_pop());
+                self.filter_channel.set(self.param_pop());
                 self.param_clear();
                 self.result_push(self.stat_byte());
                 self.intsts.set(3);
@@ -731,14 +737,26 @@ impl Cdrom {
                 // video vira lixo no decompressor do jogo (achado real: Tomb Raider grava
                 // fora dos limites de um buffer de 8 slots e ate corrompe o vetor de
                 // excecao em RAM baixa quando isso acontece).
+                let cru = self.setor_cru(disc_bin);
+                let audio_realtime = cru.as_deref().is_some_and(cdrom_xa::is_xa_audio_sector);
+                // § Setfilter (06-cdrom.md L676-683) + Data/ADPCM Sector Filtering/Delivery
+                // (L760-782): com o filtro ligado (Setmode bit3), so o file/channel
+                // selecionados por Setfilter contam como o canal de audio "certo" — os
+                // demais setores audio+realtime nao vao pro decoder XA (nao e o canal
+                // pedido) e TAMBEM nao vao pra CPU como dado ("reject if filter_enabled
+                // AND submode is audio+realtime" vale pro caminho de dado tambem).
+                let filtro_ligado = self.mode.get() & 0x08 != 0;
+                let canal_bate = cru.as_deref().is_some_and(|c| {
+                    c[0x10] == self.filter_file.get() && c[0x11] == self.filter_channel.get()
+                });
                 let xa_ligado = self.mode.get() & 0x40 != 0;
-                let setor_de_audio = xa_ligado
-                    && self
-                        .setor_cru(disc_bin)
-                        .as_deref()
-                        .is_some_and(cdrom_xa::is_xa_audio_sector);
-                if setor_de_audio {
+                let vai_pro_adpcm =
+                    xa_ligado && audio_realtime && (!filtro_ligado || canal_bate);
+                let descartado_pelo_filtro = !vai_pro_adpcm && audio_realtime && filtro_ligado;
+                if vai_pro_adpcm {
                     self.decodifica_xa(disc_bin);
+                    advance_read_pos(&self.read_pos_mm, &self.read_pos_ss, &self.read_pos_ff);
+                } else if descartado_pelo_filtro {
                     advance_read_pos(&self.read_pos_mm, &self.read_pos_ss, &self.read_pos_ff);
                 } else {
                     self.busy.set(false);

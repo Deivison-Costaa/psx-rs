@@ -204,6 +204,51 @@ fn write_vram_dump(path: &str, bus: &Bus) {
         std::process::exit(1);
     }
     eprintln!("dump-vram: {} ({} bytes)", path, data.len());
+    write_framebuffer_png(path, bus);
+}
+
+fn write_framebuffer_png(vram_path: &str, bus: &Bus) {
+    let gpu = bus.gpu();
+    let stat = gpu.stat();
+    let saida = format!("{}-fb.png", vram_path.trim_end_matches(".vram"));
+    let Some(fb) = gpu.framebuffer_for_display() else {
+        eprintln!("dump-fb: {saida} pulado (display desligado, GPUSTAT.23=1)");
+        return;
+    };
+    if fb.width == 0 || fb.height == 0 {
+        eprintln!("dump-fb: {saida} pulado (area de display vazia)");
+        return;
+    }
+    let arquivo = match std::fs::File::create(&saida) {
+        Ok(f) => f,
+        Err(e) => {
+            eprintln!("Erro: nao criei '{saida}': {e}");
+            return;
+        }
+    };
+    let mut cod = png::Encoder::new(
+        std::io::BufWriter::new(arquivo),
+        u32::from(fb.width),
+        u32::from(fb.height),
+    );
+    cod.set_color(png::ColorType::Rgba);
+    cod.set_depth(png::BitDepth::Eight);
+    let escreve = cod
+        .write_header()
+        .and_then(|mut w| w.write_image_data(&fb.data));
+    if let Err(e) = escreve {
+        eprintln!("Erro: png '{saida}': {e}");
+        return;
+    }
+    eprintln!(
+        "dump-fb: {saida} {}x{} {}bpp stat={:08X} start=({},{})",
+        fb.width,
+        fb.height,
+        if stat & (1 << 21) != 0 { 24 } else { 15 },
+        stat,
+        gpu.display_start_x(),
+        gpu.display_start_y(),
+    );
 }
 
 fn load_disc(disc_path: &str) -> (DiscLayout, Vec<u8>) {

@@ -458,15 +458,31 @@ impl Gpu {
         let h = self.display_height();
         let start_x = self.display_start_x.get() as usize;
         let start_y = self.display_start_y.get() as usize;
+        let bits24 = self.stat.get() & (1 << 21) != 0;
         let mut data = Vec::with_capacity((w as usize) * (h as usize) * 4);
         for y in 0..(h as usize) {
+            let row = ((start_y + y) & 0x1FF) * 1024;
             for x in 0..(w as usize) {
-                let vx = (start_x + x) & 0x3FF;
-                let vy = (start_y + y) & 0x1FF;
-                let pixel = self.display_snapshot[vy * 1024 + vx];
-                let r = ((pixel & 0x1F) as u8) << 3;
-                let g = (((pixel >> 5) & 0x1F) as u8) << 3;
-                let b = (((pixel >> 10) & 0x1F) as u8) << 3;
+                let (r, g, b) = if bits24 {
+                    let byte = start_x * 2 + x * 3;
+                    let comp = |o: usize| -> u8 {
+                        let o = o % 2048;
+                        let hw = self.display_snapshot[row + (o >> 1)];
+                        if o & 1 == 0 {
+                            hw as u8
+                        } else {
+                            (hw >> 8) as u8
+                        }
+                    };
+                    (comp(byte), comp(byte + 1), comp(byte + 2))
+                } else {
+                    let pixel = self.display_snapshot[row + ((start_x + x) & 0x3FF)];
+                    (
+                        ((pixel & 0x1F) as u8) << 3,
+                        (((pixel >> 5) & 0x1F) as u8) << 3,
+                        (((pixel >> 10) & 0x1F) as u8) << 3,
+                    )
+                };
                 data.push(r);
                 data.push(g);
                 data.push(b);

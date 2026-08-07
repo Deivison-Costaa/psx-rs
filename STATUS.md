@@ -63,11 +63,7 @@ escada de timing), 34 (acumulador de ciclos extras é estado de pipeline).
 
 ## Placar de testes
 
-<<<<<<< HEAD
-Workspace: **1420** testes.
-=======
-Workspace: **1413** testes.
->>>>>>> worktree-wf_834812bb-21e-1
+Workspace: **1429** testes.
 - **NUNCA rodar `nextest` nem a bateria de mutação junto com o oráculo**: a disputa de CPU
   faz o `Start-Process` ler stdout antes do flush e reportar `sem-saida` falso (0170).
 - **GTE: 1100/1100 no `gte_valid_0xc0ffee_50.log`** (gitignored, em

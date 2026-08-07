@@ -161,8 +161,10 @@ fn gouraud_triangle_interpola_na_aresta_longa_entre_cores_diferentes() {
     assert_eq!(gpu.vram_pixel(10, 10), 0x001F,
         "B7: pixel(10,10) vertice no extremo superior (t=0): 0x001F, obtido 0x{:04X}",
         gpu.vram_pixel(10, 10));
-    assert_eq!(gpu.vram_pixel(10, 20), 0x01F0,
-        "B7: pixel(10,20) aresta vertical x=10 red->green (t=10, t_max=20), obtido 0x{:04X}",
+    assert_eq!(gpu.vram_pixel(10, 20), 0x01EF,
+        "B7: pixel(10,20) aresta vertical x=10 red->green (t=10, t_max=20); a interpolacao \
+         roda em 8 bits com gradiente de 12 bits fracionarios, entao 248/2 da 124>>3=15 em \
+         cada canal, e nao 31/2 em 5 bits; obtido 0x{:04X}",
         gpu.vram_pixel(10, 20));
 }
 
@@ -203,14 +205,15 @@ fn gouraud_short_edge_interpola_entre_cores_diferentes() {
 
     assert_eq!(gpu.vram_pixel(0, 0), 0x001F,
         "B8s: vertice0 (0,0) vermelho 0x001F, obtido 0x{:04X}", gpu.vram_pixel(0, 0));
-    assert_eq!(gpu.vram_pixel(1, 3), 0x0136,
-        "B8s: aresta esquerda (x,y)=(1,3) red->green a 30%% (t=3,dx=10): 0x0136, obtido 0x{:04X}",
+    assert_eq!(gpu.vram_pixel(1, 3), 0x0135,
+        "B8s: aresta esquerda (x,y)=(1,3) red->green a 30%% (t=3,dx=10): 0x0135 porque 248*0,7 \
+         em 8 bits da 174>>3=21, e nao 31*0,7 em 5 bits; obtido 0x{:04X}",
         gpu.vram_pixel(1, 3));
-    assert_eq!(gpu.vram_pixel(3, 7), 0x02AA,
-        "B8s: aresta esquerda (x,y)=(3,7) red->green a 70%% (t=7,dx=10): 0x02AA, obtido 0x{:04X}",
+    assert_eq!(gpu.vram_pixel(3, 7), 0x02A9,
+        "B8s: aresta esquerda (x,y)=(3,7) red->green a 70%% (t=7,dx=10): 0x02A9, obtido 0x{:04X}",
         gpu.vram_pixel(3, 7));
-    assert_eq!(gpu.vram_pixel(7, 4), 0x3D84,
-        "B8s: pixel(7,4) aresta curta direita blue->green interpolada: 0x3D84, obtido 0x{:04X}",
+    assert_eq!(gpu.vram_pixel(7, 4), 0x3D83,
+        "B8s: pixel(7,4) aresta curta direita blue->green interpolada: 0x3D83, obtido 0x{:04X}",
         gpu.vram_pixel(7, 4));
 }
 

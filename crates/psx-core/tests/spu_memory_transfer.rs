@@ -68,6 +68,13 @@ fn dma_transfer(bus: &mut Bus, addr: u32, ram_addr: u32, tamanho_bytes: usize, e
             CHCR_SPU_READ
         },
     );
+    espera_conclusao(bus, ba * bs);
+}
+
+// O canal 4 espera o SPU (33/8 clks/word contra 17/16 do lado da RAM), entao o bit24 so cai
+// no evento de conclusao — a CPU real gasta esse tempo no laco que enquete o CHCR.
+fn espera_conclusao(bus: &mut Bus, palavras: u32) {
+    bus.tick_timers(psx_core::dma::Dma::transfer_cost(4, palavras) as u32 + 1);
 }
 
 fn write_ram_bytes(bus: &mut Bus, addr: u32, dados: &[u8]) {
@@ -160,11 +167,12 @@ fn spu_dma_sync_mode0_transfere_so_o_numero_de_palavras_do_campo_unico() {
     bus.write32::<BusRead>(DPCR, 0x0765_4321 | (1 << 19));
     // CHCR::SPUwrite(startImmediately): dir=fromRam(bit0), enabled(bit24), syncMode=0.
     bus.write32::<BusRead>(D4_CHCR, 0x0100_0001);
+    espera_conclusao(&mut bus, 4);
 
     assert_eq!(
         bus.read32::<BusRead>(D4_CHCR) & (1 << 24),
         0,
-        "4 palavras (16 bytes) devem completar de imediato"
+        "4 palavras (16 bytes) devem completar dentro do prazo da taxa do canal"
     );
 
     let buf_addr: u32 = 0x0000_6000;

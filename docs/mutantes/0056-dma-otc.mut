@@ -24,9 +24,11 @@ rotulo: BC=0 nao tratado como 0x10000
 mutante: m3
 rotulo: bits 24 e 28 nao limpos apos OTC
 @@DE
-        self.chcr[6] &= !((1 << 24) | (1 << 28));
+        self.arm_completion(6);
+        count
 @@PARA
         // bits 24 e 28 nao sao limpos apos OTC (mutante)
+        count
 @@FIM
 
 mutante: m4
@@ -67,8 +69,16 @@ rotulo: adicionar comentario nao altera comportamento
 controle: K2
 rotulo: extrair mascara de bits 24+28 para constante (refatoracao)
 @@DE
-        self.chcr[6] &= !((1 << 24) | (1 << 28));
+        let mascara = if ch == 3 || ch == 6 {
+            (1 << 24) | (1 << 28)
+        } else {
+            1 << 24
+        };
 @@PARA
-        let mascara_start = (1 << 24) | (1 << 28);
-        self.chcr[6] &= !mascara_start;
+        const MASCARA_START: u32 = (1 << 24) | (1 << 28);
+        let mascara = if ch == 3 || ch == 6 {
+            MASCARA_START
+        } else {
+            1 << 24
+        };
 @@FIM

@@ -26,9 +26,11 @@ rotulo: DMA3 nao verifica bit 28 — executa so com bit 24
 mutante: m3
 rotulo: DMA3 nao limpa bit 24 apos transferencia — CHCR fica com start setado
 @@DE
-        self.chcr[3] &= !((1 << 24) | (1 << 28));
+        self.arm_completion(3);
+        word_count
 @@PARA
         self.chcr[3] &= !(1 << 28);
+        word_count
 @@FIM
 
 mutante: m4

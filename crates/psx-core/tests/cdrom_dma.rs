@@ -199,6 +199,9 @@ fn dma3_bit24_e_bit28_limpos_apos_transferencia() {
     bus.write32::<BusRead>(D3_BCR, 1);
     bus.write32::<BusRead>(DPCR, 0x0765_4321 | (1 << 15));
     bus.write32::<BusRead>(D3_CHCR, 0x1100_0000);
+    // O canal 3 espera o drive (24 clks/word contra 17/16 do lado da RAM), entao a
+    // conclusao vem por evento do scheduler e nao dentro da escrita do CHCR.
+    bus.tick_timers(psx_core::dma::Dma::transfer_cost(3, 1) as u32 + 1);
 
     let chcr = bus.read32::<BusRead>(D3_CHCR);
     assert_eq!(chcr & (1 << 24), 0, "bit 24 limpo apos transferencia");
@@ -287,6 +290,7 @@ fn dma3_bcr_zero_equivale_a_10000h_words() {
     let w0 = bus.read32::<BusRead>(dest);
     assert_eq!(w0, 0x0403_0201, "primeiro word transferido com BCR=0");
 
+    bus.tick_timers(psx_core::dma::Dma::transfer_cost(3, 0x10000) as u32 + 1);
     let chcr = bus.read32::<BusRead>(D3_CHCR);
     assert_eq!(
         chcr & (1 << 24),

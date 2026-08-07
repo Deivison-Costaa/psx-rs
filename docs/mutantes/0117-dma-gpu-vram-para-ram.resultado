@@ -1,11 +1,11 @@
 # gerado por scripts/mutantes.ps1 — NAO editar a mao
-# commit: 521b4c069e5c1c3c08f9f02093dd7e09bcd03e7c
-# rodado_em: 2026-07-30T23:11:34-03:00
-m1,mutante,morreu,morreu,0.9,dma2_para_ram_devolve_o_gpustat_26_ao_terminar;dma2_para_ram_drena_a_janela_pedida_pelo_c0h
-m2,mutante,morreu,morreu,0.9,dma2_da_ram_continua_empurrando_para_o_gp0;dma2_para_ram_devolve_o_gpustat_26_ao_terminar;dma2_para_ram_drena_a_janela_pedida_pelo_c0h
-m3,mutante,morreu,morreu,1,dma2_para_ram_devolve_o_gpustat_26_ao_terminar;dma2_para_ram_drena_a_janela_pedida_pelo_c0h
-m4,mutante,morreu,morreu,1,dma2_para_ram_drena_a_janela_pedida_pelo_c0h
-m5,mutante,morreu,morreu,1,dma2_para_ram_devolve_o_gpustat_26_ao_terminar;dma2_para_ram_drena_a_janela_pedida_pelo_c0h
-m6,mutante,morreu,morreu,0.9,dma2_para_ram_nao_roda_com_o_canal_desabilitado_no_dpcr
-c1,controle,sobreviveu,sobreviveu,0.9,
-c2,controle,sobreviveu,sobreviveu,1,
+# commit: 21df5b810ee833e9e7e9814c866c62b0d92a6f21
+# rodado_em: 2026-08-06T23:25:10-03:00
+m1,mutante,morreu,morreu,1.1,dma2_para_ram_devolve_o_gpustat_26_ao_terminar;dma2_para_ram_drena_a_janela_pedida_pelo_c0h
+m2,mutante,morreu,morreu,1.1,dma2_da_ram_continua_empurrando_para_o_gp0;dma2_para_ram_devolve_o_gpustat_26_ao_terminar;dma2_para_ram_drena_a_janela_pedida_pelo_c0h
+m3,mutante,morreu,morreu,1.1,dma2_para_ram_devolve_o_gpustat_26_ao_terminar;dma2_para_ram_drena_a_janela_pedida_pelo_c0h
+m4,mutante,morreu,morreu,1.1,dma2_para_ram_drena_a_janela_pedida_pelo_c0h
+m5,mutante,morreu,morreu,1.1,dma2_para_ram_devolve_o_gpustat_26_ao_terminar;dma2_para_ram_drena_a_janela_pedida_pelo_c0h
+m6,mutante,morreu,morreu,1.3,dma2_para_ram_nao_roda_com_o_canal_desabilitado_no_dpcr
+c1,controle,sobreviveu,sobreviveu,1.2,
+c2,controle,sobreviveu,sobreviveu,1.1,

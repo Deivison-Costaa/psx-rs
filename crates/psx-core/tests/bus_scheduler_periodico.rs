@@ -47,6 +47,30 @@ fn dois_ticks_gigantes_seguidos_nao_perdem_nem_duplicam_periodos() {
     );
 }
 
+// IRQ0 sobe uma vez por VBLANK_ENTER (bus.rs, braco VBLANK_ENTER) -- o mesmo observavel de
+// `irq0_periodo_ntsc.rs`, so que aqui o avanco ate o segundo/terceiro periodo acontece num
+// UNICO tick grande, nao um a um.
+#[test]
+fn tick_gigante_dispara_dois_vblanks_cobertos_de_uma_vez() {
+    let mut bus = bus_ntsc();
+    let periodo_ntsc = 566_187u32;
+    // anda 1 ciclo por vez ate o primeiro VBLANK_ENTER vencer (mesma tecnica de
+    // irq0_periodo_ntsc.rs) -- so entao total_cycles() esta alinhado com o prazo real do
+    // proximo VBLANK_ENTER, base limpa pro tick grande que segue.
+    let base = bus.irq().raise_count(0);
+    while bus.irq().raise_count(0) == base {
+        bus.tick_timers(1);
+    }
+    let apos_o_primeiro = bus.irq().raise_count(0);
+    bus.tick_timers(periodo_ntsc * 2);
+    assert_eq!(
+        bus.irq().raise_count(0) - apos_o_primeiro,
+        2,
+        "um unico tick de 2 periodos NTSC deveria disparar VBLANK_ENTER (e IRQ0) 2 vezes, \
+         nao 1 -- reagendar a partir de total_cycles saltaria por cima do segundo"
+    );
+}
+
 #[test]
 fn tick_pequeno_continua_disparando_no_maximo_um_periodo_por_vez() {
     // controle: nenhum tick isolado menor que um periodo deveria disparar mais de um

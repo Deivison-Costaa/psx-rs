@@ -330,14 +330,20 @@ impl Cdrom {
         self.bank.set(val & 0x3);
     }
 
-    // § Command Summary (06-cdrom.md L546-601): comandos que respondem so' com INT3
-    // (sem INT2 de completion) e nao tocam motor/leitura — Nop, Getparam, GetlocL,
-    // GetlocP, GetTN, GetTD. GetlocL explicitamente "pode ser mandado durante Read
-    // ativo" (L1054-1056) sem perturba-lo. Um comando desse tipo, ACEITO (latched)
-    // enquanto ReadN/Play continua entregando setores, nao pode contar como "a CPU
-    // aceitou um comando novo, descarte a 2a resposta obsoleta".
-    fn e_comando_passivo(cmd: u8) -> bool {
-        matches!(cmd, 0x01 | 0x0F | 0x10 | 0x11 | 0x13 | 0x14)
+    // § Sending a new command while another is pending (06-cdrom.md L471-473): a spec
+    // mede "ReadN/ReadS -> Wait for INT3 IRQ -> clear IRQ -> SetMode/SetLoc/..." e
+    // conclui "Will not drop any of the two commands, thus execute sequentially". Ou
+    // seja: a regra e' pela lista de quem ABORTA a leitura, nao por uma lista curta de
+    // "passivos". Sao os que mexem em motor/posicao ou reiniciam a transferencia —
+    // Play, ReadN, MotorOn, Stop, Pause, Init, SetSession, SeekL, SeekP, GetID, ReadS,
+    // Reset, ReadTOC (§ Command Summary L546-601, coluna de completion). Todo o resto
+    // (Setmode, Setloc, Setfilter, Mute/Demute, os Getloc/GetT*, Test, GetQ) responde
+    // so' INT3 e deixa o drive girando.
+    fn aborta_leitura(cmd: u8) -> bool {
+        matches!(
+            cmd,
+            0x03 | 0x06 | 0x07 | 0x08 | 0x09 | 0x0A | 0x12 | 0x15 | 0x16 | 0x1A | 0x1B | 0x1C | 0x1E
+        )
     }
 
     // § "cancela resposta armada ao aceitar comando" (commit 7b57967) descarta um 2o
@@ -350,7 +356,7 @@ impl Cdrom {
     // tanto no latch (write8) quanto no dispatch de fato (deliver_first) — sao dois
     // pontos independentes que hoje descartam CDROM_SECOND.
     fn preserva_entrega_em_voo(&self, cmd: u8) -> bool {
-        (self.reading.get() || self.playing.get()) && Self::e_comando_passivo(cmd)
+        (self.reading.get() || self.playing.get()) && !Self::aborta_leitura(cmd)
     }
 
     fn latch_command(&self, cmd: u8) {

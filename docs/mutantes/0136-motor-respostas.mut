@@ -14,11 +14,11 @@ mutante: m1
 rotulo: comando deixa de preemptar setor armado
 @@DE
     fn preserva_entrega_em_voo(&self, cmd: u8) -> bool {
-        (self.reading.get() || self.playing.get()) && Self::e_comando_passivo(cmd)
+        (self.reading.get() || self.playing.get()) && !Self::aborta_leitura(cmd)
     }
 @@PARA
     fn preserva_entrega_em_voo(&self, cmd: u8) -> bool {
-        (self.reading.get() || self.playing.get()) && !Self::e_comando_passivo(cmd)
+        (self.reading.get() || self.playing.get()) && Self::aborta_leitura(cmd)
     }
 @@FIM
 

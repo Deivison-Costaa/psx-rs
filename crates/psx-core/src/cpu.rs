@@ -117,7 +117,16 @@ impl Cpu {
         }
     }
 
+    fn issue_cycles(&mut self) -> u32 {
+        1 + std::mem::take(&mut self.extra_cycles)
+    }
+
     pub fn step(&mut self, bus: &mut Bus) {
+        let cycles = self.step_uncounted(bus);
+        bus.tick_timers(cycles);
+    }
+
+    fn step_uncounted(&mut self, bus: &mut Bus) -> u32 {
         self.cop0[13] = if bus.irq().pending() {
             self.cop0[13] | (1 << 10)
         } else {
@@ -146,17 +155,17 @@ impl Cpu {
             self.branch_taken = false;
             self.pc = 0x8000_0080;
             self.irq_handler_entries = self.irq_handler_entries.wrapping_add(1);
-            return;
+            return self.issue_cycles();
         }
 
         let instr_pc = self.pc;
         if instr_pc & 3 != 0 {
             self.enter_exception(0x04, Some(instr_pc), instr_pc, false, false, None);
-            return;
+            return self.issue_cycles();
         }
         if Bus::fetch_causa_bus_error(instr_pc) {
             self.enter_exception(0x06, Some(instr_pc), instr_pc, false, false, None);
-            return;
+            return self.issue_cycles();
         }
         let instr = bus.read32::<BusRead>(instr_pc);
 
@@ -207,7 +216,7 @@ impl Cpu {
             let bad_vaddr = self.exception_badvaddr.take();
             let ce = self.pending_ce.take();
             self.enter_exception(exc_code, bad_vaddr, instr_pc, in_delay_slot, was_taken, ce);
-            return;
+            return self.issue_cycles();
         }
 
         if let Some((reg, val)) = self.load_delay.take() {
@@ -221,7 +230,7 @@ impl Cpu {
                 self.load_delay = Some((reg, val));
             }
         }
-        bus.tick_timers(1 + std::mem::take(&mut self.extra_cycles));
+        self.issue_cycles()
     }
 
     fn execute(&mut self, instr: u32, bus: &mut Bus) -> Option<(usize, u32)> {

@@ -24,6 +24,7 @@ $Chapters = [ordered]@{
     "15-cdrom-format.md"         = "cdromformat.md"
     "16-cdrom-file-formats.md"   = "cdromfileformats.md"
     "17-sio.md"                  = "serialinterfacessio.md"
+    "18-gte-pipeline-timings.md" = "gtepipelinetimings.md"
 }
 
 $OutDir = "docs/reference"

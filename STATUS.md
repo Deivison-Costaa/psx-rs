@@ -14,29 +14,31 @@ Estado de cada jogo em `docs/estado-dos-jogos.md` (leia antes de investigar trav
 
 ## Próxima tarefa
 
-**A escada de 9 degraus do achado 0193.4 está completa.** Falta só medir o resultado:
+**13 de 15 títulos rodam.** Faltam Tomb Raider II e Final Fantasy IX. Leia
+`docs/estado-dos-jogos.md` ANTES de investigar qualquer travamento: ele traz o ponto exato
+de congelamento de cada jogo, as hipóteses **já refutadas por medição** e duas armadilhas de
+medição que já fizeram relatório mentir.
 
-1. **Remedir os 5 jogos do Degrau 7** (FF7/Tekken3/RE2/Tomb Raider/CTR) contra a escada
-   completa 1-9 — Tekken3/RE2/Tomb Raider travavam perto de CD-ROM (0214.3-0214.5), exatamente
-   o que o Degrau 9 deveria mexer. CTR não deveria mudar (bug de cadeia software, não timing).
-2. **Rerodar os 3 testes do Rayman convertidos na 0216** contra o disco real assim que
-   `../roms/extraido/Rayman (USA) DADOS.cue` estiver disponível — a janela (140M-220M) não
-   foi confirmada empiricamente ainda.
-3. Rodar oráculos `tests/exes/ps1-tests/dma`/`.../spu` contra a escada completa (10.114).
+1. **FMV sai granulada** (defeito exposto ao destravar: antes nenhuma FMV decodificava).
+   Logos legíveis sobre fundo ruidoso. Suspeito: MDEC (IDCT/zigzag/quantização). Ataque
+   pelos oráculos de hardware em `tests/exes/` antes de olhar pixel.
+2. **Custo de DMA conta a lentidão do drive duas vezes.** `Dma::word_cost_per_256` cobra a
+   tabela "DMA Transfer Rates" (`04-dma.md` L217-226) como stall da CPU, mas aquela tabela é
+   a vazão do DISPOSITIVO. O stall deve ser o da seção "DRAM Hyper Page mode" (~17 ciclos
+   por 16 palavras). Para o CD-ROM já modelamos a lentidão do drive na cadência de setor.
+3. **Final Fantasy IX**: gira em `0x800A9A6C` esperando o bit1 do byte em `0x80076B14`. Esse
+   byte é campo do próprio jogo (não é stat do CD-ROM — já verifiquei), sobrescrito por um
+   memcpy em `pc=0x800226CC` cuja origem passou a conter `0x80015509` no passo 408.411.249.
+4. **Tomb Raider II**: mudou com o fix do DICR, não confirmado visualmente.
 
-Achado 0193.4 fica parcialmente aberto: GPU ainda desenha em 0 ciclos (tempo de desenho é
-declarado desconhecido pela spec, 10.116) — fora do escopo desta escada por decisão do
-Degrau 8. Degrau 10 (Load Shadow) segue **não recomendado** (dado insuficiente de hardware).
+Achado 0193.4 pode ser **fechado**: o custo por instrução da CPU foi medido contra o modelo
+da spec no laço do decoder do TR1 e bate com 0,04% de erro (49,019 contra 49,0). A suspeita
+de "CPU rápida demais" está refutada por medição.
 
-PRs #218/#219/#220 seguem abertos. Lista legado `10.x` em segundo plano até a escada avançar.
-
-Rodar Crash: `--bios bios/SCPH1001.BIN --disc "../roms/extraido/Crash Bandicoot (USA).cue"
---max-steps 1200000000 --pad --press start@330000000 --press cross@700000000`.
-**Rayman: sempre `--pad` e o `.cue` MULTI-TRILHA**, 1200000000.
-Flags do runner: `--memcard <a.mcd>`, `--dump-audio <a.raw>` (PCM s16le 44100 Hz),
-`--dump-vram-every N PREFIXO`, `--disc-info <cue>`.
-App desktop: `./target/release/psx-desktop`, configurado por `psx-rs.toml` (ver
-`docs/como-rodar.md`).
+Flags do runner e como rodar cada jogo: `docs/como-rodar.md` e
+`docs/estado-dos-jogos.md`. **Medir travamento: histograma de PC (`--sample-pcs`, passo
+PRIMO) decide melhor que hash de VRAM** — hash congelado não separa "travou" de "menu
+parado". Ordene os `.vram` NUMERICAMENTE e compile sempre um binário baseline pra A/B.
 
 Achados abertos em `docs/achados.md`. Lotes do oráculo: tarefa-modelo em
 `logs/orquestrador/task-lote-oraculo.txt`.
@@ -62,19 +64,15 @@ escada de timing), 34 (acumulador de ciclos extras é estado de pipeline).
 ## Placar de testes
 
 Workspace: **1404** testes.
-- **NUNCA rodar `cargo test`/`nextest` nem a bateria de mutação junto com o oráculo**: a
-  disputa de CPU faz o `Start-Process` ler stdout antes do flush e reportar `sem-saida`
-  falso. Derrubou 16/21 numa medição da 0170; rodada limpa deu 21/21.
+- **NUNCA rodar `nextest` nem a bateria de mutação junto com o oráculo**: a disputa de CPU
+  faz o `Start-Process` ler stdout antes do flush e reportar `sem-saida` falso (0170).
 - **GTE: 1100/1100 no `gte_valid_0xc0ffee_50.log`** (gitignored, em
   `tests/exes/ps1-tests/gte-fuzz/`). É o oráculo mais barato do projeto: 0,4 s e placar por
   registrador. Sem o arquivo o teste se ignora sozinho.
 - **Crash e Rayman animam e soam** (medido na 0192): 8 dumps de VRAM cada, nenhum intervalo
   sem pixel mudando; 3,0 M e 3,4 M quadros de áudio, 94% e 78% de amostras não-zero.
-- **Passo absoluto em teste de Rayman reprova por melhoria legítima (10.115).** Os 4 testes
-  (`evcb_descritores`, `autoack`, `exception_chain`, `tty_boot`) já usam janela/condição em
-  vez de passo fixo (0216). **Disco do Rayman não está em `../roms/extraido/` nesta
-  sessão** — os 4 arquivos rodam pelo caminho de skip gracioso, não testados contra dados
-  reais aqui; rode numa máquina com a imagem antes de confiar no resultado.
+- **Passo absoluto em teste reprova por melhoria legítima (10.115)**: use janela/condição.
+  Os 4 testes de Rayman já foram convertidos (0216) e rodam por skip gracioso sem o disco.
 - **`mutantes.ps1` herda o último `teste:` visto (10.71)**: declare `teste:` em TODO
   registro do manifesto, não só no cabeçalho. Custou 9/18 falsos na 0187 e, na 0214, um
   mutante de scheduler rodando contra o alvo errado **travou ~520s de CPU num laço infinito**

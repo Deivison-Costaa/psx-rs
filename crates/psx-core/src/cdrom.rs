@@ -317,7 +317,11 @@ impl Cdrom {
         self.second_cycles.get()
     }
 
-    pub fn deliver_first(&self) -> bool {
+    pub fn deliver_first(
+        &self,
+        disc_layout: Option<&DiscLayout>,
+        disc_bin: Option<&[u8]>,
+    ) -> bool {
         // § First Response (06-cdrom.md L1984): o mainloop so executa o comando se NAO
         // houver INT pendente — qualquer INT sem ack, nao so int1_pending/int2_pending
         // (essas flags marcam "resposta ainda devida", nao "intsts sem ack").
@@ -331,12 +335,12 @@ impl Cdrom {
         };
         self.param_buf.set(self.pending_params.get());
         self.param_count.set(self.pending_param_count.get());
-        self.send_command(cmd);
+        self.send_command(cmd, disc_layout, disc_bin);
         self.second_dirty.set(true);
         true
     }
 
-    fn send_command(&self, cmd: u8) {
+    fn send_command(&self, cmd: u8, disc_layout: Option<&DiscLayout>, disc_bin: Option<&[u8]>) {
         self.busy.set(true);
         self.result_clear();
         match cmd {
@@ -550,6 +554,64 @@ impl Cdrom {
                         .set(Self::second_response_cycles_for(0x1B));
                 }
             }
+            // § GetTN (06-cdrom.md L1090-1095): INT3(status,first,last) em BCD — o
+            // despacho generico so empilhava 1 byte (status), entao o driver lia "first"
+            // e "last" com o FIFO ja vazio (0 por padrao). Jogos que checam o numero de
+            // trilhas (ex.: GT2 decidindo se ha trilha de audio CD-DA apos os dados)
+            // travavam esperando um valor que nunca chegava direito.
+            0x13 => {
+                let (first, last) = match disc_layout {
+                    Some(layout) if !layout.tracks.is_empty() => {
+                        let first = layout.tracks.iter().map(|t| t.number).min().unwrap_or(1);
+                        let last = layout.tracks.iter().map(|t| t.number).max().unwrap_or(1);
+                        (first, last)
+                    }
+                    _ => (1, 1),
+                };
+                self.result_push(self.stat_byte());
+                self.result_push(int_to_bcd(first as u32));
+                self.result_push(int_to_bcd(last as u32));
+                self.intsts.set(3);
+                self.busy.set(false);
+            }
+            // § GetTD (06-cdrom.md L1096-1104): INT3(status,min,sec) em BCD. Parametro
+            // track=00h pede o fim da ultima trilha (lead-out); 01h..NNh pede o inicio
+            // da trilha N (relativo a Index=1); fora da faixa e' erro INT5(stat,10h).
+            0x14 => {
+                let track_bcd = self.param_pop();
+                self.param_clear();
+                let track = bcd_to_int(track_bcd);
+                let alvo = disc_layout.and_then(|layout| {
+                    if layout.tracks.is_empty() {
+                        return None;
+                    }
+                    if track == 0 {
+                        let bin = disc_bin?;
+                        let total_quadros = (bin.len() / cdrom_xa::RAW_SECTOR_BYTES) as u32;
+                        Some(quadros_para_msf(total_quadros + 150))
+                    } else {
+                        layout
+                            .tracks
+                            .iter()
+                            .find(|t| t.number as u32 == track)
+                            .map(|t| quadros_para_msf(t.start_lba + 150))
+                    }
+                });
+                match alvo {
+                    Some((mm, ss, _ff)) => {
+                        self.result_push(self.stat_byte());
+                        self.result_push(mm);
+                        self.result_push(ss);
+                        self.intsts.set(3);
+                    }
+                    None => {
+                        self.result_push(self.stat_byte() | 0x01);
+                        self.result_push(0x10);
+                        self.intsts.set(5);
+                    }
+                }
+                self.busy.set(false);
+            }
             _ => {
                 self.result_push(self.stat_byte());
                 self.intsts.set(3);
@@ -589,8 +651,8 @@ impl Cdrom {
         &self,
         offset: u32,
         val: u8,
-        _disc_layout: Option<&DiscLayout>,
-        _disc_bin: Option<&[u8]>,
+        disc_layout: Option<&DiscLayout>,
+        disc_bin: Option<&[u8]>,
     ) {
         match offset & 0x3 {
             0 => self.set_bank(val),
@@ -617,7 +679,7 @@ impl Cdrom {
                             self.second_request.set(true);
                             self.irq_line.set(false);
                         } else if self.pending_cmd.get().is_some() {
-                            self.deliver_first();
+                            self.deliver_first(disc_layout, disc_bin);
                         }
                     }
                 }

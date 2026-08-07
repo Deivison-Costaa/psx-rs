@@ -649,8 +649,20 @@ impl Cdrom {
         }
         if pending == 5 && self.read_mode.get() != 0 {
             self.pending_second.set(5);
-            self.int1_pending.set(true);
             self.second_cycles.set(self.sector_interval_cycles());
+            // § Data/ADPCM Sector Filtering/Delivery (06-cdrom.md L760-782): um setor de
+            // audio XA (Audio+RealTime) nunca levanta INT1 (deliver_second acima pula
+            // intsts.set(1) nesse caso) — nao ha nada pra CPU dar ack, entao o avanco pro
+            // proximo setor NAO pode depender do handler de ack (que so roda quando o
+            // driver escreve a confirmacao de uma INT que de fato chegou). O drive fisico
+            // continua girando e lendo no proximo intervalo de setor independente disso;
+            // aqui isso significa pedir a proxima entrega diretamente. Setores de dados
+            // continuam dependendo do ack de verdade (int1_pending), como antes.
+            if self.intsts.get() != 0 {
+                self.int1_pending.set(true);
+            } else {
+                self.second_request.set(true);
+            }
         }
     }
 

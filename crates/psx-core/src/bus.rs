@@ -421,6 +421,10 @@ impl Bus {
                 CDROM_SECOND => {
                     self.cdrom
                         .deliver_second_now(self.disc_layout.as_ref(), self.disc_bin.as_deref());
+                    // Setor de audio XA nao levanta INT1 (nada pra CPU dar ack), entao
+                    // deliver_second_now ja pede a proxima entrega sozinho (second_request
+                    // direto, sem esperar escrita em registrador) — consome aqui.
+                    self.schedule_cdrom_second();
                     if self.cdrom.take_irq2_edge() {
                         self.irq.raise(2);
                     }

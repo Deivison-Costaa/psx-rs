@@ -31,6 +31,32 @@ fn conclui_otc(bus: &mut Bus) {
 }
 
 #[test]
+fn lbu_no_terceiro_byte_do_dicr_devolve_mascara_e_master() {
+    let mut bus = bus();
+    bus.write32::<BusWrite>(DICR, MASTER | MASCARA_CH3);
+
+    assert_eq!(
+        bus.read8::<BusRead>(DICR_BYTE2),
+        0x88,
+        "ler o byte 2 do DICR tem de devolver os bits 16-23 do registrador; o driver de \
+         streaming faz read-modify-write e um zero fixo aqui apaga o master enable"
+    );
+}
+
+#[test]
+fn lhu_na_metade_alta_do_dicr_devolve_mascara_e_master() {
+    let mut bus = bus();
+    bus.write32::<BusWrite>(DICR, MASTER | MASCARA_CH3);
+
+    assert_eq!(
+        bus.read16::<BusRead>(DICR + 2),
+        0x0088,
+        "a meia-palavra alta do DICR sao os bits 16-31; sem flag de conclusao e sem bus \
+         error o b31 esta baixo e sobra 0088h"
+    );
+}
+
+#[test]
 fn sb_no_terceiro_byte_do_dicr_liga_a_mascara_do_canal() {
     let mut bus = bus();
     bus.write32::<BusWrite>(DICR, MASTER);

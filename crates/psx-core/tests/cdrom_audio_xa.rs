@@ -142,7 +142,19 @@ fn subcabecalho_diz_taxa_estereo_e_se_o_setor_e_de_audio() {
     let mut cru = vec![0u8; RAW_SECTOR_BYTES];
     assert!(!cdrom_xa::is_xa_audio_sector(&cru), "modo 1 nao e audio XA");
     cru[0x0F] = 0x02;
-    assert!(!cdrom_xa::is_xa_audio_sector(&cru), "submode sem o bit2");
+    assert!(
+        !cdrom_xa::is_xa_audio_sector(&cru),
+        "submode sem o bit2 nem o bit6"
+    );
     cru[0x12] = 0x04;
+    // § Data/ADPCM Sector Filtering/Delivery (06-cdrom.md L770): "submode isn't
+    // audio+realtime (bit2 and bit6 must be both set)" — so bit2 (Audio) sem bit6
+    // (Real Time) nao qualifica; setores de video (marcados Data, nao Audio, per
+    // 15-cdrom-format.md L782) tem so outros bits ligados.
+    assert!(
+        !cdrom_xa::is_xa_audio_sector(&cru),
+        "submode com bit2 mas sem o bit6 (Real Time) nao e' audio XA de verdade"
+    );
+    cru[0x12] = 0x44;
     assert!(cdrom_xa::is_xa_audio_sector(&cru));
 }

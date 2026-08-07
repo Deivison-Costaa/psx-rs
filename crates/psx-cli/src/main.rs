@@ -1,3 +1,5 @@
+mod disasm;
+
 use psx_core::app::library;
 use psx_core::bus::{Bios, Bus, BusRead, Ram};
 use psx_core::cdrom_bin_cue::{DiscLayout, parse_cue};
@@ -375,6 +377,7 @@ fn main() {
     let mut trace_pcs: HashSet<u32> = HashSet::new();
     let mut watch_mem: Vec<u32> = Vec::new();
     let mut dump_mem: Vec<(u32, usize)> = Vec::new();
+    let mut disasm_mem: Vec<(u32, usize)> = Vec::new();
     let mut dump_vram: Option<String> = None;
     let mut vram_timeline: Option<(usize, String)> = None;
     let mut audio_dump: Option<String> = None;
@@ -490,6 +493,32 @@ fn main() {
                     }
                 };
                 dump_mem.push((addr, len));
+                i += 3;
+            }
+            "--disasm" if i + 2 < args.len() => {
+                let addr = match u32::from_str_radix(args[i + 1].trim_start_matches("0x"), 16) {
+                    Ok(a) => a,
+                    Err(e) => {
+                        eprintln!(
+                            "Erro: '--disasm' espera endereco hex, '{}': {}",
+                            args[i + 1],
+                            e
+                        );
+                        std::process::exit(1);
+                    }
+                };
+                let n_instr = match args[i + 2].parse::<usize>() {
+                    Ok(n) => n,
+                    Err(e) => {
+                        eprintln!(
+                            "Erro: '--disasm' espera numero de instrucoes, '{}': {}",
+                            args[i + 2],
+                            e
+                        );
+                        std::process::exit(1);
+                    }
+                };
+                disasm_mem.push((addr, n_instr));
                 i += 3;
             }
             "--dump-vram-every" if i + 2 < args.len() => {
@@ -648,6 +677,15 @@ fn main() {
                 }
             }
 
+            for &(addr, n_instr) in &disasm_mem {
+                eprintln!("disasm {:08X}:", addr);
+                for i in 0..n_instr {
+                    let a = addr.wrapping_add((i * 4) as u32);
+                    let instr = bus.read32::<BusRead>(a);
+                    eprintln!("  {:08X}: {:08X}  {}", a, instr, disasm::desmonta(instr));
+                }
+            }
+
             if let Some(path) = &dump_vram {
                 write_vram_dump(path, &bus);
             }
@@ -722,6 +760,15 @@ fn main() {
                 for off in (0..len).step_by(4) {
                     let word = bus.read32::<BusRead>(addr.wrapping_add(off as u32));
                     eprintln!("  {:08X}: {:08X}", addr.wrapping_add(off as u32), word);
+                }
+            }
+
+            for &(addr, n_instr) in &disasm_mem {
+                eprintln!("disasm {:08X}:", addr);
+                for i in 0..n_instr {
+                    let a = addr.wrapping_add((i * 4) as u32);
+                    let instr = bus.read32::<BusRead>(a);
+                    eprintln!("  {:08X}: {:08X}  {}", a, instr, disasm::desmonta(instr));
                 }
             }
 

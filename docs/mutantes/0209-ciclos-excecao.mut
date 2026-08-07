@@ -32,9 +32,13 @@ rotulo: zera o campo errado (written_gpr em vez do acumulador)
 mutante: m4
 rotulo: mem::take vira leitura simples (acumulador nunca esvazia no consumo)
 @@DE
-        bus.tick_timers(1 + std::mem::take(&mut self.extra_cycles));
+    fn issue_cycles(&mut self) -> u32 {
+        1 + std::mem::take(&mut self.extra_cycles)
+    }
 @@PARA
-        bus.tick_timers(1 + self.extra_cycles);
+    fn issue_cycles(&mut self) -> u32 {
+        1 + self.extra_cycles
+    }
 @@FIM
 
 mutante: m5
@@ -57,10 +61,14 @@ rotulo: comentario antes do reset do acumulador
 @@FIM
 
 controle: c2
-rotulo: comentario antes do consumo do acumulador em tick_timers
+rotulo: comentario antes do consumo do acumulador em issue_cycles
 @@DE
-        bus.tick_timers(1 + std::mem::take(&mut self.extra_cycles));
+    fn issue_cycles(&mut self) -> u32 {
+        1 + std::mem::take(&mut self.extra_cycles)
+    }
 @@PARA
+    fn issue_cycles(&mut self) -> u32 {
         // 1 ciclo de emissao + o resto pendente desta instrucao
-        bus.tick_timers(1 + std::mem::take(&mut self.extra_cycles));
+        1 + std::mem::take(&mut self.extra_cycles)
+    }
 @@FIM

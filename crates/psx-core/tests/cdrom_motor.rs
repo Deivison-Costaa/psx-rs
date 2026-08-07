@@ -16,6 +16,12 @@ const PAUSE_IDLE_MAX: u32 = 0x4000;
 const PAUSE_LENDO_AINDA_NAO: u32 = 0x10_0000;
 const PAUSE_LENDO_MAX: u32 = 0x24_0000;
 const ESPERA_GENEROSA: u32 = 0x24_0000;
+// § Sector Buffer (06-cdrom.md L2118-2126): o drive gira sozinho, entao esperar "generoso"
+// numa leitura em andamento nao e' neutro — passam varios setores e os antigos se perdem.
+// Pra observar setor a setor a espera tem que ser a exata: 4A00h ate o primeiro setor
+// depois do ack do ReadN, e a cadencia da spec (INT1 Rate, L2093-2101) dai em diante.
+const ESPERA_PRIMEIRO_SETOR: u32 = 0x4A00;
+const CADENCIA_VELOCIDADE_NORMAL: u32 = 451_584;
 
 fn bus() -> Bus {
     asm::bus_with_bios_empty()
@@ -227,7 +233,11 @@ fn pause_durante_leitura_leva_o_tempo_de_5_setores() {
     send_command(&mut bus, 0x06);
     let _ = result_read(&mut bus);
     ack(&mut bus);
-    bus.tick_timers(ESPERA_GENEROSA);
+    // § Sector Buffer VS Pause Response Tests (06-cdrom.md L2216-2222): so' o caso SEM
+    // atraso da o INT3 do Pause direto. Com atraso (L2225-2231) a spec mediu um
+    // "Process INT1 --> 0:2:1 (oldest)" ANTES do INT3 — esperar generoso aqui punha um
+    // setor bufferizado na frente do Pause e nao media mais o tempo do Pause.
+    bus.tick_timers(ESPERA_PRIMEIRO_SETOR);
     assert_eq!(hintsts(&mut bus), 1, "INT1 do primeiro setor");
     let _ = result_read(&mut bus);
     ack(&mut bus);
@@ -236,7 +246,7 @@ fn pause_durante_leitura_leva_o_tempo_de_5_setores() {
     assert_eq!(
         hintsts(&mut bus),
         3,
-        "INT3 do Pause — nada de INT1 atropelando"
+        "INT3 do Pause — sem setor bufferizado, nada de INT1 atropelando"
     );
     let _ = result_read(&mut bus);
     ack(&mut bus);
@@ -265,7 +275,7 @@ fn read_n_avanca_de_setor_a_cada_int1() {
     send_command(&mut bus, 0x06);
     let _ = result_read(&mut bus);
     ack(&mut bus);
-    bus.tick_timers(ESPERA_GENEROSA);
+    bus.tick_timers(ESPERA_PRIMEIRO_SETOR);
     assert_eq!(hintsts(&mut bus), 1, "INT1 do primeiro setor");
     let _ = result_read(&mut bus);
     let primeiro = le_4_bytes_do_setor(&mut bus);
@@ -276,7 +286,7 @@ fn read_n_avanca_de_setor_a_cada_int1() {
     );
 
     ack(&mut bus);
-    bus.tick_timers(ESPERA_GENEROSA);
+    bus.tick_timers(CADENCIA_VELOCIDADE_NORMAL);
     assert_eq!(hintsts(&mut bus), 1, "INT1 do segundo setor");
     let _ = result_read(&mut bus);
     let segundo = le_4_bytes_do_setor(&mut bus);
@@ -296,7 +306,7 @@ fn read_s_tambem_avanca_de_setor() {
     send_command(&mut bus, 0x1B);
     let _ = result_read(&mut bus);
     ack(&mut bus);
-    bus.tick_timers(ESPERA_GENEROSA);
+    bus.tick_timers(ESPERA_PRIMEIRO_SETOR);
     assert_eq!(hintsts(&mut bus), 1, "INT1 do primeiro setor do ReadS");
     let _ = result_read(&mut bus);
     let primeiro = le_4_bytes_do_setor(&mut bus);
@@ -307,7 +317,7 @@ fn read_s_tambem_avanca_de_setor() {
     );
 
     ack(&mut bus);
-    bus.tick_timers(ESPERA_GENEROSA);
+    bus.tick_timers(CADENCIA_VELOCIDADE_NORMAL);
     assert_eq!(
         hintsts(&mut bus),
         1,

@@ -505,19 +505,27 @@ impl Spu {
         saida
     }
 
-    // § SPU Memory layout (L140) de docs/reference/08-spu.md: os 4 KiB iniciais
-    // guardam CD esquerdo/direito e as vozes 1 e 3 depois do ADSR.
+    // § SPU Memory layout (L140) e § Capture Interrupt (L847) de
+    // docs/reference/08-spu.md: os 4 KiB iniciais guardam CD esquerdo/direito e
+    // as vozes 1 e 3 depois do ADSR. Escrita nesses buffers dispara IRQ9 quando
+    // cruza o endereco configurado (usado por CTR pro lip sync), desde que a
+    // IRQ esteja habilitada e DTC bit3-2 nao sejam ambos zero.
     fn capture(&mut self) {
         let off = self.capture_offset;
         let cd_l = self.cd_left;
         let cd_r = self.cd_right;
         let v1 = self.voice_out(1);
         let v3 = self.voice_out(3);
+        let irq_pode_disparar = self.irq_enabled() && self.dtc & 0b1100 != 0;
+        let irq_addr = self.irq_byte_address();
         for (base, amostra) in [(0u32, cd_l), (0x400, cd_r), (0x800, v1), (0xC00, v3)] {
             let endereco = base + off;
             let bytes = amostra.to_le_bytes();
             self.ram[endereco as usize] = bytes[0];
             self.ram[endereco as usize + 1] = bytes[1];
+            if irq_pode_disparar && endereco == irq_addr {
+                self.irq9 = true;
+            }
         }
         self.capture_offset = (off + 2) % CAPTURE_SIZE;
     }

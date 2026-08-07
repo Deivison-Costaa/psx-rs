@@ -5,12 +5,21 @@ item: 4.4ad
 alvo: crates/psx-core/src/cdrom.rs
 teste: cdrom_motor
 
+# reancorado apos o fix do freeze do GT2 — a checagem "comando novo cancela 2a
+# resposta obsoleta" virou o metodo preserva_entrega_em_voo (usado tanto no
+# latch quanto no dispatch, pra nao cancelar entrega de ReadN/Play ainda em
+# voo quando o comando e' passivo); a intencao do mutante (Pause deixa de
+# preemptar o setor armado) agora se expressa invertendo esse metodo.
 mutante: m1
 rotulo: comando deixa de preemptar setor armado
 @@DE
-        if self.intsts.get() == 0 && !self.int2_pending.get() && !self.int1_pending.get() {
+    fn preserva_entrega_em_voo(&self, cmd: u8) -> bool {
+        (self.reading.get() || self.playing.get()) && !Self::aborta_leitura(cmd)
+    }
 @@PARA
-        if self.intsts.get() != 0 && !self.int2_pending.get() && !self.int1_pending.get() {
+    fn preserva_entrega_em_voo(&self, cmd: u8) -> bool {
+        (self.reading.get() || self.playing.get()) && Self::aborta_leitura(cmd)
+    }
 @@FIM
 
 mutante: m2
@@ -49,8 +58,10 @@ mutante: m4
 rotulo: Read nao avanca a posicao entre setores
 @@DE
                 advance_read_pos(&self.read_pos_mm, &self.read_pos_ss, &self.read_pos_ff);
+                self.write_slot.set(((completo as usize + 1) % SLOTS) as u8);
 @@PARA
                 self.read_pos_ff.set(self.read_pos_ff.get());
+                self.write_slot.set(((completo as usize + 1) % SLOTS) as u8);
 @@FIM
 
 mutante: m5
@@ -93,8 +104,8 @@ fn advance_read_pos(mm: &Cell<u8>, ss: &Cell<u8>, ff: &Cell<u8>) {
 controle: c2
 rotulo: comentario antes da primeira resposta
 @@DE
-    pub fn deliver_first(&self) -> bool {
+    pub fn deliver_first(&self, disc_layout: Option<&DiscLayout>, disc_bin: Option<&[u8]>) -> bool {
 @@PARA
     // entrega INT3 somente quando o gate de IRQ permite
-    pub fn deliver_first(&self) -> bool {
+    pub fn deliver_first(&self, disc_layout: Option<&DiscLayout>, disc_bin: Option<&[u8]>) -> bool {
 @@FIM

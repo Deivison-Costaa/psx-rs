@@ -331,15 +331,6 @@ impl Bus {
 
     fn service_cdrom_irq(&mut self) {
         if self.cdrom.take_irq2_edge() {
-            let ints = self.cdrom.intsts();
-            let cmd = self.cdrom.pending_cmd();
-            eprintln!(
-                "# CDROM_IRQ2 step={} total_cycles={} intsts=0x{:02X} pending_cmd=0x{:02X}",
-                self.total_cycles,
-                self.total_cycles,
-                ints,
-                cmd.unwrap_or(0xFF)
-            );
             self.irq.raise(2);
         }
     }
@@ -420,31 +411,37 @@ impl Bus {
                     }
                 }
                 CDROM_RESPONSE => {
-                    if self.cdrom.deliver_first() {
+                    self.cdrom
+                        .deliver_first(self.disc_layout.as_ref(), self.disc_bin.as_deref());
+                    // § mesmo guard de latch_command/deliver_first (comando passivo com
+                    // leitura/play em voo NAO cancela o CDROM_SECOND ja agendado) — antes
+                    // este cancelamento era incondicional em qualquer despacho bem-sucedido,
+                    // ignorando esse guard e cancelando a entrega do proximo setor sempre
+                    // que um comando como Nop despachava por este caminho (o scheduler, nao
+                    // a escrita sincrona em write8).
+                    if self.cdrom.take_second_dirty() {
                         self.scheduler.cancel(EventId(CDROM_SECOND));
                     }
                     if self.cdrom.take_irq2_edge() {
-                        let ints = self.cdrom.intsts();
-                        let cmd = self.cdrom.pending_cmd();
-                        eprintln!(
-                            "# CDROM_RESPONSE_IRQ2 step={} total_cycles={} intsts=0x{:02X} pending_cmd=0x{:02X}",
-                            self.total_cycles,
-                            self.total_cycles,
-                            ints,
-                            cmd.unwrap_or(0xFF)
-                        );
                         self.irq.raise(2);
                     }
                 }
                 CDROM_SECOND => {
                     self.cdrom
                         .deliver_second_now(self.disc_layout.as_ref(), self.disc_bin.as_deref());
+                    // deliver_second_now pede a proxima entrega sozinho (second_request
+                    // direto, sem esperar escrita em registrador) — consome aqui. O
+                    // proximo setor conta do VENCIMENTO do evento, nao do fim da fatia de
+                    // ciclos: senao cada fatia atrasa a entrega seguinte e o drive fica
+                    // mais lento que os 75/150 setores por segundo da spec
+                    // (06-cdrom.md L929-931).
+                    if self.cdrom.take_second_request() {
+                        self.scheduler.cancel(EventId(CDROM_SECOND));
+                        let prox = prazo + self.cdrom.second_response_cycles();
+                        self.scheduler
+                            .schedule(ScheduleKey::new(prox), EventId(CDROM_SECOND));
+                    }
                     if self.cdrom.take_irq2_edge() {
-                        let ints = self.cdrom.intsts();
-                        eprintln!(
-                            "# CDROM_SECOND_IRQ2 total_cycles={} intsts=0x{:02X}",
-                            self.total_cycles, ints
-                        );
                         self.irq.raise(2);
                     }
                 }

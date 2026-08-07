@@ -6,7 +6,8 @@ use support::asm;
 
 const CD_BASE: u32 = 0x1F80_1800;
 const ESPERA_PRIMEIRA_RESPOSTA: u32 = 0x1_4000;
-const ESPERA_PRIMEIRO_SETOR: u32 = 0x6000;
+// § 06-cdrom.md L2077-2078: o primeiro setor do ReadN chega depois da BUSCA (distancia +
+// variacao por seek); os goldens de delay(N) contam da CADENCIA em diante, nao dela.
 // § INT1 Rate (06-cdrom.md L2093-2101): SystemClock*930h/4/44100Hz em velocidade normal.
 const CADENCIA: u32 = 451_584;
 const FRAMES: usize = 96;
@@ -177,7 +178,8 @@ fn sem_atraso_os_setores_saem_em_sequencia() {
     let mut bus = bus_com_disco();
     setmode_setloc_e_read(&mut bus);
 
-    bus.tick_timers(ESPERA_PRIMEIRO_SETOR);
+    let ciclos_da_busca = bus.cdrom().second_response_cycles() as u32;
+    bus.tick_timers(ciclos_da_busca);
     assert_eq!(processa_int1(&mut bus), (0x00, 0x02, 0x00));
     bus.tick_timers(CADENCIA);
     assert_eq!(processa_int1(&mut bus), (0x00, 0x02, 0x01));
@@ -199,7 +201,8 @@ fn atraso_curto_entrega_o_mais_antigo_e_pula_pro_mais_novo() {
     let mut bus = bus_com_disco();
     setmode_setloc_e_read(&mut bus);
 
-    bus.tick_timers(ESPERA_PRIMEIRO_SETOR);
+    let ciclos_da_busca = bus.cdrom().second_response_cycles() as u32;
+    bus.tick_timers(ciclos_da_busca);
     assert_eq!(processa_int1(&mut bus), (0x00, 0x02, 0x00));
 
     bus.tick_timers(CADENCIA);
@@ -231,7 +234,8 @@ fn atraso_medio_mostra_o_slot_do_setor_1_sobrescrito_pelo_setor_9() {
     let mut bus = bus_com_disco();
     setmode_setloc_e_read(&mut bus);
 
-    bus.tick_timers(ESPERA_PRIMEIRO_SETOR);
+    let ciclos_da_busca = bus.cdrom().second_response_cycles() as u32;
+    bus.tick_timers(ciclos_da_busca);
     assert_eq!(processa_int1(&mut bus), (0x00, 0x02, 0x00));
 
     bus.tick_timers(CADENCIA);
@@ -260,7 +264,8 @@ fn atraso_longo_repete_o_setor_17_como_a_spec_mediu() {
     let mut bus = bus_com_disco();
     setmode_setloc_e_read(&mut bus);
 
-    bus.tick_timers(ESPERA_PRIMEIRO_SETOR);
+    let ciclos_da_busca = bus.cdrom().second_response_cycles() as u32;
+    bus.tick_timers(ciclos_da_busca);
     assert_eq!(processa_int1(&mut bus), (0x00, 0x02, 0x00));
 
     bus.tick_timers(CADENCIA);
@@ -292,7 +297,8 @@ fn getloc_l_logo_apos_o_int1_devolve_o_mesmo_setor() {
     let mut bus = bus_com_disco();
     setmode_setloc_e_read(&mut bus);
 
-    bus.tick_timers(ESPERA_PRIMEIRO_SETOR);
+    let ciclos_da_busca = bus.cdrom().second_response_cycles() as u32;
+    bus.tick_timers(ciclos_da_busca);
     assert_eq!(processa_int1(&mut bus), (0x00, 0x02, 0x00));
 
     send_command(&mut bus, 0x10);
@@ -318,7 +324,8 @@ fn getloc_l_depois_do_atraso_devolve_o_mais_novo_e_o_int1_o_mais_antigo() {
     let mut bus = bus_com_disco();
     setmode_setloc_e_read(&mut bus);
 
-    bus.tick_timers(ESPERA_PRIMEIRO_SETOR);
+    let ciclos_da_busca = bus.cdrom().second_response_cycles() as u32;
+    bus.tick_timers(ciclos_da_busca);
     assert_eq!(processa_int1(&mut bus), (0x00, 0x02, 0x00));
 
     bus.tick_timers(CADENCIA);
@@ -351,7 +358,8 @@ fn getloc_l_antes_do_atraso_trava_a_resposta_e_o_int1_seguinte_pula() {
     let mut bus = bus_com_disco();
     setmode_setloc_e_read(&mut bus);
 
-    bus.tick_timers(ESPERA_PRIMEIRO_SETOR);
+    let ciclos_da_busca = bus.cdrom().second_response_cycles() as u32;
+    bus.tick_timers(ciclos_da_busca);
     assert_eq!(processa_int1(&mut bus), (0x00, 0x02, 0x00));
 
     send_command(&mut bus, 0x10);

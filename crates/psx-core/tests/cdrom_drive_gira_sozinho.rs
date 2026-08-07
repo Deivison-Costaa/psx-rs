@@ -6,7 +6,8 @@ use support::asm;
 
 const CD_BASE: u32 = 0x1F80_1800;
 const ESPERA_PRIMEIRA_RESPOSTA: u32 = 0x1_4000;
-const ESPERA_PRIMEIRO_SETOR: u32 = 0x6000;
+// § 06-cdrom.md L2077-2078: o primeiro setor do ReadN chega depois da BUSCA, cujo tempo
+// depende da distancia e varia a cada seek — sai do estado, nao de constante.
 // § INT1 Rate (06-cdrom.md L2093-2101): SystemClock*930h/4/44100Hz em velocidade normal.
 const CADENCIA: u32 = 451_584;
 const FRAMES: usize = 64;
@@ -153,7 +154,8 @@ fn sem_atraso_a_posicao_avanca_um_setor_por_int1() {
     let mut bus = bus_com_disco();
     setloc_0_2_0_e_read(&mut bus);
 
-    bus.tick_timers(ESPERA_PRIMEIRO_SETOR);
+    let ciclos_da_busca = bus.cdrom().second_response_cycles() as u32;
+    bus.tick_timers(ciclos_da_busca);
     assert_eq!(hintsts(&mut bus), 1, "primeiro setor tem que levantar INT1");
     assert_eq!(
         getloc_l_apos_ack(&mut bus),
@@ -180,7 +182,8 @@ fn cinco_intervalos_sem_ack_avancam_cinco_setores() {
     let mut bus = bus_com_disco();
     setloc_0_2_0_e_read(&mut bus);
 
-    bus.tick_timers(ESPERA_PRIMEIRO_SETOR);
+    let ciclos_da_busca = bus.cdrom().second_response_cycles() as u32;
+    bus.tick_timers(ciclos_da_busca);
     assert_eq!(hintsts(&mut bus), 1, "primeiro setor tem que levantar INT1");
 
     bus.tick_timers(5 * CADENCIA);
@@ -201,7 +204,8 @@ fn atraso_longo_sem_ack_avanca_proporcional_ao_tempo() {
     let mut bus = bus_com_disco();
     setloc_0_2_0_e_read(&mut bus);
 
-    bus.tick_timers(ESPERA_PRIMEIRO_SETOR);
+    let ciclos_da_busca = bus.cdrom().second_response_cycles() as u32;
+    bus.tick_timers(ciclos_da_busca);
     assert_eq!(hintsts(&mut bus), 1, "primeiro setor tem que levantar INT1");
 
     bus.tick_timers(12 * CADENCIA);
@@ -222,7 +226,8 @@ fn sem_ack_nao_ha_flag_de_overrun_nem_int_extra() {
     let mut bus = bus_com_disco();
     setloc_0_2_0_e_read(&mut bus);
 
-    bus.tick_timers(ESPERA_PRIMEIRO_SETOR);
+    let ciclos_da_busca = bus.cdrom().second_response_cycles() as u32;
+    bus.tick_timers(ciclos_da_busca);
     assert_eq!(hintsts(&mut bus), 1, "primeiro setor tem que levantar INT1");
 
     bus.tick_timers(5 * CADENCIA);

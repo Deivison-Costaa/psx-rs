@@ -10,14 +10,17 @@ fn bios_vazia_mostra_display_ligado_padrao_gpu() {
 
     assert_eq!(cpu.pc, 0xBFC0_0000, "PC inicial deve ser 0xBFC00000");
 
-    for _ in 0..1_000_000 {
+    // 100k passos = 400 000 bytes, dentro dos 512K da BIOS (01-memory-map.md L34). O valor
+    // anterior (1M) saia da ROM no passo 131 072: o espelho de BIOS nos ultimos 4MB e'
+    // desligado por padrao (L147), entao o que vinha depois nao eram mais NOPs.
+    for _ in 0..100_000 {
         cpu.step(&mut bus);
     }
 
     assert_eq!(
         cpu.pc,
-        0xBFC0_0000 + 1_000_000u32.wrapping_mul(4),
-        "CPU deve avancar PC apos 1M NOPs (BIOS vazia = so NOPs)"
+        0xBFC0_0000 + 100_000u32.wrapping_mul(4),
+        "CPU deve avancar PC apos 100k NOPs (BIOS vazia = so NOPs)"
     );
 
     assert!(

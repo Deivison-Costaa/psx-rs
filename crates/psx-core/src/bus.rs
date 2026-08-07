@@ -12,6 +12,13 @@ use crate::timers::Timers;
 
 const SCRATCHPAD_SIZE: usize = 1024;
 
+/// Fim da janela fisica em que os 2 MB de RAM aparecem espelhados (01-memory-map.md L146).
+const RAM_MIRROR_END: u32 = 0x0080_0000;
+
+/// Barramento em aberto: o que a decodificacao nao reconhece nao tem respaldo em memoria
+/// (01-memory-map.md L160, 12-memory-control.md L218).
+const OPEN_BUS8: u8 = 0xFF;
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Ram {
     data: Vec<u8>,
@@ -474,9 +481,11 @@ impl Bus {
         (addr >> 29) as u8
     }
 
-    fn ram_offset(&self, addr: u32) -> usize {
+    /// `None` quando o endereco fisico esta fora da janela de RAM. Sem isso, todo endereco que
+    /// a decodificacao de regiao nao trata cairia na RAM mascarada por 1FFFFFh.
+    fn ram_index(addr: u32) -> Option<usize> {
         let phys = Self::to_physical(addr);
-        (phys & 0x1F_FF_FF) as usize
+        (phys < RAM_MIRROR_END).then_some((phys & 0x1F_FF_FF) as usize)
     }
 
     fn region_read32(&self, phys: u32, kseg: u8) -> Option<u32> {
@@ -809,7 +818,9 @@ impl Bus {
         if let Some(val) = self.region_read32(phys, Self::kseg(addr)) {
             return val;
         }
-        let idx = self.ram_offset(addr);
+        let Some(idx) = Self::ram_index(addr) else {
+            return u32::from_le_bytes([OPEN_BUS8; 4]);
+        };
         u32::from_le_bytes([
             self.ram.data[idx],
             self.ram.data[idx + 1],
@@ -823,7 +834,9 @@ impl Bus {
         if self.region_write32(phys, Self::kseg(addr), val) {
             return;
         }
-        let idx = self.ram_offset(addr);
+        let Some(idx) = Self::ram_index(addr) else {
+            return;
+        };
         let bytes = val.to_le_bytes();
         self.ram.data[idx] = bytes[0];
         self.ram.data[idx + 1] = bytes[1];
@@ -844,7 +857,7 @@ impl Bus {
         if let Some(val) = self.region_read_byte(phys, Self::kseg(addr), 0) {
             return val;
         }
-        self.ram.data[self.ram_offset(addr)]
+        Self::ram_index(addr).map_or(OPEN_BUS8, |idx| self.ram.data[idx])
     }
 
     pub fn read16<Op: MemoryOp>(&self, addr: u32) -> u16 {
@@ -867,10 +880,11 @@ impl Bus {
         ) {
             return u16::from_le_bytes([lo, hi]);
         }
-        u16::from_le_bytes([
-            self.ram.data[self.ram_offset(addr)],
-            self.ram.data[self.ram_offset(addr.wrapping_add(1))],
-        ])
+        let (Some(lo), Some(hi)) = (Self::ram_index(addr), Self::ram_index(addr.wrapping_add(1)))
+        else {
+            return u16::from_le_bytes([OPEN_BUS8; 2]);
+        };
+        u16::from_le_bytes([self.ram.data[lo], self.ram.data[hi]])
     }
 
     pub fn write8<Op: MemoryOp>(&mut self, addr: u32, val: u8) {
@@ -889,7 +903,9 @@ impl Bus {
         if self.region_write_byte(phys, Self::kseg(addr), 0, val) {
             return;
         }
-        let idx = self.ram_offset(addr);
+        let Some(idx) = Self::ram_index(addr) else {
+            return;
+        };
         self.ram.data[idx] = val;
     }
 
@@ -919,7 +935,9 @@ impl Bus {
         {
             return;
         }
-        let idx = self.ram_offset(addr);
+        let Some(idx) = Self::ram_index(addr) else {
+            return;
+        };
         let bytes = val.to_le_bytes();
         self.ram.data[idx] = bytes[0];
         self.ram.data[idx + 1] = bytes[1];

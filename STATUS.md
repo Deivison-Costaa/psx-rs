@@ -7,14 +7,11 @@
 
 ## Última iteração concluída
 
-**Degrau 7 — remedidos os 5 jogos contra 1-6 (achados 0214.2-0214.6, sem código/PR).** FF7
-e Tekken3/RE2 **quebram as travas antigas** (0208.1/0208.2) e progridem bem mais fundo, mas
-travam de novo: Tekken3 congela na tela cheia da PlayStation com IRQ2 de CD-ROM ativo
-(0214.3); RE2 espera um contador (RAM 0x800A5110) atingir alvo num orçamento de
-retentativas — o padrão "timeout" que 0193.4 previa, agora com PC exato (0214.4). Tomb
-Raider (0214.5): limiar de retentativa de FMV saltou de ~900 iterações pra 2,4-4 bilhões de
-passos — evidência forte de descasamento de ciclos. **CTR inalterado** (0214.6, bug de
-cadeia software, não de timing). **DMA (8-9) segue justificado**: 3/5 travam perto de CD-ROM.
+**0215 — Degrau 8 da escada de timing CPU/barramento (0215.1), branch
+`iter/0215-dma-custo-palavra`, PR não aberto.** `Dma::word_cost_per_256`/`transfer_cost`:
+tabela pura de custo por canal (`04-dma.md` L217-227) — MDEC.IN/OUT/GPU/OTC=17/16,
+CDROM=24/1 (padrão BIOS), SPU=33/8, PIO=20/1. Confere contra a própria nota de DRAM Hyper
+Page mode da spec (`transfer_cost(MDEC,16)==17`). Sem chamador ainda. Bateria 6/6+2/2.
 
 ## Próxima tarefa
 
@@ -22,14 +19,15 @@ Escada motivada pelo Achado 0193.4 (CPU sem custo de acesso a memória/periféri
 degraus, plano completo (números da spec de cada degrau) em
 `~/.claude/plans/smooth-swimming-manatee.md`.
 
-**Degrau 8: DMA calcula custo por palavra (não cobra ainda).** Tabela por canal
-(`04-dma.md:212-227,240-243`): MDEC.IN/OUT, GPU, OTC = 17/16; CDROM = 24/1 (BIOS usa 24;
-achado novo se algum jogo reconfigurar pra 40); SPU = 33/8; PIO = 20/1. Não implementar
-tempo de decodificação MDEC nem desenho da GPU (spec declara desconhecido, 10.116). Zero
-risco — função pura, sem chamador ainda (padrão do Degrau 4). Degrau 9 (cobrar de verdade)
-depende deste + do Degrau 6 (pronto); Rayman tem testes de passo absoluto
-(`rayman_autoack.rs`/`rayman_exception_chain.rs`/`rayman_tty_boot.rs`, 10.115) que quebram
-quando o Degrau 9 mexer em `bus.rs` — converter pra condição-primeiro ANTES, não depois.
+**Degrau 9: DMA cobra ciclos de verdade.** Acumular `Dma::transfer_cost` (Degrau 8) e somar
+em `Bus::tick_timers` ANTES de drenar o scheduler e ANTES de `Timers::tick` (senão os
+timers ficam artificialmente lentos durante DMA). Depende do Degrau 6 (scheduler, pronto —
+sem ele um tick de 12288 ciclos de 1 setor de CD-ROM perderia eventos periódicos).
+**Maior risco de todos**: testes do Rayman com passo absoluto (`rayman_autoack.rs`/
+`rayman_exception_chain.rs`/`rayman_tty_boot.rs`, achado 10.115) vão quebrar; converter pra
+condição-primeiro ANTES de tocar em `bus.rs`, não depois. Rodar oráculos `tests/exes/
+ps1-tests/dma`/`.../spu` antes/depois (10.114). Depois, Degrau 7 sugere remedir Tekken3/
+RE2/Tomb Raider de novo — 3/5 jogos travavam em algo CD-ROM-adjacente (0214.3-0214.5).
 
 PRs #218/#219/#220 seguem abertos. Lista legado `10.x` em segundo plano até a escada avançar.
 
@@ -64,7 +62,7 @@ escada de timing), 34 (acumulador de ciclos extras é estado de pipeline).
 
 ## Placar de testes
 
-Workspace: **1331** testes.
+Workspace: **1344** testes.
 - **NUNCA rodar `cargo test`/`nextest` nem a bateria de mutação junto com o oráculo**: a
   disputa de CPU faz o `Start-Process` ler stdout antes do flush e reportar `sem-saida`
   falso. Derrubou 16/21 numa medição da 0170; rodada limpa deu 21/21.

@@ -71,6 +71,23 @@ fn canal_desabilitado_no_dpcr_nao_cobra_nada() {
 }
 
 #[test]
+fn custo_do_dma_e_drenado_no_tick_e_nao_se_repete_no_seguinte() {
+    let mut bus = bus_com_dma();
+    bus.write32::<BusRead>(D6_MADR, 0x0000_1000);
+    bus.write32::<BusRead>(D6_BCR, 16);
+    bus.write32::<BusRead>(DPCR, 0x0765_4321 | (1 << 27));
+    let antes = bus.total_cycles();
+    bus.write32::<BusRead>(D6_CHCR, 0x1100_0002);
+    bus.tick_timers(1); // drena os 17 do OTC
+    bus.tick_timers(1); // so o ciclo nominal, sem cobrar de novo
+    assert_eq!(
+        bus.total_cycles() - antes,
+        1 + 17 + 1,
+        "o segundo tick nao deveria repetir o custo do primeiro DMA"
+    );
+}
+
+#[test]
 fn dois_dmas_disparados_antes_do_tick_acumulam_o_custo_de_cada_um() {
     let mut bus = bus_com_dma();
     bus.write32::<BusRead>(D6_MADR, 0x0000_1000);

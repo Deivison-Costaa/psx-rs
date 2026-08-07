@@ -7,14 +7,12 @@
 
 ## Última iteração concluída
 
-**0212 — Degrau 4 da escada de timing CPU/barramento (0212.1), branch
-`iter/0212-gte-custo-comando`, PR não aberto.** `Gte::command_cycles(func)`: tabela pura de
-custo por comando, 22 comandos derivados dos cabeçalhos de seção da spec (`07-gte.md`
-L481-642), não do dispatch de `execute_command` (CC/CDP caem no mesmo braço Rust
-`color_color` mas têm custos diferentes — a armadilha que o manifesto testa). Sem chamador
-ainda. Bateria 6/6+2/2. **Checagem rápida pós-Degrau 3: RE2 e Tekken 3 ainda travam no mesmo
-lugar** (não usam mult/div/lwc2) — reforça que GTE é o próximo candidato mais provável pra
-jogos 3D.
+**0213 — Degrau 5 da escada de timing CPU/barramento (0213.1), branch `iter/0213-gte-stall`,
+PR não aberto.** GTE agora trava a CPU: MFC2/CFC2/SWC2 (leitura) esperam o comando GTE em
+voo terminar; MTC2/CTC2/LWC2 (escrita) não esperam — spec só fala em espera pra leitura
+(`07-gte.md` L112-114). Comando novo emitido cedo demais também espera, fórmula composta
+(`busy_until = total_cycles + 1 + extra_cycles_já_empilhado + custo`). Bateria 7/7+2/2 (mutante achou lacuna real: nenhum teste dependia de `extra_cycles` —
+corrigido). `gte_fuzz_hardware` (1100/1100) e invariante 17 iguais.
 
 ## Próxima tarefa
 
@@ -22,18 +20,19 @@ Escada motivada pelo Achado 0193.4 (CPU sem custo de acesso a memória/periféri
 degraus, plano completo (números da spec de cada degrau) em
 `~/.claude/plans/smooth-swimming-manatee.md`.
 
-**Degrau 5: o stall do GTE ligado na CPU** (`07-gte.md` L112-115 — ler registrador GTE ou
-emitir novo comando antes do anterior terminar trava a CPU). MFC2/CFC2/SWC2 leem → esperam;
-MTC2/CTC2/LWC2 escrevem → spec não diz que esperam, não esperam. Mesmo modelo `busy_until =
-emissão + 1 + custo` do Degrau 3, reusando `Gte::command_cycles` do Degrau 4. Campo novo em
-`Cpu` → bump `snapshot::VERSAO` de novo. Checar `gte_fuzz_hardware` (oráculo, 1100/1100)
-continua igual — ciclos não mudam resultado. Depois de ligar, rodar RE2/Tekken3 de novo pra
-ver se muda alguma coisa (achado 0212 nesta rodada: não mudaram com só 1-4). Cada degrau é
-uma iteração normal. Depois dos degraus 1-6, Degrau 7 remede os jogos travados antes de
-decidir se DMA (degraus 8-9) ainda é necessário.
+**Degrau 6: scheduler não perde/atrasa evento periódico sob tick grande.** Bug do próprio
+scheduler, não spec de hardware (R2/`CLAUDE.md`). `Scheduler::advance_to`
+(`scheduler.rs:46-56`) descarta o prazo que venceu; `Bus::tick_timers` reagenda VBLANK/
+HBLANK/SPU_TICK a partir de `total_cycles` (`bus.rs:369-395`) em vez do prazo — reagendar do
+prazo, laço de catch-up disparando um evento por período coberto. **Maior risco**: ~25
+chamadas a `bus.tick_timers(N)` grandes em `cdrom_*.rs`/`audio_ring.rs` assumem "tick grande
+dispara o evento no máximo uma vez" — vão disparar múltiplas vezes; trocar por asserção de
+comportamento (IRQ subiu), não contagem fixa. Teste novo `bus_scheduler_periodico.rs`.
+Pré-requisito duro do Degrau 9 (DMA: 1 setor CD-ROM = 12288 ciclos perderia amostras de
+SPU/hblanks sem isso). Degrau 7 remede os 5 jogos (RE2/Tekken3 no mesmo lugar em 1-4) antes
+de decidir se DMA (8-9) é necessário.
 
-PRs #218/#219/#220 de rodadas anteriores seguem abertos, não mesclados. Lista legado `10.x`
-fica em segundo plano até a escada avançar.
+PRs #218/#219/#220 seguem abertos. Lista legado `10.x` em segundo plano até a escada avançar.
 
 Rodar Crash: `--bios bios/SCPH1001.BIN --disc "../roms/extraido/Crash Bandicoot (USA).cue"
 --max-steps 1200000000 --pad --press start@330000000 --press cross@700000000`.
@@ -49,8 +48,8 @@ Achados abertos em `docs/achados.md`. Lotes do oráculo: tarefa-modelo em
 `K/M` no CSV é **K linhas divergentes de M**. `timers` tem jitter real e nunca dará
 `identico`. **Antes de medir CD-ROM, monte disco** (10.108).
 
-Invariantes relevantes: 17 (orçamento fixo de espera da BIOS cobrindo um frame — reconferir a
-cada degrau da escada de timing), 34 (acumulador de ciclos extras é estado de pipeline).
+Invariantes relevantes: 17 (espera da BIOS cobre um frame — reconferir a cada degrau da
+escada de timing), 34 (acumulador de ciclos extras é estado de pipeline).
 
 ## Repositório
 
@@ -66,7 +65,7 @@ cada degrau da escada de timing), 34 (acumulador de ciclos extras é estado de p
 
 ## Placar de testes
 
-Workspace: **1313** testes.
+Workspace: **1326** testes.
 - **NUNCA rodar `cargo test`/`nextest` nem a bateria de mutação junto com o oráculo**: a
   disputa de CPU faz o `Start-Process` ler stdout antes do flush e reportar `sem-saida`
   falso. Derrubou 16/21 numa medição da 0170; rodada limpa deu 21/21.

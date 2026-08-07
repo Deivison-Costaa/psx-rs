@@ -291,3 +291,10 @@ da escada valer so para o que FALTA. Narrativa de cada item continua em
   derivados dos cabecalhos de secao da spec, nao do dispatch de `execute_command` (que tem
   bracos compartilhados, ex. CC/CDP no mesmo `color_color` com custos diferentes) (07-gte.md
   L481-642) (iter 0212) — Degrau 4 da escada de timing de CPU/barramento; sem chamador ainda
+
+## Fechado na iteração 0213
+- [x] 0213.1 GTE nao travava a CPU: instrucao que le registrador GTE (MFC2/CFC2/SWC2) ou
+  emite comando novo antes do comando anterior terminar deveria travar a CPU pelo resto do
+  custo em voo; MTC2/CTC2/LWC2 (escrita) nao esperam, a spec so documenta espera pra leitura
+  (07-gte.md L112-114) (iter 0213) — Degrau 5 da escada de timing de CPU/barramento; reusa o
+  modelo `busy_until` do Degrau 3, formula do comando novo soma `extra_cycles` ja empilhado

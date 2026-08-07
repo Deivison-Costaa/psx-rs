@@ -429,10 +429,18 @@ impl Bus {
                 CDROM_SECOND => {
                     self.cdrom
                         .deliver_second_now(self.disc_layout.as_ref(), self.disc_bin.as_deref());
-                    // Setor de audio XA nao levanta INT1 (nada pra CPU dar ack), entao
-                    // deliver_second_now ja pede a proxima entrega sozinho (second_request
-                    // direto, sem esperar escrita em registrador) — consome aqui.
-                    self.schedule_cdrom_second();
+                    // deliver_second_now pede a proxima entrega sozinho (second_request
+                    // direto, sem esperar escrita em registrador) — consome aqui. O
+                    // proximo setor conta do VENCIMENTO do evento, nao do fim da fatia de
+                    // ciclos: senao cada fatia atrasa a entrega seguinte e o drive fica
+                    // mais lento que os 75/150 setores por segundo da spec
+                    // (06-cdrom.md L929-931).
+                    if self.cdrom.take_second_request() {
+                        self.scheduler.cancel(EventId(CDROM_SECOND));
+                        let prox = prazo + self.cdrom.second_response_cycles();
+                        self.scheduler
+                            .schedule(ScheduleKey::new(prox), EventId(CDROM_SECOND));
+                    }
                     if self.cdrom.take_irq2_edge() {
                         self.irq.raise(2);
                     }

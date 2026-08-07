@@ -816,19 +816,12 @@ impl Cdrom {
         if pending == 5 && self.read_mode.get() != 0 {
             self.pending_second.set(5);
             self.second_cycles.set(self.sector_interval_cycles());
-            // § Data/ADPCM Sector Filtering/Delivery (06-cdrom.md L760-782): um setor de
-            // audio XA (Audio+RealTime) nunca levanta INT1 (deliver_second acima pula
-            // intsts.set(1) nesse caso) — nao ha nada pra CPU dar ack, entao o avanco pro
-            // proximo setor NAO pode depender do handler de ack (que so roda quando o
-            // driver escreve a confirmacao de uma INT que de fato chegou). O drive fisico
-            // continua girando e lendo no proximo intervalo de setor independente disso;
-            // aqui isso significa pedir a proxima entrega diretamente. Setores de dados
-            // continuam dependendo do ack de verdade (int1_pending), como antes.
-            if self.intsts.get() != 0 {
-                self.int1_pending.set(true);
-            } else {
-                self.second_request.set(true);
-            }
+            // § Sector Buffer (06-cdrom.md L2118-2126): "one should process INT1's as soon
+            // as possible (ie. before the cdrom controller receives and skips further
+            // sectors). Otherwise sectors would be lost without notice". O drive gira
+            // sozinho: o proximo setor chega no proximo intervalo tenha a CPU dado ack ou
+            // nao (casos medidos em hardware, L2136-2168).
+            self.second_request.set(true);
         }
     }
 
@@ -919,10 +912,21 @@ impl Cdrom {
                 } else if descartado_pelo_filtro {
                     advance_read_pos(&self.read_pos_mm, &self.read_pos_ss, &self.read_pos_ff);
                 } else {
-                    self.busy.set(false);
-                    self.result_clear();
-                    self.result_push(self.stat_byte());
-                    self.intsts.set(1);
+                    // § Sector Buffer (06-cdrom.md L2118-2126): com a INT1 anterior ainda
+                    // sem ack nao ha como levantar outra — o setor antigo e' perdido
+                    // "without notice" (sem flag de overrun, sem INT de erro) e o novo
+                    // toma o lugar dele no buffer.
+                    let overrun = self.intsts.get() != 0;
+                    // § Buffer Overrun Timings (06-cdrom.md L952-954): overrun DEPOIS do
+                    // Data Request nao estraga o setor pedido — "the requested data is
+                    // locked, and the overrun will affect only the following sectors".
+                    let travado = overrun && self.hchpctl.get() & 0x80 != 0;
+                    if !overrun {
+                        self.busy.set(false);
+                        self.result_clear();
+                        self.result_push(self.stat_byte());
+                        self.intsts.set(1);
+                    }
                     // § Setmode (06-cdrom.md L685-703): bit5 troca entre 800h=DataOnly
                     // (2048, so os dados) e 924h=WholeSectorExceptSyncBytes (2340,
                     // cabecalho+subcabecalho+dados+EDC/ECC) — jogos que filtram quadro de
@@ -932,30 +936,32 @@ impl Cdrom {
                     } else {
                         2048
                     };
-                    let buf = if let (Some(layout), Some(bin)) = (disc_layout, disc_bin) {
-                        read_sector_from_disc(
-                            layout,
-                            bin,
-                            self.read_pos_mm.get(),
-                            self.read_pos_ss.get(),
-                            self.read_pos_ff.get(),
-                            sector_size,
-                        )
-                    } else {
-                        None
-                    };
-                    if let Some(buf) = buf {
-                        self.data_buffer.set(buf);
-                    } else {
-                        let mut stub = [0u8; 2340];
-                        for (i, b) in stub.iter_mut().enumerate().take(sector_size) {
-                            *b = (i as u8).wrapping_add(1);
+                    if !travado {
+                        let buf = if let (Some(layout), Some(bin)) = (disc_layout, disc_bin) {
+                            read_sector_from_disc(
+                                layout,
+                                bin,
+                                self.read_pos_mm.get(),
+                                self.read_pos_ss.get(),
+                                self.read_pos_ff.get(),
+                                sector_size,
+                            )
+                        } else {
+                            None
+                        };
+                        if let Some(buf) = buf {
+                            self.data_buffer.set(buf);
+                        } else {
+                            let mut stub = [0u8; 2340];
+                            for (i, b) in stub.iter_mut().enumerate().take(sector_size) {
+                                *b = (i as u8).wrapping_add(1);
+                            }
+                            self.data_buffer.set(stub);
                         }
-                        self.data_buffer.set(stub);
+                        self.data_len.set(sector_size);
+                        self.data_pos.set(0);
+                        self.hchpctl.set(0);
                     }
-                    self.data_len.set(sector_size);
-                    self.data_pos.set(0);
-                    self.hchpctl.set(0);
                     self.last_data_sector.set(Some((
                         self.read_pos_mm.get(),
                         self.read_pos_ss.get(),

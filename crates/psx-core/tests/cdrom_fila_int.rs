@@ -5,7 +5,7 @@ use support::asm;
 
 const CD_BASE: u32 = 0x1F80_1800;
 const ESPERA_PRIMEIRA_RESPOSTA: u32 = 0x1_4000;
-const ATRASO_SEGUNDA: u32 = 0x6000;
+// 06-cdrom.md L2077-2078: a 2a resposta de Init/Read/Seek depende do tempo de busca.
 
 fn bus() -> Bus {
     asm::bus_with_bios_empty()
@@ -78,7 +78,8 @@ fn segunda_resposta_chega_apos_o_atraso_do_ack() {
     init_ate_int3(&mut bus);
 
     hclrctl_write(&mut bus, 0x07);
-    bus.tick_timers(ATRASO_SEGUNDA);
+    let ciclos_da_segunda = bus.cdrom().second_response_cycles() as u32;
+    bus.tick_timers(ciclos_da_segunda);
 
     let hintsts = hintsts_read_bank1(&mut bus);
     assert_eq!(
@@ -115,7 +116,8 @@ fn comando_novo_durante_int_pendente_e_entregue_apos_o_ack() {
     init_ate_int3(&mut bus);
 
     hclrctl_write(&mut bus, 0x07);
-    bus.tick_timers(ATRASO_SEGUNDA);
+    let ciclos_da_segunda = bus.cdrom().second_response_cycles() as u32;
+    bus.tick_timers(ciclos_da_segunda);
     let pre = hintsts_read_bank1(&mut bus);
     assert_eq!(
         pre & 0x7,

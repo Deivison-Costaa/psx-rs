@@ -8,6 +8,20 @@ const PAUSE_READING_CYCLES: u64 = 0x021_181C;
 const PAUSE_IDLE_CYCLES: u64 = 0x1DF2;
 const STOP_MOTOR_CYCLES: u64 = 0x0D3_8ACA;
 const STOP_STOPPED_CYCLES: u64 = 0x1D7B;
+const GETID_CYCLES: u64 = 0x4A00;
+
+// APROXIMACAO DECLARADA. A spec mede GetID/Pause/Stop (06-cdrom.md L2069-2076) mas diz do
+// seek: "The seek timings are still unknown, and they are probably quite complicated"
+// (L2079). O que ela afirma e' que o tempo depende da distancia (L2077-2078, L2081-2086) e
+// que toda medida do drive tem FAIXA, nao valor unico. Modelo adotado: custo fixo de
+// assentamento + termo linear na distancia em quadros, calibrado para ~13,5 ms no seek
+// curto e ~200 ms na varredura quase completa do disco. Nao ha medida de hardware por tras
+// destes dois numeros.
+const SEEK_SETTLE_CYCLES: u64 = 0x0007_0000;
+const SEEK_CYCLES_PER_FRAME: u64 = 24;
+const SPINUP_CYCLES: u64 = STOP_MOTOR_CYCLES;
+const SEEK_JITTER_DIVISOR: u64 = 64;
+const SEEK_RNG_SEED: u64 = 0x0123_4567_89AB_CDEF;
 
 // § Sector Buffer (06-cdrom.md L2109-2111): "The buffer is apparently divided into 8 slots".
 const SLOTS: usize = 8;
@@ -69,6 +83,7 @@ pub struct Cdrom {
     newest_slot: Cell<u8>,
     int1_slot: Cell<u8>,
     sector_ready: Cell<bool>,
+    seek_rng: Cell<u64>,
 }
 
 /// Quatro setores de CD-DA. Se o jogo le mais rapido do que o SPU consome, o excedente
@@ -127,6 +142,7 @@ impl Cdrom {
             newest_slot: Cell::new(0),
             int1_slot: Cell::new(0),
             sector_ready: Cell::new(false),
+            seek_rng: Cell::new(SEEK_RNG_SEED),
         }
     }
 
@@ -450,17 +466,55 @@ impl Cdrom {
         }
     }
 
-    pub fn second_response_cycles_for(cmd: u8) -> u64 {
+    fn head_frame(&self) -> u32 {
+        msf_para_quadros((
+            self.read_pos_mm.get(),
+            self.read_pos_ss.get(),
+            self.read_pos_ff.get(),
+        ))
+    }
+
+    fn seek_target_frame(&self) -> u32 {
+        msf_para_quadros((
+            self.seek_min.get(),
+            self.seek_sec.get(),
+            self.seek_sect.get(),
+        ))
+    }
+
+    // LCG de 64 bits (Knuth/MMIX). Deterministico e parte do estado serializado: dois
+    // saves do mesmo instante rendem a mesma sequencia.
+    fn next_random(&self) -> u64 {
+        let x = self
+            .seek_rng
+            .get()
+            .wrapping_mul(6364136223846793005)
+            .wrapping_add(1442695040888963407);
+        self.seek_rng.set(x);
+        x >> 33
+    }
+
+    fn with_jitter(&self, nominal: u64) -> u64 {
+        let faixa = (nominal / SEEK_JITTER_DIVISOR).max(1);
+        nominal - faixa / 2 + self.next_random() % faixa
+    }
+
+    fn seek_cycles_to(&self, alvo: u32) -> u64 {
+        let distancia = alvo.abs_diff(self.head_frame()) as u64;
+        let spinup = if self.motor_on.get() {
+            0
+        } else {
+            SPINUP_CYCLES
+        };
+        self.with_jitter(SEEK_SETTLE_CYCLES + distancia * SEEK_CYCLES_PER_FRAME + spinup)
+    }
+
+    fn second_response_cycles_for(&self, cmd: u8) -> u64 {
         match cmd {
-            0x06 => 0x4_A00,
-            0x07 => 0x04_A00,
-            0x0A | 0x1E => 0x4_A00,
-            0x12 => 0x04_A00,
-            0x15 | 0x16 => 0x04_A00,
-            0x1A => 0x4_A00,
-            0x1B => 0x4_A00,
-            0x1D => 0x04_A00,
-            _ => 0x4_A00,
+            0x1A => GETID_CYCLES,
+            0x03 | 0x06 | 0x15 | 0x16 | 0x1B => self.seek_cycles_to(self.seek_target_frame()),
+            0x0A | 0x1E => self.seek_cycles_to(0),
+            _ => GETID_CYCLES,
         }
     }
 
@@ -524,6 +578,9 @@ impl Cdrom {
                     self.intsts.set(5);
                     self.busy.set(false);
                 } else {
+                    // A busca conta da posicao ATUAL da cabeca — por isso o tempo sai antes
+                    // de read_pos/motor_on virarem o alvo.
+                    let busca = self.second_response_cycles_for(0x03);
                     self.playing.set(true);
                     self.motor_on.set(true);
                     self.play_track.set(0);
@@ -535,8 +592,7 @@ impl Cdrom {
                     if self.mode.get() & 0x04 != 0 {
                         self.int1_pending.set(true);
                         self.pending_second.set(6);
-                        self.second_cycles
-                            .set(Self::second_response_cycles_for(0x03));
+                        self.second_cycles.set(busca);
                     } else {
                         self.busy.set(false);
                     }
@@ -549,6 +605,7 @@ impl Cdrom {
                     self.intsts.set(5);
                     self.busy.set(false);
                 } else {
+                    let busca = self.second_response_cycles_for(0x06);
                     self.reading.set(true);
                     self.read_mode.set(1);
                     self.read_pos_mm.set(self.seek_min.get());
@@ -559,8 +616,7 @@ impl Cdrom {
                     self.intsts.set(3);
                     self.int1_pending.set(true);
                     self.pending_second.set(5);
-                    self.second_cycles
-                        .set(Self::second_response_cycles_for(0x06));
+                    self.second_cycles.set(busca);
                 }
             }
             0x08 => {
@@ -616,6 +672,7 @@ impl Cdrom {
                     self.busy.set(false);
                     return;
                 }
+                let busca = self.second_response_cycles_for(0x0A);
                 if self.disc_inserted.get() {
                     self.motor_on.set(true);
                 }
@@ -623,8 +680,7 @@ impl Cdrom {
                 self.intsts.set(3);
                 self.int2_pending.set(true);
                 self.pending_second.set(1);
-                self.second_cycles
-                    .set(Self::second_response_cycles_for(0x0A));
+                self.second_cycles.set(busca);
             }
             0x0E => {
                 if !self.param_is_empty() {
@@ -694,7 +750,7 @@ impl Cdrom {
                 self.int2_pending.set(true);
                 self.pending_second.set(1);
                 self.second_cycles
-                    .set(Self::second_response_cycles_for(0x1E));
+                    .set(self.second_response_cycles_for(0x1E));
             }
             0x15 => {
                 if !self.disc_inserted.get() {
@@ -710,7 +766,7 @@ impl Cdrom {
                     self.int2_pending.set(true);
                     self.pending_second.set(3);
                     self.second_cycles
-                        .set(Self::second_response_cycles_for(0x15));
+                        .set(self.second_response_cycles_for(0x15));
                 }
             }
             0x19 => {
@@ -739,7 +795,7 @@ impl Cdrom {
                 self.int2_pending.set(true);
                 self.pending_second.set(2);
                 self.second_cycles
-                    .set(Self::second_response_cycles_for(0x1A));
+                    .set(self.second_response_cycles_for(0x1A));
             }
             0x1B => {
                 if !self.disc_inserted.get() {
@@ -748,6 +804,7 @@ impl Cdrom {
                     self.intsts.set(5);
                     self.busy.set(false);
                 } else {
+                    let busca = self.second_response_cycles_for(0x1B);
                     self.reading.set(true);
                     self.read_mode.set(2);
                     self.read_pos_mm.set(self.seek_min.get());
@@ -758,8 +815,7 @@ impl Cdrom {
                     self.intsts.set(3);
                     self.int1_pending.set(true);
                     self.pending_second.set(5);
-                    self.second_cycles
-                        .set(Self::second_response_cycles_for(0x1B));
+                    self.second_cycles.set(busca);
                 }
             }
             // § GetTN (06-cdrom.md L1090-1095): INT3(status,first,last) em BCD — o
@@ -990,6 +1046,11 @@ impl Cdrom {
             3 => {
                 self.busy.set(false);
                 self.seeking.set(false);
+                // Terminado o Seek a cabeca esta no alvo: o proximo comando de busca conta
+                // a distancia a partir daqui (06-cdrom.md L2077-2078).
+                self.read_pos_mm.set(self.seek_min.get());
+                self.read_pos_ss.set(self.seek_sec.get());
+                self.read_pos_ff.set(self.seek_sect.get());
                 self.result_clear();
                 self.result_push(self.stat_byte());
                 self.intsts.set(2);

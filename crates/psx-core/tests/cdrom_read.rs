@@ -53,6 +53,14 @@ fn param_write(bus: &mut Bus, val: u8) {
     cd_write(bus, 2, val);
 }
 
+// § 06-cdrom.md L2077-2078: a 2a resposta de Read/Seek/Play "depend[s] on seek time", que
+// varia com a distancia e traz variacao por busca (L2069-2076: toda medida do drive tem
+// faixa). Nao ha mais constante fixa pro primeiro setor — a espera exata sai do estado.
+fn tick_ate_segunda(bus: &mut Bus) {
+    let ciclos = bus.cdrom().second_response_cycles() as u32;
+    bus.tick_timers(ciclos);
+}
+
 fn result_read(bus: &mut Bus) -> u8 {
     set_bank(bus, 0);
     cd_read(bus, 1)
@@ -99,7 +107,7 @@ fn read_n_retorna_int3_depois_int1_com_dados() {
 
     hclrctl_write(&mut bus, 0x07);
 
-    bus.tick_timers(0x6000);
+    tick_ate_segunda(&mut bus);
 
     let hintsts2 = hintsts_read_bank1(&mut bus);
     assert_eq!(hintsts2 & 0x7, 1, "INT1 apos acknowledge do INT3 do ReadN");
@@ -133,7 +141,7 @@ fn read_s_retorna_int3_depois_int1_com_dados() {
 
     hclrctl_write(&mut bus, 0x07);
 
-    bus.tick_timers(0x6000);
+    tick_ate_segunda(&mut bus);
 
     let hintsts2 = hintsts_read_bank1(&mut bus);
     assert_eq!(hintsts2 & 0x7, 1, "INT1 apos acknowledge do INT3 do ReadS");
@@ -144,12 +152,6 @@ fn read_s_retorna_int3_depois_int1_com_dados() {
     let data0 = rddata_read(&mut bus);
     assert_ne!(data0, 0, "RDDATA retorna dados validos apos INT1");
 }
-
-// § INT1 Rate (06-cdrom.md L2093-2101): a cadencia de setores subsequentes de um
-// ReadN/ReadS e SystemClock*930h/4/44100Hz — 451584 ciclos em velocidade normal
-// (Setmode bit7=0, o padrao apos `Cdrom::new()`), nao os 0x6000 usados so pro primeiro
-// INT1 (que inclui tempo de seek, ainda desconhecido pela spec).
-const CADENCIA_SETOR_VELOCIDADE_NORMAL: u32 = 451_584;
 
 #[test]
 fn read_n_continua_apos_primeiro_acknowledge() {
@@ -164,12 +166,14 @@ fn read_n_continua_apos_primeiro_acknowledge() {
     send_command(&mut bus, 0x06);
     let _ = result_read(&mut bus);
     hclrctl_write(&mut bus, 0x07);
-    bus.tick_timers(0x6000);
+    tick_ate_segunda(&mut bus);
     let _stat = result_read(&mut bus);
 
     hclrctl_write(&mut bus, 0x07);
 
-    bus.tick_timers(CADENCIA_SETOR_VELOCIDADE_NORMAL);
+    // O ReadN so foi despachado no acknowledge acima: este ainda e' o PRIMEIRO setor, que
+    // paga o tempo de busca (06-cdrom.md L2077-2078), nao a cadencia de streaming.
+    tick_ate_segunda(&mut bus);
 
     let hintsts3 = hintsts_read_bank1(&mut bus);
     assert_eq!(
@@ -192,12 +196,12 @@ fn read_s_continua_apos_primeiro_acknowledge() {
     send_command(&mut bus, 0x1B);
     let _ = result_read(&mut bus);
     hclrctl_write(&mut bus, 0x07);
-    bus.tick_timers(0x6000);
+    tick_ate_segunda(&mut bus);
     let _stat = result_read(&mut bus);
 
     hclrctl_write(&mut bus, 0x07);
 
-    bus.tick_timers(CADENCIA_SETOR_VELOCIDADE_NORMAL);
+    tick_ate_segunda(&mut bus);
 
     let hintsts3 = hintsts_read_bank1(&mut bus);
     assert_eq!(
@@ -223,7 +227,7 @@ fn rddata_retorna_sequencia_de_bytes() {
     send_command(&mut bus, 0x06);
     let _ = result_read(&mut bus);
     hclrctl_write(&mut bus, 0x07);
-    bus.tick_timers(0x6000);
+    tick_ate_segunda(&mut bus);
     let _ = result_read(&mut bus);
 
     let b0 = rddata_read(&mut bus);
@@ -285,7 +289,7 @@ fn pause_para_read_n() {
     send_command(&mut bus, 0x06);
     let _ = result_read(&mut bus);
     hclrctl_write(&mut bus, 0x07);
-    bus.tick_timers(0x6000);
+    tick_ate_segunda(&mut bus);
     let _ = result_read(&mut bus);
     hclrctl_write(&mut bus, 0x07);
 
@@ -332,7 +336,7 @@ fn hsts_drqsts_setado_quando_dados_disponiveis() {
     send_command(&mut bus, 0x06);
     let _ = result_read(&mut bus);
     hclrctl_write(&mut bus, 0x07);
-    bus.tick_timers(0x6000);
+    tick_ate_segunda(&mut bus);
     let _ = result_read(&mut bus);
     hchpctl_write(&mut bus, 0x80);
 
@@ -367,7 +371,7 @@ fn setloc_consumido_pelo_read_n() {
     setloc(&mut bus, 0x02, 0x10, 0x00);
     read_n(&mut bus);
     hclrctl_write(&mut bus, 0x07);
-    bus.tick_timers(0x6000);
+    tick_ate_segunda(&mut bus);
     let hintsts = hintsts_read_bank1(&mut bus);
     assert_eq!(hintsts & 0x7, 1, "ReadN continua — Setloc foi consumido");
 }
@@ -428,7 +432,7 @@ fn read_n_retorna_dados_do_bin_no_setor_correto() {
     send_command(&mut bus, 0x06);
     let _ = result_read(&mut bus);
     hclrctl_write(&mut bus, 0x07);
-    bus.tick_timers(0x6000);
+    tick_ate_segunda(&mut bus);
     let _ = result_read(&mut bus);
 
     let b0 = rddata_read(&mut bus);

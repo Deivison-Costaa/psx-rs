@@ -6,8 +6,9 @@ use support::asm;
 
 const CD_BASE: u32 = 0x1F80_1800;
 const ESPERA_PRIMEIRA_RESPOSTA: u32 = 0x1_4000;
-// 06-cdrom.md L333-337: 2a resposta so apos o ack, com atraso fisico (divida 10.53).
-const ESPERA_SEGUNDA_RESPOSTA: u32 = 0x6000;
+// 06-cdrom.md L333-337: 2a resposta so apos o ack. O atraso deixou de ser constante:
+// L2077-2078 diz que Read/Seek/Play respondem depois de uma BUSCA, cujo tempo depende da
+// distancia percorrida e varia a cada seek. A espera exata sai do estado do drive.
 const SUBHEADER: u8 = 0xAA;
 
 fn bus() -> Bus {
@@ -116,7 +117,8 @@ fn le_quatro_bytes_do_frame(bin: Vec<u8>, ss: u8, ff: u8) -> [u8; 4] {
     send_command(&mut bus, 0x06);
     let _ = result_read(&mut bus);
     hclrctl_write(&mut bus, 0x07);
-    bus.tick_timers(ESPERA_SEGUNDA_RESPOSTA);
+    let ciclos_da_segunda = bus.cdrom().second_response_cycles() as u32;
+    bus.tick_timers(ciclos_da_segunda);
     let _ = result_read(&mut bus);
 
     [
@@ -224,7 +226,8 @@ fn setor_alem_do_fim_do_bin_nao_estoura() {
     send_command(&mut bus, 0x06);
     let _ = result_read(&mut bus);
     hclrctl_write(&mut bus, 0x07);
-    bus.tick_timers(ESPERA_SEGUNDA_RESPOSTA);
+    let ciclos_da_segunda = bus.cdrom().second_response_cycles() as u32;
+    bus.tick_timers(ciclos_da_segunda);
     let _ = result_read(&mut bus);
 
     let _ = rddata_read(&mut bus);

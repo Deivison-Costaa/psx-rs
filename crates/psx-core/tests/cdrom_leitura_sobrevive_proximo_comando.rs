@@ -4,7 +4,6 @@ use psx_core::bus::{Bus, BusRead};
 use support::asm;
 
 const CD_BASE: u32 = 0x1F80_1800;
-const CADENCIA_VELOCIDADE_NORMAL: u32 = 451_584;
 
 fn bus() -> Bus {
     asm::bus_with_bios_empty()
@@ -51,6 +50,14 @@ fn result_read(bus: &mut Bus) -> u8 {
     cd_read(bus, 1)
 }
 
+/// Avanca ate a entrega ja agendada. § 06-cdrom.md L2077-2078: o primeiro setor de um
+/// ReadN chega depois da BUSCA, que agora custa muito mais que a resposta de um comando
+/// passivo — por isso o comando intercalado responde ANTES do setor, e nao depois.
+fn tick_ate_a_entrega(bus: &mut Bus) {
+    let ciclos = bus.cdrom().second_response_cycles() as u32;
+    bus.tick_timers(ciclos);
+}
+
 /// Prepara um ReadN em andamento e devolve com o INT3 do ReadN ja reconhecido.
 fn read_n_em_andamento(bus: &mut Bus) {
     bus.cdrom_mut().insert_disc();
@@ -81,21 +88,14 @@ fn setmode_durante_read_n_nao_mata_o_streaming() {
 
     assert_eq!(
         hintsts_read_bank1(&mut bus) & 0x7,
-        1,
-        "o INT1 do setor em voo chega primeiro; o Setmode fica retido ate o ack"
-    );
-    let _ = result_read(&mut bus);
-    hclrctl_write(&mut bus, 0x07);
-
-    assert_eq!(
-        hintsts_read_bank1(&mut bus) & 0x7,
         3,
-        "o Setmode retido responde INT3 assim que o INT1 recebe ack"
+        "a busca do primeiro setor e' bem mais longa que a resposta de um comando \
+         passivo, entao o Setmode responde INT3 ainda durante a busca"
     );
     let _ = result_read(&mut bus);
     hclrctl_write(&mut bus, 0x07);
 
-    bus.tick_timers(CADENCIA_VELOCIDADE_NORMAL);
+    tick_ate_a_entrega(&mut bus);
 
     assert_eq!(
         hintsts_read_bank1(&mut bus) & 0x7,
@@ -122,21 +122,13 @@ fn setloc_durante_read_n_nao_mata_o_streaming() {
 
     assert_eq!(
         hintsts_read_bank1(&mut bus) & 0x7,
-        1,
-        "o INT1 do setor em voo chega primeiro; o Setloc fica retido ate o ack"
-    );
-    let _ = result_read(&mut bus);
-    hclrctl_write(&mut bus, 0x07);
-
-    assert_eq!(
-        hintsts_read_bank1(&mut bus) & 0x7,
         3,
-        "o Setloc retido responde INT3 assim que o INT1 recebe ack"
+        "o Setloc responde INT3 ainda durante a busca do primeiro setor"
     );
     let _ = result_read(&mut bus);
     hclrctl_write(&mut bus, 0x07);
 
-    bus.tick_timers(CADENCIA_VELOCIDADE_NORMAL);
+    tick_ate_a_entrega(&mut bus);
 
     assert_eq!(
         hintsts_read_bank1(&mut bus) & 0x7,
@@ -168,39 +160,26 @@ fn readn_seguido_de_nop_antes_da_entrega_nao_cancela_o_setor() {
     let _ = result_read(&mut bus);
     hclrctl_write(&mut bus, 0x07);
 
-    // Nop chega logo apos o ACK do INT3 do ReadN, bem antes da cadencia do
-    // primeiro setor (0x4A00 ciclos) — exatamente a janela de corrida do jogo.
-    // O tick do send_command (0x14000) cobre a entrega do setor (0x4A00) e a
-    // resposta do Nop (0xC4E1), nessa ordem.
+    // Nop chega logo apos o ACK do INT3 do ReadN, enquanto o drive ainda BUSCA o
+    // primeiro setor — exatamente a janela de corrida do jogo.
     send_command(&mut bus, 0x01);
 
     assert_eq!(
         hintsts_read_bank1(&mut bus) & 0x7,
+        3,
+        "o Nop responde INT3 durante a busca do primeiro setor"
+    );
+    let _ = result_read(&mut bus);
+    hclrctl_write(&mut bus, 0x07);
+
+    tick_ate_a_entrega(&mut bus);
+
+    assert_eq!(
+        hintsts_read_bank1(&mut bus) & 0x7,
         1,
-        "INT1 do setor de dado do ReadN tem que chegar mesmo com um Nop latched \
+        "INT1 do setor de dado do ReadN tem que chegar mesmo com um Nop despachado \
          entre o ACK do primeiro response e a entrega do setor — a leitura nao \
          pode ficar presa num retry infinito so' porque a CPU emitiu outro \
          comando enquanto esperava"
-    );
-    let _ = result_read(&mut bus);
-    hclrctl_write(&mut bus, 0x07);
-
-    // O Nop ficou retido enquanto a INT1 nao teve ack (06-cdrom.md L1984-2000) e
-    // responde INT3 agora; so entao o proximo setor pode levantar INT1.
-    assert_eq!(
-        hintsts_read_bank1(&mut bus) & 0x7,
-        3,
-        "o Nop retido executa assim que a INT1 do setor recebe ack"
-    );
-    let _ = result_read(&mut bus);
-    hclrctl_write(&mut bus, 0x07);
-
-    bus.tick_timers(CADENCIA_VELOCIDADE_NORMAL);
-
-    assert_eq!(
-        hintsts_read_bank1(&mut bus) & 0x7,
-        1,
-        "e a leitura segue entregando: o setor seguinte chega na cadencia normal, \
-         sem o Nop ter cancelado nada"
     );
 }

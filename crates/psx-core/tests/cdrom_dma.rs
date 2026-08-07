@@ -71,11 +71,18 @@ fn setloc(bus: &mut Bus, mm: u8, ss: u8, ff: u8) {
     hclrctl_write(bus, 0x07);
 }
 
+// § 06-cdrom.md L2077-2078: a 2a resposta do Read "depend[s] on seek time" — nao ha mais
+// constante fixa; a espera exata do primeiro setor sai do estado do drive.
+fn tick_ate_segunda(bus: &mut Bus) {
+    let ciclos = bus.cdrom().second_response_cycles() as u32;
+    bus.tick_timers(ciclos);
+}
+
 fn read_n_and_int1(bus: &mut Bus) {
     send_command(bus, 0x06);
     let _ = result_read(bus);
     hclrctl_write(bus, 0x07);
-    bus.tick_timers(0x6000);
+    tick_ate_segunda(bus);
     set_bank(bus, 1);
     let hintsts = cd_read(bus, 3) & 0x7;
     set_bank(bus, 0);

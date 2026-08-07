@@ -501,7 +501,11 @@ impl Cdrom {
 
     fn seek_cycles_to(&self, alvo: u32) -> u64 {
         let distancia = alvo.abs_diff(self.head_frame()) as u64;
-        let spinup = if self.motor_on.get() { 0 } else { SPINUP_CYCLES };
+        let spinup = if self.motor_on.get() {
+            0
+        } else {
+            SPINUP_CYCLES
+        };
         self.with_jitter(SEEK_SETTLE_CYCLES + distancia * SEEK_CYCLES_PER_FRAME + spinup)
     }
 

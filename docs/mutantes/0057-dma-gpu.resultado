@@ -1,12 +1,12 @@
 # gerado por scripts/mutantes.ps1 — NAO editar a mao
-# commit: 3c1561c1c29159a2925b5149b428085fc5240553
-# rodado_em: 2026-08-03T03:21:45-03:00
-m1,mutante,morreu,morreu,0.5,dma2_linked_list_madr_contem_end_marker_apos_transferencia
-m2,mutante,morreu,morreu,0.5,dma2_block_bs_zero_equivale_a_10000h;dma2_block_multiplas_palavras;dma2_block_transfere_dados_para_vram
-m3,mutante,morreu,morreu,0.5,dma2_block_bs_zero_equivale_a_10000h
-m4,mutante,morreu,morreu,0.6,dma2_chcr_bit24_e_limpo_apos_linked_list
-m5,equivalente,sobreviveu,sobreviveu,0.5,
-m6,mutante,morreu,morreu,0.5,dma2_chcr_bit24_e_limpo_apos_linked_list;dma2_linked_list_madr_contem_end_marker_apos_transferencia
-m7,mutante,morreu,morreu,0.5,dma2_chcr_bit24_e_limpo_apos_block
-K1,controle,sobreviveu,sobreviveu,0.5,
-K2,controle,sobreviveu,sobreviveu,0.6,
+# commit: 1ddc3c9212cd4d326530ae010104f508800e4e9b
+# rodado_em: 2026-08-06T23:24:09-03:00
+m1,mutante,morreu,morreu,2.3,dma2_linked_list_madr_contem_end_marker_apos_transferencia
+m2,mutante,morreu,morreu,1.2,dma2_block_bs_zero_equivale_a_10000h;dma2_block_multiplas_palavras;dma2_block_transfere_dados_para_vram
+m3,mutante,morreu,morreu,1.2,dma2_block_bs_zero_equivale_a_10000h
+m4,mutante,morreu,morreu,1.3,dma2_chcr_bit24_e_limpo_apos_linked_list
+m5,equivalente,sobreviveu,sobreviveu,1.2,
+m6,mutante,morreu,morreu,1.1,dma2_chcr_bit24_e_limpo_apos_linked_list;dma2_linked_list_madr_contem_end_marker_apos_transferencia
+m7,mutante,morreu,morreu,1.2,dma2_chcr_bit24_e_limpo_apos_block
+K1,controle,sobreviveu,sobreviveu,1.2,
+K2,controle,sobreviveu,sobreviveu,1.2,

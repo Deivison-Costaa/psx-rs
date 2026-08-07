@@ -74,13 +74,11 @@ fn readn_seguido_de_nop_antes_da_entrega_nao_cancela_o_setor() {
     let _ = result_read(&mut bus);
     hclrctl_write(&mut bus, 0x07);
 
-    // Nop chega logo apos o ACK do INT1 do ReadN, bem antes da cadencia do
+    // Nop chega logo apos o ACK do INT3 do ReadN, bem antes da cadencia do
     // primeiro setor (0x4A00 ciclos) — exatamente a janela de corrida do jogo.
+    // O tick do send_command (0x14000) cobre a entrega do setor (0x4A00) e a
+    // resposta do Nop (0xC4E1), nessa ordem.
     send_command(&mut bus, 0x01);
-    let _ = result_read(&mut bus);
-    hclrctl_write(&mut bus, 0x07);
-
-    bus.tick_timers(CADENCIA_VELOCIDADE_NORMAL);
 
     assert_eq!(
         hintsts_read_bank1(&mut bus) & 0x7,
@@ -89,5 +87,26 @@ fn readn_seguido_de_nop_antes_da_entrega_nao_cancela_o_setor() {
          entre o ACK do primeiro response e a entrega do setor — a leitura nao \
          pode ficar presa num retry infinito so' porque a CPU emitiu outro \
          comando enquanto esperava"
+    );
+    let _ = result_read(&mut bus);
+    hclrctl_write(&mut bus, 0x07);
+
+    // O Nop ficou retido enquanto a INT1 nao teve ack (06-cdrom.md L1984-2000) e
+    // responde INT3 agora; so entao o proximo setor pode levantar INT1.
+    assert_eq!(
+        hintsts_read_bank1(&mut bus) & 0x7,
+        3,
+        "o Nop retido executa assim que a INT1 do setor recebe ack"
+    );
+    let _ = result_read(&mut bus);
+    hclrctl_write(&mut bus, 0x07);
+
+    bus.tick_timers(CADENCIA_VELOCIDADE_NORMAL);
+
+    assert_eq!(
+        hintsts_read_bank1(&mut bus) & 0x7,
+        1,
+        "e a leitura segue entregando: o setor seguinte chega na cadencia normal, \
+         sem o Nop ter cancelado nada"
     );
 }

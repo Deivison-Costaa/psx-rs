@@ -311,3 +311,11 @@ da escada valer so para o que FALTA. Narrativa de cada item continua em
   `transfer_cost`, tabela pura por canal (MDEC.IN/OUT/GPU/OTC=17/16, CDROM=24/1 no padrao
   da BIOS, SPU=33/8, PIO=20/1) derivada de `04-dma.md` L217-227 (iter 0215) — Degrau 8 da
   escada de timing de CPU/barramento; sem chamador ainda
+
+## Fechado na iteração 0216
+- [x] 0216.1 Testes do Rayman (`rayman_autoack.rs`/`rayman_exception_chain.rs`/
+  `rayman_tty_boot.rs`, achado 10.115) prendiam passo absoluto, reprovando a cada melhoria
+  legitima de timing; convertidos pra janela generosa (140M-220M), preservando exatas as
+  asserções de identidade de codigo (enderecos, ordem de handlers). Um gate de logica usava
+  uma constante de timing antigo em vez de deteccao dinamica — corrigido junto (iter 0216)
+  — preparo obrigatorio do Degrau 9 (DMA cobra ciclos de verdade) antes de tocar `bus.rs`

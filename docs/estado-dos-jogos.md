@@ -26,13 +26,20 @@ Depois `md5sum pref-*.vram`. Hash que para de mudar = travado.
 Hash mudando ainda pode ser ruído de textura na VRAM. Confirme com
 `--vram-to-png entrada.vram saida.png` antes de comemorar.
 
-## Funcionando (10)
+## Funcionando (9 de 15 títulos)
 
 Tekken 3, Final Fantasy VII, Final Fantasy VIII, Resident Evil 3, Metal Gear Solid,
 Crash Team Racing, Crash Bandicoot, Gran Turismo 2 (Arcade **e** Simulation).
 
 CTR e GT2 foram destravados nesta sessão. O GT2 chega no menu de título no Arcade e numa
 corrida em andamento no Simulation.
+
+**"Funcionando" aqui significa: rodou sem congelar pela janela medida, com a VRAM mudando
+continuamente e confirmação visual onde deu.** Nenhum foi jogado até o fim. Pode haver bug
+de gameplay, áudio, ou travamento mais adiante que a medição não alcança. Os discos
+secundários (FF7 2/3, FF8 2/3/4, MGS 2) só passaram por boot sanity check de 300M passos —
+ninguém chegou a testar troca de disco. O feedback mais útil é jogar de verdade e mais fundo
+do que a medição automática vai.
 
 ## Ainda travando (6)
 

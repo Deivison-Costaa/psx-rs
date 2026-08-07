@@ -7,14 +7,14 @@
 
 ## Última iteração concluída
 
-**0214 — Degrau 6 da escada de timing CPU/barramento (0214.1), branch
-`iter/0214-scheduler-periodico`, PR não aberto.** Scheduler não perde mais evento periódico
-sob tick grande: `advance_to` devolve `(prazo, EventId)` em vez de só `EventId`; VBLANK/
-HBLANK/SPU_TICK reagendam a partir do prazo que venceu, não de `total_cycles` — um tick que
-cobre N períodos agora dispara N vezes via catch-up, não 1. Bug do próprio scheduler, não
-spec (R2). **O risco de regressão previsto pelo plano não se concretizou**: as 19 suítes de
-CD-ROM/áudio (152 testes) passaram sem alteração. Invariante 17 e `irq0_periodo_ntsc`
-iguais.
+**Degrau 7 — remedidos os 5 jogos contra 1-6 (achados 0214.2-0214.6, sem código/PR).** FF7
+e Tekken3/RE2 **quebram as travas antigas** (0208.1/0208.2) e progridem bem mais fundo, mas
+travam de novo: Tekken3 congela na tela cheia da PlayStation com IRQ2 de CD-ROM ativo
+(0214.3); RE2 espera um contador (RAM 0x800A5110) atingir alvo num orçamento de
+retentativas — o padrão "timeout" que 0193.4 previa, agora com PC exato (0214.4). Tomb
+Raider (0214.5): limiar de retentativa de FMV saltou de ~900 iterações pra 2,4-4 bilhões de
+passos — evidência forte de descasamento de ciclos. **CTR inalterado** (0214.6, bug de
+cadeia software, não de timing). **DMA (8-9) segue justificado**: 3/5 travam perto de CD-ROM.
 
 ## Próxima tarefa
 
@@ -22,11 +22,14 @@ Escada motivada pelo Achado 0193.4 (CPU sem custo de acesso a memória/periféri
 degraus, plano completo (números da spec de cada degrau) em
 `~/.claude/plans/smooth-swimming-manatee.md`.
 
-**Degrau 7 (não é degrau de código): remedir os 5 jogos travados (FF7/Tekken3/RE2/
-TombRaider/CTR) contra os degraus 1-6**, com `--sample-pcs`/`--watch-mem` (método da 0208).
-RE2/Tekken3 ainda no mesmo lugar contra 1-4 (0212); ainda não remedidos contra 5-6. Decidir
-se DMA (degraus 8-9, os mais arriscados) ainda é necessário ou se algo já destravou. Sem
-bateria de mutação — registrar achados novos em vez disso.
+**Degrau 8: DMA calcula custo por palavra (não cobra ainda).** Tabela por canal
+(`04-dma.md:212-227,240-243`): MDEC.IN/OUT, GPU, OTC = 17/16; CDROM = 24/1 (BIOS usa 24;
+achado novo se algum jogo reconfigurar pra 40); SPU = 33/8; PIO = 20/1. Não implementar
+tempo de decodificação MDEC nem desenho da GPU (spec declara desconhecido, 10.116). Zero
+risco — função pura, sem chamador ainda (padrão do Degrau 4). Degrau 9 (cobrar de verdade)
+depende deste + do Degrau 6 (pronto); Rayman tem testes de passo absoluto
+(`rayman_autoack.rs`/`rayman_exception_chain.rs`/`rayman_tty_boot.rs`, 10.115) que quebram
+quando o Degrau 9 mexer em `bus.rs` — converter pra condição-primeiro ANTES, não depois.
 
 PRs #218/#219/#220 seguem abertos. Lista legado `10.x` em segundo plano até a escada avançar.
 
@@ -70,10 +73,9 @@ Workspace: **1331** testes.
   registrador. Sem o arquivo o teste se ignora sozinho.
 - **Crash e Rayman animam e soam** (medido na 0192): 8 dumps de VRAM cada, nenhum intervalo
   sem pixel mudando; 3,0 M e 3,4 M quadros de áudio, 94% e 78% de amostras não-zero.
-- **Passo absoluto em teste de Rayman reprova por melhoria legítima (10.115).** Nesta rodada
-  cinco deles andaram +6.372 porque o SPUSTAT passou a espelhar o SPUCNT e as esperas do
-  kernel terminam. O `rayman_evcb_descritores` deixou de fixar passo: dispara no primeiro
-  instante em que os dois descritores estão habilitados.
+- **Passo absoluto em teste de Rayman reprova por melhoria legítima (10.115).** `rayman_
+  evcb_descritores` já foi convertido pra condição (dispara no 1º instante em que os dois
+  descritores ligam, não passo fixo); os 3 que faltam são risco pro Degrau 9 (ver abaixo).
 - **`mutantes.ps1` herda o último `teste:` visto (10.71)**: declare `teste:` em TODO
   registro do manifesto, não só no cabeçalho. Custou 9/18 falsos na 0187 e, na 0214, um
   mutante de scheduler rodando contra o alvo errado **travou ~520s de CPU num laço infinito**

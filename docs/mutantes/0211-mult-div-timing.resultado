@@ -1,0 +1,11 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: 60972397898e8c4be81807525b70685fab43f499
+# rodado_em: 2026-08-06T21:09:55-03:00
+m1,mutante,morreu,morreu,1.1,o_setimo_nop_ja_custa
+m2,mutante,morreu,morreu,1.2,mult_negativo_medio;mult_negativo_rapido
+m3,mutante,morreu,morreu,1.1,multu_com_valor_grande_e_sem_sinal_custa_13
+m4,mutante,morreu,morreu,1.2,div_custa_36_fixo_com_operandos_diferentes;divu_custa_36_fixo
+m5,mutante,morreu,morreu,1.1,div_custa_36_fixo_com_operandos_diferentes;divu_custa_36_fixo
+m6,mutante,morreu,morreu,1.1,mult_lento;mult_negativo_medio;mult_negativo_rapido;multu_com_valor_grande_e_sem_sinal_custa_13;multu_lento_custa_13;multu_medio_custa_9;multu_rapido_seguido_de_mflo_custa_8
+c1,controle,sobreviveu,sobreviveu,1.2,
+c2,controle,sobreviveu,sobreviveu,1.2,

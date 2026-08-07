@@ -112,6 +112,11 @@ pub fn xa_is_stereo(coding: u8) -> bool {
     coding & 0x03 == 1
 }
 
+// § Data/ADPCM Sector Filtering/Delivery (06-cdrom.md L760-782): "reject if submode isn't
+// audio+realtime (bit2 and bit6 must be both set)" — bit2=Audio, bit6=Real Time (RT),
+// 15-cdrom-format.md L778-787. So o bit2 (sem o bit6) deixava passar setores de video
+// (que a mesma nota diz serem marcados como Data, bit3, nao Video) que so por acaso
+// tinham o bit de audio ligado.
 pub fn is_xa_audio_sector(raw: &[u8]) -> bool {
-    raw.len() >= 0x18 && raw[0x0F] == 0x02 && raw[0x12] & 0x04 != 0
+    raw.len() >= 0x18 && raw[0x0F] == 0x02 && raw[0x12] & 0x44 == 0x44
 }

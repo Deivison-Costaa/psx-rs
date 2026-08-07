@@ -48,9 +48,11 @@ rotulo: Pause lendo usa timing de drive parado
 mutante: m4
 rotulo: Read nao avanca a posicao entre setores
 @@DE
-                advance_read_pos(&self.read_pos_mm, &self.read_pos_ss, &self.read_pos_ff);
+                    self.hchpctl.set(0);
+                    advance_read_pos(&self.read_pos_mm, &self.read_pos_ss, &self.read_pos_ff);
 @@PARA
-                self.read_pos_ff.set(self.read_pos_ff.get());
+                    self.hchpctl.set(0);
+                    self.read_pos_ff.set(self.read_pos_ff.get());
 @@FIM
 
 mutante: m5

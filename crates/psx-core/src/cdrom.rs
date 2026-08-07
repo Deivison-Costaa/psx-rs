@@ -711,47 +711,63 @@ impl Cdrom {
                 self.intsts.set(2);
             }
             5 => {
-                self.busy.set(false);
-                self.result_clear();
-                self.result_push(self.stat_byte());
-                self.intsts.set(1);
-                // § Setmode (06-cdrom.md L685-703): bit5 troca entre 800h=DataOnly (2048,
-                // so os dados) e 924h=WholeSectorExceptSyncBytes (2340, cabecalho+subcabecalho+
-                // dados+EDC/ECC) — jogos que filtram quadro de FMV pelo subcabecalho dependem
-                // do segundo modo.
-                let sector_size = if self.mode.get() & 0x20 != 0 {
-                    2340
-                } else {
-                    2048
-                };
-                let buf = if let (Some(layout), Some(bin)) = (disc_layout, disc_bin) {
-                    read_sector_from_disc(
-                        layout,
-                        bin,
-                        self.read_pos_mm.get(),
-                        self.read_pos_ss.get(),
-                        self.read_pos_ff.get(),
-                        sector_size,
-                    )
-                } else {
-                    None
-                };
-                if let Some(buf) = buf {
-                    self.data_buffer.set(buf);
-                } else {
-                    let mut stub = [0u8; 2340];
-                    for (i, b) in stub.iter_mut().enumerate().take(sector_size) {
-                        *b = (i as u8).wrapping_add(1);
-                    }
-                    self.data_buffer.set(stub);
-                }
-                self.data_len.set(sector_size);
-                self.data_pos.set(0);
-                self.hchpctl.set(0);
-                if self.mode.get() & 0x40 != 0 {
+                // § Data/ADPCM Sector Filtering/Delivery (06-cdrom.md L760-782): um setor
+                // Mode2 com submode Audio+RealTime (is_xa_audio_sector) e' entregue
+                // EXCLUSIVAMENTE ao decoder XA-ADPCM quando o modo tem XA-ADPCM ligado —
+                // "reject data-delivery if try_deliver_as_adpcm_sector did do adpcm-delivery".
+                // Sem esse desvio, um setor de audio intercalado no meio de um stream de
+                // video vira lixo no decompressor do jogo (achado real: Tomb Raider grava
+                // fora dos limites de um buffer de 8 slots e ate corrompe o vetor de
+                // excecao em RAM baixa quando isso acontece).
+                let xa_ligado = self.mode.get() & 0x40 != 0;
+                let setor_de_audio = xa_ligado
+                    && self
+                        .setor_cru(disc_bin)
+                        .as_deref()
+                        .is_some_and(cdrom_xa::is_xa_audio_sector);
+                if setor_de_audio {
                     self.decodifica_xa(disc_bin);
+                    advance_read_pos(&self.read_pos_mm, &self.read_pos_ss, &self.read_pos_ff);
+                } else {
+                    self.busy.set(false);
+                    self.result_clear();
+                    self.result_push(self.stat_byte());
+                    self.intsts.set(1);
+                    // § Setmode (06-cdrom.md L685-703): bit5 troca entre 800h=DataOnly
+                    // (2048, so os dados) e 924h=WholeSectorExceptSyncBytes (2340,
+                    // cabecalho+subcabecalho+dados+EDC/ECC) — jogos que filtram quadro de
+                    // FMV pelo subcabecalho dependem do segundo modo.
+                    let sector_size = if self.mode.get() & 0x20 != 0 {
+                        2340
+                    } else {
+                        2048
+                    };
+                    let buf = if let (Some(layout), Some(bin)) = (disc_layout, disc_bin) {
+                        read_sector_from_disc(
+                            layout,
+                            bin,
+                            self.read_pos_mm.get(),
+                            self.read_pos_ss.get(),
+                            self.read_pos_ff.get(),
+                            sector_size,
+                        )
+                    } else {
+                        None
+                    };
+                    if let Some(buf) = buf {
+                        self.data_buffer.set(buf);
+                    } else {
+                        let mut stub = [0u8; 2340];
+                        for (i, b) in stub.iter_mut().enumerate().take(sector_size) {
+                            *b = (i as u8).wrapping_add(1);
+                        }
+                        self.data_buffer.set(stub);
+                    }
+                    self.data_len.set(sector_size);
+                    self.data_pos.set(0);
+                    self.hchpctl.set(0);
+                    advance_read_pos(&self.read_pos_mm, &self.read_pos_ss, &self.read_pos_ff);
                 }
-                advance_read_pos(&self.read_pos_mm, &self.read_pos_ss, &self.read_pos_ff);
             }
             6 => {
                 self.busy.set(false);

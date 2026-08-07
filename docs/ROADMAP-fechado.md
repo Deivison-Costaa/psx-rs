@@ -305,3 +305,9 @@ da escada valer so para o que FALTA. Narrativa de cada item continua em
   do prazo que venceu, entao um tick cobrindo N periodos so disparava 1 e o resto sumia; bug
   do proprio scheduler, nao spec de hardware (iter 0214) — Degrau 6 da escada de timing de
   CPU/barramento; pre-requisito do Degrau 9 (DMA cobrando ciclos de verdade)
+
+## Fechado na iteração 0215
+- [x] 0215.1 DMA custava 0 ciclos por palavra transferida: `Dma::word_cost_per_256`/
+  `transfer_cost`, tabela pura por canal (MDEC.IN/OUT/GPU/OTC=17/16, CDROM=24/1 no padrao
+  da BIOS, SPU=33/8, PIO=20/1) derivada de `04-dma.md` L217-227 (iter 0215) — Degrau 8 da
+  escada de timing de CPU/barramento; sem chamador ainda

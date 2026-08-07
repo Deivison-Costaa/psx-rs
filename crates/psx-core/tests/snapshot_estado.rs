@@ -8,7 +8,9 @@ const GP0: u32 = 0x1F80_1810;
 const GP1: u32 = 0x1F80_1814;
 const TIMER1_CONTADOR: u32 = 0x1F80_1110;
 const SCRATCHPAD: u32 = 0x1F80_0000;
-const TAMANHO_DO_ESTADO: usize = 4_858_096;
+// +8 bytes na iter 0211: Cpu ganhou `hilo_busy_until: u64` pro stall de MULT/DIV
+// (`load_extra_cycles` foi renomeado pra `extra_cycles`, mesmo tamanho, sem efeito aqui).
+const TAMANHO_DO_ESTADO: usize = 4_858_104;
 const SPU_VOZ0_VOL: u32 = 0x1F80_1C00;
 const I_MASK: u32 = 0x1F80_1074;
 const DMA6_MADR: u32 = 0x1F80_10E0;

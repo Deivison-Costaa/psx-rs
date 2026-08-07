@@ -15,7 +15,7 @@ use crate::spu::Spu;
 use crate::timers::Timers;
 
 pub const MAGICO: &[u8; 8] = b"PSXRS-ST";
-pub const VERSAO: u32 = 1;
+pub const VERSAO: u32 = 2;
 
 const CABECALHO: usize = 12;
 

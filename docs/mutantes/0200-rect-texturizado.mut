@@ -91,7 +91,7 @@ teste: gpu_rect_textured
                 let pixel = if raw_texture {
                     texel
                 } else {
-                    modulate_texel(texel, color24_to_16(color))
+                    modulate_texel(texel, color)
                 };
                 let blend = blend_texturizado(semi_transparent, texel);
                 self.write_pixel(py as usize * 1024 + px as usize, pixel, blend);
@@ -103,7 +103,7 @@ teste: gpu_rect_textured
                 let pixel = if raw_texture {
                     amostra
                 } else {
-                    modulate_texel(amostra, color24_to_16(color))
+                    modulate_texel(amostra, color)
                 };
                 let blend = blend_texturizado(semi_transparent, amostra);
                 self.write_pixel(py as usize * 1024 + px as usize, pixel, blend);

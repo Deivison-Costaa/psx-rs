@@ -1,10 +1,10 @@
 # gerado por scripts/mutantes.ps1 — NAO editar a mao
-# commit: 7b1bd2118b3fb3711bc9b1f325c9ee9d788b5b7c
-# rodado_em: 2026-08-06T13:55:02-03:00
-m1,mutante,morreu,morreu,1.1,dma2_burst_sync_mode0_com_chopping_atualiza_madr_e_zera_bc
-m2,mutante,morreu,morreu,1.1,dma2_burst_sync_mode0_com_chopping_atualiza_madr_e_zera_bc
-m3,mutante,morreu,morreu,1.1,dma2_burst_sync_mode0_com_chopping_atualiza_madr_e_zera_bc
-m4,mutante,morreu,morreu,1.1,dma2_burst_sync_mode0_com_chopping_atualiza_madr_e_zera_bc
-m5,mutante,morreu,morreu,1,dma2_burst_sync_mode0_com_chopping_atualiza_madr_e_zera_bc
-c1,controle,sobreviveu,sobreviveu,1.1,
-c2,controle,sobreviveu,sobreviveu,1.1,
+# commit: e32aab7460ce8f666ca523b86ce2302809ab6eb7
+# rodado_em: 2026-08-07T20:31:17-03:00
+m1,mutante,morreu,morreu,1.7,dma2_burst_sync_mode0_com_chopping_atualiza_madr_e_zera_bc
+m2,mutante,morreu,morreu,1.7,dma2_burst_sync_mode0_com_chopping_atualiza_madr_e_zera_bc
+m3,mutante,morreu,morreu,1.7,dma2_burst_sync_mode0_com_chopping_atualiza_madr_e_zera_bc
+m4,mutante,morreu,morreu,1.5,dma2_burst_sync_mode0_com_chopping_atualiza_madr_e_zera_bc
+m5,mutante,morreu,morreu,1.6,dma2_burst_sync_mode0_com_chopping_atualiza_madr_e_zera_bc
+c1,controle,sobreviveu,sobreviveu,1.6,
+c2,controle,sobreviveu,sobreviveu,1.7,

@@ -53,6 +53,23 @@ fn lerp_i32(a: i32, b: i32, t: i32, t_max: i32) -> i32 {
     a + (b - a) * t / t_max
 }
 
+const ATTRIB_FRAC: u32 = 12;
+
+fn attrib_step(a: i32, b: i32, span: i32) -> i32 {
+    if span <= 0 {
+        return 0;
+    }
+    ((b - a) << ATTRIB_FRAC) / span
+}
+
+fn attrib_at(a: i32, step: i32, t: i32) -> i32 {
+    ((a << ATTRIB_FRAC) + (1 << (ATTRIB_FRAC - 1)) + step * t) >> ATTRIB_FRAC
+}
+
+fn lerp_attrib(a: i32, b: i32, t: i32, t_max: i32) -> i32 {
+    attrib_at(a, attrib_step(a, b, t_max), t)
+}
+
 /// § Modulation (03-gpu.md L1604): finalChannel = texel*vertexColor/128 por canal de 8 bits.
 /// Aqui os dois lados ja chegam em 5 bits (canal do 15bpp); 128 em 8 bits vira 16 em 5 bits.
 fn modulate_texel(texel: u16, color: u16) -> u16 {
@@ -74,20 +91,16 @@ fn blend_texturizado(semi_transparent: bool, texel: u16) -> bool {
     semi_transparent && (texel & 0x8000) != 0
 }
 
-fn lerp_color(a: u16, b: u16, t: i32, t_max: i32) -> u16 {
-    if t_max == 0 {
-        return a;
+fn lerp_color24_attrib(a: u32, b: u32, t: i32, t_max: i32) -> u32 {
+    let mut out = 0u32;
+    for canal in 0..3 {
+        let desloca = canal * 8;
+        let ca = ((a >> desloca) & 0xFF) as i32;
+        let cb = ((b >> desloca) & 0xFF) as i32;
+        let v = lerp_attrib(ca, cb, t, t_max).clamp(0, 255) as u32;
+        out |= v << desloca;
     }
-    let ar = (a & 0x1F) as i32;
-    let ag = ((a >> 5) & 0x1F) as i32;
-    let ab = ((a >> 10) & 0x1F) as i32;
-    let br = (b & 0x1F) as i32;
-    let bg = ((b >> 5) & 0x1F) as i32;
-    let bb = ((b >> 10) & 0x1F) as i32;
-    let r = (ar + (br - ar) * t / t_max).clamp(0, 31) as u16;
-    let g = (ag + (bg - ag) * t / t_max).clamp(0, 31) as u16;
-    let b = (ab + (bb - ab) * t / t_max).clamp(0, 31) as u16;
-    r | (g << 5) | (b << 10)
+    out
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -1426,27 +1439,9 @@ impl Gpu {
         let (c0, c1, c2) = (colors[0], colors[1], colors[2]);
         let (uv0, uv1, uv2) = (uvs[0], uvs[1], uvs[2]);
         let mut sorted = [
-            (
-                v0.0 as i32,
-                v0.1 as i32,
-                color24_to_16(c0),
-                uv0.0 as i32,
-                uv0.1 as i32,
-            ),
-            (
-                v1.0 as i32,
-                v1.1 as i32,
-                color24_to_16(c1),
-                uv1.0 as i32,
-                uv1.1 as i32,
-            ),
-            (
-                v2.0 as i32,
-                v2.1 as i32,
-                color24_to_16(c2),
-                uv2.0 as i32,
-                uv2.1 as i32,
-            ),
+            (v0.0 as i32, v0.1 as i32, c0, uv0.0 as i32, uv0.1 as i32),
+            (v1.0 as i32, v1.1 as i32, c1, uv1.0 as i32, uv1.1 as i32),
+            (v2.0 as i32, v2.1 as i32, c2, uv2.0 as i32, uv2.1 as i32),
         ];
         sorted.sort_by_key(|v| v.1);
 
@@ -1474,22 +1469,22 @@ impl Gpu {
             let (x_edge_short, color_short, u_short, v_short) = if y < ym {
                 (
                     lerp_i32(xt, xm, y - yt, dy_mt),
-                    lerp_color(pct, pcm, y - yt, dy_mt),
-                    lerp_i32(ut, um, y - yt, dy_mt),
-                    lerp_i32(vt, vm, y - yt, dy_mt),
+                    lerp_color24_attrib(pct, pcm, y - yt, dy_mt),
+                    lerp_attrib(ut, um, y - yt, dy_mt),
+                    lerp_attrib(vt, vm, y - yt, dy_mt),
                 )
             } else {
                 (
                     lerp_i32(xm, xb, y - ym, dy_bm),
-                    lerp_color(pcm, pcb, y - ym, dy_bm),
-                    lerp_i32(um, ub, y - ym, dy_bm),
-                    lerp_i32(vm, vb, y - ym, dy_bm),
+                    lerp_color24_attrib(pcm, pcb, y - ym, dy_bm),
+                    lerp_attrib(um, ub, y - ym, dy_bm),
+                    lerp_attrib(vm, vb, y - ym, dy_bm),
                 )
             };
 
-            let color_tb = lerp_color(pct, pcb, y - yt, dy_bt);
-            let u_tb = lerp_i32(ut, ub, y - yt, dy_bt);
-            let v_tb = lerp_i32(vt, vb, y - yt, dy_bt);
+            let color_tb = lerp_color24_attrib(pct, pcb, y - yt, dy_bt);
+            let u_tb = lerp_attrib(ut, ub, y - yt, dy_bt);
+            let v_tb = lerp_attrib(vt, vb, y - yt, dy_bt);
 
             let (xl, xr, cl, cr, ul, ur, vl, vr) = if x_edge_tb < x_edge_short {
                 (
@@ -1517,6 +1512,8 @@ impl Gpu {
 
             let xl_span = xl;
             let dx_span = xr - xl;
+            let step_u = attrib_step(ul, ur, dx_span);
+            let step_v = attrib_step(vl, vr, dx_span);
 
             let xl = xl.max(area_x1).max(0);
             let xr = xr.max(0).min(area_x2 + 1).min(1024);
@@ -1526,16 +1523,8 @@ impl Gpu {
 
             for x in xl..xr {
                 let pixel = if textured {
-                    let tex_u = if dx_span > 0 {
-                        lerp_i32(ul, ur, x - xl_span, dx_span)
-                    } else {
-                        ul
-                    };
-                    let tex_v = if dx_span > 0 {
-                        lerp_i32(vl, vr, x - xl_span, dx_span)
-                    } else {
-                        vl
-                    };
+                    let tex_u = attrib_at(ul, step_u, x - xl_span);
+                    let tex_v = attrib_at(vl, step_v, x - xl_span);
                     let texel = self.sample_texel(tex_u, tex_v);
                     if texel == 0 {
                         continue;
@@ -1543,17 +1532,13 @@ impl Gpu {
                     if raw_texture {
                         texel
                     } else {
-                        let vcolor = if dx_span > 0 {
-                            lerp_color(cl, cr, x - xl_span, dx_span)
-                        } else {
-                            cl
-                        };
-                        modulate_texel(texel, vcolor)
+                        let vcolor = lerp_color24_attrib(cl, cr, x - xl_span, dx_span);
+                        modulate_texel(texel, color24_to_16(vcolor))
                     }
-                } else if gouraud && dx_span > 0 {
-                    lerp_color(cl, cr, x - xl_span, dx_span)
+                } else if gouraud {
+                    color24_to_16(lerp_color24_attrib(cl, cr, x - xl_span, dx_span))
                 } else {
-                    pct
+                    color24_to_16(pct)
                 };
                 let blend = if textured {
                     blend_texturizado(semi_transparent, pixel)

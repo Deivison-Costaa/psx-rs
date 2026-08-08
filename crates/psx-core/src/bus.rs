@@ -126,6 +126,8 @@ const SIO_ACK: u32 = 4;
 const SPU_TICK: u32 = 5;
 const HBLANK_ENTER: u32 = 6;
 const HBLANK_EXIT: u32 = 7;
+const DMA_DONE_BASE: u32 = 8;
+const DMA_DONE_END: u32 = DMA_DONE_BASE + 7;
 
 // Atraso do /ACK depois do ULTIMO pulso de SCK. § Address byte (01h) being sent (L379-386) de
 // docs/reference/10-controllers-memcards.md: o driver do kernel ignora pulsos nos primeiros
@@ -333,7 +335,20 @@ impl Bus {
     // devolve as palavras que passaram pelo barramento nesta chamada; aqui viram ciclos
     // (Dma::transfer_cost, Degrau 8) empilhados ate o proximo tick_timers.
     fn charge_dma(&mut self, channel: usize, words: usize) {
-        self.dma_extra_cycles += Dma::transfer_cost(channel, words as u32) as u32;
+        let ram_side = Dma::stall_cost(words as u32);
+        let device_side = Dma::transfer_cost(channel, words as u32);
+        self.dma_extra_cycles += ram_side as u32;
+        if !self.dma.take_start_pending(channel) {
+            return;
+        }
+        if device_side <= ram_side {
+            self.dma.complete_channel(channel);
+            return;
+        }
+        let evento = EventId(DMA_DONE_BASE + channel as u32);
+        self.scheduler.cancel(evento);
+        self.scheduler
+            .schedule(ScheduleKey::new(self.total_cycles + device_side), evento);
     }
 
     fn service_cdrom_irq(&mut self) {
@@ -451,6 +466,10 @@ impl Bus {
                     if self.cdrom.take_irq2_edge() {
                         self.irq.raise(2);
                     }
+                }
+                DMA_DONE_BASE..DMA_DONE_END => {
+                    self.dma.complete_channel((id - DMA_DONE_BASE) as usize);
+                    self.service_dma_irq();
                 }
                 _ => {}
             }

@@ -41,14 +41,13 @@ rotulo: block mode BS=0 nao tratado como 0x10000 (zero palavras)
 mutante: m4
 rotulo: bit24 nao limpo apos linked-list
 @@DE
-        if alcancou_fim {
-            self.chcr[2] &= !(1 << 24);
-            self.signal_completion(2);
+            self.arm_completion(2);
         }
+        palavras_transferidas
 @@PARA
-        if alcancou_fim {
             self.signal_completion(2);
         }
+        palavras_transferidas
 @@FIM
 
 equivalente: m5
@@ -75,10 +74,11 @@ rotulo: linked-list bit23=0 tratado como end-marker (invertido)
 mutante: m7
 rotulo: bit24 nao limpo apos block
 @@DE
-        self.madr[2] = (self.madr[2] & !0x00FF_FFFF) | (addr & 0x00FF_FFFF);
-        self.chcr[2] &= !(1 << 24);
+        self.arm_completion(2);
+        bs * ba
 @@PARA
-        self.madr[2] = (self.madr[2] & !0x00FF_FFFF) | (addr & 0x00FF_FFFF);
+        self.signal_completion(2);
+        bs * ba
 @@FIM
 
 controle: K1

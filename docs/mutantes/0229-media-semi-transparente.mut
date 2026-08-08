@@ -1,0 +1,88 @@
+# Manifesto de mutacao da iteracao 0229 — media do modo 0 de semi-transparencia
+formato: 1
+iteracao: 0229
+item: 0229.1
+alvo: crates/psx-core/src/gpu.rs
+teste: gpu_media_semi_transparente
+
+mutante: m1
+rotulo: volta a somar as metades em vez da metade da soma
+ocorrencias: 1
+teste: gpu_media_semi_transparente
+@@DE
+                0 => ((r_b + r_f) >> 1, (g_b + g_f) >> 1, (b_b + b_f) >> 1),
+@@PARA
+                0 => (
+                    (r_b >> 1) + (r_f >> 1),
+                    (g_b >> 1) + (g_f >> 1),
+                    (b_b >> 1) + (b_f >> 1),
+                ),
+@@FIM
+
+mutante: m2
+rotulo: arredonda a media para cima em vez de truncar
+ocorrencias: 1
+teste: gpu_media_semi_transparente
+@@DE
+                0 => ((r_b + r_f) >> 1, (g_b + g_f) >> 1, (b_b + b_f) >> 1),
+@@PARA
+                0 => (
+                    (r_b + r_f + 1) >> 1,
+                    (g_b + g_f + 1) >> 1,
+                    (b_b + b_f + 1) >> 1,
+                ),
+@@FIM
+
+mutante: m3
+rotulo: canal vermelho perde o front e devolve so o back
+ocorrencias: 1
+teste: gpu_media_semi_transparente
+@@DE
+                0 => ((r_b + r_f) >> 1, (g_b + g_f) >> 1, (b_b + b_f) >> 1),
+@@PARA
+                0 => (r_b, (g_b + g_f) >> 1, (b_b + b_f) >> 1),
+@@FIM
+
+mutante: m4
+rotulo: divide por quatro em vez de dois no canal vermelho
+ocorrencias: 1
+teste: gpu_media_semi_transparente
+@@DE
+                0 => ((r_b + r_f) >> 1, (g_b + g_f) >> 1, (b_b + b_f) >> 1),
+@@PARA
+                0 => ((r_b + r_f) >> 2, (g_b + g_f) >> 1, (b_b + b_f) >> 1),
+@@FIM
+
+mutante: m5
+rotulo: media do modo 0 passa a saturar o back sozinho
+ocorrencias: 1
+teste: gpu_media_semi_transparente
+@@DE
+                0 => ((r_b + r_f) >> 1, (g_b + g_f) >> 1, (b_b + b_f) >> 1),
+@@PARA
+                0 => (
+                    (r_b + r_f).min(31),
+                    (g_b + g_f) >> 1,
+                    (b_b + b_f) >> 1,
+                ),
+@@FIM
+
+controle: c1
+rotulo: soma comutada nos tres canais da media
+ocorrencias: 1
+teste: gpu_media_semi_transparente
+@@DE
+                0 => ((r_b + r_f) >> 1, (g_b + g_f) >> 1, (b_b + b_f) >> 1),
+@@PARA
+                0 => ((r_f + r_b) >> 1, (g_f + g_b) >> 1, (b_f + b_b) >> 1),
+@@FIM
+
+controle: c2
+rotulo: divisao inteira escrita no lugar do deslocamento
+ocorrencias: 1
+teste: gpu_media_semi_transparente
+@@DE
+                0 => ((r_b + r_f) >> 1, (g_b + g_f) >> 1, (b_b + b_f) >> 1),
+@@PARA
+                0 => ((r_b + r_f) / 2, (g_b + g_f) / 2, (b_b + b_f) / 2),
+@@FIM

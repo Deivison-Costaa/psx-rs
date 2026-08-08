@@ -1274,11 +1274,7 @@ impl Gpu {
             let g_f = (pixel >> 5) & 0x1F;
             let b_f = (pixel >> 10) & 0x1F;
             let (r, g, b) = match mode {
-                0 => (
-                    (r_b >> 1) + (r_f >> 1),
-                    (g_b >> 1) + (g_f >> 1),
-                    (b_b >> 1) + (b_f >> 1),
-                ),
+                0 => ((r_b + r_f) >> 1, (g_b + g_f) >> 1, (b_b + b_f) >> 1),
                 1 => (
                     (r_b + r_f).min(31),
                     (g_b + g_f).min(31),

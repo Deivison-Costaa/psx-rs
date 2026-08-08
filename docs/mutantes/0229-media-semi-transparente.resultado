@@ -1,0 +1,10 @@
+# gerado por scripts/mutantes.ps1 — NAO editar a mao
+# commit: 2791f31473eb56822b5d055147ff6e5dec646d38
+# rodado_em: 2026-08-07T22:21:22-03:00
+m1,mutante,morreu,morreu,1.4,a1_back_31_front_31_da_31_e_nao_30;a2_back_15_front_31_da_23_e_nao_22
+m2,mutante,morreu,morreu,1.2,a3_soma_impar_trunca_para_baixo_31_e_20_da_25;a4_soma_impar_trunca_para_baixo_15_e_20_da_17
+m3,mutante,morreu,morreu,1.2,a2_back_15_front_31_da_23_e_nao_22;a3_soma_impar_trunca_para_baixo_31_e_20_da_25;a4_soma_impar_trunca_para_baixo_15_e_20_da_17
+m4,mutante,morreu,morreu,1.3,a1_back_31_front_31_da_31_e_nao_30;a2_back_15_front_31_da_23_e_nao_22;a3_soma_impar_trunca_para_baixo_31_e_20_da_25;a4_soma_impar_trunca_para_baixo_15_e_20_da_17
+m5,mutante,morreu,morreu,1.3,a2_back_15_front_31_da_23_e_nao_22;a3_soma_impar_trunca_para_baixo_31_e_20_da_25;a4_soma_impar_trunca_para_baixo_15_e_20_da_17
+c1,controle,sobreviveu,sobreviveu,1.3,
+c2,controle,sobreviveu,sobreviveu,1.3,

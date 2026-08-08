@@ -76,7 +76,7 @@ e CC BY-NC-ND.)
 
 | # | Categoria | O que eu assumi | O que a spec diz | Como foi pego |
 |---|---|---|---|---|
-| 1 | saturacao | `B/2+F/2` podia ser implementado somando as metades | `L1591` da a formula mas nao o ponto de arredondamento; o hardware soma e SO ENTAO divide | gabarito `gpu/quad/vram.png`, 59.352 px divergentes |
+| 1 | saturacao | `B/2+F/2` podia ser implementado somando as metades | `docs/reference/03-gpu.md` L1591 da a formula mas nao o ponto de arredondamento; o hardware soma e SO ENTAO divide | gabarito `gpu/quad/vram.png`, 59.352 px divergentes |
 | 2 | processo | que a branch do worktree era o HEAD que eu tinha medido | — | a suite de oraculos "regrediu" 3 casos de uma vez; era `iter/fix-jogos-loop` (stale) e nao `main` |
 
 O erro 2 vale registro: o worktree comecou em `main` (2b1090e) em HEAD destacado, e um
@@ -135,7 +135,7 @@ Os 240 pixels restantes sao de **costura**: ficam nas bordas entre quads vizinho
 `ref(120,120,120)` contra `our(120,120,248)`, por exemplo. E a regra de preenchimento de
 borda decidindo se o pixel da diagonal pertence a um triangulo, ao outro, ou aos dois.
 O DuckStation carrega um bit de "top-left" por vertice para isso
-(`gpu_sw_rasterizer.inl` ~L1441-1456). E outra micro-funcionalidade — R4, fica para a
+(`gpu_sw_rasterizer.inl`, por volta das linhas 1441 a 1456). E outra micro-funcionalidade — R4, fica para a
 proxima.
 
 ## Decisoes e notas

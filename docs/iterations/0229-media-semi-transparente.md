@@ -85,6 +85,13 @@ aviso. A medicao seguinte mostrou texture-flip voltando a 197.632 e triangle pul
 12.775 para 118.335. **Foi a bateria completa de oraculos que pegou** — se eu tivesse
 medido so o `quad`, teria concluido que o fix funcionou e commitado sobre a base errada.
 
+## Bateria de mutacao
+
+Placar da bateria: 5/5 mutantes mortos, 2/2 controles verdes, 0 equivalente — docs/mutantes/0229-media-semi-transparente.mut
+
+O `m2` (arredondar para cima em vez de truncar) e o que justifica as asercoes A3 e A4:
+sem elas ele sobreviveria, porque nenhum outro caso do teste tem soma impar.
+
 ## Placar antes -> depois
 
 Todos os 11 oraculos de GPU com gabarito, mesma metrica, mesma base (`main` 2b1090e):

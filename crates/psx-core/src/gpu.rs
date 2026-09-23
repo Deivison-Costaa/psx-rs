@@ -1953,7 +1953,7 @@ impl Gpu {
     }
 
     fn write_gp1(&mut self, val: u32) {
-        let cmd = (val >> 24) as u8;
+        let cmd = ((val >> 24) & 0x3F) as u8;
         match cmd {
             0x00 => {
                 self.stat.set(0x1480_2000);
@@ -2034,7 +2034,33 @@ impl Gpu {
                 let bit = val & 1;
                 self.allow_upper_y.set(bit != 0);
             }
+            0x10..=0x1F => {
+                if let Some(word) = self.internal_register(val & 0xF) {
+                    self.gpuread_latch.set(word);
+                }
+            }
             _ => {}
+        }
+    }
+
+    fn internal_register(&self, index: u32) -> Option<u32> {
+        let area = |x: &Cell<u16>, y: &Cell<u16>| x.get() as u32 | ((y.get() as u32) << 10);
+        match index {
+            2 => Some(
+                self.tex_window_mask_x.get() as u32
+                    | (self.tex_window_mask_y.get() as u32) << 5
+                    | (self.tex_window_offset_x.get() as u32) << 10
+                    | (self.tex_window_offset_y.get() as u32) << 15,
+            ),
+            3 => Some(area(&self.drawing_x1, &self.drawing_y1)),
+            4 => Some(area(&self.drawing_x2, &self.drawing_y2)),
+            5 => Some(
+                (self.drawing_offset_x.get() as u32 & 0x7FF)
+                    | (self.drawing_offset_y.get() as u32 & 0x7FF) << 11,
+            ),
+            7 => Some(2),
+            8 => Some(0),
+            _ => None,
         }
     }
 }

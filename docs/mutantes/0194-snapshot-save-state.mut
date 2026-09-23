@@ -1,4 +1,5 @@
 # Manifesto de mutacao da iteracao 0194 — snapshot do core e save states
+arquivada: o formato 4 do save state (disco gravado nos metadados) trocou Estado por Metadados + Maquina; as linhas ancoradas por m10 e m12 nao existem mais
 formato: 1
 iteracao: 0194
 item: 9.2

@@ -417,19 +417,21 @@ fn load_disc(disc_path: &str) -> (DiscLayout, Box<dyn DiscImage>) {
     }
 }
 
-/// Carrega a imagem `.mcd` (criando uma zerada de 128 KiB se nao existir) e liga o
-/// cartao no slot 1.
-fn monta_memory_card(bus: &mut Bus, caminho: Option<&str>) {
-    let Some(caminho) = caminho else {
+/// Sem `--memcard`, o slot 1 recebe um cartao formatado so em memoria, como o console com
+/// um cartao novo; `--no-memcard` deixa o slot vazio. Um `.mcd` que nao existe nasce formatado.
+fn monta_memory_card(bus: &mut Bus, caminho: Option<&str>, sem_cartao: bool) {
+    if sem_cartao {
         return;
-    };
-    let bytes = std::fs::read(caminho).unwrap_or_else(|_| vec![0u8; psx_core::memcard::CARD_BYTES]);
-    match bus.sio_mut().load_memory_card(&bytes) {
-        Ok(()) => {}
-        Err(e) => {
-            eprintln!("Erro: memory card '{caminho}' invalido: {e:?}");
-            std::process::exit(1);
-        }
+    }
+    let bytes = caminho
+        .and_then(|c| std::fs::read(c).ok())
+        .unwrap_or_else(psx_core::memcard::formatted_image);
+    if let Err(e) = bus.sio_mut().load_memory_card(&bytes) {
+        eprintln!(
+            "Erro: memory card '{}' invalido: {e:?}",
+            caminho.unwrap_or("-")
+        );
+        std::process::exit(1);
     }
 }
 
@@ -566,6 +568,7 @@ fn main() {
     let mut log_cd = false;
     let mut pad_em_ciclos = false;
     let mut memcard_arg: Option<String> = None;
+    let mut sem_memcard = false;
     let mut press_specs: Vec<String> = Vec::new();
     let mut porta: Vec<(usize, AcaoNaPorta)> = Vec::new();
     let mut stick_specs: Vec<String> = Vec::new();
@@ -602,6 +605,10 @@ fn main() {
             "--dump-audio" if i + 1 < args.len() => {
                 audio_dump = Some(args[i + 1].clone());
                 i += 2;
+            }
+            "--no-memcard" => {
+                sem_memcard = true;
+                i += 1;
             }
             "--memcard" if i + 1 < args.len() => {
                 memcard_arg = Some(args[i + 1].clone());
@@ -882,7 +889,7 @@ fn main() {
             if pad_connected {
                 conecta_pad(bus.sio_mut(), dualshock, analog_on_boot);
             }
-            monta_memory_card(&mut bus, memcard_arg.as_deref());
+            monta_memory_card(&mut bus, memcard_arg.as_deref(), sem_memcard);
             let steps = run(
                 &mut cpu,
                 &mut bus,
@@ -972,7 +979,7 @@ fn main() {
             if pad_connected {
                 conecta_pad(bus.sio_mut(), dualshock, analog_on_boot);
             }
-            monta_memory_card(&mut bus, memcard_arg.as_deref());
+            monta_memory_card(&mut bus, memcard_arg.as_deref(), sem_memcard);
             let steps = run(
                 &mut cpu,
                 &mut bus,
@@ -1063,5 +1070,6 @@ fn main() {
     eprintln!("     [--pad-em-ciclos] (PASSO e DURACAO de --press/--stick em ciclos emulados)");
     eprintln!("     [--dualshock] [--analog] [--stick left|right:X,Y@PASSO[:DURACAO]]");
     eprintln!("     [--open-lid PASSO] [--close-lid PASSO] [--swap-disc CUE@PASSO[:DURACAO]]");
+    eprintln!("     [--memcard <arquivo.mcd> | --no-memcard]");
     std::process::exit(1);
 }

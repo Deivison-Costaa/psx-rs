@@ -4,6 +4,7 @@ iteracao: 0203
 item: 10.117
 alvo: crates/psx-core/src/bus.rs
 teste: timers_hblank_agendado
+arquivada: timers reescritos (reset no alvo, espera apos escrita, hblank por borda); ancoras nao correspondem mais
 
 mutante: m1
 rotulo: X1/X2 trocados — janela de blanking fica invertida

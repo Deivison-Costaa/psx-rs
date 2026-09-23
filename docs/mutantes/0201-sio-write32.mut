@@ -4,6 +4,7 @@ iteracao: 0201
 item: 10.48
 alvo: crates/psx-core/src/bus.rs
 teste: bus_sio_write32
+arquivada: escrita de I/O por largura reescrita (gpr inteiro em sb/sh, SIO por meia-palavra, DICR bits 0-5); ancoras nao correspondem mais
 
 mutante: m1
 rotulo: conversao big-endian troca a ordem dos bytes da SIO

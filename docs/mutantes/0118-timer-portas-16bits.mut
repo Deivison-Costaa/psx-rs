@@ -4,7 +4,7 @@ iteracao: 0118
 item: 4.4m
 alvo: crates/psx-core/src/bus.rs
 teste: timer_portas_16bits
-arquivada: leitura de byte dos timers passou a usar read32 (limpa flags do modo, onda1/gpu-misc)
+arquivada: lhu no timer passou a usar read32 com efeito colateral; ancoras nao correspondem mais
 
 mutante: m1
 rotulo: leitura de byte dos timers devolve zero (o defeito 4.4m original)

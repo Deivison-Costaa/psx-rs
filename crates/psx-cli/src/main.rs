@@ -149,15 +149,28 @@ fn run(cpu: &mut Cpu, bus: &mut Bus, max_steps: usize, pad: &PadScript, sondas: 
 
         if !trace_pcs.is_empty() && trace_pcs.contains(&cpu.pc) {
             let instr = bus.read32::<BusRead>(cpu.pc);
-            let regs: Vec<String> = (1..32)
-                .map(|r| format!("{}={:08X}", disasm::NOMES[r], cpu.regs[r]))
-                .collect();
+            let _rs = ((instr >> 21) & 0x1F) as usize;
+            let _rt = ((instr >> 16) & 0x1F) as usize;
             eprintln!(
-                "trace pc=0x{:08X} step={} instr=0x{:08X} {}",
+                "trace pc=0x{:08X} step={} instr=0x{:08X} \
+                 regs: a0($4)=0x{:08X} a1($5)=0x{:08X} t1($9)=0x{:08X} s1($17)=0x{:08X} \
+                 v0($2)=0x{:08X} t4($12)=0x{:08X} t5($13)=0x{:08X} ra($31)=0x{:08X}",
                 cpu.pc,
                 steps,
                 instr,
-                regs.join(" ")
+                cpu.regs[4],
+                cpu.regs[5],
+                cpu.regs[9],
+                cpu.regs[17],
+                cpu.regs[2],
+                cpu.regs[12],
+                cpu.regs[13],
+                cpu.regs[31],
+            );
+            eprintln!(
+                "     mem[t1*4]=0x{:08X} mem[s1*4]=0x{:08X}",
+                bus.read32::<BusRead>(cpu.regs[9].wrapping_mul(4)),
+                bus.read32::<BusRead>(cpu.regs[17].wrapping_mul(4)),
             );
             let _ = std::io::stderr().flush();
         }

@@ -1,8 +1,11 @@
 use std::cell::{Cell, RefCell};
 
+use crate::dualshock::{self, DualShock, Rumble, Sticks};
 use crate::memcard::{self, MemoryCard, MemoryCardError};
 
-const ADDRESS_CONTROLLER: u8 = 0x01;
+const CTRL_SELECT: u16 = 1 << 1;
+const CTRL_PORT: u16 = 1 << 13;
+const DEVICE_PORT: u16 = 0;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Sio {
@@ -15,7 +18,7 @@ pub struct Sio {
     byte_count: Cell<u8>,
     address: Cell<u8>,
     pad_connected: Cell<bool>,
-    button_state: Cell<u16>,
+    pad: RefCell<DualShock>,
     irq7_pending: Cell<bool>,
     ack_scheduled: Cell<bool>,
     ack_requested: Cell<bool>,
@@ -35,7 +38,7 @@ impl Sio {
             byte_count: Cell::new(0),
             address: Cell::new(0),
             pad_connected: Cell::new(false),
-            button_state: Cell::new(0xFFFF),
+            pad: RefCell::new(DualShock::new()),
             irq7_pending: Cell::new(false),
             ack_scheduled: Cell::new(false),
             ack_requested: Cell::new(false),
@@ -68,15 +71,48 @@ impl Sio {
     }
 
     pub fn set_buttons(&self, buttons: u16) {
-        self.button_state.set(buttons);
+        self.pad.borrow_mut().set_buttons(buttons);
     }
 
     pub fn buttons_state(&self) -> u16 {
-        self.button_state.get()
+        self.pad.borrow().buttons()
+    }
+
+    pub fn set_sticks(&self, sticks: Sticks) {
+        self.pad.borrow_mut().set_sticks(sticks);
+    }
+
+    pub fn sticks(&self) -> Sticks {
+        self.pad.borrow().sticks()
+    }
+
+    pub fn set_analog_mode(&self, analog: bool) {
+        self.pad.borrow_mut().set_analog(analog);
+    }
+
+    pub fn analog_mode(&self) -> bool {
+        self.pad.borrow().analog()
+    }
+
+    pub fn analog_locked(&self) -> bool {
+        self.pad.borrow().locked()
+    }
+
+    pub fn press_analog_button(&self) -> bool {
+        self.pad.borrow_mut().press_analog_button()
+    }
+
+    pub fn rumble(&self) -> Rumble {
+        self.pad.borrow().rumble()
     }
 
     fn cs_asserted(&self) -> bool {
-        (self.ctrl.get() & (1 << 1)) != 0
+        (self.ctrl.get() & CTRL_SELECT) != 0
+    }
+
+    fn selected_port(&self) -> Option<u16> {
+        self.cs_asserted()
+            .then(|| (self.ctrl.get() & CTRL_PORT) >> 13)
     }
 
     /// Ciclos que os 8 bits do byte levam para sair, pela taxa configurada em JOY_BAUD e pelo
@@ -119,15 +155,15 @@ impl Sio {
             s &= !0x02;
             self.stat.set(s);
         }
-        let mut s = self.stat.get();
-        s &= !0x80;
-        self.stat.set(s);
         byte
     }
 
     fn addressed_device_present(&self) -> bool {
+        if self.selected_port() != Some(DEVICE_PORT) {
+            return false;
+        }
         match self.address.get() {
-            ADDRESS_CONTROLLER => self.pad_connected.get(),
+            dualshock::ADDRESS => self.pad_connected.get(),
             memcard::ADDRESS => self.memcard_connected.get(),
             _ => false,
         }
@@ -139,29 +175,23 @@ impl Sio {
         let count = self.byte_count.get();
         if count == 0 {
             self.address.set(val);
-            if val == memcard::ADDRESS {
-                self.memcard.borrow_mut().begin();
+            match val {
+                memcard::ADDRESS => self.memcard.borrow_mut().begin(),
+                dualshock::ADDRESS => self.pad.borrow_mut().begin(),
+                _ => {}
             }
         }
 
-        let present = self.addressed_device_present();
-        let (response, ack) = if self.address.get() == memcard::ADDRESS && present {
+        let (response, ack) = if !self.addressed_device_present() {
+            (0xFF, false)
+        } else if self.address.get() == memcard::ADDRESS {
             self.memcard.borrow_mut().exchange(val)
-        } else if count == 0 || !present {
-            (0xFF, present)
         } else {
-            let r = match count {
-                1 => 0x41,
-                2 => 0x5A,
-                3 => (self.button_state.get() & 0xFF) as u8,
-                4 => (self.button_state.get() >> 8) as u8,
-                _ => 0xFF,
-            };
-            (r, true)
+            self.pad.borrow_mut().exchange(val)
         };
 
         self.rx_fifo.borrow_mut().push(response);
-        self.byte_count.set(count + 1);
+        self.byte_count.set(count.saturating_add(1));
         if ack {
             self.ack_requested.set(true);
             self.ack_scheduled.set(true);
@@ -192,16 +222,21 @@ impl Sio {
         }
     }
 
+    pub fn end_ack(&self) {
+        self.stat.set(self.stat.get() & !0x80);
+    }
+
     fn update_ctrl(&self, val: u16) {
-        let prev_cs = self.cs_asserted();
+        let prev_port = self.selected_port();
         self.ctrl.set(val);
 
-        if !self.cs_asserted() && prev_cs {
+        if prev_port.is_some() && self.selected_port() != prev_port {
             self.byte_count.set(0);
             self.address.set(0);
             self.ack_scheduled.set(false);
             self.ack_requested.set(false);
             self.memcard.borrow_mut().begin();
+            self.pad.borrow_mut().begin();
             self.rx_fifo.borrow_mut().clear();
             let mut s = self.stat.get();
             s &= !0x02;

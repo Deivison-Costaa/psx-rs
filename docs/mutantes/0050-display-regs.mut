@@ -4,6 +4,7 @@ iteracao: 0050
 item: 2.7a
 alvo: crates/psx-core/src/gpu.rs
 teste: gpu_display_regs
+arquivada: GP1(10h) reescrito para devolver registros internos (onda1/gpu-misc)
 
 mutante: m1
 rotulo: GP1(06h) inverte X1 e X2 (X1 le o campo de X2 e X2 le de X1)

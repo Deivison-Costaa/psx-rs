@@ -676,6 +676,7 @@ fn main() {
             if let Some(disc_path) = disc_path {
                 let (layout, bin_data) = load_disc(&disc_path);
                 bus.inject_disc(layout, bin_data);
+                bus.cdrom_mut().insert_disc();
             }
 
             if let Err(e) = boot_bios_to_kernel(&mut cpu, &mut bus) {

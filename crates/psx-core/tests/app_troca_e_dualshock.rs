@@ -20,7 +20,10 @@ fn titulo_base_tira_o_sufixo_de_disco() {
         "Metal Gear Solid (USA)"
     );
     assert_eq!(titulo_base("Jogo [Disc2]"), "Jogo");
-    assert_eq!(titulo_base("Crash Bandicoot (USA)"), "Crash Bandicoot (USA)");
+    assert_eq!(
+        titulo_base("Crash Bandicoot (USA)"),
+        "Crash Bandicoot (USA)"
+    );
 }
 
 #[test]

@@ -24,6 +24,7 @@ pub(crate) enum Tela {
     Saves,
     Controles,
     Ajustes,
+    Discos,
 }
 
 pub(crate) struct App {
@@ -38,6 +39,7 @@ pub(crate) struct App {
     pub(crate) gamepads: Gamepads,
     pub(crate) perfil: Perfil,
     pub(crate) perfil_arquivo: PathBuf,
+    pub(crate) discos: Vec<PathBuf>,
 }
 
 impl App {
@@ -64,6 +66,7 @@ impl App {
             gamepads: Gamepads::novo(),
             perfil,
             perfil_arquivo,
+            discos: Vec::new(),
         }
     }
 
@@ -144,6 +147,20 @@ impl App {
         self.em_execucao = None;
     }
 
+    /// Varre na hora de abrir o menu, nao a cada quadro: sao chamadas de disco.
+    pub(crate) fn abre_troca_de_disco(&mut self) {
+        let Some(emu) = self.emulador.as_ref() else {
+            return;
+        };
+        let atual = emu.disco();
+        let pasta = atual.parent();
+        let mut raizes = vec![std::path::Path::new(&self.config.pasta_de_jogos)];
+        raizes.extend(pasta);
+        raizes.extend(pasta.and_then(std::path::Path::parent));
+        self.discos = disco::lista_cues(&raizes);
+        self.tela = Tela::Discos;
+    }
+
     pub(crate) fn recentes(&self) -> &Recentes {
         &self.config.recentes
     }
@@ -165,6 +182,7 @@ impl eframe::App for App {
             Tela::Saves => self.tela_saves(ui),
             Tela::Controles => self.tela_controles(ui),
             Tela::Ajustes => self.tela_ajustes(ui),
+            Tela::Discos => self.tela_discos(ui),
         });
         if self.tela == Tela::Jogando {
             ctx.request_repaint();

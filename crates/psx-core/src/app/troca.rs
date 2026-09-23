@@ -1,13 +1,11 @@
 use crate::dualshock::Rumble;
 
-/// Um segundo emulado: a BIOS e os jogos multidisco so percebem a troca se a porta ficar
-/// aberta por tempo que o drive note (INT5 + parar o motor).
+/// Um segundo emulado: porta que fecha no mesmo instante o jogo nem percebe.
 pub const CICLOS_DE_PORTA_ABERTA: u64 = 33_868_800;
 
 const MARCAS_DE_DISCO: [&str; 4] = ["(disc", "(disk", "(cd", "[disc"];
 
-/// Titulo sem o sufixo de disco: "Final Fantasy IX (USA) (Disc 2)" vira
-/// "Final Fantasy IX (USA)". O que vem depois da marca (ex.: "(Rev 1)") tambem sai.
+/// "Jogo (USA) (Disc 2) (Rev 1)" vira "Jogo (USA)".
 pub fn titulo_base(nome: &str) -> String {
     let minusculo = nome.to_lowercase();
     let corte = MARCAS_DE_DISCO
@@ -26,8 +24,7 @@ pub struct Candidato {
     pub atual: bool,
 }
 
-/// Ordena os discos para a troca: os do mesmo jogo primeiro (outros discos do mesmo
-/// titulo), depois o resto; dentro de cada grupo, por nome sem diferenciar caixa.
+/// Outros discos do mesmo titulo primeiro, depois o resto, cada grupo por nome.
 pub fn ordena_candidatos(atual: &str, nomes: &[String]) -> Vec<Candidato> {
     let base = titulo_base(atual).to_lowercase();
     let mut candidatos: Vec<Candidato> = nomes
@@ -39,17 +36,11 @@ pub fn ordena_candidatos(atual: &str, nomes: &[String]) -> Vec<Candidato> {
             atual: nome == atual,
         })
         .collect();
-    candidatos.sort_by_key(|c| {
-        (
-            !c.mesmo_jogo,
-            nomes.get(c.indice).map(|n| n.to_lowercase()),
-        )
-    });
+    candidatos.sort_by_key(|c| (!c.mesmo_jogo, nomes.get(c.indice).map(|n| n.to_lowercase())));
     candidatos
 }
 
-/// Porta aberta aguardando fechar. Vive no frontend, fora do save state: e a mao do
-/// jogador, nao o console.
+/// Vive no frontend, fora do save state: e a mao do jogador, nao o console.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PortaAberta {
     fecha_em: u64,
@@ -67,14 +58,12 @@ impl PortaAberta {
     }
 }
 
-/// Motor pequeno do DualShock e liga/desliga; o grande tem 256 niveis. gilrs pede u16.
 pub fn forca_de_vibracao(rumble: Rumble) -> (u16, u16) {
     let forte = u16::from(rumble.large) * 0x0101;
     let fraco = if rumble.small { u16::MAX } else { 0 };
     (forte, fraco)
 }
 
-/// Borda de subida: segurar o botao Analog nao pode alternar o modo a cada quadro.
 pub fn apertou_agora(antes: bool, agora: bool) -> bool {
     agora && !antes
 }

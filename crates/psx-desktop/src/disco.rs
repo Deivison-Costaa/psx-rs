@@ -1,6 +1,6 @@
 use std::fs::File;
 use std::io::{Read, Seek, SeekFrom};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use psx_core::app::library::{self, Identidade};
 use psx_core::cdrom_bin_cue::{DiscLayout, TrackType, parse_cue};
@@ -60,4 +60,37 @@ pub fn identifica(cue: &Path) -> Result<Identidade, String> {
         arquivo.read_exact(&mut bruto).ok()?;
         library::dados_do_setor(&bruto).map(<[u8]>::to_vec)
     }))
+}
+
+fn e_cue(caminho: &Path) -> bool {
+    caminho
+        .extension()
+        .is_some_and(|e| e.eq_ignore_ascii_case("cue"))
+}
+
+fn cues_ate(pasta: &Path, niveis: u8, fora: &mut Vec<PathBuf>) {
+    let Ok(entradas) = std::fs::read_dir(pasta) else {
+        return;
+    };
+    for caminho in entradas.filter_map(Result::ok).map(|e| e.path()) {
+        if caminho.is_dir() {
+            if niveis > 1 {
+                cues_ate(&caminho, niveis - 1, fora);
+            }
+        } else if e_cue(&caminho) {
+            fora.push(caminho.canonicalize().unwrap_or(caminho));
+        }
+    }
+}
+
+/// CUEs das pastas dadas e de uma subpasta abaixo: o rip comum poe cada disco na
+/// propria pasta (`Jogo (Disc 2)/Jogo (Disc 2).cue`).
+pub fn lista_cues(raizes: &[&Path]) -> Vec<PathBuf> {
+    let mut fora = Vec::new();
+    for raiz in raizes {
+        cues_ate(raiz, 2, &mut fora);
+    }
+    fora.sort();
+    fora.dedup();
+    fora
 }

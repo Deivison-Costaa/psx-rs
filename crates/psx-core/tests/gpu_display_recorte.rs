@@ -96,6 +96,28 @@ fn largura_e_a_faixa_horizontal_dividida_pelo_dotclock() {
         (0x02, 0x260, 0xC60, 512, "512 px: 2560/5"),
         (0x00, 512, 3072, 256, "256 px com X1=200h: sem corte"),
         (0x41, 588, 3052, 352, "368 px com faixa curta: 2464/7 = 352"),
+        (
+            0x41,
+            588,
+            3168,
+            365,
+            "Tekken 3: 2580 ciclos passam da janela de 2560 (608..3168): 365",
+        ),
+        (
+            0x41,
+            539,
+            3227,
+            365,
+            "368 px de tela cheia (2688 ciclos): so 608..3168 aparece",
+        ),
+        (0x00, 588, 3148, 256, "256 px com 2560 ciclos: cabe inteiro"),
+        (
+            0x49,
+            560,
+            3248,
+            365,
+            "PAL 368 px de tela cheia: so 628..3188 aparece",
+        ),
     ];
     for (mode, x1, x2, w, msg) in casos {
         let gpu = gpu_ligado(mode, x1, x2, 0x10, 0x100);
@@ -133,4 +155,28 @@ fn pal_mostra_as_288_linhas_centradas_em_a3h() {
     let gpu = gpu_ligado(0x09, 0x260, 0xC60, 0x10, 0x140);
     let fb = gpu.framebuffer_for_display().expect("display ligado");
     assert_eq!(fb.height, 288, "PAL: linhas 19..307 (A3h +/- 144)");
+}
+
+#[test]
+fn faixa_larga_demais_pula_os_pixels_antes_de_608() {
+    let mut gpu = gpu_ligado(0x41, 588, 3168, 0x10, 0x100);
+    {
+        let vram = gpu.vram_raw_mut();
+        vram[8 * 1024 + 1] = 0x001F;
+        vram[8 * 1024 + 2] = 0x03E0;
+        vram[8 * 1024 + 366] = 0x7C00;
+    }
+    gpu.enter_vblank();
+    let fb = gpu.framebuffer_for_display().expect("display ligado");
+    assert_eq!(fb.width, 365, "Tekken 3: 365 px visiveis");
+    assert_eq!(
+        pixel(&fb, 0, 0),
+        (0, 0xF8, 0),
+        "X1=588 e a janela comeca em 608: (608-588)/7 = 2 pixels pulados"
+    );
+    assert_eq!(
+        pixel(&fb, 364, 0),
+        (0, 0, 0xF8),
+        "o ultimo pixel exibido e a coluna 366 da VRAM"
+    );
 }

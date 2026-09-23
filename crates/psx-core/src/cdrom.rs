@@ -79,6 +79,8 @@ pub struct Cdrom {
     playing: Cell<bool>,
     play_track: Cell<u8>,
     audio_fifo: RefCell<VecDeque<(i16, i16)>>,
+    #[serde(skip)]
+    audio_stats: Cell<AudioStats>,
     xa_state: Cell<XaState>,
     filter_file: Cell<u8>,
     filter_channel: Cell<u8>,
@@ -99,9 +101,16 @@ pub struct Cdrom {
     lid_int5_pending: Cell<bool>,
 }
 
-/// Quatro setores de CD-DA. Se o jogo le mais rapido do que o SPU consome, o excedente
-/// e descartado em vez de virar vazamento.
-const AUDIO_FIFO_MAX: usize = 4 * cdrom_xa::CDDA_FRAMES;
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct AudioStats {
+    pub enqueued: u64,
+    pub dropped: u64,
+}
+
+/// Dois setores XA do maior tipo (mono 18900 Hz = 9408 quadros a 44100 Hz): o setor em
+/// reproducao mais o seguinte. So um disco entregando mais rapido que o SPU consome enche
+/// isso; ai o mais antigo sai, para o atraso nao crescer.
+const AUDIO_FIFO_MAX: usize = 2 * cdrom_xa::XA_MAX_FRAMES_PER_SECTOR;
 
 impl Cdrom {
     pub fn new() -> Self {
@@ -146,6 +155,7 @@ impl Cdrom {
             playing: Cell::new(false),
             play_track: Cell::new(0),
             audio_fifo: RefCell::new(VecDeque::new()),
+            audio_stats: Cell::new(AudioStats::default()),
             xa_state: Cell::new(XaState::default()),
             filter_file: Cell::new(0),
             filter_channel: Cell::new(0),
@@ -539,14 +549,23 @@ impl Cdrom {
         self.audio_fifo.borrow().len()
     }
 
+    /// Diagnostico (fora do snapshot): quadros de audio de CD enfileirados e descartados.
+    pub fn audio_stats(&self) -> AudioStats {
+        self.audio_stats.get()
+    }
+
     fn enfileira_audio(&self, quadros: Vec<(i16, i16)>) {
         let mut fifo = self.audio_fifo.borrow_mut();
-        for q in quadros {
-            if fifo.len() >= AUDIO_FIFO_MAX {
-                break;
-            }
-            fifo.push_back(q);
-        }
+        let total = quadros.len() as u64;
+        fifo.extend(quadros);
+        let excesso = fifo.len().saturating_sub(AUDIO_FIFO_MAX);
+        fifo.drain(..excesso);
+        let descartados = excesso as u64;
+        let s = self.audio_stats.get();
+        self.audio_stats.set(AudioStats {
+            enqueued: s.enqueued + total - descartados,
+            dropped: s.dropped + descartados,
+        });
     }
 
     /// Setor cru do disco na posicao corrente de leitura.
@@ -740,11 +759,10 @@ impl Cdrom {
                     self.read_pos_ff.set(self.seek_sect.get());
                     self.result_push(self.stat_byte());
                     self.intsts.set(3);
-                    if self.mode.get() & 0x04 != 0 {
-                        self.int1_pending.set(true);
-                        self.pending_second.set(6);
-                        self.second_cycles.set(busca);
-                    } else {
+                    self.int1_pending.set(true);
+                    self.pending_second.set(6);
+                    self.second_cycles.set(busca);
+                    if self.mode.get() & 0x04 == 0 {
                         self.busy.set(false);
                     }
                 }
@@ -1187,10 +1205,10 @@ impl Cdrom {
             return;
         }
         self.deliver_second(disc_layout, disc_bin);
-        if pending == 6 && self.playing.get() && self.mode.get() & 0x04 != 0 {
+        if pending == 6 && self.playing.get() {
             self.pending_second.set(6);
-            self.int1_pending.set(true);
             self.second_cycles.set(self.sector_interval_cycles());
+            self.second_request.set(true);
             return;
         }
         if pending == 5 && self.read_mode.get() != 0 {
@@ -1324,53 +1342,59 @@ impl Cdrom {
                     }
                 }
             }
-            6 => {
-                self.busy.set(false);
-                self.result_clear();
-                self.intsts.set(1);
-                loop {
-                    advance_read_pos(&self.read_pos_mm, &self.read_pos_ss, &self.read_pos_ff);
-                    if bcd_to_int(self.read_pos_ff.get()) % 10 == 0 {
-                        break;
-                    }
-                }
-                if let Some(cru) = self.setor_cru(disc_bin) {
-                    self.enfileira_audio(cdrom_xa::cdda_frames(&cru));
-                }
-                let amm = self.read_pos_mm.get();
-                let ass = self.read_pos_ss.get();
-                let asect = self.read_pos_ff.get();
-                let (track, index, inicio) = self.trilha_em(disc_layout, amm, ass, asect);
-                if self.play_track.get() == 0 {
-                    self.play_track.set(track);
-                }
-                if self.mode.get() & 0x02 != 0 && track != self.play_track.get() {
-                    self.playing.set(false);
-                    self.result_push(self.stat_byte());
-                    self.intsts.set(4);
-                    self.pending_second.set(0);
-                    return;
-                }
-                let absoluto = (bcd_to_int(asect) / 10) % 2 == 0;
-                self.result_push(self.stat_byte());
-                self.result_push(track);
-                self.result_push(index);
-                if absoluto {
-                    self.result_push(amm);
-                    self.result_push(ass);
-                    self.result_push(asect);
-                } else {
-                    let (mm, ss, ff) = subtrai_msf((amm, ass, asect), inicio);
-                    self.result_push(mm);
-                    self.result_push(ss | 0x80);
-                    self.result_push(ff);
-                }
-                self.result_push(0x00);
-                self.result_push(0x00);
-            }
+            6 => self.toca_setor_cdda(disc_layout, disc_bin),
             _ => {}
         }
         self.pending_second.set(0);
+    }
+
+    // § Play (06-cdrom.md L1201-1245): um setor por intervalo, tocado inteiro; em dobro o
+    // drive anda dois setores no tempo de um, entao sai um quadro a cada dois. § Report
+    // (L1246-1256): INT1 so nos setores com asect multiplo de 10h.
+    fn toca_setor_cdda(&self, disc_layout: Option<&DiscLayout>, disc_bin: Option<&[u8]>) {
+        self.busy.set(false);
+        let amm = self.read_pos_mm.get();
+        let ass = self.read_pos_ss.get();
+        let asect = self.read_pos_ff.get();
+        let (track, index, inicio) = self.trilha_em(disc_layout, amm, ass, asect);
+        if self.play_track.get() == 0 {
+            self.play_track.set(track);
+        }
+        if self.mode.get() & 0x02 != 0 && track != self.play_track.get() {
+            self.playing.set(false);
+            self.result_clear();
+            self.result_push(self.stat_byte());
+            self.intsts.set(4);
+            return;
+        }
+        if let Some(cru) = self.setor_cru(disc_bin) {
+            let quadros = cdrom_xa::cdda_frames(&cru);
+            let passo = if self.mode.get() & 0x80 != 0 { 2 } else { 1 };
+            self.enfileira_audio(quadros.into_iter().step_by(passo).collect());
+        }
+        advance_read_pos(&self.read_pos_mm, &self.read_pos_ss, &self.read_pos_ff);
+        let reporta =
+            self.mode.get() & 0x04 != 0 && bcd_to_int(asect) % 10 == 0 && self.intsts.get() == 0;
+        if !reporta {
+            return;
+        }
+        self.result_clear();
+        self.intsts.set(1);
+        self.result_push(self.stat_byte());
+        self.result_push(track);
+        self.result_push(index);
+        if (bcd_to_int(asect) / 10) % 2 == 0 {
+            self.result_push(amm);
+            self.result_push(ass);
+            self.result_push(asect);
+        } else {
+            let (mm, ss, ff) = subtrai_msf((amm, ass, asect), inicio);
+            self.result_push(mm);
+            self.result_push(ss | 0x80);
+            self.result_push(ff);
+        }
+        self.result_push(0x00);
+        self.result_push(0x00);
     }
 
     // § Report (L1246-1256) de docs/reference/06-cdrom.md quer trilha, index e o inicio dela

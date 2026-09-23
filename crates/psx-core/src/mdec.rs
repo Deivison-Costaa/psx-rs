@@ -9,6 +9,11 @@ const ZAGZIG: [u8; 64] = [
     52, 45, 38, 31, 39, 46, 53, 60, 61, 54, 47, 55, 62, 63,
 ];
 
+const YUV_R_CR: i32 = 5744;
+const YUV_G_CB: i32 = -1408;
+const YUV_G_CR: i32 = -2928;
+const YUV_B_CB: i32 = 7264;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 enum Command {
     None,
@@ -333,7 +338,7 @@ impl Mdec {
             return false;
         };
         self.pending.drain(..usados);
-        let spatial = Self::idct_core(&block, &self.scale_table);
+        let spatial = Self::idct_core(&block, &self.scale_table).map(Self::meio_para_8bits);
         if self.color_depth >= 2 {
             self.push_color_block(&spatial);
         } else {
@@ -371,9 +376,18 @@ impl Mdec {
         self.block_index = (self.block_index + 1) % 6;
     }
 
-    // § yuv_to_rgb(xx,yy) (L269-283) de docs/reference/09-mdec.md. A spec (L284-285) diz que a
-    // resolucao de ponto fixo exata do hardware e desconhecida; os coeficientes abaixo foram
-    // fixados contra o gabarito palavra a palavra de mdec/step-by-step-log (R1).
+    // § yuv_to_rgb(xx,yy) (L269-283): coeficientes com 12 bits de fracao (1.4023, -0.3437,
+    // -0.7148, 1.7734), cada produto cortado a 3 bits de fracao. O 24bpp arredonda essa
+    // fracao; o 15bpp a descarta e arredonda so na reducao a 5 bits. Assim os dois gabaritos
+    // de hardware de mdec/frame batem pixel a pixel.
+    fn croma(&self, cr: i32, cb: i32) -> (i32, i32, i32) {
+        let arred = if self.color_depth == 2 { 4 } else { 0 };
+        let r = (YUV_R_CR * cr) >> 9;
+        let g = ((YUV_G_CB * cb) >> 9) + ((YUV_G_CR * cr) >> 9);
+        let b = (YUV_B_CB * cb) >> 9;
+        ((r + arred) >> 3, (g + arred) >> 3, (b + arred) >> 3)
+    }
+
     fn yuv_to_rgb(&self, y_blk: &[i32; 64], xx: i32, yy: i32) {
         let unsigned = !self.output_signed;
         let mut out = self.output.borrow_mut();
@@ -383,11 +397,10 @@ impl Mdec {
                 let c = (((x + xx) / 2) + ((y + yy) / 2) * 8) as usize;
                 let (cr, cb) = (self.cr[c], self.cb[c]);
                 let luma = y_blk[(x + y * 8) as usize];
-                let r = Self::satura8(luma + (1.402 * cr as f64).floor() as i32);
-                let gg = Self::satura8(
-                    luma + ((-0.3437 * cb as f64) + (-0.7143 * cr as f64)).floor() as i32,
-                );
-                let b = Self::satura8(luma + (1.772 * cb as f64).floor() as i32);
+                let (dr, dg, db) = self.croma(cr, cb);
+                let r = Self::satura8(luma + dr);
+                let gg = Self::satura8(luma + dg);
+                let b = Self::satura8(luma + db);
                 let (r, gg, b) = if unsigned {
                     ((r ^ 0x80), (gg ^ 0x80), (b ^ 0x80))
                 } else {
@@ -428,7 +441,7 @@ impl Mdec {
     }
 
     // Mesmo arredondamento na reducao para 4 bits: com `>>4` puro, 16 dos 32 bytes do
-    // gabarito de mdec/4bit saem um passo abaixo; com arredondamento, 2.
+    // gabarito de mdec/4bit saem um passo abaixo; com arredondamento, nenhum.
     fn para4(v: u8) -> u8 {
         ((v as u16 + 8) >> 4).min(15) as u8
     }
@@ -454,13 +467,13 @@ impl Mdec {
             }
         }
         let q_scale = ((n >> 10) & 0x3F) as i32;
-        let mut val = Self::signed10(n) * qt[0] as i32;
+        let mut val = Self::impar(Self::signed10(n) * qt[0] as i32 * 2);
         let mut k: usize = 0;
         loop {
             if q_scale == 0 {
-                val = Self::signed10(n) * 2;
+                val = Self::signed10(n) * 4;
             }
-            val = val.clamp(-0x400, 0x3FF);
+            val = val.clamp(-0x800, 0x7FF);
             if q_scale != 0 {
                 blk[ZAGZIG[k] as usize] = val;
             } else {
@@ -482,42 +495,63 @@ impl Mdec {
                 break;
             }
             let qk = qt[k] as i32;
-            val = (Self::signed10(n) * qk * q_scale + 4) >> 3;
+            val = Self::impar((Self::signed10(n) * qk * q_scale) >> 2);
         }
         Some((blk, pos))
     }
 
-    // § real_idct_core(blk) (L241-267) de docs/reference/09-mdec.md. A propria spec
-    // (L262-264) admite que o arredondamento exato do hardware nao e conhecido
-    // ("the results aren't perfect") — registrado no doc da iteracao 0174.
-    fn idct_core(blk: &[i32; 64], scale: &[i32; 64]) -> [i32; 64] {
-        let mut src = *blk;
-        for _pass in 0..2 {
-            let mut dst = [0i32; 64];
-            for x in 0..8 {
-                for y in 0..8 {
-                    let mut sum: i64 = 0;
-                    for z in 0..8 {
-                        sum += src[y + z * 8] as i64 * (scale[x + z * 8] as i64 / 8);
-                    }
-                    dst[x + y * 8] = ((sum + 0xFFF) >> 13) as i32;
-                }
-            }
-            src = dst;
+    // O RLE entrega 12 bits (um bit de fracao) e todo coeficiente par nao nulo anda um passo
+    // em direcao ao zero, como o controle de descasamento do MPEG-1. Sem isso 53 dos 64
+    // pixels de mdec/8bit e 490 das 512 palavras de mdec/step-by-step-log batem; com, todos.
+    fn impar(v: i32) -> i32 {
+        if v != 0 && v & 1 == 0 {
+            v - v.signum()
+        } else {
+            v
         }
-        src
     }
 
-    // § y_to_mono (L287-296) de docs/reference/09-mdec.md.
+    fn sinal(v: i32, bits: u32) -> i32 {
+        (v << (32 - bits)) >> (32 - bits)
+    }
+
+    // § real_idct_core (L241-267): a spec admite que o arredondamento nao e conhecido. As
+    // larguras vem do die do chip (psxdev.ru, topico 9): tabela de 13 bits na passada 1 e 12
+    // na 2, cada produto perde 7 bits, soma de 17 bits, 13 bits entre passadas e 10 na saida.
+    fn idct_core(blk: &[i32; 64], scale: &[i32; 64]) -> [i32; 64] {
+        let temp = Self::idct_passada(blk, scale, 3, 4, 13);
+        Self::idct_passada(&temp, scale, 4, 7, 10)
+    }
+
+    fn idct_passada(
+        src: &[i32; 64],
+        scale: &[i32; 64],
+        corte_tabela: u32,
+        corte_soma: u32,
+        bits: u32,
+    ) -> [i32; 64] {
+        let mut dst = [0i32; 64];
+        for x in 0..8 {
+            for y in 0..8 {
+                let mut sum: i32 = 0;
+                for z in 0..8 {
+                    let produto = src[y + z * 8] * (scale[x + z * 8] >> corte_tabela);
+                    sum = sum.wrapping_add(produto >> 7);
+                }
+                dst[x + y * 8] = Self::sinal(Self::sinal(sum, 17) >> corte_soma, bits);
+            }
+        }
+        dst
+    }
+
+    // Saida da IDCT em meios (10 bits) -> 8 bits: divide por 2 arredondando para cima e
+    // satura. § y_to_mono (L287-296) e o mesmo corte visto em unidades inteiras.
+    fn meio_para_8bits(v: i32) -> i32 {
+        ((Self::sinal(v, 10) + 1) >> 1).clamp(-128, 127)
+    }
+
     fn y_to_mono(y: i32, unsigned: bool) -> u8 {
-        let mut v = y & 0x1FF;
-        if v & 0x100 != 0 {
-            v -= 0x200;
-        }
-        v = v.clamp(-128, 127);
-        if unsigned {
-            v ^= 0x80;
-        }
+        let v = if unsigned { y ^ 0x80 } else { y };
         (v & 0xFF) as u8
     }
 

@@ -4,6 +4,7 @@ iteracao: 0203
 item: 10.42
 alvo: crates/psx-core/src/gpu.rs
 teste: gpu_vblank_snapshot
+arquivada: render_display ganhou recorte horizontal (skip_x) na onda6/display-largura; ancora do m2 mudou
 
 mutante: m1
 rotulo: enter_vblank para de latchar o snapshot da VRAM

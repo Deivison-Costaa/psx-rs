@@ -1,8 +1,10 @@
 use serde::{Deserialize, Serialize};
 
+use crate::dualshock::{STICK_CENTER, Sticks};
 use crate::pad_script::{RELEASED, button_bit};
 
 pub const SOLTO: u16 = RELEASED;
+pub const ZONA_MORTA_ANALOGICA: f32 = 0.08;
 
 /// Vocabulario de entrada fisica, independente de biblioteca de gamepad. Quem traduz o
 /// `gilrs::Button` para ca e o frontend — o `psx-core` nao conhece gilrs (R3).
@@ -137,13 +139,70 @@ impl Perfil {
     }
 
     pub fn palavra(&self, pressionados: &[Entrada]) -> u16 {
+        self.palavra_no_modo(pressionados, false)
+    }
+
+    /// No modo analogico o analogico esquerdo vai para os eixos do DualShock; se tambem
+    /// apertasse o direcional, o jogo receberia o mesmo movimento duas vezes.
+    pub fn palavra_no_modo(&self, pressionados: &[Entrada], analogico: bool) -> u16 {
         let mut palavra = SOLTO;
         for entrada in pressionados {
+            if analogico && entrada.e_eixo() {
+                continue;
+            }
             if let Some(bit) = self.botao_de(*entrada) {
                 palavra &= !(1u16 << bit);
             }
         }
         palavra
+    }
+}
+
+/// Os dois analogicos em [-1, 1] na convencao do PS1: X cresce para a direita e Y para
+/// BAIXO (00h = cima). gilrs entrega Y crescendo para cima; quem traduz inverte.
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
+pub struct Eixos {
+    pub esquerdo_x: f32,
+    pub esquerdo_y: f32,
+    pub direito_x: f32,
+    pub direito_y: f32,
+}
+
+impl Eixos {
+    /// Por eixo, vale quem esta mais longe do centro: teclado e controle juntos.
+    pub fn une(&self, outro: &Eixos) -> Eixos {
+        let maior = |a: f32, b: f32| if b.abs() > a.abs() { b } else { a };
+        Eixos {
+            esquerdo_x: maior(self.esquerdo_x, outro.esquerdo_x),
+            esquerdo_y: maior(self.esquerdo_y, outro.esquerdo_y),
+            direito_x: maior(self.direito_x, outro.direito_x),
+            direito_y: maior(self.direito_y, outro.direito_y),
+        }
+    }
+
+    pub fn sticks(&self) -> Sticks {
+        Sticks {
+            right_x: eixo_para_byte(self.direito_x),
+            right_y: eixo_para_byte(self.direito_y),
+            left_x: eixo_para_byte(self.esquerdo_x),
+            left_y: eixo_para_byte(self.esquerdo_y),
+        }
+    }
+}
+
+pub fn eixo_para_byte(valor: f32) -> u8 {
+    if !valor.is_finite() || valor.abs() < ZONA_MORTA_ANALOGICA {
+        return STICK_CENTER;
+    }
+    ((valor.clamp(-1.0, 1.0) + 1.0) * 127.5).round() as u8
+}
+
+/// Tecla de direcao como eixo digital: as duas juntas se anulam, como no direcional.
+pub fn direcao(negativo: bool, positivo: bool) -> f32 {
+    match (negativo, positivo) {
+        (true, false) => -1.0,
+        (false, true) => 1.0,
+        _ => 0.0,
     }
 }
 
@@ -154,6 +213,10 @@ impl Default for Perfil {
 }
 
 impl Entrada {
+    pub fn e_eixo(&self) -> bool {
+        matches!(self, Entrada::EixoNegativo(_) | Entrada::EixoPositivo(_))
+    }
+
     pub fn nome(&self) -> String {
         match self {
             Entrada::Sul => "sul".into(),

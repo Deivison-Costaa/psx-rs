@@ -4,6 +4,7 @@ iteracao: 0159
 item: 10.84
 alvo: crates/psx-core/src/sio.rs
 teste: sio_ack_dispositivo
+arquivada: o pad digital virou DualShock (dualshock.rs); as ancoras de ACK do pad mudaram de forma
 
 mutante: m1
 rotulo: qualquer endereco passa a ter dispositivo presente, o defeito original em outra forma

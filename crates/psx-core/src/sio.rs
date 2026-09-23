@@ -1,9 +1,9 @@
 use std::cell::{Cell, RefCell};
 
+use crate::dualshock::{self, DualShock, Rumble, Sticks};
 use crate::memcard::{self, MemoryCard, MemoryCardError};
 use crate::sio1::Sio1;
 
-const ADDRESS_CONTROLLER: u8 = 0x01;
 const PAD_READ: u8 = 0x42;
 const CTRL_PORT_2: u16 = 1 << 13;
 const JOY_MODE_MASK: u16 = 0x013F;
@@ -19,7 +19,8 @@ pub struct Sio {
     byte_count: Cell<u8>,
     address: Cell<u8>,
     pad_connected: Cell<bool>,
-    button_state: Cell<u16>,
+    dualshock_connected: Cell<bool>,
+    pad: RefCell<DualShock>,
     irq7_pending: Cell<bool>,
     ack_scheduled: Cell<bool>,
     ack_requested: Cell<bool>,
@@ -40,7 +41,8 @@ impl Sio {
             byte_count: Cell::new(0),
             address: Cell::new(0),
             pad_connected: Cell::new(false),
-            button_state: Cell::new(0xFFFF),
+            dualshock_connected: Cell::new(false),
+            pad: RefCell::new(DualShock::new()),
             irq7_pending: Cell::new(false),
             ack_scheduled: Cell::new(false),
             ack_requested: Cell::new(false),
@@ -52,6 +54,16 @@ impl Sio {
 
     pub fn connect_digital_pad(&self, connected: bool) {
         self.pad_connected.set(connected);
+        self.dualshock_connected.set(false);
+    }
+
+    pub fn connect_dualshock(&self, connected: bool) {
+        self.pad_connected.set(connected);
+        self.dualshock_connected.set(connected);
+    }
+
+    pub fn dualshock_connected(&self) -> bool {
+        self.dualshock_connected.get()
     }
 
     pub fn connect_memory_card(&self, connected: bool) {
@@ -74,11 +86,39 @@ impl Sio {
     }
 
     pub fn set_buttons(&self, buttons: u16) {
-        self.button_state.set(buttons);
+        self.pad.borrow_mut().set_buttons(buttons);
     }
 
     pub fn buttons_state(&self) -> u16 {
-        self.button_state.get()
+        self.pad.borrow().buttons()
+    }
+
+    pub fn set_sticks(&self, sticks: Sticks) {
+        self.pad.borrow_mut().set_sticks(sticks);
+    }
+
+    pub fn sticks(&self) -> Sticks {
+        self.pad.borrow().sticks()
+    }
+
+    pub fn set_analog_mode(&self, analog: bool) {
+        self.pad.borrow_mut().set_analog(analog);
+    }
+
+    pub fn analog_mode(&self) -> bool {
+        self.pad.borrow().analog()
+    }
+
+    pub fn analog_locked(&self) -> bool {
+        self.pad.borrow().locked()
+    }
+
+    pub fn press_analog_button(&self) -> bool {
+        self.pad.borrow_mut().press_analog_button()
+    }
+
+    pub fn rumble(&self) -> Rumble {
+        self.pad.borrow().rumble()
     }
 
     fn cs_asserted(&self) -> bool {
@@ -133,7 +173,7 @@ impl Sio {
             return false;
         }
         match self.address.get() {
-            ADDRESS_CONTROLLER => self.pad_connected.get(),
+            dualshock::ADDRESS => self.pad_connected.get(),
             memcard::ADDRESS => self.memcard_connected.get(),
             _ => false,
         }
@@ -145,14 +185,18 @@ impl Sio {
         let count = self.byte_count.get();
         if count == 0 {
             self.address.set(val);
-            if val == memcard::ADDRESS {
-                self.memcard.borrow_mut().begin();
+            match val {
+                memcard::ADDRESS => self.memcard.borrow_mut().begin(),
+                dualshock::ADDRESS => self.pad.borrow_mut().begin(),
+                _ => {}
             }
         }
 
         let present = self.addressed_device_present();
         let (response, ack) = if self.address.get() == memcard::ADDRESS && present {
             self.memcard.borrow_mut().exchange(val)
+        } else if self.dualshock_connected.get() && present {
+            self.pad.borrow_mut().exchange(val)
         } else if count == 0 || !present {
             (0xFF, present)
         } else {
@@ -160,7 +204,7 @@ impl Sio {
         };
 
         self.rx_fifo.borrow_mut().push(response);
-        self.byte_count.set(count + 1);
+        self.byte_count.set(count.saturating_add(1));
         if ack {
             self.ack_requested.set(true);
             self.ack_scheduled.set(true);
@@ -168,7 +212,7 @@ impl Sio {
     }
 
     fn digital_pad_exchange(&self, count: u8, val: u8) -> (u8, bool) {
-        let buttons = self.button_state.get();
+        let buttons = self.pad.borrow().buttons();
         match count {
             1 if val == PAD_READ => (0x41, true),
             2 => (0x5A, true),
@@ -223,6 +267,7 @@ impl Sio {
             self.ack_scheduled.set(false);
             self.ack_requested.set(false);
             self.memcard.borrow_mut().begin();
+            self.pad.borrow_mut().begin();
             self.rx_fifo.borrow_mut().clear();
             let mut s = self.stat.get();
             s &= !0x02;

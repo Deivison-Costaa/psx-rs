@@ -167,6 +167,21 @@ fn run(cpu: &mut Cpu, bus: &mut Bus, max_steps: usize, pad: &PadScript, sondas: 
                 pad_state = desejado;
                 bus.sio_mut().set_buttons(pad_state);
             }
+            let eixos = pad.sticks_at(steps as u64);
+            if eixos != bus.sio().sticks() {
+                bus.sio_mut().set_sticks(eixos);
+            }
+            if pad.analog_press_at(steps as u64) {
+                let trocou = bus.sio_mut().press_analog_button();
+                eprintln!(
+                    "pad: botao Analog no passo {steps}: {}",
+                    match (trocou, bus.sio().analog_mode()) {
+                        (false, _) => "travado pelo jogo, ignorado",
+                        (true, true) => "modo analogico",
+                        (true, false) => "modo digital",
+                    }
+                );
+            }
         }
 
         if let Some((cada, prefixo)) = vram_timeline {
@@ -453,6 +468,15 @@ fn vram_para_png(entrada: &str, saida: &str) -> Result<(), String> {
     Ok(())
 }
 
+fn conecta_pad(sio: &psx_core::sio::Sio, dualshock: bool, analog: bool) {
+    if dualshock {
+        sio.connect_dualshock(true);
+        sio.set_analog_mode(analog);
+    } else {
+        sio.connect_digital_pad(true);
+    }
+}
+
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     if args.len() == 1 || (args.len() == 2 && args[1] == "--version") {
@@ -491,6 +515,9 @@ fn main() {
     let mut memcard_arg: Option<String> = None;
     let mut press_specs: Vec<String> = Vec::new();
     let mut porta: Vec<(usize, AcaoNaPorta)> = Vec::new();
+    let mut stick_specs: Vec<String> = Vec::new();
+    let mut analog_on_boot = false;
+    let mut dualshock = false;
     let mut i = 1;
     while i < args.len() {
         match args[i].as_str() {
@@ -506,6 +533,11 @@ fn main() {
                 pad_connected = true;
                 i += 1;
             }
+            "--dualshock" => {
+                pad_connected = true;
+                dualshock = true;
+                i += 1;
+            }
             "--dump-audio" if i + 1 < args.len() => {
                 audio_dump = Some(args[i + 1].clone());
                 i += 2;
@@ -518,6 +550,18 @@ fn main() {
                 press_specs.push(args[i + 1].clone());
                 pad_connected = true;
                 i += 2;
+            }
+            "--stick" if i + 1 < args.len() => {
+                stick_specs.push(args[i + 1].clone());
+                dualshock = true;
+                pad_connected = true;
+                i += 2;
+            }
+            "--analog" => {
+                analog_on_boot = true;
+                dualshock = true;
+                pad_connected = true;
+                i += 1;
             }
             "--disc" if i + 1 < args.len() => {
                 disc_arg = Some(args[i + 1].clone());
@@ -685,6 +729,10 @@ fn main() {
                 eprintln!("Erro: '--press' requer BOTAO@PASSO[:DURACAO]");
                 std::process::exit(1);
             }
+            "--stick" => {
+                eprintln!("Erro: '--stick' requer left|right:X,Y@PASSO[:DURACAO]");
+                std::process::exit(1);
+            }
             "--max-steps" | "--trace-pcs" | "--dump-vram" | "--sample-pcs" | "--watch-mem"
             | "--dump-vram-every" | "--open-lid" | "--close-lid" | "--swap-disc" => {
                 eprintln!("Erro: '{}' requer um valor", args[i]);
@@ -705,6 +753,14 @@ fn main() {
             std::process::exit(1);
         }
     };
+    let pad_script = match pad_script.with_sticks(&stick_specs) {
+        Ok(p) => p,
+        Err(e) => {
+            eprintln!("Erro: --stick {}", e);
+            std::process::exit(1);
+        }
+    };
+    let dualshock = dualshock || pad_script.uses_dualshock();
 
     if disc_arg.is_some() && bios_arg.is_none() {
         eprintln!("Erro: --disc requer --bios <caminho_da_BIOS>");
@@ -763,7 +819,7 @@ fn main() {
             }
 
             if pad_connected {
-                bus.sio_mut().connect_digital_pad(true);
+                conecta_pad(bus.sio_mut(), dualshock, analog_on_boot);
             }
             monta_memory_card(&mut bus, memcard_arg.as_deref());
             let steps = run(
@@ -851,7 +907,7 @@ fn main() {
             }
 
             if pad_connected {
-                bus.sio_mut().connect_digital_pad(true);
+                conecta_pad(bus.sio_mut(), dualshock, analog_on_boot);
             }
             monta_memory_card(&mut bus, memcard_arg.as_deref());
             let steps = run(
@@ -938,7 +994,8 @@ fn main() {
     }
 
     eprintln!("Uso: psx-cli [--version | --bios <caminho> [--exe <caminho>] [--disc <caminho>]]");
-    eprintln!("     [--pad] [--press BOTAO@PASSO[:DURACAO]]");
+    eprintln!("     [--pad] [--press BOTAO@PASSO[:DURACAO]] [--press analog@PASSO]");
+    eprintln!("     [--dualshock] [--analog] [--stick left|right:X,Y@PASSO[:DURACAO]]");
     eprintln!("     [--open-lid PASSO] [--close-lid PASSO] [--swap-disc CUE@PASSO[:DURACAO]]");
     std::process::exit(1);
 }

@@ -1,3 +1,4 @@
+use psx_core::dualshock::Sticks;
 use psx_core::pad_script::{DEFAULT_PRESS_STEPS, PadScript, RELEASED};
 
 fn script(specs: &[&str]) -> PadScript {
@@ -121,4 +122,55 @@ fn a_janela_de_um_aperto_nunca_e_vazia() {
     let s = script(&["down@7:1"]);
     assert_eq!(s.buttons_at(7), RELEASED & !(1 << 6));
     assert_eq!(s.buttons_at(8), RELEASED);
+}
+
+fn com_analogicos(presses: &[&str], sticks: &[&str]) -> Result<PadScript, String> {
+    let p: Vec<String> = presses.iter().map(|s| s.to_string()).collect();
+    let s: Vec<String> = sticks.iter().map(|s| s.to_string()).collect();
+    PadScript::parse(&p)?.with_sticks(&s)
+}
+
+#[test]
+fn analogico_inclinado_so_dentro_da_janela() {
+    let s = com_analogicos(&[], &["left:0,0xFF@100:50", "right:200,16@120:10"]).expect("valido");
+    assert!(!s.is_empty());
+    assert_eq!(s.sticks_at(99), Sticks::CENTERED);
+    let meio = s.sticks_at(125);
+    assert_eq!((meio.left_x, meio.left_y), (0x00, 0xFF));
+    assert_eq!((meio.right_x, meio.right_y), (200, 16));
+    assert_eq!(
+        s.sticks_at(130).right_x,
+        0x80,
+        "a janela do direito ja fechou"
+    );
+    assert_eq!(s.sticks_at(150), Sticks::CENTERED);
+}
+
+#[test]
+fn analogico_com_formato_errado_e_recusado() {
+    for ruim in [
+        "meio:1,2@3",
+        "left:1@3",
+        "left:1,300@3",
+        "left:1,2",
+        "left:1,2@0:0",
+    ] {
+        assert!(
+            com_analogicos(&[], &[ruim]).is_err(),
+            "{ruim} deveria falhar"
+        );
+    }
+}
+
+#[test]
+fn botao_analog_vale_so_no_passo_marcado() {
+    let s = com_analogicos(&["analog@500", "cross@10:5"], &[]).expect("valido");
+    assert!(s.analog_press_at(500));
+    assert!(!s.analog_press_at(501));
+    assert_eq!(
+        s.buttons_at(500),
+        RELEASED,
+        "analog nao e bit da palavra de botoes"
+    );
+    assert_eq!(s.buttons_at(10), RELEASED & !(1 << 14));
 }

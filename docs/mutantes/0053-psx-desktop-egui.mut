@@ -1,4 +1,5 @@
 # Manifesto de mutação da iteração 0053 — psx-desktop-egui
+arquivada: onda4/display-recorte trocou framebuffer/framebuffer_for_display por render_display com recorte da area visivel; ancoras do laco antigo sumiram
 # Reancorado na iteração 0112: a polaridade do GPUSTAT.23 foi corrigida (0=Enabled)
 # e todas as âncoras/sentidos acompanharam.
 formato: 1

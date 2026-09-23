@@ -15,7 +15,8 @@ const SCRATCHPAD: u32 = 0x1F80_0000;
 // setores mais write_slot/newest_slot/int1_slot/sector_ready.
 // +16 bytes: at_target/hold nos 3 timers (6), Cpu::load_shadow (1), registradores do
 // SIO1 (8) e Mdec::idle_since_reset (1).
-const TAMANHO_DO_ESTADO: usize = 4_877_702;
+// +4 bytes: porta do CD-ROM (lid_open, drive_phase, drive_timer, lid_int5_pending).
+const TAMANHO_DO_ESTADO: usize = 4_877_706;
 const SPU_VOZ0_VOL: u32 = 0x1F80_1C00;
 const I_MASK: u32 = 0x1F80_1074;
 const DMA6_MADR: u32 = 0x1F80_10E0;

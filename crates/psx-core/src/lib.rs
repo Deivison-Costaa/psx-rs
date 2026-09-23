@@ -18,6 +18,7 @@ pub mod psexe;
 pub mod scheduler;
 mod serde_grande;
 pub mod sio;
+pub mod sio1;
 pub mod snapshot;
 pub mod spu;
 pub mod timers;

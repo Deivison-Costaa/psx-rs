@@ -4,6 +4,7 @@ iteracao: 0221
 item: 0221.1
 alvo: crates/psx-core/src/dma.rs
 teste: dma_dicr_escrita_de_byte
+arquivada: escrita de I/O por largura reescrita (gpr inteiro em sb/sh, SIO por meia-palavra, DICR bits 0-5); ancoras nao correspondem mais
 
 mutante: m1
 rotulo: byte 3 deixa de ser ack e vira gravacao direta

@@ -73,7 +73,7 @@ impl Dma {
 
     pub fn write_dicr(&mut self, val: u32) {
         let flags = self.dicr & !(val & 0x7F00_0000);
-        self.dicr = (val & 0x00FF_807F) | (flags & 0x7F00_0000);
+        self.dicr = (val & 0x00FF_803F) | (flags & 0x7F00_0000);
         self.recalc_master_flag();
     }
 
@@ -83,7 +83,7 @@ impl Dma {
         if byte_index == 3 {
             self.dicr &= !(val & 0x7F00_0000);
         } else {
-            let gravavel = 0x00FF_807F & (0xFFu32 << shift);
+            let gravavel = 0x00FF_803F & (0xFFu32 << shift);
             self.dicr = (self.dicr & !gravavel) | (val & gravavel);
         }
         self.recalc_master_flag();

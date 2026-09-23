@@ -1,6 +1,8 @@
 use crate::bus::{Bus, BusRead, BusWrite};
 use crate::gte::Gte;
 
+const LOAD_SHADOW_HALF_CYCLES: u8 = 4;
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Cpu {
     pub regs: [u32; 32],
@@ -20,6 +22,7 @@ pub struct Cpu {
     gte_busy_until: u64,
     written_gpr: Option<usize>,
     pub irq_handler_entries: u64,
+    load_shadow: u8,
 }
 
 impl Cpu {
@@ -52,6 +55,7 @@ impl Cpu {
             gte_busy_until: 0,
             written_gpr: None,
             irq_handler_entries: 0,
+            load_shadow: 0,
         }
     }
 
@@ -112,6 +116,7 @@ impl Cpu {
         self.delay_slot_pending = false;
         self.branch_taken = false;
         self.extra_cycles = 0;
+        self.load_shadow = 0;
         if let Some((reg, val)) = self.load_delay.take() {
             self.set_reg(reg, val);
         }
@@ -238,7 +243,19 @@ impl Cpu {
         if (0x20..=0x26).contains(&primary) || primary == 0x32 {
             let rs = ((instr >> 21) & 0x1F) as usize;
             let addr = self.reg(rs).wrapping_add(Self::sign_extend_imm(instr));
-            self.extra_cycles = Bus::load_cycles(addr) - 1;
+            let (start, width) = match primary {
+                0x20 | 0x24 => (addr, 1),
+                0x21 | 0x25 => (addr, 2),
+                0x22 => (addr & !3, (addr & 3) + 1),
+                0x26 => (addr, 4 - (addr & 3)),
+                _ => (addr, 4),
+            };
+            let (cost, shadowed) = bus.load_timing(start, width);
+            let wait = u32::from(self.load_shadow.div_ceil(2));
+            self.extra_cycles = wait + cost - 1;
+            self.load_shadow = if shadowed { LOAD_SHADOW_HALF_CYCLES } else { 0 };
+        } else {
+            self.load_shadow = self.load_shadow.saturating_sub(1);
         }
         match primary {
             0x00 => {

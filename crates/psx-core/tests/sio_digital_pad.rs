@@ -115,6 +115,7 @@ fn ctrl_bit4_ack_limpa_stat_bit9() {
         "pre-condicao: o /ACK entregue acende STAT.9, senao o ack de CTRL.4 nao mede nada"
     );
 
+    sio.end_ack_pulse();
     sio.write_ctrl(0x0002 | (1 << 12) | (1 << 4));
     assert!(
         sio.read_stat() & (1 << 9) == 0,

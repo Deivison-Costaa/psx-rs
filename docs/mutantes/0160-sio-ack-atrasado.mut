@@ -3,6 +3,7 @@ formato: 1
 iteracao: 0160
 item: 10.86
 alvo: crates/psx-core/src/bus.rs
+arquivada: ancora reescrita na onda 1 (sio/cdrom/mdec para o FF9)
 teste: sio_ack_atrasado
 
 mutante: m1

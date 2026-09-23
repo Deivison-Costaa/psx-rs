@@ -71,16 +71,45 @@ fn decodificar(bus: &mut Bus, color_depth: u32) -> Vec<u32> {
         let word = u32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]);
         bus.write32::<BusRead>(MDEC_CMD, word);
     }
-    assert_eq!(
-        bus.read32::<BusRead>(MDEC_STATUS) & (1 << 29),
-        0,
-        "MDEC(1) deve fechar assim que as 32 palavras do bloco unico chegam"
-    );
     let mut saida = Vec::new();
     while bus.read32::<BusRead>(MDEC_STATUS) & (1 << 31) == 0 {
         saida.push(bus.read32::<BusRead>(MDEC_CMD));
     }
     saida
+}
+
+/// Gabarito mdec/step-by-step-log: com todos os parametros entregues (contador FFFFh) e
+/// saida ainda na fifo, o console responde 2E04FFFFh (bit29 Command Busy=1); so depois
+/// da ultima palavra lida vem 8604FFFFh (fifo vazia, Busy=0). O comando so termina
+/// quando a saida inteira foi entregue.
+#[test]
+fn mdec_decode_fica_ocupado_ate_a_fifo_de_saida_esvaziar() {
+    let mut bus = bus_com_mdec();
+    enviar_tabelas(&mut bus);
+    let length_words = (HEART_MDEC.len() / 4) as u32;
+    bus.write32::<BusRead>(MDEC_CMD, (1 << 29) | (1 << 27) | length_words);
+    for chunk in HEART_MDEC.chunks_exact(4) {
+        let word = u32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]);
+        bus.write32::<BusRead>(MDEC_CMD, word);
+    }
+    let com_saida = bus.read32::<BusRead>(MDEC_STATUS);
+    assert_eq!(com_saida & 0xFFFF, 0xFFFF, "todos os parametros entregues");
+    assert_eq!(com_saida & (1 << 31), 0, "ha saida na fifo");
+    assert_eq!(
+        com_saida & (1 << 29),
+        1 << 29,
+        "com saida pendente o comando continua ocupado"
+    );
+    for _ in 0..16 {
+        let _ = bus.read32::<BusRead>(MDEC_CMD);
+    }
+    let vazio = bus.read32::<BusRead>(MDEC_STATUS);
+    assert_eq!(
+        vazio & (1 << 31),
+        1 << 31,
+        "16 palavras de 8bpp esvaziam a fifo"
+    );
+    assert_eq!(vazio & (1 << 29), 0, "fifo vazia: o comando termina");
 }
 
 // Gabarito de hardware: mdec/4bit/psx.log e mdec/8bit/psx.log do ps1-tests despejam os bytes

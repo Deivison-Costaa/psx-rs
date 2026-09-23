@@ -4,6 +4,7 @@ iteracao: 0061
 item: 3.4d
 alvo: crates/psx-core/src/timers.rs
 teste: timers_irq
+arquivada: timers reescritos (reset no alvo, espera apos escrita, hblank por borda); ancoras nao correspondem mais
 
 mutante: m1
 rotulo: IRQ target enable (bit4) ignorado — nunca gera IRQ por target

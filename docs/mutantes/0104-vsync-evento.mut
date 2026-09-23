@@ -4,6 +4,7 @@ iteracao: 0104
 item: 4.4g
 alvo: crates/psx-core/src/bus.rs
 teste: cpu_load_timing
+arquivada: custo de load por regiao passou a vir de Bus::load_timing (registradores de atraso + sombra de load); ancoras nao correspondem mais
 
 mutante: m1
 rotulo: RAM principal volta a custar 1 ciclo, laco de espera nao cobre o frame

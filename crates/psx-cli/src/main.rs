@@ -714,6 +714,7 @@ fn main() {
             }
 
             eprintln!("Runner: {} passos, TTY: {} bytes", steps, tty.len());
+            eprintln!("# ciclos emulados: {}", bus.total_cycles());
 
             for &(addr, len) in &dump_mem {
                 eprintln!("dump {:08X}:", addr);
@@ -800,6 +801,7 @@ fn main() {
             }
 
             eprintln!("Runner: {} passos, TTY: {} bytes", steps, tty.len());
+            eprintln!("# ciclos emulados: {}", bus.total_cycles());
 
             for &(addr, len) in &dump_mem {
                 eprintln!("dump {:08X}:", addr);

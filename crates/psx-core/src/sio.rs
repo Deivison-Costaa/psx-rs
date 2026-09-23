@@ -1,8 +1,12 @@
 use std::cell::{Cell, RefCell};
 
 use crate::memcard::{self, MemoryCard, MemoryCardError};
+use crate::sio1::Sio1;
 
 const ADDRESS_CONTROLLER: u8 = 0x01;
+const PAD_READ: u8 = 0x42;
+const CTRL_PORT_2: u16 = 1 << 13;
+const JOY_MODE_MASK: u16 = 0x013F;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Sio {
@@ -21,6 +25,7 @@ pub struct Sio {
     ack_requested: Cell<bool>,
     memcard: RefCell<MemoryCard>,
     memcard_connected: Cell<bool>,
+    sio1: RefCell<Sio1>,
 }
 
 impl Sio {
@@ -41,6 +46,7 @@ impl Sio {
             ack_requested: Cell::new(false),
             memcard: RefCell::new(MemoryCard::new()),
             memcard_connected: Cell::new(false),
+            sio1: RefCell::new(Sio1::default()),
         }
     }
 
@@ -119,13 +125,13 @@ impl Sio {
             s &= !0x02;
             self.stat.set(s);
         }
-        let mut s = self.stat.get();
-        s &= !0x80;
-        self.stat.set(s);
         byte
     }
 
     fn addressed_device_present(&self) -> bool {
+        if (self.ctrl.get() & CTRL_PORT_2) != 0 {
+            return false;
+        }
         match self.address.get() {
             ADDRESS_CONTROLLER => self.pad_connected.get(),
             memcard::ADDRESS => self.memcard_connected.get(),
@@ -150,14 +156,7 @@ impl Sio {
         } else if count == 0 || !present {
             (0xFF, present)
         } else {
-            let r = match count {
-                1 => 0x41,
-                2 => 0x5A,
-                3 => (self.button_state.get() & 0xFF) as u8,
-                4 => (self.button_state.get() >> 8) as u8,
-                _ => 0xFF,
-            };
-            (r, true)
+            self.digital_pad_exchange(count, val)
         };
 
         self.rx_fifo.borrow_mut().push(response);
@@ -165,6 +164,20 @@ impl Sio {
         if ack {
             self.ack_requested.set(true);
             self.ack_scheduled.set(true);
+        }
+    }
+
+    fn digital_pad_exchange(&self, count: u8, val: u8) -> (u8, bool) {
+        let buttons = self.button_state.get();
+        match count {
+            1 if val == PAD_READ => (0x41, true),
+            2 => (0x5A, true),
+            3 => (buttons as u8, true),
+            4 => ((buttons >> 8) as u8, false),
+            _ => {
+                self.address.set(0);
+                (0xFF, false)
+            }
         }
     }
 
@@ -192,6 +205,14 @@ impl Sio {
         }
     }
 
+    pub fn end_ack_pulse(&self) {
+        self.stat.set(self.stat.get() & !0x80);
+    }
+
+    fn ack_line_low(&self) -> bool {
+        (self.stat.get() & 0x80) != 0
+    }
+
     fn update_ctrl(&self, val: u16) {
         let prev_cs = self.cs_asserted();
         self.ctrl.set(val);
@@ -210,9 +231,9 @@ impl Sio {
         }
 
         if (self.ctrl.get() & (1 << 4)) != 0 {
-            let mut s = self.stat.get();
-            s &= !(1 << 9);
-            self.stat.set(s);
+            if !self.ack_line_low() {
+                self.stat.set(self.stat.get() & !(1 << 9));
+            }
             self.irq7_pending.set(false);
             self.ctrl.set(self.ctrl.get() & !(1 << 4));
         }
@@ -246,6 +267,9 @@ impl Sio {
             0x1F80_104C | 0x1F80_104D => 0,
             0x1F80_104E => (self.baud.get() & 0xFF) as u8,
             0x1F80_104F => ((self.baud.get() >> 8) & 0xFF) as u8,
+            0x1F80_1050..=0x1F80_105F => {
+                (self.sio1.borrow().read16(phys) >> ((phys & 1) * 8)) as u8
+            }
             _ => 0,
         }
     }
@@ -259,12 +283,14 @@ impl Sio {
             }
             0x1F80_1048 => {
                 let m = self.mode.get();
-                self.mode.set((m & 0xFF00) | (val as u16));
+                self.mode.set(((m & 0xFF00) | (val as u16)) & JOY_MODE_MASK);
             }
             0x1F80_1049 => {
                 let m = self.mode.get();
-                self.mode.set((m & 0x00FF) | ((val as u16) << 8));
+                self.mode
+                    .set(((m & 0x00FF) | ((val as u16) << 8)) & JOY_MODE_MASK);
             }
+            0x1F80_1050..=0x1F80_105F => self.sio1.borrow_mut().write8(phys, val),
             0x1F80_104A => {
                 let new_ctrl = (self.ctrl.get() & 0xFF00) | (val as u16);
                 self.update_ctrl(new_ctrl);
@@ -282,6 +308,19 @@ impl Sio {
                 self.baud.set((b & 0x00FF) | ((val as u16) << 8));
             }
             _ => {}
+        }
+    }
+
+    pub fn write_half(&self, phys: u32, val: u16) {
+        match phys & !1 {
+            0x1F80_1048 => self.mode.set(val & JOY_MODE_MASK),
+            0x1F80_104A => self.update_ctrl(val),
+            0x1F80_104E => self.baud.set(val),
+            0x1F80_1050..=0x1F80_105F => self.sio1.borrow_mut().write16(phys, val),
+            _ => {
+                self.write_byte(phys, val as u8);
+                self.write_byte(phys + 1, (val >> 8) as u8);
+            }
         }
     }
 

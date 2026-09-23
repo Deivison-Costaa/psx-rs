@@ -17,8 +17,9 @@ fn write32_em_joy_mode_ctrl_e_baud_entrega_os_dois_bytes() {
 
     assert_eq!(
         bus.read16::<BusRead>(JOY_MODE),
-        0x1234,
-        "um `sw` em JOY_MODE deve escrever os bytes 1048h e 1049h"
+        0x1234 & 0x13F,
+        "um `sw` em JOY_MODE escreve 1048h e 1049h; so os bits 0-5 e 8 existem (17-sio.md, \
+         io-access-bitwidth le 0x38 depois de escrever 0x5678)"
     );
     assert_eq!(
         bus.read16::<BusRead>(JOY_CTRL),

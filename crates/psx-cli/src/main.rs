@@ -12,6 +12,55 @@ use std::io::Write;
 const RUNNER_MAX_STEPS: usize = 50_000_000;
 const KERNEL_ENTRYPOINT_PC: u32 = 0x8003_0000;
 const BIOS_BOOT_TO_KERNEL_MAX_STEPS: usize = 20_000_000;
+const TROCA_DE_DISCO_PASSOS_PADRAO: usize = 60_000_000;
+
+/// Mao do jogador na porta do drive: abrir, fechar e trocar o disco num passo dado.
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum AcaoNaPorta {
+    Abre,
+    Fecha,
+    Troca(String),
+}
+
+fn passo_de(texto: &str, flag: &str) -> usize {
+    texto.parse::<usize>().unwrap_or_else(|e| {
+        eprintln!("Erro: '{flag}' espera um passo decimal, '{texto}': {e}");
+        std::process::exit(1);
+    })
+}
+
+/// `CUE@PASSO[:DURACAO]`: abre a porta no PASSO, poe o CUE na bandeja e fecha DURACAO
+/// passos depois. O `@` final separa, entao o caminho do CUE pode conter `@`.
+fn roteiro_de_troca(spec: &str) -> Vec<(usize, AcaoNaPorta)> {
+    let Some((cue, quando)) = spec.rsplit_once('@') else {
+        eprintln!("Erro: '--swap-disc' espera CUE@PASSO[:DURACAO], '{spec}'");
+        std::process::exit(1);
+    };
+    let (passo, duracao) = match quando.split_once(':') {
+        Some((p, d)) => (passo_de(p, "--swap-disc"), passo_de(d, "--swap-disc")),
+        None => (
+            passo_de(quando, "--swap-disc"),
+            TROCA_DE_DISCO_PASSOS_PADRAO,
+        ),
+    };
+    vec![
+        (passo, AcaoNaPorta::Abre),
+        (passo, AcaoNaPorta::Troca(cue.to_string())),
+        (passo.saturating_add(duracao), AcaoNaPorta::Fecha),
+    ]
+}
+
+fn executa_na_porta(bus: &mut Bus, acao: &AcaoNaPorta, passo: usize) {
+    match acao {
+        AcaoNaPorta::Abre => bus.open_lid(),
+        AcaoNaPorta::Fecha => bus.close_lid(),
+        AcaoNaPorta::Troca(cue) => {
+            let (layout, bin) = load_disc(cue);
+            bus.swap_disc(layout, bin);
+        }
+    }
+    eprintln!("# porta: {acao:?} no passo {passo}");
+}
 
 fn boot_bios_to_kernel(cpu: &mut Cpu, bus: &mut Bus) -> Result<usize, String> {
     let mut steps = 0usize;
@@ -60,6 +109,7 @@ struct Sondas<'a> {
     watch_mem: &'a [u32],
     vram_timeline: Option<(usize, &'a str)>,
     audio_dump: Option<&'a str>,
+    porta: &'a [(usize, AcaoNaPorta)],
 }
 
 fn run(cpu: &mut Cpu, bus: &mut Bus, max_steps: usize, pad: &PadScript, sondas: &Sondas) -> usize {
@@ -69,8 +119,10 @@ fn run(cpu: &mut Cpu, bus: &mut Bus, max_steps: usize, pad: &PadScript, sondas: 
         watch_mem,
         vram_timeline,
         audio_dump,
+        porta,
     } = *sondas;
     let mut steps = 0;
+    let mut proxima_na_porta = 0;
     // Comparar antes/depois de cada passo atribui a escrita ao PC exato que a fez. Foi assim
     // que a 0182 descobriu quem apagava o IRQ0 do Rayman em minutos, depois de horas de
     // desmontagem a mao.
@@ -89,6 +141,14 @@ fn run(cpu: &mut Cpu, bus: &mut Bus, max_steps: usize, pad: &PadScript, sondas: 
         let pc_antes = cpu.pc;
         cpu.step(bus);
         steps += 1;
+
+        while let Some((passo, acao)) = porta.get(proxima_na_porta) {
+            if *passo > steps {
+                break;
+            }
+            executa_na_porta(bus, acao, steps);
+            proxima_na_porta += 1;
+        }
 
         for (idx, &addr) in watch_mem.iter().enumerate() {
             let agora = bus.read32::<BusRead>(addr);
@@ -430,6 +490,7 @@ fn main() {
     let mut pad_connected = false;
     let mut memcard_arg: Option<String> = None;
     let mut press_specs: Vec<String> = Vec::new();
+    let mut porta: Vec<(usize, AcaoNaPorta)> = Vec::new();
     let mut i = 1;
     while i < args.len() {
         match args[i].as_str() {
@@ -460,6 +521,18 @@ fn main() {
             }
             "--disc" if i + 1 < args.len() => {
                 disc_arg = Some(args[i + 1].clone());
+                i += 2;
+            }
+            "--open-lid" if i + 1 < args.len() => {
+                porta.push((passo_de(&args[i + 1], "--open-lid"), AcaoNaPorta::Abre));
+                i += 2;
+            }
+            "--close-lid" if i + 1 < args.len() => {
+                porta.push((passo_de(&args[i + 1], "--close-lid"), AcaoNaPorta::Fecha));
+                i += 2;
+            }
+            "--swap-disc" if i + 1 < args.len() => {
+                porta.extend(roteiro_de_troca(&args[i + 1]));
                 i += 2;
             }
             "--max-steps" if i + 1 < args.len() => match args[i + 1].parse::<usize>() {
@@ -613,7 +686,7 @@ fn main() {
                 std::process::exit(1);
             }
             "--max-steps" | "--trace-pcs" | "--dump-vram" | "--sample-pcs" | "--watch-mem"
-            | "--dump-vram-every" => {
+            | "--dump-vram-every" | "--open-lid" | "--close-lid" | "--swap-disc" => {
                 eprintln!("Erro: '{}' requer um valor", args[i]);
                 std::process::exit(1);
             }
@@ -624,6 +697,7 @@ fn main() {
         }
     }
     let max_steps = max_steps.unwrap_or(RUNNER_MAX_STEPS);
+    porta.sort_by_key(|(passo, _)| *passo);
     let pad_script = match PadScript::parse(&press_specs) {
         Ok(p) => p,
         Err(e) => {
@@ -703,6 +777,7 @@ fn main() {
                     watch_mem: &watch_mem,
                     vram_timeline: vram_timeline.as_ref().map(|(n, p)| (*n, p.as_str())),
                     audio_dump: audio_dump.as_deref(),
+                    porta: &porta,
                 },
             );
 
@@ -790,6 +865,7 @@ fn main() {
                     watch_mem: &watch_mem,
                     vram_timeline: vram_timeline.as_ref().map(|(n, p)| (*n, p.as_str())),
                     audio_dump: audio_dump.as_deref(),
+                    porta: &porta,
                 },
             );
 
@@ -863,5 +939,6 @@ fn main() {
 
     eprintln!("Uso: psx-cli [--version | --bios <caminho> [--exe <caminho>] [--disc <caminho>]]");
     eprintln!("     [--pad] [--press BOTAO@PASSO[:DURACAO]]");
+    eprintln!("     [--open-lid PASSO] [--close-lid PASSO] [--swap-disc CUE@PASSO[:DURACAO]]");
     std::process::exit(1);
 }

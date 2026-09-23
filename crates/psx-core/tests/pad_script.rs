@@ -138,7 +138,11 @@ fn analogico_inclinado_so_dentro_da_janela() {
     let meio = s.sticks_at(125);
     assert_eq!((meio.left_x, meio.left_y), (0x00, 0xFF));
     assert_eq!((meio.right_x, meio.right_y), (200, 16));
-    assert_eq!(s.sticks_at(130).right_x, 0x80, "a janela do direito ja fechou");
+    assert_eq!(
+        s.sticks_at(130).right_x,
+        0x80,
+        "a janela do direito ja fechou"
+    );
     assert_eq!(s.sticks_at(150), Sticks::CENTERED);
 }
 
@@ -151,7 +155,10 @@ fn analogico_com_formato_errado_e_recusado() {
         "left:1,2",
         "left:1,2@0:0",
     ] {
-        assert!(com_analogicos(&[], &[ruim]).is_err(), "{ruim} deveria falhar");
+        assert!(
+            com_analogicos(&[], &[ruim]).is_err(),
+            "{ruim} deveria falhar"
+        );
     }
 }
 

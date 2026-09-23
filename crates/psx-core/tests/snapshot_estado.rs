@@ -14,8 +14,10 @@ const SCRATCHPAD: u32 = 0x1F80_0000;
 // +8 bytes na iter 0213: Cpu ganhou `gte_busy_until: u64` pro stall do GTE.
 // +18724 bytes no ring de 8 slots do CD-ROM (06-cdrom.md L2109-2111): 8*2340 do buffer de
 // setores mais write_slot/newest_slot/int1_slot/sector_ready.
-// +23 bytes: o pad virou DualShock (modo analogico, trava, config, mapa de motores, eixos).
-const TAMANHO_DO_ESTADO: usize = 4_877_186;
+// +16 bytes: at_target/hold nos 3 timers (6), Cpu::load_shadow (1), registradores do
+// SIO1 (8) e Mdec::idle_since_reset (1).
+// +24 bytes: o pad virou DualShock (modo analogico, trava, config, mapa de motores, eixos).
+const TAMANHO_DO_ESTADO: usize = 4_877_726;
 const SPU_VOZ0_VOL: u32 = 0x1F80_1C00;
 const I_MASK: u32 = 0x1F80_1074;
 const DMA6_MADR: u32 = 0x1F80_10E0;

@@ -81,8 +81,14 @@ fn tick_incrementa_cnt_modo_system_clock() {
     let mut bus = bus();
     bus.write32::<BusRead>(T0_MODE, 0x0000);
     bus.timers_mut().tick(T0_CNT, 1, false, false);
+    assert_eq!(
+        bus.read32::<BusRead>(T0_CNT) & 0xFFFF,
+        0,
+        "escrever o modo segura o contador em 0 por 2 ciclos (05-timers.md, Reset and Wrap)"
+    );
+    bus.timers_mut().tick(T0_CNT, 1, false, false);
     let val = bus.read32::<BusRead>(T0_CNT);
-    assert_eq!(val & 0xFFFF, 1, "CNT incrementou de 0 para 1 apos 1 tick");
+    assert_eq!(val & 0xFFFF, 1, "CNT incrementou de 0 para 1 no ciclo 2");
 }
 
 #[test]
@@ -104,7 +110,7 @@ fn cnt_wrap_em_ffff_sem_target() {
     let mut bus = bus();
     bus.write32::<BusRead>(T0_MODE, 0x0000);
     bus.write32::<BusRead>(T0_CNT, 0xFFFF);
-    bus.timers_mut().tick(T0_CNT, 1, false, false);
+    bus.timers_mut().tick(T0_CNT, 2, false, false);
     let val = bus.read32::<BusRead>(T0_CNT);
     assert_eq!(
         val & 0xFFFF,
@@ -118,9 +124,23 @@ fn cnt_reseta_no_target_com_bit3_setado() {
     let mut bus = bus();
     bus.write32::<BusRead>(T0_TARGET, 0x0003);
     bus.write32::<BusRead>(T0_MODE, 0x0008);
-    bus.timers_mut().tick(T0_CNT, 3, false, false);
+    bus.timers_mut().tick(T0_CNT, 4, false, false);
+    assert_eq!(
+        bus.read32::<BusRead>(T0_CNT) & 0xFFFF,
+        3,
+        "o alvo fica visivel por 1 ciclo antes do reset"
+    );
+    bus.timers_mut().tick(T0_CNT, 1, false, false);
+    assert_eq!(bus.read32::<BusRead>(T0_CNT) & 0xFFFF, 0, "CNT voltou a 0");
+    bus.timers_mut().tick(T0_CNT, 1, false, false);
+    assert_eq!(
+        bus.read32::<BusRead>(T0_CNT) & 0xFFFF,
+        0,
+        "e fica em 0 por 2 ciclos depois do reset pelo alvo"
+    );
+    bus.timers_mut().tick(T0_CNT, 1, false, false);
     let val = bus.read32::<BusRead>(T0_CNT);
-    assert_eq!(val & 0xFFFF, 0, "CNT voltou a 0 apos atingir target=3");
+    assert_eq!(val & 0xFFFF, 1, "periodo de alvo+2 ciclos");
 }
 
 #[test]
@@ -133,7 +153,7 @@ fn flag_target_alcancado_setado_e_limpo_na_leitura() {
         0,
         "bit11 limpo antes do tick"
     );
-    bus.timers_mut().tick(T0_CNT, 2, false, false);
+    bus.timers_mut().tick(T0_CNT, 3, false, false);
     assert_eq!(
         bus.read32::<BusRead>(T0_MODE) & (1 << 11),
         1 << 11,
@@ -152,7 +172,7 @@ fn flag_ffff_alcancado_setado_e_limpo_na_leitura() {
     bus.write32::<BusRead>(T0_TARGET, 0x0007);
     bus.write32::<BusRead>(T0_MODE, 0x0000);
     bus.write32::<BusRead>(T0_CNT, 0xFFFE);
-    bus.timers_mut().tick(T0_CNT, 2, false, false);
+    bus.timers_mut().tick(T0_CNT, 3, false, false);
     let mode = bus.read32::<BusRead>(T0_MODE);
     assert_eq!(
         mode & (1 << 12),

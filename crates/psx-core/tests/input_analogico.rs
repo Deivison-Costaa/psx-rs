@@ -97,8 +97,5 @@ fn no_modo_analogico_o_analogico_esquerdo_nao_aperta_o_direcional() {
 #[test]
 fn palavra_sem_modo_continua_tratando_eixo_como_direcional() {
     let p = Perfil::padrao();
-    assert_eq!(
-        p.palavra(&[Entrada::EixoPositivo(1)]),
-        SOLTO & !bit("up")
-    );
+    assert_eq!(p.palavra(&[Entrada::EixoPositivo(1)]), SOLTO & !bit("up"));
 }

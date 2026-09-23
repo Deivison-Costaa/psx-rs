@@ -408,6 +408,15 @@ fn vram_para_png(entrada: &str, saida: &str) -> Result<(), String> {
     Ok(())
 }
 
+fn conecta_pad(sio: &psx_core::sio::Sio, dualshock: bool, analog: bool) {
+    if dualshock {
+        sio.connect_dualshock(true);
+        sio.set_analog_mode(analog);
+    } else {
+        sio.connect_digital_pad(true);
+    }
+}
+
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     if args.len() == 1 || (args.len() == 2 && args[1] == "--version") {
@@ -447,6 +456,7 @@ fn main() {
     let mut press_specs: Vec<String> = Vec::new();
     let mut stick_specs: Vec<String> = Vec::new();
     let mut analog_on_boot = false;
+    let mut dualshock = false;
     let mut i = 1;
     while i < args.len() {
         match args[i].as_str() {
@@ -460,6 +470,11 @@ fn main() {
             }
             "--pad" => {
                 pad_connected = true;
+                i += 1;
+            }
+            "--dualshock" => {
+                pad_connected = true;
+                dualshock = true;
                 i += 1;
             }
             "--dump-audio" if i + 1 < args.len() => {
@@ -477,11 +492,13 @@ fn main() {
             }
             "--stick" if i + 1 < args.len() => {
                 stick_specs.push(args[i + 1].clone());
+                dualshock = true;
                 pad_connected = true;
                 i += 2;
             }
             "--analog" => {
                 analog_on_boot = true;
+                dualshock = true;
                 pad_connected = true;
                 i += 1;
             }
@@ -669,6 +686,7 @@ fn main() {
             std::process::exit(1);
         }
     };
+    let dualshock = dualshock || pad_script.uses_dualshock();
 
     if disc_arg.is_some() && bios_arg.is_none() {
         eprintln!("Erro: --disc requer --bios <caminho_da_BIOS>");
@@ -726,8 +744,7 @@ fn main() {
             }
 
             if pad_connected {
-                bus.sio_mut().connect_digital_pad(true);
-                bus.sio_mut().set_analog_mode(analog_on_boot);
+                conecta_pad(bus.sio_mut(), dualshock, analog_on_boot);
             }
             monta_memory_card(&mut bus, memcard_arg.as_deref());
             let steps = run(
@@ -752,6 +769,7 @@ fn main() {
             }
 
             eprintln!("Runner: {} passos, TTY: {} bytes", steps, tty.len());
+            eprintln!("# ciclos emulados: {}", bus.total_cycles());
 
             for &(addr, len) in &dump_mem {
                 eprintln!("dump {:08X}:", addr);
@@ -813,8 +831,7 @@ fn main() {
             }
 
             if pad_connected {
-                bus.sio_mut().connect_digital_pad(true);
-                bus.sio_mut().set_analog_mode(analog_on_boot);
+                conecta_pad(bus.sio_mut(), dualshock, analog_on_boot);
             }
             monta_memory_card(&mut bus, memcard_arg.as_deref());
             let steps = run(
@@ -839,6 +856,7 @@ fn main() {
             }
 
             eprintln!("Runner: {} passos, TTY: {} bytes", steps, tty.len());
+            eprintln!("# ciclos emulados: {}", bus.total_cycles());
 
             for &(addr, len) in &dump_mem {
                 eprintln!("dump {:08X}:", addr);
@@ -900,6 +918,6 @@ fn main() {
 
     eprintln!("Uso: psx-cli [--version | --bios <caminho> [--exe <caminho>] [--disc <caminho>]]");
     eprintln!("     [--pad] [--press BOTAO@PASSO[:DURACAO]] [--press analog@PASSO]");
-    eprintln!("     [--analog] [--stick left|right:X,Y@PASSO[:DURACAO]]");
+    eprintln!("     [--dualshock] [--analog] [--stick left|right:X,Y@PASSO[:DURACAO]]");
     std::process::exit(1);
 }

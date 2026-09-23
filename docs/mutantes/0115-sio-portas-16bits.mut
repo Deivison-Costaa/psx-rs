@@ -4,6 +4,7 @@ iteracao: 0115
 item: 4.4j
 alvo: crates/psx-core/src/bus.rs
 teste: sio_portas_16bits
+arquivada: escrita de I/O por largura reescrita (gpr inteiro em sb/sh, SIO por meia-palavra, DICR bits 0-5); ancoras nao correspondem mais
 
 mutante: m1
 rotulo: leitura de 16 bits do SIO0 ignora o offset (o defeito 4.4j do lado da leitura)

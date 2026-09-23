@@ -330,10 +330,7 @@ impl Cdrom {
         if !self.result_is_empty() {
             s |= 1 << 5;
         }
-        if self.data_pos.get() < self.data_len.get()
-            && self.read_mode.get() != 0
-            && (self.hchpctl.get() & 0x80) != 0
-        {
+        if self.drqsts_active() {
             s |= 1 << 6;
         }
         if self.busy.get() {
@@ -1237,9 +1234,7 @@ impl Cdrom {
     }
 
     pub fn drqsts_active(&self) -> bool {
-        self.data_pos.get() < self.data_len.get()
-            && self.read_mode.get() != 0
-            && (self.hchpctl.get() & 0x80) != 0
+        self.data_pos.get() < self.data_len.get() && (self.hchpctl.get() & 0x80) != 0
     }
 
     pub fn irq_pending(&self) -> bool {

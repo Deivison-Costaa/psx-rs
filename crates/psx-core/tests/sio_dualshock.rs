@@ -6,7 +6,7 @@ const HIZ: u8 = 0xFF;
 
 fn pad() -> Sio {
     let sio = Sio::new();
-    sio.connect_digital_pad(true);
+    sio.connect_dualshock(true);
     sio
 }
 
@@ -71,7 +71,10 @@ fn modo_analogico_responde_5a73_botoes_e_quatro_eixos() {
         vec![HIZ, 0x73, 0x5A, 0xFF, 0xBF, 0x11, 0x22, 0x33, 0x44],
         "ordem do fio: RightX, RightY, LeftX, LeftY"
     );
-    assert_eq!(acks, vec![true, true, true, true, true, true, true, true, false]);
+    assert_eq!(
+        acks,
+        vec![true, true, true, true, true, true, true, true, false]
+    );
 }
 
 #[test]
@@ -94,7 +97,10 @@ fn l3_e_r3_so_aparecem_no_modo_analogico() {
 
     sio.set_analog_mode(true);
     let analogico = respostas(&sio, &LEITURA_ANALOGICA);
-    assert_eq!(analogico[3], 0xF9, "no analogico L3 (bit1) e R3 (bit2) valem");
+    assert_eq!(
+        analogico[3], 0xF9,
+        "no analogico L3 (bit1) e R3 (bit2) valem"
+    );
 }
 
 #[test]
@@ -142,11 +148,18 @@ fn comando_43h_em_config_devolve_zeros_e_sai() {
     let sio = pad();
     entra_config(&sio);
 
-    let (r, acks) = transfere(&sio, &[0x01, 0x43, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
+    let (r, acks) = transfere(
+        &sio,
+        &[0x01, 0x43, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
+    );
 
     assert_eq!(r, vec![HIZ, 0xF3, 0x5A, 0, 0, 0, 0, 0, 0]);
     assert!(!acks[8]);
-    assert_eq!(respostas(&sio, &LEITURA_ANALOGICA)[1], 0x41, "de volta ao normal");
+    assert_eq!(
+        respostas(&sio, &LEITURA_ANALOGICA)[1],
+        0x41,
+        "de volta ao normal"
+    );
 }
 
 #[test]
@@ -154,7 +167,10 @@ fn comando_44h_liga_o_analogico_e_trava_o_botao() {
     let sio = pad();
     entra_config(&sio);
 
-    let r = respostas(&sio, &[0x01, 0x44, 0x00, 0x01, 0x03, 0x00, 0x00, 0x00, 0x00]);
+    let r = respostas(
+        &sio,
+        &[0x01, 0x44, 0x00, 0x01, 0x03, 0x00, 0x00, 0x00, 0x00],
+    );
     assert_eq!(r, vec![HIZ, 0xF3, 0x5A, 0, 0, 0, 0, 0, 0]);
     sai_config(&sio);
 
@@ -169,10 +185,16 @@ fn comando_44h_liga_o_analogico_e_trava_o_botao() {
 fn comando_44h_key_usa_so_os_dois_bits_de_baixo() {
     let sio = pad();
     entra_config(&sio);
-    respostas(&sio, &[0x01, 0x44, 0x00, 0x01, 0x07, 0x00, 0x00, 0x00, 0x00]);
+    respostas(
+        &sio,
+        &[0x01, 0x44, 0x00, 0x01, 0x07, 0x00, 0x00, 0x00, 0x00],
+    );
     assert!(sio.analog_locked(), "07h AND 03h = 03h: trava");
 
-    respostas(&sio, &[0x01, 0x44, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00]);
+    respostas(
+        &sio,
+        &[0x01, 0x44, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00],
+    );
     assert!(!sio.analog_locked(), "02h destrava");
     assert!(!sio.analog_mode(), "Led=00h volta ao digital");
 }
@@ -182,7 +204,10 @@ fn comando_44h_ignora_led_fora_de_0_e_1() {
     let sio = pad();
     entra_config(&sio);
 
-    respostas(&sio, &[0x01, 0x44, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00]);
+    respostas(
+        &sio,
+        &[0x01, 0x44, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00],
+    );
 
     assert!(!sio.analog_mode());
 }
@@ -192,11 +217,23 @@ fn comando_45h_devolve_tipo_e_led() {
     let sio = pad();
     entra_config(&sio);
 
-    let apagado = respostas(&sio, &[0x01, 0x45, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
-    assert_eq!(apagado, vec![HIZ, 0xF3, 0x5A, 0x01, 0x02, 0x00, 0x02, 0x01, 0x00]);
+    let apagado = respostas(
+        &sio,
+        &[0x01, 0x45, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
+    );
+    assert_eq!(
+        apagado,
+        vec![HIZ, 0xF3, 0x5A, 0x01, 0x02, 0x00, 0x02, 0x01, 0x00]
+    );
 
-    respostas(&sio, &[0x01, 0x44, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00]);
-    let aceso = respostas(&sio, &[0x01, 0x45, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
+    respostas(
+        &sio,
+        &[0x01, 0x44, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00],
+    );
+    let aceso = respostas(
+        &sio,
+        &[0x01, 0x45, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
+    );
     assert_eq!(aceso[5], 0x01, "Led=01h depois de 44h com Led=01h");
 }
 
@@ -205,11 +242,26 @@ fn comando_46h_tabela_por_atuador() {
     let sio = pad();
     entra_config(&sio);
 
-    let zero = respostas(&sio, &[0x01, 0x46, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
-    assert_eq!(zero, vec![HIZ, 0xF3, 0x5A, 0x00, 0x00, 0x01, 0x02, 0x00, 0x0A]);
-    let um = respostas(&sio, &[0x01, 0x46, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00]);
-    assert_eq!(um, vec![HIZ, 0xF3, 0x5A, 0x00, 0x00, 0x01, 0x01, 0x01, 0x14]);
-    let outro = respostas(&sio, &[0x01, 0x46, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00]);
+    let zero = respostas(
+        &sio,
+        &[0x01, 0x46, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
+    );
+    assert_eq!(
+        zero,
+        vec![HIZ, 0xF3, 0x5A, 0x00, 0x00, 0x01, 0x02, 0x00, 0x0A]
+    );
+    let um = respostas(
+        &sio,
+        &[0x01, 0x46, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00],
+    );
+    assert_eq!(
+        um,
+        vec![HIZ, 0xF3, 0x5A, 0x00, 0x00, 0x01, 0x01, 0x01, 0x14]
+    );
+    let outro = respostas(
+        &sio,
+        &[0x01, 0x46, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00],
+    );
     assert_eq!(outro, vec![HIZ, 0xF3, 0x5A, 0, 0, 0, 0, 0, 0]);
 }
 
@@ -218,7 +270,10 @@ fn comando_47h_constantes() {
     let sio = pad();
     entra_config(&sio);
 
-    let r = respostas(&sio, &[0x01, 0x47, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
+    let r = respostas(
+        &sio,
+        &[0x01, 0x47, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
+    );
 
     assert_eq!(r, vec![HIZ, 0xF3, 0x5A, 0x00, 0x00, 0x02, 0x00, 0x01, 0x00]);
 }
@@ -228,9 +283,15 @@ fn comando_48h_ee_so_para_ii_0_e_1() {
     let sio = pad();
     entra_config(&sio);
 
-    let um = respostas(&sio, &[0x01, 0x48, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00]);
+    let um = respostas(
+        &sio,
+        &[0x01, 0x48, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00],
+    );
     assert_eq!(um, vec![HIZ, 0xF3, 0x5A, 0, 0, 0, 0, 0x01, 0]);
-    let dois = respostas(&sio, &[0x01, 0x48, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00]);
+    let dois = respostas(
+        &sio,
+        &[0x01, 0x48, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00],
+    );
     assert_eq!(dois[7], 0x00);
 }
 
@@ -239,11 +300,20 @@ fn comando_4ch_tabela_b() {
     let sio = pad();
     entra_config(&sio);
 
-    let zero = respostas(&sio, &[0x01, 0x4C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
+    let zero = respostas(
+        &sio,
+        &[0x01, 0x4C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
+    );
     assert_eq!(zero, vec![HIZ, 0xF3, 0x5A, 0, 0, 0, 0x04, 0, 0]);
-    let um = respostas(&sio, &[0x01, 0x4C, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00]);
+    let um = respostas(
+        &sio,
+        &[0x01, 0x4C, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00],
+    );
     assert_eq!(um[6], 0x07);
-    let outro = respostas(&sio, &[0x01, 0x4C, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00]);
+    let outro = respostas(
+        &sio,
+        &[0x01, 0x4C, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00],
+    );
     assert_eq!(outro[6], 0x00);
 }
 
@@ -254,7 +324,11 @@ fn comandos_sem_uso_em_config_devolvem_zeros_com_ack() {
 
     for comando in [0x40, 0x41, 0x49, 0x4A, 0x4B, 0x4E, 0x4F] {
         let (r, acks) = transfere(&sio, &[0x01, comando, 0, 0, 0, 0, 0, 0, 0]);
-        assert_eq!(r, vec![HIZ, 0xF3, 0x5A, 0, 0, 0, 0, 0, 0], "comando {comando:02X}h");
+        assert_eq!(
+            r,
+            vec![HIZ, 0xF3, 0x5A, 0, 0, 0, 0, 0, 0],
+            "comando {comando:02X}h"
+        );
         assert_eq!(acks.iter().filter(|a| **a).count(), 8);
     }
 }
@@ -265,8 +339,14 @@ fn comando_de_config_fora_do_modo_config_nao_e_reconhecido() {
 
     let (r, acks) = transfere(&sio, &[0x01, 0x45, 0x00, 0x00, 0x00]);
 
-    assert_eq!(r[1], 0x41, "o ID sai junto com o comando, antes de o pad decodifica-lo");
-    assert!(!acks[1], "comando invalido: sem /ACK, a transferencia acaba");
+    assert_eq!(
+        r[1], 0x41,
+        "o ID sai junto com o comando, antes de o pad decodifica-lo"
+    );
+    assert!(
+        !acks[1],
+        "comando invalido: sem /ACK, a transferencia acaba"
+    );
     assert_eq!(&r[2..], &[HIZ; 3]);
 }
 
@@ -278,5 +358,8 @@ fn modo_analogico_sobrevive_a_troca_de_transferencia() {
 
     let r = respostas(&sio, &LEITURA_ANALOGICA);
 
-    assert_eq!(r[1], 0x73, "/CS soltar no meio nao reseta o modo do controle");
+    assert_eq!(
+        r[1], 0x73,
+        "/CS soltar no meio nao reseta o modo do controle"
+    );
 }

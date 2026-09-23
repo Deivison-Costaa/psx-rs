@@ -120,3 +120,48 @@ fn os_tres_timers_respondem_a_meia_palavra() {
         "a faixa 1F801100h..1F80112Fh inteira e de registradores, nao so o timer 2"
     );
 }
+
+fn t2_que_passou_de_ffff(bus: &mut Bus) {
+    bus.write32::<BusWrite>(T2_TARGET, 0x8000);
+    bus.write32::<BusWrite>(T2_MODE, 0x0000);
+    bus.write32::<BusWrite>(T2_COUNT, 0xFFF0);
+    bus.tick_timers(0x20);
+}
+
+#[test]
+fn lhu_do_modo_zera_as_flags_de_alvo_e_ffff_depois_de_ler() {
+    let mut bus = bus();
+    t2_que_passou_de_ffff(&mut bus);
+
+    let primeira = bus.read16::<BusRead>(T2_MODE);
+    let segunda = bus.read16::<BusRead>(T2_MODE);
+
+    assert_ne!(
+        primeira & (1 << 12),
+        0,
+        "o contador passou de FFFFh: o bit 12 do modo tem de estar ligado na primeira leitura"
+    );
+    assert_eq!(
+        segunda & (1 << 12),
+        0,
+        "05-timers: os bits 11-12 do modo sao 'Reset after Reading'; um `lhu` e uma leitura \
+         como qualquer outra (o gpu/benchmark do ps1-tests le por `lhu` e somava FFFFh a cada \
+         quadro porque a flag nunca descia)"
+    );
+}
+
+#[test]
+fn lbu_do_byte_alto_do_modo_tambem_consome_as_flags() {
+    let mut bus = bus();
+    t2_que_passou_de_ffff(&mut bus);
+
+    let primeira = bus.read8::<BusRead>(T2_MODE + 1);
+    let segunda = bus.read8::<BusRead>(T2_MODE + 1);
+
+    assert_ne!(primeira & (1 << 4), 0, "bit 12 = bit 4 do byte alto");
+    assert_eq!(
+        segunda & (1 << 4),
+        0,
+        "a leitura por byte tambem zera as flags"
+    );
+}

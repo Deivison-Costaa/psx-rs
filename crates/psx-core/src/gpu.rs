@@ -53,6 +53,24 @@ fn lerp_i32(a: i32, b: i32, t: i32, t_max: i32) -> i32 {
     a + (b - a) * t / t_max
 }
 
+const LINE_FRAC: u32 = 32;
+const LINE_HALF: i64 = 1 << (LINE_FRAC - 1);
+const LINE_BIAS: i64 = 1024;
+const LINE_COLOR_FRAC: u32 = 12;
+
+fn line_step(delta: i64, k: i64) -> i64 {
+    if k == 0 {
+        return 0;
+    }
+    let scaled = delta << LINE_FRAC;
+    let rounded = match scaled.signum() {
+        1 => scaled + (k - 1),
+        -1 => scaled - (k - 1),
+        _ => 0,
+    };
+    rounded / k
+}
+
 const ATTRIB_FRAC: u32 = 12;
 
 fn attrib_step(a: i32, b: i32, span: i32) -> i32 {
@@ -200,6 +218,9 @@ pub struct Gpu {
     drawing_offset_x: Cell<i16>,
     drawing_offset_y: Cell<i16>,
     clut_attribute: Cell<u16>,
+    clut_cache: Vec<u16>,
+    clut_cache_attr: Cell<u16>,
+    clut_cache_depth: Cell<u8>,
     tex_window_mask_x: Cell<u8>,
     tex_window_mask_y: Cell<u8>,
     tex_window_offset_x: Cell<u8>,
@@ -248,6 +269,9 @@ impl Gpu {
             drawing_offset_x: Cell::new(0),
             drawing_offset_y: Cell::new(0),
             clut_attribute: Cell::new(0),
+            clut_cache: vec![0u16; 256],
+            clut_cache_attr: Cell::new(0),
+            clut_cache_depth: Cell::new(0),
             tex_window_mask_x: Cell::new(0),
             tex_window_mask_y: Cell::new(0),
             tex_window_offset_x: Cell::new(0),
@@ -556,6 +580,10 @@ impl Gpu {
                                 words: [val, 0, 0, 0],
                                 count: 1,
                             }
+                        }
+                        0x01 => {
+                            self.clut_cache_depth.set(0);
+                            VramState::Idle
                         }
                         0x00 | 0x04..=0x1E | 0xE0 | 0xE7..=0xEF => VramState::Idle,
                         0xE3 => {
@@ -1122,6 +1150,7 @@ impl Gpu {
                 self.vram_state.set(VramState::Idle);
             }
             VramCmd::CpuToVram => {
+                self.clut_cache_depth.set(0);
                 let pos = words[1];
                 let size = words[2];
                 let xpos = (pos & 0xFFFF) as u16 & 0x3FF;
@@ -1138,6 +1167,7 @@ impl Gpu {
                 });
             }
             VramCmd::VramToVram => {
+                self.clut_cache_depth.set(0);
                 self.execute_vram_to_vram(words[1], words[2], words[3]);
                 self.stat.set(self.stat.get() | (1 << 26));
                 self.vram_state.set(VramState::Idle);
@@ -1170,34 +1200,23 @@ impl Gpu {
         let width = (((size_word & 0xFFFF) as u16).wrapping_sub(1) & 0x3FF) + 1;
         let height = ((((size_word >> 16) & 0xFFFF) as u16).wrapping_sub(1) & 0x1FF) + 1;
 
-        let mut source = Vec::with_capacity(width as usize * height as usize);
-        for row in 0..height {
-            let py = sy.wrapping_add(row) & 0x1FF;
-            for col in 0..width {
-                let px = sx.wrapping_add(col) & 0x3FF;
-                source.push(self.vram[py as usize * 1024 + px as usize]);
-            }
-        }
-
         let stat = self.stat.get();
         let force_bit15 = (stat & (1 << 11)) != 0;
         let check_mask = (stat & (1 << 12)) != 0;
 
-        let mut i = 0usize;
+        let mut line = vec![0u16; width as usize];
         for row in 0..height {
-            let py = dy.wrapping_add(row) & 0x1FF;
-            for col in 0..width {
-                let px = dx.wrapping_add(col) & 0x3FF;
-                let idx = py as usize * 1024 + px as usize;
-                let mut hw = source[i];
-                i += 1;
+            let src_row = (sy.wrapping_add(row) & 0x1FF) as usize * 1024;
+            for (col, hw) in line.iter_mut().enumerate() {
+                *hw = self.vram[src_row + ((sx as usize + col) & 0x3FF)];
+            }
+            let dst_row = (dy.wrapping_add(row) & 0x1FF) as usize * 1024;
+            for (col, &hw) in line.iter().enumerate() {
+                let idx = dst_row + ((dx as usize + col) & 0x3FF);
                 if check_mask && (self.vram[idx] & 0x8000) != 0 {
                     continue;
                 }
-                if force_bit15 {
-                    hw |= 0x8000;
-                }
-                self.vram[idx] = hw;
+                self.vram[idx] = if force_bit15 { hw | 0x8000 } else { hw };
             }
         }
     }
@@ -1336,11 +1355,28 @@ impl Gpu {
     }
 
     fn lookup_clut(&self, index: u16) -> u16 {
+        self.clut_cache[index as usize & 0xFF]
+    }
+
+    fn load_clut_cache(&mut self) {
+        let depth = match (self.stat.get() >> 7) & 3 {
+            0 => 4,
+            1 => 8,
+            _ => return,
+        };
         let attr = self.clut_attribute.get();
-        let clut_x = (attr & 0x3F) * 16;
-        let clut_y = (attr >> 6) & 0x1FF;
-        let addr = (clut_y as usize & 0x1FF) * 1024 + (clut_x.wrapping_add(index) as usize & 0x3FF);
-        self.vram[addr]
+        let cached = self.clut_cache_depth.get();
+        if cached >= depth && self.clut_cache_attr.get() == attr {
+            return;
+        }
+        let row = ((attr >> 6) & 0x1FF) as usize * 1024;
+        let base = (attr & 0x3F) as usize * 16;
+        let entries = 1usize << depth;
+        for (i, entry) in self.clut_cache.iter_mut().take(entries).enumerate() {
+            *entry = self.vram[row + ((base + i) & 0x3FF)];
+        }
+        self.clut_cache_attr.set(attr);
+        self.clut_cache_depth.set(depth);
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -1370,6 +1406,9 @@ impl Gpu {
                     return;
                 }
             }
+        }
+        if textured {
+            self.load_clut_cache();
         }
         let tex_active = textured && {
             let tex_colors = (self.stat.get() >> 7) & 3;
@@ -1630,54 +1669,55 @@ impl Gpu {
         semi_transparent: bool,
         dither: bool,
     ) {
-        let x0 = v0.0 as i32;
-        let y0 = v0.1 as i32;
-        let x1 = v1.0 as i32;
-        let y1 = v1.1 as i32;
-
-        let dx = (x1 - x0).abs();
-        let dy = -(y1 - y0).abs();
-        let sx = if x0 < x1 { 1 } else { -1 };
-        let sy = if y0 < y1 { 1 } else { -1 };
-        let mut err = dx + dy;
-        let mut x = x0;
-        let mut y = y0;
-        let steps = dx.max(-dy);
+        let k = (v1.0 as i64 - v0.0 as i64)
+            .abs()
+            .max((v1.1 as i64 - v0.1 as i64).abs());
+        let ((v0, c0), (v1, c1)) = if k > 0 && v0.0 >= v1.0 {
+            ((v1, c1), (v0, c0))
+        } else {
+            ((v0, c0), (v1, c1))
+        };
+        let step_x = line_step(v1.0 as i64 - v0.0 as i64, k);
+        let step_y = line_step(v1.1 as i64 - v0.1 as i64, k);
+        let mut fx = ((v0.0 as i64) << LINE_FRAC) + LINE_HALF - LINE_BIAS;
+        let mut fy = ((v0.1 as i64) << LINE_FRAC) + LINE_HALF;
+        if step_y < 0 {
+            fy -= LINE_BIAS;
+        }
+        let channel = |c: u32, i: u32| ((c >> (i * 8)) & 0xFF) as i32;
+        let mut color = [0i32; 3];
+        let mut color_step = [0i32; 3];
+        for i in 0..3 {
+            color[i] = (channel(c0, i as u32) << LINE_COLOR_FRAC) | (1 << (LINE_COLOR_FRAC - 1));
+            if gouraud && k > 0 {
+                let delta = channel(c1, i as u32) - channel(c0, i as u32);
+                color_step[i] = (delta << LINE_COLOR_FRAC) / k as i32;
+            }
+        }
 
         let area_x1 = self.drawing_x1.get() as i32;
         let area_y1 = self.drawing_y1.get() as i32;
         let area_x2 = self.drawing_x2.get() as i32;
         let area_y2 = self.drawing_y2.get() as i32;
 
-        let mut step = 0i32;
-        loop {
-            let color24 = if gouraud && steps > 0 {
-                lerp_color24(c0, c1, step, steps)
-            } else {
-                c0
-            };
-            let pixel = color24_to_16_dithered(color24, x, y, dither);
-            if x >= area_x1
-                && x <= area_x2
-                && y >= area_y1
-                && y <= area_y2
-                && (0..1024).contains(&x)
-                && (0..512).contains(&y)
+        for _ in 0..=k {
+            let x = (fx >> LINE_FRAC) as i32;
+            let y = (fy >> LINE_FRAC) as i32;
+            if x >= area_x1.max(0)
+                && x <= area_x2.min(1023)
+                && y >= area_y1.max(0)
+                && y <= area_y2.min(511)
             {
+                let color24 = color.iter().enumerate().fold(0u32, |acc, (i, &c)| {
+                    acc | (((c >> LINE_COLOR_FRAC) as u32 & 0xFF) << (i * 8))
+                });
+                let pixel = color24_to_16_dithered(color24, x, y, dither);
                 self.write_pixel(y as usize * 1024 + x as usize, pixel, semi_transparent);
             }
-            step += 1;
-            if x == x1 && y == y1 {
-                break;
-            }
-            let e2 = 2 * err;
-            if e2 >= dy {
-                err += dy;
-                x += sx;
-            }
-            if e2 <= dx {
-                err += dx;
-                y += sy;
+            fx += step_x;
+            fy += step_y;
+            for (c, s) in color.iter_mut().zip(color_step) {
+                *c += s;
             }
         }
     }
@@ -1767,6 +1807,7 @@ impl Gpu {
         }
 
         self.clut_attribute.set(((uv >> 16) & 0xFFFF) as u16);
+        self.load_clut_cache();
         let u_base = (uv & 0xFF) as i32;
         let v_base = ((uv >> 8) & 0xFF) as i32;
         let x_start = vertex.0 as i32;
@@ -1912,7 +1953,7 @@ impl Gpu {
     }
 
     fn write_gp1(&mut self, val: u32) {
-        let cmd = (val >> 24) as u8;
+        let cmd = ((val >> 24) & 0x3F) as u8;
         match cmd {
             0x00 => {
                 self.stat.set(0x1480_2000);
@@ -1925,6 +1966,7 @@ impl Gpu {
                 self.drawing_offset_x.set(0);
                 self.drawing_offset_y.set(0);
                 self.clut_attribute.set(0);
+                self.clut_cache_depth.set(0);
                 self.tex_window_mask_x.set(0);
                 self.tex_window_mask_y.set(0);
                 self.tex_window_offset_x.set(0);
@@ -1992,7 +2034,33 @@ impl Gpu {
                 let bit = val & 1;
                 self.allow_upper_y.set(bit != 0);
             }
+            0x10..=0x1F => {
+                if let Some(word) = self.internal_register(val & 0xF) {
+                    self.gpuread_latch.set(word);
+                }
+            }
             _ => {}
+        }
+    }
+
+    fn internal_register(&self, index: u32) -> Option<u32> {
+        let area = |x: &Cell<u16>, y: &Cell<u16>| x.get() as u32 | ((y.get() as u32) << 10);
+        match index {
+            2 => Some(
+                self.tex_window_mask_x.get() as u32
+                    | (self.tex_window_mask_y.get() as u32) << 5
+                    | (self.tex_window_offset_x.get() as u32) << 10
+                    | (self.tex_window_offset_y.get() as u32) << 15,
+            ),
+            3 => Some(area(&self.drawing_x1, &self.drawing_y1)),
+            4 => Some(area(&self.drawing_x2, &self.drawing_y2)),
+            5 => Some(
+                (self.drawing_offset_x.get() as u32 & 0x7FF)
+                    | (self.drawing_offset_y.get() as u32 & 0x7FF) << 11,
+            ),
+            7 => Some(2),
+            8 => Some(0),
+            _ => None,
         }
     }
 }

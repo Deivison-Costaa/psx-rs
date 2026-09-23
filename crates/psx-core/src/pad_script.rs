@@ -74,6 +74,10 @@ impl PadScript {
         self.presses.is_empty() && self.tilts.is_empty() && self.analog_presses.is_empty()
     }
 
+    pub fn uses_dualshock(&self) -> bool {
+        !self.tilts.is_empty() || !self.analog_presses.is_empty()
+    }
+
     pub fn sticks_at(&self, step: u64) -> Sticks {
         let mut sticks = Sticks::CENTERED;
         for tilt in &self.tilts {
@@ -149,7 +153,10 @@ fn parse_tilt(spec: &str) -> Result<Tilt, String> {
 
 fn parse_axis(texto: &str) -> Option<u8> {
     let texto = texto.trim();
-    match texto.strip_prefix("0x").or_else(|| texto.strip_prefix("0X")) {
+    match texto
+        .strip_prefix("0x")
+        .or_else(|| texto.strip_prefix("0X"))
+    {
         Some(hex) => u8::from_str_radix(hex, 16).ok(),
         None => texto.parse().ok(),
     }

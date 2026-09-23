@@ -4,6 +4,7 @@ iteracao: 0076
 item: 10.32
 alvo: crates/psx-core/src/gpu.rs
 teste: gpu_texture_disable
+arquivada: GP1(10h) reescrito para devolver registros internos (onda1/gpu-misc)
 
 mutante: m1
 rotulo: re-adiciona if bit==0 que limpa GPUSTAT.15 ativamente (regressao)

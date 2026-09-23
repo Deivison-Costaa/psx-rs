@@ -182,8 +182,8 @@ fn mtc2_nao_espera() {
 fn lwc2_nao_espera_mas_ainda_paga_a_regiao_do_load() {
     assert_eq!(
         total_de(&[gte_cmd(RTPS), lwc2(1, 8, 0)]),
-        8,
+        6,
         "controle: LWC2 escreve um registrador GTE (nao espera o RTPS pendente), mas \
-         continua pagando o custo de regiao do load (Degrau 2, RAM=7): 1+7=8"
+         continua pagando o custo de regiao do load (RAM=5 sem outro load logo atras): 1+5=6"
     );
 }

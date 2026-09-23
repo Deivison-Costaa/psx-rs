@@ -83,6 +83,27 @@ impl MemCtrl {
         self.regs[Self::index(phys)] = val;
     }
 
+    fn device_read_cycles(&self, delay_reg: u32, phys: u32, width: u32) -> u32 {
+        let delay = self.read32(delay_reg);
+        let com = self.read32(0x1F80_1020);
+        let access = (delay >> 4) & 0xF;
+        let recovery = if delay & (1 << 8) != 0 { com & 0xF } else { 0 };
+        let floating = if delay & (1 << 10) != 0 {
+            (com >> 8) & 0xF
+        } else {
+            0
+        };
+        let accesses = if delay & (1 << 12) != 0 {
+            ((phys & 1) + width).div_ceil(2)
+        } else {
+            width
+        }
+        .max(1);
+        let first = access + 4;
+        let sequential = access + 2 + recovery + floating;
+        first + (accesses - 1) * sequential
+    }
+
     fn index(phys: u32) -> usize {
         match phys {
             0x1F80_1060 => 9,
@@ -118,6 +139,9 @@ impl MemoryOp for BusWrite {
     const WRITE: bool = true;
 }
 
+const RAM_LOAD_CYCLES: u32 = 5;
+const IO_LOAD_CYCLES: u32 = 3;
+
 const VBLANK_ENTER: u32 = 0;
 const VBLANK_EXIT: u32 = 1;
 const CDROM_RESPONSE: u32 = 2;
@@ -128,6 +152,7 @@ const HBLANK_ENTER: u32 = 6;
 const HBLANK_EXIT: u32 = 7;
 const DMA_DONE_BASE: u32 = 8;
 const DMA_DONE_END: u32 = DMA_DONE_BASE + 7;
+const SIO_ACK_END: u32 = DMA_DONE_END;
 
 // Atraso do /ACK depois do ULTIMO pulso de SCK. § Address byte (01h) being sent (L379-386) de
 // docs/reference/10-controllers-memcards.md: o driver do kernel ignora pulsos nos primeiros
@@ -135,6 +160,7 @@ const DMA_DONE_END: u32 = DMA_DONE_BASE + 7;
 // entregar o /ACK antes disso faz o kernel apaga-lo na limpeza de IRQ7 que ele so faz depois de
 // mandar o byte (§ Emulation Note, L316-320).
 const SIO_ACK_DELAY_CYCLES: u64 = 338;
+const SIO_ACK_PULSE_CYCLES: u64 = 100;
 
 #[derive(Debug)]
 pub struct Bus {
@@ -390,9 +416,11 @@ impl Bus {
 
         let frame = self.gpu.frame_cycles();
         let cpu_per_sl = self.gpu.cpu_cycles_per_scanline();
+        let mut hblank_edges = 0u32;
         while let Some((prazo, EventId(id))) = self.scheduler.advance_to(self.total_cycles) {
             match id {
                 HBLANK_ENTER => {
+                    hblank_edges += 1;
                     self.gpu.set_hblank_active(true);
                     self.scheduler
                         .schedule(ScheduleKey::new(prazo + cpu_per_sl), EventId(HBLANK_ENTER));
@@ -431,7 +459,12 @@ impl Bus {
                     if self.sio.take_irq7() {
                         self.irq.raise(7);
                     }
+                    self.scheduler.schedule(
+                        ScheduleKey::new(prazo + SIO_ACK_PULSE_CYCLES),
+                        EventId(SIO_ACK_END),
+                    );
                 }
+                SIO_ACK_END => self.sio.end_ack_pulse(),
                 CDROM_RESPONSE => {
                     self.cdrom
                         .deliver_first(self.disc_layout.as_ref(), self.disc_bin.as_deref());
@@ -478,7 +511,10 @@ impl Bus {
         let hb = self.gpu.hblank_active();
         let vb = self.gpu.vblank_active();
         for base in &[0x1F80_1100u32, 0x1F80_1110, 0x1F80_1120] {
-            if let Some(bit) = self.timers.tick(*base, cycles, hb, vb) {
+            if let Some(bit) = self
+                .timers
+                .tick_with_hblanks(*base, cycles, hb, vb, hblank_edges)
+            {
                 self.irq.raise(bit);
             }
         }
@@ -525,19 +561,21 @@ impl Bus {
             0x1F80_1100..=0x1F80_112F => Some(self.timers.read32(phys)),
             0x1F80_1810 | 0x1F80_1814 => Some(self.gpu.read32(phys - 0x1F80_1810)),
             0x1F80_1800..=0x1F80_1803 => {
-                let b0 = self.cdrom.read8(0) as u32;
-                let b1 = self.cdrom.read8(1) as u32;
-                let b2 = self.cdrom.read8(2) as u32;
-                let b3 = self.cdrom.read8(3) as u32;
-                Some(b0 | (b1 << 8) | (b2 << 16) | (b3 << 24))
+                let reg = phys & 3;
+                Some(u32::from_le_bytes(std::array::from_fn(|_| {
+                    self.cdrom.read8(reg)
+                })))
             }
             0x1F80_1820 | 0x1F80_1824 => Some(self.mdec.read32(phys - 0x1F80_1820)),
             0x1F80_1C00..=0x1F80_1E7F => Some(
                 u32::from(self.spu.read16(phys)) | (u32::from(self.spu.read16(phys + 2)) << 16),
             ),
+            0x1F80_1048..=0x1F80_105F => Some(u32::from_le_bytes(std::array::from_fn(|i| {
+                self.sio.read_byte(phys + i as u32)
+            }))),
             0x1F80_1024..=0x1F80_103F
             | 0x1F80_1041..=0x1F80_1043
-            | 0x1F80_1045..=0x1F80_105F
+            | 0x1F80_1045..=0x1F80_1047
             | 0x1F80_1061..=0x1F80_10FF
             | 0x1F80_1130..=0x1F80_1FFF => Some(0),
             0x1F80_1040 => Some(self.sio.read_data()),
@@ -664,13 +702,9 @@ impl Bus {
             0x1F80_1800..=0x1F80_1803 => {
                 let disc_layout = self.disc_layout.as_ref();
                 let disc_bin = self.disc_bin.as_deref();
-                self.cdrom.write8(0, val as u8, disc_layout, disc_bin);
-                self.cdrom
-                    .write8(1, (val >> 8) as u8, disc_layout, disc_bin);
-                self.cdrom
-                    .write8(2, (val >> 16) as u8, disc_layout, disc_bin);
-                self.cdrom
-                    .write8(3, (val >> 24) as u8, disc_layout, disc_bin);
+                for byte in val.to_le_bytes() {
+                    self.cdrom.write8(phys & 3, byte, disc_layout, disc_bin);
+                }
                 self.schedule_cdrom_response();
                 self.schedule_cdrom_second();
                 if self.cdrom.take_second_dirty() {
@@ -685,12 +719,8 @@ impl Bus {
                 self.service_spu_irq();
                 true
             }
-            0x1F80_1044..=0x1F80_104F => {
-                let bytes = val.to_le_bytes();
-                self.sio.write_byte(phys, bytes[0]);
-                self.sio.write_byte(phys + 1, bytes[1]);
-                self.sio.write_byte(phys + 2, bytes[2]);
-                self.sio.write_byte(phys + 3, bytes[3]);
+            0x1F80_1044..=0x1F80_105F => {
+                self.sio.write_half(phys, val as u16);
                 self.schedule_sio_ack();
                 self.service_sio_irq();
                 true
@@ -744,7 +774,7 @@ impl Bus {
             }
             0x1F80_1100..=0x1F80_112F => {
                 let base = phys & !3;
-                let val = self.timers.peek32(base);
+                let val = self.timers.read32(base);
                 let byte_index = ((phys & 3) + offset) & 3;
                 Some(((val >> (byte_index * 8)) & 0xFF) as u8)
             }
@@ -764,7 +794,7 @@ impl Bus {
                 Some(0)
             }
             0x1F80_1040 => Some(self.sio.read_byte(phys + offset)),
-            0x1F80_1044..=0x1F80_104F => Some(self.sio.read_byte(phys + offset)),
+            0x1F80_1044..=0x1F80_105F => Some(self.sio.read_byte(phys + offset)),
             0x1F80_2000..=0x1F80_3FFF => Some(0xFF),
             _ => None,
         }
@@ -824,7 +854,7 @@ impl Bus {
             0x1F80_1024..=0x1F80_103F | 0x1F80_1041..=0x1F80_1043 | 0x1F80_1061..=0x1F80_1FFF => {
                 true
             }
-            0x1F80_1040 | 0x1F80_1044..=0x1F80_104F => {
+            0x1F80_1040 | 0x1F80_1044..=0x1F80_105F => {
                 self.sio.write_byte(phys + offset, val);
                 self.schedule_sio_ack();
                 self.service_sio_irq();
@@ -897,6 +927,13 @@ impl Bus {
             0x1F80_1074 => return (self.irq.read_mask() & 0xFFFF) as u16,
             0x1F80_1076 => return ((self.irq.read_mask() >> 16) & 0xFFFF) as u16,
             0x1F80_1C00..=0x1F80_1E7F => return self.spu.read16(phys),
+            0x1F80_1100..=0x1F80_112F => {
+                return (self.timers.read32(phys & !3) >> ((phys & 2) * 8)) as u16;
+            }
+            0x1F80_1800..=0x1F80_1803 => {
+                let lo = self.cdrom.read8(phys & 3);
+                return u16::from_le_bytes([lo, self.cdrom.read8(phys & 3)]);
+            }
             _ => {}
         }
         if let (Some(lo), Some(hi)) = (
@@ -953,6 +990,17 @@ impl Bus {
                 self.service_spu_irq();
                 return;
             }
+            0x1F80_1044..=0x1F80_105F => {
+                self.sio.write_half(phys, val);
+                self.schedule_sio_ack();
+                self.service_sio_irq();
+                return;
+            }
+            0x1F80_1800..=0x1F80_1803 => {
+                self.region_write_byte(phys, 0, 0, val as u8);
+                self.region_write_byte(phys, 0, 0, (val >> 8) as u8);
+                return;
+            }
             _ => {}
         }
         if self.region_write_byte(phys, Self::kseg(addr), 0, val as u8)
@@ -973,6 +1021,23 @@ impl Bus {
     /// carrega os 32 bits inteiros de `rt` como se fosse um `sw` alinhado.
     fn e_registrador_dma_de_32_bits(phys: u32) -> bool {
         matches!(phys, 0x1F80_1080..=0x1F80_10EC | 0x1F80_10F0 | 0x1F80_10F4)
+            || (phys & 3 == 0
+                && matches!(
+                    phys,
+                    0x1F80_1000..=0x1F80_1023
+                        | 0x1F80_1060
+                        | 0x1F80_1070
+                        | 0x1F80_1074
+                        | 0x1F80_1100..=0x1F80_112F
+                        | 0x1F80_1810
+                        | 0x1F80_1814
+                        | 0x1F80_1820
+                        | 0x1F80_1824
+                ))
+    }
+
+    fn e_registrador_de_16_bits(phys: u32) -> bool {
+        phys & 1 == 0 && matches!(phys, 0x1F80_1048..=0x1F80_105F | 0x1F80_1C00..=0x1F80_1FFF)
     }
 
     /// Mesma decodificacao de endereco de `region_read32` para o banco de DMA, reaproveitada
@@ -1002,6 +1067,10 @@ impl Bus {
             self.write32::<Op>(addr & !0x3, gpr);
             return;
         }
+        if Self::e_registrador_de_16_bits(phys) {
+            self.write16::<Op>(addr, gpr as u16);
+            return;
+        }
         self.write8::<Op>(addr, gpr as u8);
     }
 
@@ -1014,13 +1083,23 @@ impl Bus {
         self.write16::<Op>(addr, gpr as u16);
     }
 
-    pub fn load_cycles(addr: u32) -> u32 {
-        match Self::to_physical(addr) {
-            0x1F80_0000..=0x1F80_03FF => 1,
-            0x1F80_1000..=0x1F80_2FFF => 5,
-            0x1FC0_0000..=0x1FC7_FFFF => 27,
-            _ => 7,
-        }
+    pub fn load_timing(&self, addr: u32, width: u32) -> (u32, bool) {
+        let phys = Self::to_physical(addr);
+        let delay_reg = match phys {
+            0x1F80_0000..=0x1F80_03FF | 0xFFFE_0000..=0xFFFE_FFFF => return (1, false),
+            0x1F00_0000..=0x1F7F_FFFF => 0x1F80_1008,
+            0x1FA0_0000..=0x1FBF_FFFF => 0x1F80_100C,
+            0x1FC0_0000..=0x1FFF_FFFF => 0x1F80_1010,
+            0x1F80_1C00..=0x1F80_1FFF => 0x1F80_1014,
+            0x1F80_1800..=0x1F80_180F => 0x1F80_1018,
+            0x1F80_2000..=0x1F80_3FFF => 0x1F80_101C,
+            0x1F80_1000..=0x1F80_1FFF => return (IO_LOAD_CYCLES, true),
+            _ => return (RAM_LOAD_CYCLES, true),
+        };
+        (
+            self.mem_ctrl.device_read_cycles(delay_reg, phys, width),
+            true,
+        )
     }
 
     /// § Scratchpad (L114, L137-140) de docs/reference/01-memory-map.md: "the scratchpad is

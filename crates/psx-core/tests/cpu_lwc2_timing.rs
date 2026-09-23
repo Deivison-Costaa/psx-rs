@@ -22,11 +22,15 @@ fn swc2(rt: u32, rs: u32, imm: u16) -> u32 {
 
 fn ciclos_de(instr: u32, base: u32, sr: u32) -> u64 {
     let mut bus = bus_with_bios_empty();
+    bus.write32::<BusRead>(0x1F80_1010, 0x0013_243F);
+    bus.write32::<BusRead>(0x1F80_1020, 0x0003_1125);
     let mut cpu = Cpu::new();
     cpu.pc = CODIGO;
     cpu.regs[8] = base;
     cpu.set_sr(sr);
     bus.write32::<BusRead>(CODIGO, instr);
+    bus.write32::<BusRead>(CODIGO + 4, instr);
+    cpu.step(&mut bus);
     let antes = bus.total_cycles();
     cpu.step(&mut bus);
     bus.total_cycles() - antes

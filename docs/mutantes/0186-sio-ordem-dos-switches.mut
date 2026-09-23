@@ -3,6 +3,7 @@ formato: 1
 iteracao: 0186
 item: 4.4ae
 alvo: crates/psx-core/src/sio.rs
+arquivada: ancora reescrita na onda 1 (sio/cdrom/mdec para o FF9)
 teste: sio_digital_pad
 
 mutante: m1

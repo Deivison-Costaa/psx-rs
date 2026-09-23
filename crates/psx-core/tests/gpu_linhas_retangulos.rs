@@ -108,8 +108,9 @@ fn linha_gouraud_cor_no_meio_derivada_da_interpolacao_a3() {
     assert_eq!(gpu.vram_pixel(10, 0), 0x7C00,
         "A3: pixel(10,0) fim = azul puro (R=0, G=0, B=1F)");
     let mid = gpu.vram_pixel(5, 0);
-    assert_eq!(mid, 0x3C10,
-        "A3: pixel(5,0) meio = interpolacao (R=0x10, G=0, B=0x0F), obtido 0x{:04X}", mid);
+    assert_eq!(mid, 0x4010,
+        "A3: pixel(5,0) meio = interpolacao com meio passo de arredondamento (R=0x10, G=0, \
+         B=0x10), como nas linhas gouraud de ps1-tests gpu/lines; obtido 0x{:04X}", mid);
 }
 
 #[rustfmt::skip]

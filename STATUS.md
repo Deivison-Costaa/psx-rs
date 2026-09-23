@@ -7,9 +7,8 @@
 
 ## Última iteração concluída
 
-**0221 — escrita de byte nos offsets 1-3 dos registradores de DMA.** O jogo liga/desliga a
-máscara do canal no DICR por read-modify-write de 1 byte em `1F8010F6h`; a leitura devolvia
-zero fixo e a escrita era descartada. **Destravou Tomb Raider I e III e Silent Hill.**
+**0230 — modulação de textura com a cor do vértice em 8 bits** (GPU v2, `03-gpu.md` L1080).
+Oráculo `gpu/rectangles` zera (2.954 → 0 px). Anterior: 0221 destravou TR1/TR3/Silent Hill.
 Estado de cada jogo em `docs/estado-dos-jogos.md` (leia antes de investigar travamento).
 
 ## Próxima tarefa
@@ -63,7 +62,7 @@ escada de timing), 34 (acumulador de ciclos extras é estado de pipeline).
 
 ## Placar de testes
 
-Workspace: **1434** testes.
+Workspace: **1441** testes.
 - **NUNCA rodar `nextest` nem a bateria de mutação junto com o oráculo**: a disputa de CPU
   faz o `Start-Process` ler stdout antes do flush e reportar `sem-saida` falso (0170).
 - **GTE: 1100/1100 no `gte_valid_0xc0ffee_50.log`** (gitignored, em

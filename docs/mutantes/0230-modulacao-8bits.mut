@@ -1,0 +1,90 @@
+# Manifesto de mutacao da iteracao 0230 — modulacao de textura com a cor em 8 bits
+formato: 1
+iteracao: 0230
+item: 0230.1
+alvo: crates/psx-core/src/gpu.rs
+teste: gpu_modulacao_8bits
+
+mutante: m1
+rotulo: volta a cortar a cor do vertice para 5 bits antes do produto (GPU v0)
+ocorrencias: 1
+teste: gpu_modulacao_8bits
+@@DE
+        let c = (color24 >> desloca_cor) & 0xFF;
+        ((t * c / 16).min(255) >> 3) as u16
+@@PARA
+        let c = ((color24 >> desloca_cor) & 0xFF) >> 3 << 3;
+        ((t * c / 16).min(255) >> 3) as u16
+@@FIM
+
+mutante: m2
+rotulo: arredonda o produto em vez de truncar
+ocorrencias: 1
+teste: gpu_modulacao_8bits
+@@DE
+        ((t * c / 16).min(255) >> 3) as u16
+@@PARA
+        (((t * c + 8) / 16).min(255) >> 3) as u16
+@@FIM
+
+mutante: m3
+rotulo: arredonda a reducao final de 8 para 5 bits
+ocorrencias: 1
+teste: gpu_modulacao_8bits
+@@DE
+        ((t * c / 16).min(255) >> 3) as u16
+@@PARA
+        (((t * c / 16).min(255) + 4) >> 3) as u16
+@@FIM
+
+mutante: m4
+rotulo: divisor do produto vira 32 em vez de 16 (ponto neutro passa a ser FFh)
+ocorrencias: 1
+teste: gpu_modulacao_8bits
+@@DE
+        ((t * c / 16).min(255) >> 3) as u16
+@@PARA
+        ((t * c / 32).min(255) >> 3) as u16
+@@FIM
+
+mutante: m5
+rotulo: satura em 127 e nao em 255, cortando o "mais brilhante que o brilho"
+ocorrencias: 1
+teste: gpu_modulacao_8bits
+@@DE
+        ((t * c / 16).min(255) >> 3) as u16
+@@PARA
+        ((t * c / 16).min(127) >> 3) as u16
+@@FIM
+
+mutante: m6
+rotulo: troca o deslocamento do canal do texel pelo da cor
+ocorrencias: 1
+teste: gpu_modulacao_8bits
+@@DE
+        let t = ((texel >> desloca_texel) & 0x1F) as u32;
+        let c = (color24 >> desloca_cor) & 0xFF;
+@@PARA
+        let t = ((texel >> desloca_cor) & 0x1F) as u32;
+        let c = (color24 >> desloca_texel) & 0xFF;
+@@FIM
+
+controle: c1
+rotulo: produto comutado (cor vezes texel)
+ocorrencias: 1
+teste: gpu_modulacao_8bits
+@@DE
+        ((t * c / 16).min(255) >> 3) as u16
+@@PARA
+        ((c * t / 16).min(255) >> 3) as u16
+@@FIM
+
+controle: c2
+rotulo: divisao por 16 escrita como deslocamento de 4
+ocorrencias: 1
+teste: gpu_modulacao_8bits
+@@DE
+        ((t * c / 16).min(255) >> 3) as u16
+@@PARA
+        (((t * c) >> 4).min(255) >> 3) as u16
+@@FIM

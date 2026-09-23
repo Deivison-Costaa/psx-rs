@@ -70,19 +70,15 @@ fn lerp_attrib(a: i32, b: i32, t: i32, t_max: i32) -> i32 {
     attrib_at(a, attrib_step(a, b, t_max), t)
 }
 
-/// § Modulation (03-gpu.md L1604): finalChannel = texel*vertexColor/128 por canal de 8 bits.
-/// Aqui os dois lados ja chegam em 5 bits (canal do 15bpp); 128 em 8 bits vira 16 em 5 bits.
-fn modulate_texel(texel: u16, color: u16) -> u16 {
-    let tr = (texel & 0x1F) as i32;
-    let tg = ((texel >> 5) & 0x1F) as i32;
-    let tb = ((texel >> 10) & 0x1F) as i32;
-    let cr = (color & 0x1F) as i32;
-    let cg = ((color >> 5) & 0x1F) as i32;
-    let cb = ((color >> 10) & 0x1F) as i32;
-    let r = ((tr * cr) / 16).min(31) as u16;
-    let g = ((tg * cg) / 16).min(31) as u16;
-    let b = ((tb * cb) / 16).min(31) as u16;
-    r | (g << 5) | (b << 10) | (texel & 0x8000)
+/// § Modulation (03-gpu.md L1610) e tabela do GPU v2 (03-gpu.md L1080): o produto usa a cor
+/// do vertice com os 8 bits inteiros; cortar para 5 bits antes e o GPU v0 (L1098-1099).
+fn modulate_texel(texel: u16, color24: u32) -> u16 {
+    let canal = |desloca_texel: u32, desloca_cor: u32| -> u16 {
+        let t = ((texel >> desloca_texel) & 0x1F) as u32;
+        let c = (color24 >> desloca_cor) & 0xFF;
+        ((t * c / 16).min(255) >> 3) as u16
+    };
+    canal(0, 0) | (canal(5, 8) << 5) | (canal(10, 16) << 10) | (texel & 0x8000)
 }
 
 /// § Semi-transparency (03-gpu.md L1596): so em primitiva TEXTURIZADA o bit15 do texel
@@ -1529,7 +1525,7 @@ impl Gpu {
                         texel
                     } else {
                         let vcolor = lerp_color24_attrib(cl, cr, x - xl_span, dx_span);
-                        modulate_texel(texel, color24_to_16(vcolor))
+                        modulate_texel(texel, vcolor)
                     }
                 } else if gouraud {
                     color24_to_16(lerp_color24_attrib(cl, cr, x - xl_span, dx_span))
@@ -1804,7 +1800,7 @@ impl Gpu {
                 let pixel = if raw_texture {
                     texel
                 } else {
-                    modulate_texel(texel, color24_to_16(color))
+                    modulate_texel(texel, color)
                 };
                 let blend = blend_texturizado(semi_transparent, texel);
                 self.write_pixel(py as usize * 1024 + px as usize, pixel, blend);

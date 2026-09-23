@@ -1,10 +1,10 @@
 # gerado por scripts/mutantes.ps1 — NAO editar a mao
-# commit: d7ca701a3bd06c69fd14155c6c7f91371619f898
-# rodado_em: 2026-08-05T21:04:41-03:00
-m1,mutante,morreu,morreu,1.2,cor_neutra_808080_nao_muda_o_texel;modulacao_escurece_pelo_canal_da_cor_do_vertice;modulacao_preserva_o_bit_15_stp_do_texel
-m2,mutante,morreu,morreu,1.3,bit_raw_ignora_a_cor_do_vertice_mesmo_preta;modulacao_escurece_pelo_canal_da_cor_do_vertice;modulacao_preserva_o_bit_15_stp_do_texel
-m3,mutante,morreu,morreu,1.2,modulacao_preserva_o_bit_15_stp_do_texel
-m4,mutante,morreu,morreu,1.2,modulacao_escurece_pelo_canal_da_cor_do_vertice;modulacao_preserva_o_bit_15_stp_do_texel
-m5,mutante,morreu,morreu,1.2,cor_neutra_808080_nao_muda_o_texel
-c1,controle,sobreviveu,sobreviveu,1.2,
-c2,controle,sobreviveu,sobreviveu,1.3,
+# commit: eaff128ec82dfd43be7c1b37e988c2b3518c94d6
+# rodado_em: 2026-08-07T23:01:39-03:00
+m1,mutante,morreu,morreu,2.8,cor_neutra_808080_nao_muda_o_texel;modulacao_escurece_pelo_canal_da_cor_do_vertice;modulacao_preserva_o_bit_15_stp_do_texel
+m2,mutante,morreu,morreu,2.9,bit_raw_ignora_a_cor_do_vertice_mesmo_preta;modulacao_escurece_pelo_canal_da_cor_do_vertice;modulacao_preserva_o_bit_15_stp_do_texel
+m3,mutante,morreu,morreu,2.7,modulacao_preserva_o_bit_15_stp_do_texel
+m4,mutante,morreu,morreu,9.4,cor_neutra_808080_nao_muda_o_texel;modulacao_escurece_pelo_canal_da_cor_do_vertice;modulacao_preserva_o_bit_15_stp_do_texel
+m5,mutante,morreu,morreu,9.8,cor_neutra_808080_nao_muda_o_texel
+c1,controle,sobreviveu,sobreviveu,1.7,
+c2,controle,sobreviveu,sobreviveu,1.7,

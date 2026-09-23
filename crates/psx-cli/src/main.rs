@@ -237,7 +237,12 @@ fn run(cpu: &mut Cpu, bus: &mut Bus, max_steps: usize, pad: &PadScript, sondas: 
 
         if let Some((start, end, stride)) = sample_pcs {
             if steps >= start && steps <= end && (steps - start) % stride == 0 {
-                eprintln!("sample pc=0x{:08X} step={}", cpu.pc, steps);
+                eprintln!(
+                    "sample pc=0x{:08X} step={} cyc={}",
+                    cpu.pc,
+                    steps,
+                    bus.total_cycles()
+                );
             }
         }
 
@@ -319,7 +324,12 @@ fn write_vram_dump(path: &str, bus: &Bus) {
         );
         std::process::exit(1);
     }
-    eprintln!("dump-vram: {} ({} bytes)", path, data.len());
+    eprintln!(
+        "dump-vram: {} ({} bytes) cyc={}",
+        path,
+        data.len(),
+        bus.total_cycles()
+    );
     write_framebuffer_png(path, bus);
 }
 

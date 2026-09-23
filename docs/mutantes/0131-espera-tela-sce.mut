@@ -4,6 +4,7 @@ iteracao: 0131
 item: 4.4z
 alvo: crates/psx-cli/src/main.rs
 teste: espera_tela_sce
+arquivada: linha do --sample-pcs passou a imprimir os ciclos emulados (onda5/bios-wait)
 
 mutante: m1
 rotulo: janela exclui o inicio (steps > start) — perde a amostra do step 16

@@ -1170,34 +1170,23 @@ impl Gpu {
         let width = (((size_word & 0xFFFF) as u16).wrapping_sub(1) & 0x3FF) + 1;
         let height = ((((size_word >> 16) & 0xFFFF) as u16).wrapping_sub(1) & 0x1FF) + 1;
 
-        let mut source = Vec::with_capacity(width as usize * height as usize);
-        for row in 0..height {
-            let py = sy.wrapping_add(row) & 0x1FF;
-            for col in 0..width {
-                let px = sx.wrapping_add(col) & 0x3FF;
-                source.push(self.vram[py as usize * 1024 + px as usize]);
-            }
-        }
-
         let stat = self.stat.get();
         let force_bit15 = (stat & (1 << 11)) != 0;
         let check_mask = (stat & (1 << 12)) != 0;
 
-        let mut i = 0usize;
+        let mut line = vec![0u16; width as usize];
         for row in 0..height {
-            let py = dy.wrapping_add(row) & 0x1FF;
-            for col in 0..width {
-                let px = dx.wrapping_add(col) & 0x3FF;
-                let idx = py as usize * 1024 + px as usize;
-                let mut hw = source[i];
-                i += 1;
+            let src_row = (sy.wrapping_add(row) & 0x1FF) as usize * 1024;
+            for (col, hw) in line.iter_mut().enumerate() {
+                *hw = self.vram[src_row + ((sx as usize + col) & 0x3FF)];
+            }
+            let dst_row = (dy.wrapping_add(row) & 0x1FF) as usize * 1024;
+            for (col, &hw) in line.iter().enumerate() {
+                let idx = dst_row + ((dx as usize + col) & 0x3FF);
                 if check_mask && (self.vram[idx] & 0x8000) != 0 {
                     continue;
                 }
-                if force_bit15 {
-                    hw |= 0x8000;
-                }
-                self.vram[idx] = hw;
+                self.vram[idx] = if force_bit15 { hw | 0x8000 } else { hw };
             }
         }
     }

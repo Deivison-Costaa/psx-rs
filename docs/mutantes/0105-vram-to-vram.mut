@@ -4,6 +4,7 @@ iteracao: 0105
 item: 2.2b
 alvo: crates/psx-core/src/gpu.rs
 teste: gpu_vram_to_vram
+arquivada: execute_vram_to_vram passou a copiar linha a linha (onda1/gpu-misc); ancoras do buffer inteiro nao existem mais
 
 mutante: m1
 rotulo: Ysiz mascarado em 10 bits em vez de 9, altura errada

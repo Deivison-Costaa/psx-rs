@@ -1,5 +1,6 @@
 mod disasm;
 mod disco;
+mod tempo;
 
 use disco::DiscoEmArquivo;
 use psx_core::app::library;
@@ -7,15 +8,17 @@ use psx_core::bus::{Bios, Bus, BusRead, Ram};
 use psx_core::cdrom_bin_cue::{DiscLayout, parse_cue};
 use psx_core::cpu::Cpu;
 use psx_core::disc_image::DiscImage;
-use psx_core::pad_script::{PadScript, RELEASED};
+use psx_core::pad_script::RELEASED;
 use std::collections::HashSet;
 use std::io::Read;
 use std::io::Write;
+use tempo::{Cadencia, Instante, Roteiro};
 
 const RUNNER_MAX_STEPS: usize = 50_000_000;
 const KERNEL_ENTRYPOINT_PC: u32 = 0x8003_0000;
 const BIOS_BOOT_TO_KERNEL_MAX_STEPS: usize = 20_000_000;
-const TROCA_DE_DISCO_PASSOS_PADRAO: usize = 60_000_000;
+const TROCA_DE_DISCO_PASSOS_PADRAO: u64 = 60_000_000;
+const TROCA_DE_DISCO_SEGUNDOS_PADRAO: &str = "3s";
 
 /// Mao do jogador na porta do drive: abrir, fechar e trocar o disco num passo dado.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -25,31 +28,98 @@ enum AcaoNaPorta {
     Troca(String),
 }
 
-fn passo_de(texto: &str, flag: &str) -> usize {
-    texto.parse::<usize>().unwrap_or_else(|e| {
-        eprintln!("Erro: '{flag}' espera um passo decimal, '{texto}': {e}");
-        std::process::exit(1);
-    })
+fn sai_com_erro(msg: &str) -> ! {
+    eprintln!("Erro: {msg}");
+    std::process::exit(1);
+}
+
+fn instante_ou_sai(texto: &str, flag: &str) -> Instante {
+    tempo::instante_de(texto).unwrap_or_else(|e| sai_com_erro(&format!("'{flag}' {e}")))
+}
+
+fn cadencia_ou_sai(texto: &str, flag: &str) -> Cadencia {
+    Cadencia::de(texto).unwrap_or_else(|e| sai_com_erro(&format!("'{flag}' {e}")))
+}
+
+/// Amostragem de PC: inicio:fim:intervalo, os tres em passos ou os tres em segundos.
+#[derive(Debug, Clone, Copy)]
+enum Amostragem {
+    Passos(usize, usize, usize),
+    Ciclos(u64, u64, u64),
+}
+
+impl Amostragem {
+    fn de(texto: &str) -> Option<Self> {
+        let partes: Vec<Instante> = texto
+            .split(':')
+            .map(tempo::instante_de)
+            .collect::<Result<_, _>>()
+            .ok()?;
+        match partes.as_slice() {
+            [Instante::Passo(s), Instante::Passo(e), Instante::Passo(st)] if *st > 0 && s <= e => {
+                Some(Self::Passos(
+                    usize::try_from(*s).ok()?,
+                    usize::try_from(*e).ok()?,
+                    usize::try_from(*st).ok()?,
+                ))
+            }
+            [Instante::Ciclo(s), Instante::Ciclo(e), Instante::Ciclo(st)] if *st > 0 && s <= e => {
+                Some(Self::Ciclos(*s, *e, *st))
+            }
+            _ => None,
+        }
+    }
+
+    fn toca(self, passo: usize, ciclo_antes: u64, ciclo: u64) -> bool {
+        match self {
+            Self::Passos(s, e, st) => passo >= s && passo <= e && (passo - s) % st == 0,
+            Self::Ciclos(s, e, st) => {
+                let proximo = if ciclo_antes < s {
+                    s
+                } else {
+                    s.saturating_add(((ciclo_antes - s) / st + 1).saturating_mul(st))
+                };
+                proximo <= e && proximo <= ciclo
+            }
+        }
+    }
 }
 
 /// `CUE@PASSO[:DURACAO]`: abre a porta no PASSO, poe o CUE na bandeja e fecha DURACAO
 /// passos depois. O `@` final separa, entao o caminho do CUE pode conter `@`.
-fn roteiro_de_troca(spec: &str) -> Vec<(usize, AcaoNaPorta)> {
+fn roteiro_de_troca(spec: &str) -> Vec<(Instante, AcaoNaPorta)> {
     let Some((cue, quando)) = spec.rsplit_once('@') else {
-        eprintln!("Erro: '--swap-disc' espera CUE@PASSO[:DURACAO], '{spec}'");
-        std::process::exit(1);
+        sai_com_erro(&format!(
+            "'--swap-disc' espera CUE@PASSO[:DURACAO] ou CUE@Ns[:Ds], '{spec}'"
+        ));
     };
-    let (passo, duracao) = match quando.split_once(':') {
-        Some((p, d)) => (passo_de(p, "--swap-disc"), passo_de(d, "--swap-disc")),
-        None => (
-            passo_de(quando, "--swap-disc"),
-            TROCA_DE_DISCO_PASSOS_PADRAO,
+    let (inicio, duracao) = match quando.split_once(':') {
+        Some((p, d)) => (
+            instante_ou_sai(p, "--swap-disc"),
+            instante_ou_sai(d, "--swap-disc"),
         ),
+        None => {
+            let inicio = instante_ou_sai(quando, "--swap-disc");
+            let duracao = match inicio {
+                Instante::Passo(_) => Instante::Passo(TROCA_DE_DISCO_PASSOS_PADRAO),
+                Instante::Ciclo(_) => {
+                    instante_ou_sai(TROCA_DE_DISCO_SEGUNDOS_PADRAO, "--swap-disc")
+                }
+            };
+            (inicio, duracao)
+        }
+    };
+    let fim = match (inicio, duracao) {
+        (Instante::Passo(p), Instante::Passo(d)) => Instante::Passo(p.saturating_add(d)),
+        (Instante::Ciclo(p), Instante::Ciclo(d)) => Instante::Ciclo(p.saturating_add(d)),
+        _ => sai_com_erro(&format!(
+            "'--swap-disc' mistura passos e segundos, '{spec}'; use CUE@30s:2s"
+        )),
     };
     vec![
-        (passo, AcaoNaPorta::Abre),
-        (passo, AcaoNaPorta::Troca(cue.to_string())),
-        (passo.saturating_add(duracao), AcaoNaPorta::Fecha),
+        (inicio, AcaoNaPorta::Abre),
+        (inicio, AcaoNaPorta::Troca(cue.to_string())),
+        (fim, AcaoNaPorta::Fecha),
     ]
 }
 
@@ -62,7 +132,10 @@ fn executa_na_porta(bus: &mut Bus, acao: &AcaoNaPorta, passo: usize) {
             bus.swap_disc_image(layout, imagem);
         }
     }
-    eprintln!("# porta: {acao:?} no passo {passo}");
+    eprintln!(
+        "# porta: {acao:?} no passo {passo} cyc={}",
+        bus.total_cycles()
+    );
 }
 
 fn boot_bios_to_kernel(cpu: &mut Cpu, bus: &mut Bus) -> Result<usize, String> {
@@ -108,16 +181,24 @@ fn resolve_btable_entry(bus: &Bus, index: u32) -> Option<u32> {
 /// emulador executa.
 struct Sondas<'a> {
     trace_pcs: &'a HashSet<u32>,
-    sample_pcs: Option<(usize, usize, usize)>,
+    sample_pcs: Option<Amostragem>,
     watch_mem: &'a [u32],
-    vram_timeline: Option<(usize, &'a str)>,
+    vram_timeline: Option<(Cadencia, &'a str)>,
     audio_dump: Option<&'a str>,
     porta: &'a [(usize, AcaoNaPorta)],
+    porta_ciclos: &'a [(u64, AcaoNaPorta)],
     log_cd: bool,
     pad_em_ciclos: bool,
 }
 
-fn run(cpu: &mut Cpu, bus: &mut Bus, max_steps: usize, pad: &PadScript, sondas: &Sondas) -> usize {
+/// Onde a execucao para: o que vier primeiro entre passos e ciclos do barramento.
+#[derive(Debug, Clone, Copy)]
+struct Limite {
+    passos: usize,
+    ciclos: Option<u64>,
+}
+
+fn run(cpu: &mut Cpu, bus: &mut Bus, limite: Limite, pad: &Roteiro, sondas: &Sondas) -> usize {
     let Sondas {
         trace_pcs,
         sample_pcs,
@@ -125,9 +206,13 @@ fn run(cpu: &mut Cpu, bus: &mut Bus, max_steps: usize, pad: &PadScript, sondas: 
         vram_timeline,
         audio_dump,
         porta,
+        porta_ciclos,
         log_cd,
         pad_em_ciclos,
     } = *sondas;
+    let max_steps = limite.passos;
+    let max_ciclos = limite.ciclos.unwrap_or(u64::MAX);
+    let mut proxima_na_porta_ciclos = 0;
     let mut cd_cmd_antes: Option<u8> = None;
     let mut cd_int_antes: u8 = 0;
     let mut steps = 0;
@@ -146,10 +231,12 @@ fn run(cpu: &mut Cpu, bus: &mut Bus, max_steps: usize, pad: &PadScript, sondas: 
     let mut deliver_event_pc: Option<u32> = None;
     // Quadros PCM crus (i16 L/R little-endian, 44100 Hz) para provar que o jogo soa.
     let mut audio_pcm: Vec<u8> = Vec::new();
-    while steps < max_steps {
+    while steps < max_steps && bus.total_cycles() < max_ciclos {
         let pc_antes = cpu.pc;
+        let ciclo_antes = bus.total_cycles();
         cpu.step(bus);
         steps += 1;
+        let ciclo = bus.total_cycles();
 
         if log_cd {
             let cd = bus.cdrom();
@@ -195,6 +282,13 @@ fn run(cpu: &mut Cpu, bus: &mut Bus, max_steps: usize, pad: &PadScript, sondas: 
             executa_na_porta(bus, acao, steps);
             proxima_na_porta += 1;
         }
+        while let Some((quando, acao)) = porta_ciclos.get(proxima_na_porta_ciclos) {
+            if *quando > ciclo {
+                break;
+            }
+            executa_na_porta(bus, acao, steps);
+            proxima_na_porta_ciclos += 1;
+        }
 
         for (idx, &addr) in watch_mem.iter().enumerate() {
             let agora = bus.read32::<BusRead>(addr);
@@ -208,21 +302,17 @@ fn run(cpu: &mut Cpu, bus: &mut Bus, max_steps: usize, pad: &PadScript, sondas: 
         }
 
         if !pad.is_empty() {
-            let agora = if pad_em_ciclos {
-                bus.total_cycles()
-            } else {
-                steps as u64
-            };
-            let desejado = pad.buttons_at(agora);
+            let agora = if pad_em_ciclos { ciclo } else { steps as u64 };
+            let desejado = pad.buttons_at(agora, ciclo);
             if desejado != pad_state {
                 pad_state = desejado;
                 bus.sio_mut().set_buttons(pad_state);
             }
-            let eixos = pad.sticks_at(agora);
+            let eixos = pad.sticks_at(agora, ciclo);
             if eixos != bus.sio().sticks() {
                 bus.sio_mut().set_sticks(eixos);
             }
-            if pad.analog_press_at(agora) {
+            if pad.analog_press_at(agora, ciclo_antes, ciclo) {
                 let trocou = bus.sio_mut().press_analog_button();
                 eprintln!(
                     "pad: botao Analog no passo {steps}: {}",
@@ -236,8 +326,8 @@ fn run(cpu: &mut Cpu, bus: &mut Bus, max_steps: usize, pad: &PadScript, sondas: 
         }
 
         if let Some((cada, prefixo)) = vram_timeline {
-            if steps % cada == 0 {
-                write_vram_dump(&format!("{prefixo}-{}.vram", steps / cada), bus);
+            if let Some(k) = cada.marco(steps as u64, ciclo_antes, ciclo) {
+                write_vram_dump(&format!("{prefixo}-{k}.vram"), bus);
             }
         }
 
@@ -248,8 +338,8 @@ fn run(cpu: &mut Cpu, bus: &mut Bus, max_steps: usize, pad: &PadScript, sondas: 
             }
         }
 
-        if let Some((start, end, stride)) = sample_pcs {
-            if steps >= start && steps <= end && (steps - start) % stride == 0 {
+        if let Some(amostragem) = sample_pcs {
+            if amostragem.toca(steps, ciclo_antes, ciclo) {
                 eprintln!(
                     "sample pc=0x{:08X} step={} cyc={}",
                     cpu.pc,
@@ -561,16 +651,17 @@ fn main() {
     let mut dump_mem: Vec<(u32, usize)> = Vec::new();
     let mut disasm_mem: Vec<(u32, usize)> = Vec::new();
     let mut dump_vram: Option<String> = None;
-    let mut vram_timeline: Option<(usize, String)> = None;
+    let mut vram_timeline: Option<(Cadencia, String)> = None;
+    let mut max_ciclos: Option<u64> = None;
     let mut audio_dump: Option<String> = None;
-    let mut sample_pcs: Option<(usize, usize, usize)> = None;
+    let mut sample_pcs: Option<Amostragem> = None;
     let mut pad_connected = false;
     let mut log_cd = false;
     let mut pad_em_ciclos = false;
     let mut memcard_arg: Option<String> = None;
     let mut sem_memcard = false;
     let mut press_specs: Vec<String> = Vec::new();
-    let mut porta: Vec<(usize, AcaoNaPorta)> = Vec::new();
+    let mut porta: Vec<(Instante, AcaoNaPorta)> = Vec::new();
     let mut stick_specs: Vec<String> = Vec::new();
     let mut analog_on_boot = false;
     let mut dualshock = false;
@@ -636,15 +727,35 @@ fn main() {
                 i += 2;
             }
             "--open-lid" if i + 1 < args.len() => {
-                porta.push((passo_de(&args[i + 1], "--open-lid"), AcaoNaPorta::Abre));
+                porta.push((
+                    instante_ou_sai(&args[i + 1], "--open-lid"),
+                    AcaoNaPorta::Abre,
+                ));
                 i += 2;
             }
             "--close-lid" if i + 1 < args.len() => {
-                porta.push((passo_de(&args[i + 1], "--close-lid"), AcaoNaPorta::Fecha));
+                porta.push((
+                    instante_ou_sai(&args[i + 1], "--close-lid"),
+                    AcaoNaPorta::Fecha,
+                ));
                 i += 2;
             }
             "--swap-disc" if i + 1 < args.len() => {
                 porta.extend(roteiro_de_troca(&args[i + 1]));
+                i += 2;
+            }
+            "--max-time" if i + 1 < args.len() => {
+                let texto = &args[i + 1];
+                let com_sufixo = if texto.ends_with('s') {
+                    texto.clone()
+                } else {
+                    format!("{texto}s")
+                };
+                match tempo::segundos_em_ciclos(&com_sufixo) {
+                    Ok(c) if c > 0 => max_ciclos = Some(c),
+                    Ok(_) => sai_com_erro("'--max-time' tem de ser maior que zero"),
+                    Err(e) => sai_com_erro(&format!("'--max-time' {e}")),
+                }
                 i += 2;
             }
             "--max-steps" if i + 1 < args.len() => match args[i + 1].parse::<usize>() {
@@ -752,47 +863,27 @@ fn main() {
                 i += 3;
             }
             "--dump-vram-every" if i + 2 < args.len() => {
-                match args[i + 1].parse::<usize>() {
-                    Ok(n) if n > 0 => vram_timeline = Some((n, args[i + 2].clone())),
-                    _ => {
-                        eprintln!("Erro: --dump-vram-every espera N PREFIXO com N > 0");
-                        std::process::exit(1);
-                    }
-                }
+                let cada = cadencia_ou_sai(&args[i + 1], "--dump-vram-every");
+                vram_timeline = Some((cada, args[i + 2].clone()));
                 i += 3;
             }
             "--dump-vram" if i + 1 < args.len() => {
                 dump_vram = Some(args[i + 1].clone());
                 i += 2;
             }
-            "--sample-pcs" if i + 1 < args.len() => {
-                let parts: Vec<_> = args[i + 1].split(':').collect();
-                let parsed = if parts.len() == 3 {
-                    match (
-                        parts[0].parse::<usize>(),
-                        parts[1].parse::<usize>(),
-                        parts[2].parse::<usize>(),
-                    ) {
-                        (Ok(s), Ok(e), Ok(st)) if st > 0 && s <= e => Some((s, e, st)),
-                        _ => None,
-                    }
-                } else {
-                    None
-                };
-                match parsed {
-                    Some(v) => {
-                        sample_pcs = Some(v);
-                        i += 2;
-                    }
-                    None => {
-                        eprintln!(
-                            "Erro: '--sample-pcs' espera inicio:fim:passo decimais, '{}'",
-                            args[i + 1]
-                        );
-                        std::process::exit(1);
-                    }
+            "--sample-pcs" if i + 1 < args.len() => match Amostragem::de(&args[i + 1]) {
+                Some(v) => {
+                    sample_pcs = Some(v);
+                    i += 2;
                 }
-            }
+                None => {
+                    eprintln!(
+                        "Erro: '--sample-pcs' espera inicio:fim:passo decimais ou os tres em segundos (10s:60s:0.01s), '{}'",
+                        args[i + 1]
+                    );
+                    std::process::exit(1);
+                }
+            },
             "--press" => {
                 eprintln!("Erro: '--press' requer BOTAO@PASSO[:DURACAO]");
                 std::process::exit(1);
@@ -802,7 +893,7 @@ fn main() {
                 std::process::exit(1);
             }
             "--max-steps" | "--trace-pcs" | "--dump-vram" | "--sample-pcs" | "--watch-mem"
-            | "--dump-vram-every" | "--open-lid" | "--close-lid" | "--swap-disc" => {
+            | "--dump-vram-every" | "--open-lid" | "--close-lid" | "--swap-disc" | "--max-time" => {
                 eprintln!("Erro: '{}' requer um valor", args[i]);
                 std::process::exit(1);
             }
@@ -812,19 +903,30 @@ fn main() {
             }
         }
     }
-    let max_steps = max_steps.unwrap_or(RUNNER_MAX_STEPS);
-    porta.sort_by_key(|(passo, _)| *passo);
-    let pad_script = match PadScript::parse(&press_specs) {
-        Ok(p) => p,
-        Err(e) => {
-            eprintln!("Erro: --press {}", e);
-            std::process::exit(1);
-        }
+    let limite = Limite {
+        passos: max_steps.unwrap_or(if max_ciclos.is_some() {
+            usize::MAX
+        } else {
+            RUNNER_MAX_STEPS
+        }),
+        ciclos: max_ciclos,
     };
-    let pad_script = match pad_script.with_sticks(&stick_specs) {
+    let mut porta_passos: Vec<(usize, AcaoNaPorta)> = Vec::new();
+    let mut porta_ciclos: Vec<(u64, AcaoNaPorta)> = Vec::new();
+    for (quando, acao) in porta {
+        match quando {
+            Instante::Passo(p) => {
+                porta_passos.push((usize::try_from(p).unwrap_or(usize::MAX), acao));
+            }
+            Instante::Ciclo(c) => porta_ciclos.push((c, acao)),
+        }
+    }
+    porta_passos.sort_by_key(|(passo, _)| *passo);
+    porta_ciclos.sort_by_key(|(ciclo, _)| *ciclo);
+    let pad_script = match Roteiro::monta(&press_specs, &stick_specs) {
         Ok(p) => p,
         Err(e) => {
-            eprintln!("Erro: --stick {}", e);
+            eprintln!("Erro: --press/--stick {}", e);
             std::process::exit(1);
         }
     };
@@ -893,7 +995,7 @@ fn main() {
             let steps = run(
                 &mut cpu,
                 &mut bus,
-                max_steps,
+                limite,
                 &pad_script,
                 &Sondas {
                     trace_pcs: &trace_pcs,
@@ -901,7 +1003,8 @@ fn main() {
                     watch_mem: &watch_mem,
                     vram_timeline: vram_timeline.as_ref().map(|(n, p)| (*n, p.as_str())),
                     audio_dump: audio_dump.as_deref(),
-                    porta: &porta,
+                    porta: &porta_passos,
+                    porta_ciclos: &porta_ciclos,
                     log_cd,
                     pad_em_ciclos,
                 },
@@ -983,7 +1086,7 @@ fn main() {
             let steps = run(
                 &mut cpu,
                 &mut bus,
-                max_steps,
+                limite,
                 &pad_script,
                 &Sondas {
                     trace_pcs: &trace_pcs,
@@ -991,7 +1094,8 @@ fn main() {
                     watch_mem: &watch_mem,
                     vram_timeline: vram_timeline.as_ref().map(|(n, p)| (*n, p.as_str())),
                     audio_dump: audio_dump.as_deref(),
-                    porta: &porta,
+                    porta: &porta_passos,
+                    porta_ciclos: &porta_ciclos,
                     log_cd,
                     pad_em_ciclos,
                 },
@@ -1071,5 +1175,9 @@ fn main() {
     eprintln!("     [--dualshock] [--analog] [--stick left|right:X,Y@PASSO[:DURACAO]]");
     eprintln!("     [--open-lid PASSO] [--close-lid PASSO] [--swap-disc CUE@PASSO[:DURACAO]]");
     eprintln!("     [--memcard <arquivo.mcd> | --no-memcard]");
+    eprintln!("     [--max-steps N] [--max-time SEGUNDOS] [--dump-vram-every N|Ns PREFIXO]");
+    eprintln!(
+        "     PASSO/DURACAO aceitam segundos emulados com sufixo 's' (ex.: start@12.5s:0.1s)"
+    );
     std::process::exit(1);
 }

@@ -1,0 +1,36 @@
+{
+  "id": "crash",
+  "nome": "Crash Bandicoot (USA)",
+  "cue": "Crash Bandicoot (USA)/Crash Bandicoot (USA).cue",
+  "duracao_s": 92.0,
+  "memcard": true,
+  "botoes": [
+    {"b": "start", "t": 55.0, "dur": 0.1},
+    {"b": "cross", "t": 61.75, "dur": 0.1},
+    {"b": "up", "t": 72.0, "dur": 4.0},
+    {"b": "cross", "t": 74.0, "dur": 0.1},
+    {"b": "square", "t": 77.0, "dur": 0.1},
+    {"b": "left", "t": 78.0, "dur": 1.5},
+    {"b": "cross", "t": 79.0, "dur": 0.1},
+    {"b": "right", "t": 80.5, "dur": 1.5},
+    {"b": "cross", "t": 81.0, "dur": 0.1},
+    {"b": "down", "t": 83.0, "dur": 1.5},
+    {"b": "up", "t": 85.0, "dur": 2.0},
+    {"b": "square", "t": 88.0, "dur": 0.1},
+    {"b": "cross", "t": 89.5, "dur": 0.1}
+  ],
+  "extra_cli": [],
+  "checkpoints": [
+    {"t": 10.0, "marco": "BIOS: logo Sony Computer Entertainment (640x448)", "checa": ["parecido_ds", "resolucao"]},
+    {"t": 16.0, "marco": "BIOS: logo PlayStation / Licensed by SCEA", "checa": ["parecido_ds", "resolucao"]},
+    {"t": 38.0, "marco": "logo Universal Interactive Studios", "checa": ["parecido_ds", "resolucao"]},
+    {"t": 49.0, "marco": "logo Naughty Dog animado", "checa": ["muda", "parecido_ds", "resolucao"]},
+    {"t": 62.0, "marco": "mapa da ilha N. Sanity Beach (depois de START no titulo)", "checa": ["parecido_ds", "resolucao"]},
+    {"t": 66.0, "marco": "tela LOADING N. Sanity Beach", "checa": ["parecido_ds", "resolucao"]},
+    {"t": 74.0, "marco": "na fase: Crash andando para frente e pulando", "checa": ["muda", "parecido_ds", "resolucao"]},
+    {"t": 80.0, "marco": "na fase: Crash andando para os lados", "checa": ["muda", "parecido_ds", "resolucao"]},
+    {"t": 86.0, "marco": "na fase: caminho da praia, caranguejo a frente", "checa": ["muda", "parecido_ds", "resolucao"]},
+    {"t": 91.0, "marco": "na fase: giro e pulo perto do caranguejo", "checa": ["muda", "parecido_ds", "resolucao"]}
+  ],
+  "audio": {"min_nao_zero": 0.6}
+}

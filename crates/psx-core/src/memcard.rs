@@ -6,6 +6,48 @@ pub const ADDRESS: u8 = 0x81;
 const FLAG_INICIAL: u8 = 0x08;
 const FLAG_DIRETORIO_NAO_LIDA: u8 = 0x08;
 
+const ULTIMO_DIRETORIO: usize = 15;
+const ULTIMO_SETOR_RUIM: usize = 35;
+const QUADROS_FORMATADOS: usize = ULTIMO_SETOR_RUIM + 1;
+const LIVRE_FORMATADO: u8 = 0xA0;
+const NENHUM: [u8; 4] = [0xFF; 4];
+
+fn xor(bytes: &[u8]) -> u8 {
+    bytes.iter().fold(0, |acc, b| acc ^ b)
+}
+
+// § Memory Card Data Format (L2666-2750) de docs/reference/10-controllers-memcards.md, no
+// leiaute exato que o shell da SCPH1001 grava ao formatar: quadros 36..63 ficam zerados.
+fn quadro_formatado(indice: usize) -> [u8; FRAME_BYTES] {
+    let mut quadro = [0u8; FRAME_BYTES];
+    match indice {
+        0 => quadro[0..2].copy_from_slice(b"MC"),
+        1..=ULTIMO_DIRETORIO => quadro[0] = LIVRE_FORMATADO,
+        _ => quadro[0..4].copy_from_slice(&NENHUM),
+    }
+    if indice > 0 {
+        quadro[8..10].copy_from_slice(&NENHUM[..2]);
+    }
+    quadro[FRAME_BYTES - 1] = xor(&quadro[..FRAME_BYTES - 1]);
+    quadro
+}
+
+/// Imagem de 128 KiB como sai do formatador da BIOS: cabecalho "MC", 15 entradas de
+/// diretorio livres, lista de setores ruins vazia e o resto zerado.
+pub fn formatted_image() -> Vec<u8> {
+    (0..QUADROS_FORMATADOS)
+        .flat_map(quadro_formatado)
+        .chain(std::iter::repeat_n(
+            0u8,
+            CARD_BYTES - QUADROS_FORMATADOS * FRAME_BYTES,
+        ))
+        .collect()
+}
+
+pub fn is_formatted(imagem: &[u8]) -> bool {
+    imagem.len() == CARD_BYTES && &imagem[0..2] == b"MC" && xor(&imagem[..FRAME_BYTES]) == 0
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MemoryCardError {
     TamanhoInvalido(usize),
@@ -54,6 +96,13 @@ impl MemoryCard {
             anterior: 0,
             buffer: Vec::with_capacity(FRAME_BYTES),
             resultado: 0xFF,
+        }
+    }
+
+    pub fn formatted() -> Self {
+        MemoryCard {
+            data: formatted_image(),
+            ..Self::new()
         }
     }
 

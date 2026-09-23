@@ -3,6 +3,7 @@ use std::collections::VecDeque;
 
 use crate::cdrom_bin_cue::DiscLayout;
 use crate::cdrom_xa::{self, XaState};
+use crate::disc_image::DiscImage;
 
 const PAUSE_READING_CYCLES: u64 = 0x021_181C;
 const PAUSE_IDLE_CYCLES: u64 = 0x1DF2;
@@ -190,7 +191,11 @@ impl Cdrom {
     /// Grava no slot corrente o setor que o drive esta recebendo agora. O slot recebe o
     /// conteudo assim que o setor comeca a chegar — e' o que faz o slot 1 mostrar o setor
     /// 17 enquanto o mais novo COMPLETO ainda e' o 16 (06-cdrom.md L2158-2168).
-    fn grava_setor_em_voo(&self, disc_layout: Option<&DiscLayout>, disc_bin: Option<&[u8]>) {
+    fn grava_setor_em_voo(
+        &self,
+        disc_layout: Option<&DiscLayout>,
+        disc_bin: Option<&dyn DiscImage>,
+    ) {
         let tam = self.sector_size();
         let lido = match (disc_layout, disc_bin) {
             (Some(layout), Some(bin)) => read_sector_from_disc(
@@ -213,7 +218,7 @@ impl Cdrom {
         self.slot_escreve(self.write_slot.get(), &buf);
     }
 
-    fn inicia_ring(&self, disc_layout: Option<&DiscLayout>, disc_bin: Option<&[u8]>) {
+    fn inicia_ring(&self, disc_layout: Option<&DiscLayout>, disc_bin: Option<&dyn DiscImage>) {
         self.write_slot.set(0);
         self.newest_slot.set(0);
         self.int1_slot.set(0);
@@ -545,7 +550,7 @@ impl Cdrom {
     }
 
     /// Setor cru do disco na posicao corrente de leitura.
-    fn setor_cru(&self, bin: Option<&[u8]>) -> Option<Vec<u8>> {
+    fn setor_cru(&self, bin: Option<&dyn DiscImage>) -> Option<Vec<u8>> {
         self.setor_cru_em(
             bin,
             self.read_pos_mm.get(),
@@ -557,12 +562,10 @@ impl Cdrom {
     /// Setor cru do disco numa posicao MSF (BCD) arbitraria — usado por GetlocL (06-cdrom.md
     /// L1052-1071) pra reler o cabecalho/subcabecalho do ultimo setor de dado entregue, que
     /// nao e mais a posicao corrente (ja avancada por advance_read_pos).
-    fn setor_cru_em(&self, bin: Option<&[u8]>, mm: u8, ss: u8, ff: u8) -> Option<Vec<u8>> {
+    fn setor_cru_em(&self, bin: Option<&dyn DiscImage>, mm: u8, ss: u8, ff: u8) -> Option<Vec<u8>> {
         let bin = bin?;
         let abs = bcd_to_int(mm) * 60 * 75 + bcd_to_int(ss) * 75 + bcd_to_int(ff);
-        let inicio = abs.checked_sub(150)? as usize * cdrom_xa::RAW_SECTOR_BYTES;
-        let fim = inicio + cdrom_xa::RAW_SECTOR_BYTES;
-        (fim <= bin.len()).then(|| bin[inicio..fim].to_vec())
+        bin.read_sector(abs.checked_sub(150)?).map(|s| s.to_vec())
     }
 
     fn decodifica_cru(&self, cru: &[u8]) {
@@ -645,7 +648,11 @@ impl Cdrom {
         self.second_cycles.get()
     }
 
-    pub fn deliver_first(&self, disc_layout: Option<&DiscLayout>, disc_bin: Option<&[u8]>) -> bool {
+    pub fn deliver_first(
+        &self,
+        disc_layout: Option<&DiscLayout>,
+        disc_bin: Option<&dyn DiscImage>,
+    ) -> bool {
         // § First Response (06-cdrom.md L1984): o mainloop so executa o comando se NAO
         // houver INT pendente — qualquer INT sem ack, nao so int1_pending/int2_pending
         // (essas flags marcam "resposta ainda devida", nao "intsts sem ack").
@@ -667,7 +674,12 @@ impl Cdrom {
         true
     }
 
-    fn send_command(&self, cmd: u8, disc_layout: Option<&DiscLayout>, disc_bin: Option<&[u8]>) {
+    fn send_command(
+        &self,
+        cmd: u8,
+        disc_layout: Option<&DiscLayout>,
+        disc_bin: Option<&dyn DiscImage>,
+    ) {
         self.busy.set(true);
         self.result_clear();
         if self.recusa_sem_disco(cmd) {
@@ -1013,8 +1025,7 @@ impl Cdrom {
                         return None;
                     }
                     if track == 0 {
-                        let bin = disc_bin?;
-                        let total_quadros = (bin.len() / cdrom_xa::RAW_SECTOR_BYTES) as u32;
+                        let total_quadros = disc_bin?.sector_count();
                         Some(quadros_para_msf(total_quadros + 150))
                     } else {
                         layout
@@ -1103,7 +1114,7 @@ impl Cdrom {
         offset: u32,
         val: u8,
         disc_layout: Option<&DiscLayout>,
-        disc_bin: Option<&[u8]>,
+        disc_bin: Option<&dyn DiscImage>,
     ) {
         match offset & 0x3 {
             0 => self.set_bank(val),
@@ -1166,7 +1177,11 @@ impl Cdrom {
         v
     }
 
-    pub fn deliver_second_now(&self, disc_layout: Option<&DiscLayout>, disc_bin: Option<&[u8]>) {
+    pub fn deliver_second_now(
+        &self,
+        disc_layout: Option<&DiscLayout>,
+        disc_bin: Option<&dyn DiscImage>,
+    ) {
         let pending = self.pending_second.get();
         if pending == 0 {
             return;
@@ -1203,7 +1218,7 @@ impl Cdrom {
         }
     }
 
-    fn deliver_second(&self, disc_layout: Option<&DiscLayout>, disc_bin: Option<&[u8]>) {
+    fn deliver_second(&self, disc_layout: Option<&DiscLayout>, disc_bin: Option<&dyn DiscImage>) {
         match self.pending_second.get() {
             1 => {
                 self.termina_spin_up();
@@ -1451,7 +1466,7 @@ fn advance_read_pos(mm: &Cell<u8>, ss: &Cell<u8>, ff: &Cell<u8>) {
 
 fn read_sector_from_disc(
     _layout: &DiscLayout,
-    bin: &[u8],
+    bin: &dyn DiscImage,
     min_bcd: u8,
     sec_bcd: u8,
     sect_bcd: u8,
@@ -1459,29 +1474,14 @@ fn read_sector_from_disc(
 ) -> Option<[u8; 2340]> {
     let abs_sector =
         bcd_to_int(min_bcd) * 60 * 75 + bcd_to_int(sec_bcd) * 75 + bcd_to_int(sect_bcd);
-    let file_sector = abs_sector.checked_sub(150)?;
-    let offset = file_sector as usize * 2352;
-    if offset + 0x10 > bin.len() {
-        return None;
-    }
-    let cabecalho = if bin[offset + 0x0F] == 0x02 {
-        0x18
-    } else {
-        0x10
-    };
+    let setor = bin.read_sector(abs_sector.checked_sub(150)?)?;
+    let cabecalho = if setor[0x0F] == 0x02 { 0x18 } else { 0x10 };
     // § Setmode (06-cdrom.md L685-703): DataOnly comeca depois do cabecalho (Mode1=10h,
     // Mode2=18h); WholeSectorExceptSyncBytes comeca logo apos os 12 bytes de sync.
-    let data_start = if sector_size == 2340 {
-        offset + 0x0C
-    } else {
-        offset + cabecalho
-    };
-    let data_end = data_start + sector_size;
-    if data_end > bin.len() {
-        return None;
-    }
+    let data_start = if sector_size == 2340 { 0x0C } else { cabecalho };
+    let dados = setor.get(data_start..data_start + sector_size)?;
     let mut buf = [0u8; 2340];
-    buf[..sector_size].copy_from_slice(&bin[data_start..data_end]);
+    buf[..sector_size].copy_from_slice(dados);
     Some(buf)
 }
 

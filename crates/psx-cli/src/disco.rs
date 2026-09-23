@@ -1,37 +1,10 @@
 use std::cell::RefCell;
 use std::fs::File;
 use std::io::{Read, Seek, SeekFrom};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
-use psx_core::app::library::{self, Identidade};
-use psx_core::cdrom_bin_cue::{DiscLayout, TrackType, parse_cue};
+use psx_core::cdrom_bin_cue::DiscLayout;
 use psx_core::disc_image::{DiscImage, RAW_SECTOR_BYTES, RawSector};
-
-fn bytes_por_setor(layout: &DiscLayout) -> u64 {
-    match layout.tracks.first().map(|t| &t.track_type) {
-        Some(TrackType::Mode1_2048) => 2048,
-        _ => 2352,
-    }
-}
-
-fn le_cue(cue: &Path) -> Result<DiscLayout, String> {
-    let texto = std::fs::read_to_string(cue)
-        .map_err(|e| format!("nao foi possivel ler o CUE '{}': {e}", cue.display()))?;
-    let layout = parse_cue(&texto);
-    if layout.arquivos_em_ordem().is_empty() {
-        return Err(format!("CUE sem FILE: '{}'", cue.display()));
-    }
-    Ok(layout)
-}
-
-/// Abre a imagem sem copia-la para a memoria: cada setor e lido do arquivo quando o
-/// drive pede.
-pub fn carrega(cue: &Path) -> Result<(DiscLayout, Box<dyn DiscImage>), String> {
-    let mut layout = le_cue(cue)?;
-    let pasta = cue.parent().unwrap_or_else(|| Path::new("."));
-    let imagem = DiscoEmArquivo::abre(pasta, &mut layout)?;
-    Ok((layout, Box::new(imagem)))
-}
 
 #[derive(Debug)]
 struct Faixa {
@@ -92,69 +65,13 @@ impl DiscImage for DiscoEmArquivo {
     }
 }
 
-/// Identifica o disco lendo so os setores que o ISO 9660 pede, por seek — varrer uma
-/// biblioteca nao pode custar a leitura de centenas de MB por jogo.
-pub fn identifica(cue: &Path) -> Result<Identidade, String> {
-    let layout = le_cue(cue)?;
-    let pasta = cue.parent().unwrap_or_else(|| Path::new("."));
-    let primeiro = layout
-        .arquivos_em_ordem()
-        .first()
-        .map(|a| pasta.join(a))
-        .ok_or_else(|| "CUE sem trilha de dados".to_string())?;
-    let mut arquivo = File::open(&primeiro)
-        .map_err(|e| format!("nao foi possivel abrir '{}': {e}", primeiro.display()))?;
-    let passo = bytes_por_setor(&layout);
-
-    Ok(library::identifica(|lba| {
-        let mut bruto = vec![0u8; passo as usize];
-        arquivo.seek(SeekFrom::Start(u64::from(lba) * passo)).ok()?;
-        arquivo.read_exact(&mut bruto).ok()?;
-        library::dados_do_setor(&bruto).map(<[u8]>::to_vec)
-    }))
-}
-
-fn e_cue(caminho: &Path) -> bool {
-    caminho
-        .extension()
-        .is_some_and(|e| e.eq_ignore_ascii_case("cue"))
-}
-
-fn cues_ate(pasta: &Path, niveis: u8, fora: &mut Vec<PathBuf>) {
-    let Ok(entradas) = std::fs::read_dir(pasta) else {
-        return;
-    };
-    for caminho in entradas.filter_map(Result::ok).map(|e| e.path()) {
-        if caminho.is_dir() {
-            if niveis > 1 {
-                cues_ate(&caminho, niveis - 1, fora);
-            }
-        } else if e_cue(&caminho) {
-            fora.push(caminho.canonicalize().unwrap_or(caminho));
-        }
-    }
-}
-
-/// CUEs das pastas dadas e de uma subpasta abaixo: o rip comum poe cada disco na
-/// propria pasta (`Jogo (Disc 2)/Jogo (Disc 2).cue`).
-pub fn lista_cues(raizes: &[&Path]) -> Vec<PathBuf> {
-    let mut fora = Vec::new();
-    for raiz in raizes {
-        cues_ate(raiz, 2, &mut fora);
-    }
-    fora.sort();
-    fora.dedup();
-    fora
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use psx_core::cdrom_bin_cue::parse_cue;
 
     fn pasta(tag: &str) -> std::path::PathBuf {
-        let dir =
-            std::env::temp_dir().join(format!("psx-disco-desktop-{tag}-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("psx-disco-cli-{tag}-{}", std::process::id()));
         std::fs::create_dir_all(&dir).expect("cria pasta temporaria");
         dir
     }

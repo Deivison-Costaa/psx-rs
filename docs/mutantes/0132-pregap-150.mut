@@ -3,6 +3,7 @@ formato: 1
 iteracao: 0132
 item: 4.4aa
 alvo: crates/psx-core/src/cdrom.rs
+arquivada: leitura de setor passou para a interface DiscImage (onda3/disco-por-setor), ancoras sobre a fatia do bin sumiram
 teste: cdrom_pregap
 
 mutante: m1

@@ -3,6 +3,7 @@ formato: 1
 iteracao: 0136
 item: 4.4ad
 alvo: crates/psx-core/src/cdrom.rs
+arquivada: leitura de setor passou para a interface DiscImage (onda3/disco-por-setor), ancoras sobre a fatia do bin sumiram
 teste: cdrom_motor
 
 # reancorado apos o fix do freeze do GT2 — a checagem "comando novo cancela 2a

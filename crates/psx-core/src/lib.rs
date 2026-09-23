@@ -7,6 +7,7 @@ pub mod cdrom;
 pub mod cdrom_bin_cue;
 pub mod cdrom_xa;
 pub mod cpu;
+pub mod disc_image;
 pub mod dma;
 pub mod dualshock;
 pub mod gpu;

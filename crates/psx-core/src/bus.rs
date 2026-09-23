@@ -1,5 +1,6 @@
 use crate::cdrom::Cdrom;
 use crate::cdrom_bin_cue::DiscLayout;
+use crate::disc_image::{DiscImage, VecDisc};
 use crate::dma::Dma;
 use crate::gpu::Gpu;
 use crate::gte::Gte;
@@ -173,7 +174,7 @@ pub struct Bus {
     pub(crate) dma: Dma,
     pub(crate) cdrom: Cdrom,
     disc_layout: Option<DiscLayout>,
-    disc_bin: Option<Vec<u8>>,
+    disc_bin: Option<Box<dyn DiscImage>>,
     pub(crate) timers: Timers,
     pub(crate) sio: Sio,
     pub(crate) mdec: Mdec,
@@ -308,8 +309,12 @@ impl Bus {
     }
 
     pub fn inject_disc(&mut self, layout: DiscLayout, bin: Vec<u8>) {
+        self.inject_disc_image(layout, Box::new(VecDisc::new(bin)));
+    }
+
+    pub fn inject_disc_image(&mut self, layout: DiscLayout, image: Box<dyn DiscImage>) {
         self.disc_layout = Some(layout);
-        self.disc_bin = Some(bin);
+        self.disc_bin = Some(image);
     }
 
     pub fn lid_open(&self) -> bool {
@@ -329,7 +334,11 @@ impl Bus {
     /// Troca a midia na bandeja. Com a porta fechada o drive so percebe no proximo
     /// abre/fecha, como no console: quem troca disco abre a porta antes.
     pub fn swap_disc(&mut self, layout: DiscLayout, bin: Vec<u8>) {
-        self.inject_disc(layout, bin);
+        self.swap_disc_image(layout, Box::new(VecDisc::new(bin)));
+    }
+
+    pub fn swap_disc_image(&mut self, layout: DiscLayout, image: Box<dyn DiscImage>) {
+        self.inject_disc_image(layout, image);
         self.cdrom.set_media_present(true);
     }
 

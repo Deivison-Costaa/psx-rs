@@ -105,7 +105,7 @@ impl Emulador {
 
     pub fn insere_disco(&mut self, cue: &Path) -> Result<(), String> {
         let (layout, bin) = crate::disco::carrega(cue)?;
-        self.bus.inject_disc(layout, bin);
+        self.bus.inject_disc_image(layout, bin);
         self.bus.cdrom_mut().insert_disc();
         self.disco = cue.to_path_buf();
         Ok(())
@@ -137,7 +137,7 @@ impl Emulador {
             }
         };
         self.bus.open_lid();
-        self.bus.swap_disc(layout, bin);
+        self.bus.swap_disc_image(layout, bin);
         self.porta = Some(PortaAberta::desde(self.bus.total_cycles()));
         self.disco = cue.to_path_buf();
         self.aviso = Some(format!("trocando para {}", self.nome_do_disco()));

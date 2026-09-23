@@ -1,5 +1,7 @@
 pub const RAW_SECTOR_BYTES: usize = 2352;
 pub const CDDA_FRAMES: usize = RAW_SECTOR_BYTES / 4;
+/// Mono 18900 Hz: 18 grupos x 8 unidades x 28 amostras, duplicadas a 37800 Hz e 7/6 a 44100.
+pub const XA_MAX_FRAMES_PER_SECTOR: usize = GRUPOS * 2 * BLOCOS * AMOSTRAS * 2 * 7 / 6;
 
 const GRUPOS: usize = 18;
 const BLOCOS: usize = 4;

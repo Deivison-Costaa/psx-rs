@@ -37,6 +37,15 @@ fn ack(bus: &mut Bus) {
     set_bank(bus, 0);
     let ciclos = bus.cdrom().second_response_cycles() as u32;
     bus.tick_timers(ciclos);
+    // § Report (L1254-1256): o INT1 sai so em asect multiplo de 10h, um a cada dez
+    // setores tocados — espera ate doze intervalos de setor pela proxima interrupcao.
+    for _ in 0..12 {
+        if hintsts(bus) & 0x7 != 0 {
+            break;
+        }
+        let ciclos = bus.cdrom().second_response_cycles() as u32;
+        bus.tick_timers(ciclos);
+    }
 }
 
 fn result_read(bus: &mut Bus) -> u8 {

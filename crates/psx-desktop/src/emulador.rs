@@ -287,7 +287,12 @@ impl Emulador {
     }
 
     fn atualiza_textura(&mut self) {
-        let Some(fb) = self.bus.gpu().framebuffer_for_display() else {
+        let Some(fb) = self
+            .bus
+            .gpu()
+            .framebuffer_for_display()
+            .filter(|fb| fb.width > 0 && fb.height > 0)
+        else {
             self.textura = None;
             return;
         };

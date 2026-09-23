@@ -11,15 +11,27 @@ const STOP_MOTOR_CYCLES: u64 = 0x0D3_8ACA;
 const STOP_STOPPED_CYCLES: u64 = 0x1D7B;
 const GETID_CYCLES: u64 = 0x4A00;
 
-// APROXIMACAO DECLARADA. A spec mede GetID/Pause/Stop (06-cdrom.md L2069-2076) mas diz do
-// seek: "The seek timings are still unknown, and they are probably quite complicated"
-// (L2079). O que ela afirma e' que o tempo depende da distancia (L2077-2078, L2081-2086) e
-// que toda medida do drive tem FAIXA, nao valor unico. Modelo adotado: custo fixo de
-// assentamento + termo linear na distancia em quadros, calibrado para ~13,5 ms no seek
-// curto e ~200 ms na varredura quase completa do disco. Nao ha medida de hardware por tras
-// destes dois numeros.
-const SEEK_SETTLE_CYCLES: u64 = 0x0007_0000;
-const SEEK_CYCLES_PER_FRAME: u64 = 24;
+// Seek: a spec so diz que depende da distancia (06-cdrom.md L2077-2090). Faixas tiradas do
+// log de CD do DuckStation: avancar poucos setores custa o tempo de passarem sob a cabeca;
+// salto de trilha ~51 ms; dois saltos ~100 ms; acima de 1 minuto o treno, 310..800 ms.
+const CYCLES_PER_MS: u64 = 33_869;
+const SEEK_FORWARD_READ_MAX: u64 = 8;
+const SEEK_MIN_SECTORS: u64 = 2;
+const SEEK_ONE_JUMP_MAX: u64 = 384;
+const SEEK_ONE_JUMP_CYCLES: u64 = 51 * CYCLES_PER_MS;
+const SEEK_SLED_MIN: u64 = 4500;
+const SEEK_TWO_JUMPS_CYCLES: u64 = 100 * CYCLES_PER_MS;
+const SEEK_SLED_MS: [(u64, u64); 5] = [
+    (SEEK_SLED_MIN, 310),
+    (17_532, 340),
+    (65_738, 451),
+    (130_829, 572),
+    (263_378, 800),
+];
+const SPEED_UP_CYCLES: u64 = 20_321_280;
+const SPEED_DOWN_CYCLES: u64 = 23_708_160;
+const MODE_DOUBLE_SPEED: u8 = 0x80;
+const MODE_AFTER_INIT: u8 = 0x20;
 const SPINUP_CYCLES: u64 = STOP_MOTOR_CYCLES;
 const SEEK_JITTER_DIVISOR: u64 = 64;
 const SPINDOWN_CYCLES: u64 = STOP_MOTOR_CYCLES;
@@ -99,6 +111,8 @@ pub struct Cdrom {
     drive_phase: Cell<u8>,
     drive_timer: Cell<Option<u64>>,
     lid_int5_pending: Cell<bool>,
+    clock: Cell<u64>,
+    speed_change_until: Cell<u64>,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -170,6 +184,8 @@ impl Cdrom {
             drive_phase: Cell::new(DRIVE_IDLE),
             drive_timer: Cell::new(None),
             lid_int5_pending: Cell::new(false),
+            clock: Cell::new(0),
+            speed_change_until: Cell::new(0),
         }
     }
 
@@ -522,7 +538,13 @@ impl Cdrom {
     // tanto no latch (write8) quanto no dispatch de fato (deliver_first) — sao dois
     // pontos independentes que hoje descartam CDROM_SECOND.
     fn preserva_entrega_em_voo(&self, cmd: u8) -> bool {
-        (self.reading.get() || self.playing.get()) && !Self::aborta_leitura(cmd)
+        ((self.reading.get() || self.playing.get()) && !Self::aborta_leitura(cmd))
+            || self.init_em_andamento(cmd)
+    }
+
+    // § Init (06-cdrom.md L538-540): Init repetido com a 2a resposta pendente some.
+    fn init_em_andamento(&self, cmd: u8) -> bool {
+        cmd == 0x0A && self.pending_second.get() == 1
     }
 
     fn latch_command(&self, cmd: u8) {
@@ -644,14 +666,53 @@ impl Cdrom {
         nominal - faixa / 2 + self.next_random() % faixa
     }
 
+    pub fn set_clock(&self, ciclos: u64) {
+        self.clock.set(ciclos);
+    }
+
+    fn muda_modo(&self, novo: u8) {
+        let antes = self.mode.replace(novo);
+        if (antes ^ novo) & MODE_DOUBLE_SPEED != 0 && self.motor_on.get() {
+            let troca = if novo & MODE_DOUBLE_SPEED != 0 {
+                SPEED_UP_CYCLES
+            } else {
+                SPEED_DOWN_CYCLES
+            };
+            self.speed_change_until.set(self.clock.get() + troca);
+        }
+    }
+
+    fn seek_distance_cycles(&self, alvo: u32) -> u64 {
+        let cabeca = self.head_frame();
+        let d = alvo.abs_diff(cabeca) as u64;
+        if alvo >= cabeca && d < SEEK_FORWARD_READ_MAX {
+            return d.max(SEEK_MIN_SECTORS) * self.sector_interval_cycles();
+        }
+        if d < SEEK_ONE_JUMP_MAX {
+            return SEEK_ONE_JUMP_CYCLES;
+        }
+        if d < SEEK_SLED_MIN {
+            return SEEK_TWO_JUMPS_CYCLES;
+        }
+        let i = SEEK_SLED_MS
+            .windows(2)
+            .position(|w| d < w[1].0)
+            .unwrap_or(SEEK_SLED_MS.len() - 2);
+        let ((x0, y0), (x1, y1)) = (SEEK_SLED_MS[i], SEEK_SLED_MS[i + 1]);
+        (y0 * (x1 - x0) + (y1 - y0) * (d - x0)) * CYCLES_PER_MS / (x1 - x0)
+    }
+
     fn seek_cycles_to(&self, alvo: u32) -> u64 {
-        let distancia = alvo.abs_diff(self.head_frame()) as u64;
         let spinup = if self.motor_on.get() {
             0
         } else {
             SPINUP_CYCLES
         };
-        self.with_jitter(SEEK_SETTLE_CYCLES + distancia * SEEK_CYCLES_PER_FRAME + spinup)
+        let troca = self
+            .speed_change_until
+            .get()
+            .saturating_sub(self.clock.get());
+        self.with_jitter(self.seek_distance_cycles(alvo) + spinup) + troca
     }
 
     fn second_response_cycles_for(&self, cmd: u8) -> u64 {
@@ -838,10 +899,11 @@ impl Cdrom {
                 self.busy.set(false);
             }
             0x0A => {
-                if self.int2_pending.get() && self.pending_second.get() == 1 {
+                if self.init_em_andamento(cmd) {
                     self.busy.set(false);
                     return;
                 }
+                self.muda_modo(MODE_AFTER_INIT);
                 let busca = self.second_response_cycles_for(0x0A);
                 if self.disc_inserted.get() && !self.disco_inacessivel() {
                     self.motor_on.set(true);
@@ -854,7 +916,8 @@ impl Cdrom {
             }
             0x0E => {
                 if !self.param_is_empty() {
-                    self.mode.set(self.param_pop());
+                    let novo = self.param_pop();
+                    self.muda_modo(novo);
                 }
                 self.param_clear();
                 self.result_push(self.stat_byte());
@@ -901,8 +964,7 @@ impl Cdrom {
                 let amm = self.read_pos_mm.get();
                 let ass = self.read_pos_ss.get();
                 let asect = self.read_pos_ff.get();
-                let (track, index, inicio) = self.trilha_em(disc_layout, amm, ass, asect);
-                let (mm, ss, ff) = subtrai_msf((amm, ass, asect), inicio);
+                let (track, index, (mm, ss, ff)) = self.trilha_em(disc_layout, amm, ass, asect);
                 self.result_push(track);
                 self.result_push(index);
                 self.result_push(mm);
@@ -1356,7 +1418,7 @@ impl Cdrom {
         let amm = self.read_pos_mm.get();
         let ass = self.read_pos_ss.get();
         let asect = self.read_pos_ff.get();
-        let (track, index, inicio) = self.trilha_em(disc_layout, amm, ass, asect);
+        let (track, index, relativo) = self.trilha_em(disc_layout, amm, ass, asect);
         if self.play_track.get() == 0 {
             self.play_track.set(track);
         }
@@ -1388,7 +1450,7 @@ impl Cdrom {
             self.result_push(ass);
             self.result_push(asect);
         } else {
-            let (mm, ss, ff) = subtrai_msf((amm, ass, asect), inicio);
+            let (mm, ss, ff) = relativo;
             self.result_push(mm);
             self.result_push(ss | 0x80);
             self.result_push(ff);
@@ -1397,17 +1459,23 @@ impl Cdrom {
         self.result_push(0x00);
     }
 
-    // § Report (L1246-1256) de docs/reference/06-cdrom.md quer trilha, index e o inicio dela
-    // para o tempo relativo. Sem TOC (disco stub dos testes) vale a unica coisa verdadeira de
-    // qualquer disco: a trilha 1 comeca em 00:02:00, pela convencao MSF/LBA.
+    // § Report (L1246-1256) de docs/reference/06-cdrom.md quer trilha, index e tempo relativo,
+    // em BCD como o resto do Subchannel Q (§ GetlocP L1073-1086). No pregap (Index=0, § GetTD
+    // L1098-1104) o Q ja traz a trilha seguinte e o relativo conta para tras ate o Index=1.
+    // Sem TOC vale a trilha 1 em 00:02:00, pela convencao MSF/LBA.
     fn trilha_em(&self, layout: Option<&DiscLayout>, mm: u8, ss: u8, ff: u8) -> (u8, u8, Msf) {
-        let padrao = (1u8, 1u8, (0x00u8, 0x02u8, 0x00u8));
+        let agora = msf_para_quadros((mm, ss, ff));
+        let relativo = |inicio: u32| quadros_para_msf(agora.abs_diff(inicio + 150));
+        let padrao = (0x01u8, 0x01u8, relativo(0));
         let Some(layout) = layout else { return padrao };
-        let agora_lba = msf_para_quadros((mm, ss, ff)).saturating_sub(150);
+        let agora_lba = agora.saturating_sub(150);
         let mut achada = padrao;
         for t in &layout.tracks {
+            let numero = int_to_bcd(t.number as u32);
             if t.start_lba <= agora_lba {
-                achada = (t.number, 1, quadros_para_msf(t.start_lba + 150));
+                achada = (numero, 0x01, relativo(t.start_lba));
+            } else if t.index00_lba() <= agora_lba {
+                achada = (numero, 0x00, relativo(t.start_lba));
             }
         }
         achada
@@ -1431,6 +1499,23 @@ impl Cdrom {
 
     pub fn pending_cmd(&self) -> Option<u8> {
         self.pending_cmd.get()
+    }
+
+    /// Diagnostico: alvo do ultimo Setloc (BCD), modo e posicao de leitura.
+    pub fn debug_state(&self) -> (Msf, u8, Msf) {
+        (
+            (
+                self.seek_min.get(),
+                self.seek_sec.get(),
+                self.seek_sect.get(),
+            ),
+            self.mode.get(),
+            (
+                self.read_pos_mm.get(),
+                self.read_pos_ss.get(),
+                self.read_pos_ff.get(),
+            ),
+        )
     }
 
     pub fn take_irq2_edge(&self) -> bool {
@@ -1460,15 +1545,6 @@ fn quadros_para_msf(q: u32) -> Msf {
         int_to_bcd(q / (60 * 75)),
         int_to_bcd((q / 75) % 60),
         int_to_bcd(q % 75),
-    )
-}
-
-fn subtrai_msf(pos: Msf, inicio: Msf) -> Msf {
-    let d = msf_para_quadros(pos).saturating_sub(msf_para_quadros(inicio));
-    (
-        int_to_bcd(d / (60 * 75)),
-        int_to_bcd((d / 75) % 60),
-        int_to_bcd(d % 75),
     )
 }
 

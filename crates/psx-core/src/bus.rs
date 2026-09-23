@@ -459,6 +459,7 @@ impl Bus {
     pub fn tick_timers(&mut self, cycles: u32) {
         let cycles = cycles + std::mem::take(&mut self.dma_extra_cycles);
         self.total_cycles += cycles as u64;
+        self.cdrom.set_clock(self.total_cycles);
 
         self.timers.update_gpu_timing(
             self.gpu.cycles_per_pix(),

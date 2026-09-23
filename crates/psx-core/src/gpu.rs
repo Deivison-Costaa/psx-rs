@@ -32,6 +32,16 @@ fn color24_to_16_dithered(color24: u32, x: i32, y: i32, dither_enabled: bool) ->
     }
 }
 
+const NTSC_VISIBLE_Y: (u16, u16) = (0x88 - 112, 0x88 + 112);
+const PAL_VISIBLE_Y: (u16, u16) = (0xA3 - 144, 0xA3 + 144);
+
+#[derive(Clone, Copy)]
+struct DisplayCrop {
+    skip_y: u16,
+    width: u16,
+    height: u16,
+}
+
 const LINE_FRAC: u32 = 32;
 const LINE_HALF: i64 = 1 << (LINE_FRAC - 1);
 const LINE_BIAS: i64 = 1024;
@@ -456,15 +466,48 @@ impl Gpu {
     }
 
     pub fn framebuffer(&self) -> Framebuffer {
-        let w = self.display_width();
-        let h = self.display_height();
+        self.render_display(DisplayCrop {
+            skip_y: 0,
+            width: self.display_width(),
+            height: self.display_height(),
+        })
+    }
+
+    fn visible_crop(&self) -> DisplayCrop {
+        let win_y = if self.video_mode.get() {
+            PAL_VISIBLE_Y
+        } else {
+            NTSC_VISIBLE_Y
+        };
+        let dot = self.cycles_per_pix();
+        let x1 = self.display_range_x1.get();
+        let end_x = self
+            .display_range_x2
+            .get()
+            .min(self.video_cycles_per_scanline())
+            .max(x1);
+        let y1 = self.display_range_y1.get();
+        let y2 = self.display_range_y2.get();
+        let start_y = y1.max(win_y.0);
+        let end_y = y2.min(win_y.1).max(start_y);
+        let stat = self.stat.get();
+        let lines_shift = u16::from(stat & (1 << 19) != 0 && stat & (1 << 22) != 0);
+        DisplayCrop {
+            skip_y: (start_y - y1) << lines_shift,
+            width: (end_x - x1) / dot,
+            height: (end_y - start_y) << lines_shift,
+        }
+    }
+
+    fn render_display(&self, crop: DisplayCrop) -> Framebuffer {
+        let (w, h) = (crop.width as usize, crop.height as usize);
         let start_x = self.display_start_x.get() as usize;
-        let start_y = self.display_start_y.get() as usize;
+        let start_y = self.display_start_y.get() as usize + crop.skip_y as usize;
         let bits24 = self.stat.get() & (1 << 21) != 0;
-        let mut data = Vec::with_capacity((w as usize) * (h as usize) * 4);
-        for y in 0..(h as usize) {
+        let mut data = Vec::with_capacity(w * h * 4);
+        for y in 0..h {
             let row = ((start_y + y) & 0x1FF) * 1024;
-            for x in 0..(w as usize) {
+            for x in 0..w {
                 let (r, g, b) = if bits24 {
                     let byte = start_x * 2 + x * 3;
                     let comp = |o: usize| -> u8 {
@@ -485,15 +528,12 @@ impl Gpu {
                         (((pixel >> 10) & 0x1F) as u8) << 3,
                     )
                 };
-                data.push(r);
-                data.push(g);
-                data.push(b);
-                data.push(255u8);
+                data.extend_from_slice(&[r, g, b, 255]);
             }
         }
         Framebuffer {
-            width: w,
-            height: h,
+            width: crop.width,
+            height: crop.height,
             data,
         }
     }
@@ -502,7 +542,7 @@ impl Gpu {
         if self.stat.get() & (1 << 23) != 0 {
             return None;
         }
-        Some(self.framebuffer())
+        Some(self.render_display(self.visible_crop()))
     }
 
     fn write_gp0(&mut self, val: u32) {

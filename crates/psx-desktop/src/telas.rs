@@ -105,7 +105,7 @@ impl App {
 
         match emu.textura() {
             Some(imagem) => {
-                let tamanho = egui::vec2(imagem.width() as f32, imagem.height() as f32) * escala;
+                let tamanho = tamanho_na_tela(imagem.width(), imagem.height(), escala);
                 let handle = ctx.load_texture("framebuffer", imagem.clone(), filtro);
                 ui.add(egui::Image::new(&handle).fit_to_exact_size(tamanho));
             }
@@ -415,5 +415,44 @@ impl App {
             }
         });
         ui.small("Ajuste de escala e de filtro vale no proximo quadro; o resto, no proximo jogo.");
+    }
+}
+
+const LINHAS_PROGRESSIVO_MAX: usize = 320;
+
+fn tamanho_na_tela(largura: usize, altura: usize, escala: f32) -> egui::Vec2 {
+    let linhas = if altura > LINHAS_PROGRESSIVO_MAX {
+        altura / 2
+    } else {
+        altura
+    };
+    let alto = linhas as f32 * escala;
+    if largura == 0 {
+        return egui::Vec2::ZERO;
+    }
+    egui::vec2(alto * 4.0 / 3.0, alto)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::tamanho_na_tela;
+
+    #[test]
+    fn modos_diferentes_ocupam_a_mesma_area_4_por_3() {
+        let base = tamanho_na_tela(320, 224, 3.0);
+        assert_eq!(base, egui::vec2(896.0, 672.0), "320x224 x3 em 4:3");
+        for (w, h) in [(640, 448), (512, 224), (365, 224), (352, 448), (256, 224)] {
+            assert_eq!(
+                tamanho_na_tela(w, h, 3.0),
+                base,
+                "{w}x{h} deve ocupar a mesma area que 320x224"
+            );
+        }
+    }
+
+    #[test]
+    fn pal_288_linhas_fica_mais_alto() {
+        assert_eq!(tamanho_na_tela(320, 288, 2.0).y, 576.0, "288 linhas x2");
+        assert_eq!(tamanho_na_tela(640, 576, 2.0).y, 576.0, "576i vale 288 x2");
     }
 }

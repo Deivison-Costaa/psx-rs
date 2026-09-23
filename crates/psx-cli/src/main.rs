@@ -113,6 +113,7 @@ struct Sondas<'a> {
     vram_timeline: Option<(usize, &'a str)>,
     audio_dump: Option<&'a str>,
     porta: &'a [(usize, AcaoNaPorta)],
+    log_cd: bool,
 }
 
 fn run(cpu: &mut Cpu, bus: &mut Bus, max_steps: usize, pad: &PadScript, sondas: &Sondas) -> usize {
@@ -123,7 +124,10 @@ fn run(cpu: &mut Cpu, bus: &mut Bus, max_steps: usize, pad: &PadScript, sondas: 
         vram_timeline,
         audio_dump,
         porta,
+        log_cd,
     } = *sondas;
+    let mut cd_cmd_antes: Option<u8> = None;
+    let mut cd_int_antes: u8 = 0;
     let mut steps = 0;
     let mut proxima_na_porta = 0;
     // Comparar antes/depois de cada passo atribui a escrita ao PC exato que a fez. Foi assim
@@ -144,6 +148,37 @@ fn run(cpu: &mut Cpu, bus: &mut Bus, max_steps: usize, pad: &PadScript, sondas: 
         let pc_antes = cpu.pc;
         cpu.step(bus);
         steps += 1;
+
+        if log_cd {
+            let cd = bus.cdrom();
+            let cmd = cd.pending_cmd();
+            if cmd.is_some() && cmd != cd_cmd_antes {
+                let (alvo, modo, pos) = cd.debug_state();
+                eprintln!(
+                    "cd cmd=0x{:02X} passo={} pc=0x{:08X} alvo={:02X}:{:02X}:{:02X} modo=0x{:02X} pos={:02X}:{:02X}:{:02X}",
+                    cmd.unwrap_or(0),
+                    steps,
+                    pc_antes,
+                    alvo.0,
+                    alvo.1,
+                    alvo.2,
+                    modo,
+                    pos.0,
+                    pos.1,
+                    pos.2
+                );
+            }
+            cd_cmd_antes = cmd;
+            let int = cd.intsts();
+            if int != cd_int_antes && int != 0 {
+                let (_, _, pos) = cd.debug_state();
+                eprintln!(
+                    "cd int={} passo={} pos={:02X}:{:02X}:{:02X}",
+                    int, steps, pos.0, pos.1, pos.2
+                );
+            }
+            cd_int_antes = int;
+        }
 
         while let Some((passo, acao)) = porta.get(proxima_na_porta) {
             if *passo > steps {
@@ -322,13 +357,17 @@ fn write_framebuffer_png(vram_path: &str, bus: &Bus) {
         return;
     }
     eprintln!(
-        "dump-fb: {saida} {}x{} {}bpp stat={:08X} start=({},{})",
+        "dump-fb: {saida} {}x{} {}bpp stat={:08X} start=({},{}) x={}..{} y={}..{}",
         fb.width,
         fb.height,
         if stat & (1 << 21) != 0 { 24 } else { 15 },
         stat,
         gpu.display_start_x(),
         gpu.display_start_y(),
+        gpu.display_range_x1(),
+        gpu.display_range_x2(),
+        gpu.display_range_y1(),
+        gpu.display_range_y2(),
     );
 }
 
@@ -501,6 +540,7 @@ fn main() {
     let mut audio_dump: Option<String> = None;
     let mut sample_pcs: Option<(usize, usize, usize)> = None;
     let mut pad_connected = false;
+    let mut log_cd = false;
     let mut memcard_arg: Option<String> = None;
     let mut press_specs: Vec<String> = Vec::new();
     let mut porta: Vec<(usize, AcaoNaPorta)> = Vec::new();
@@ -517,6 +557,10 @@ fn main() {
             "--exe" if i + 1 < args.len() => {
                 exe_arg = Some(args[i + 1].clone());
                 i += 2;
+            }
+            "--log-cd" => {
+                log_cd = true;
+                i += 1;
             }
             "--pad" => {
                 pad_connected = true;
@@ -823,6 +867,7 @@ fn main() {
                     vram_timeline: vram_timeline.as_ref().map(|(n, p)| (*n, p.as_str())),
                     audio_dump: audio_dump.as_deref(),
                     porta: &porta,
+                    log_cd,
                 },
             );
 
@@ -911,6 +956,7 @@ fn main() {
                     vram_timeline: vram_timeline.as_ref().map(|(n, p)| (*n, p.as_str())),
                     audio_dump: audio_dump.as_deref(),
                     porta: &porta,
+                    log_cd,
                 },
             );
 

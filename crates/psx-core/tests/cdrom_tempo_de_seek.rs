@@ -142,3 +142,93 @@ fn seek_conta_a_distancia_a_partir_de_onde_a_cabeca_parou() {
          curto. vizinho={vizinho} longe={longe}"
     );
 }
+
+// Faixas medidas no log de CD do DuckStation (logs/onda/comparativo/*/ds/*/cdrom.log):
+// ~51 ms por salto de trilha curto, ~100 ms ate alguns milhares de setores, e o treno
+// (sled) de 340 ms a 17,5 mil setores ate 800 ms a 263 mil.
+fn ms(ciclos: u64) -> u64 {
+    ciclos / MS
+}
+
+fn setmode(cd: &Cdrom, modo: u8) {
+    cd.write8(0, 0, None, None);
+    cd.write8(2, modo, None, None);
+    cd.write8(1, 0x0E, None, None);
+    cd.deliver_first(None, None);
+    ack(cd);
+}
+
+#[test]
+fn seek_de_meio_disco_leva_meio_segundo() {
+    let cd = drive();
+    seek(&cd, 0x00, 0x02, 0x00);
+    let t = seek(&cd, 0x30, 0x02, 0x00);
+    assert!(
+        (480..680).contains(&ms(t)),
+        "30 minutos de distancia (135 mil setores): a referencia leva ~575 ms. Aqui {} ms",
+        ms(t)
+    );
+}
+
+#[test]
+fn seek_de_disco_inteiro_leva_perto_de_800_ms() {
+    let cd = drive();
+    seek(&cd, 0x00, 0x02, 0x00);
+    let t = seek(&cd, 0x58, 0x30, 0x00);
+    assert!(
+        (700..900).contains(&ms(t)),
+        "58 minutos de distancia: a referencia leva ~800 ms. Aqui {} ms",
+        ms(t)
+    );
+}
+
+#[test]
+fn seek_de_poucos_minutos_ja_usa_o_treno() {
+    let cd = drive();
+    seek(&cd, 0x00, 0x02, 0x00);
+    let t = seek(&cd, 0x04, 0x02, 0x00);
+    assert!(
+        (300..420).contains(&ms(t)),
+        "4 minutos (18 mil setores): a referencia leva ~340 ms. Aqui {} ms",
+        ms(t)
+    );
+}
+
+#[test]
+fn seek_de_dois_segundos_custa_um_salto_de_trilha() {
+    let cd = drive();
+    seek(&cd, 0x00, 0x02, 0x00);
+    let t = seek(&cd, 0x00, 0x04, 0x00);
+    assert!(
+        (40..70).contains(&ms(t)),
+        "150 setores: a referencia leva ~51 ms. Aqui {} ms",
+        ms(t)
+    );
+}
+
+#[test]
+fn seek_de_meio_minuto_custa_dois_saltos() {
+    let cd = drive();
+    seek(&cd, 0x00, 0x02, 0x00);
+    let t = seek(&cd, 0x00, 0x32, 0x00);
+    assert!(
+        (85..120).contains(&ms(t)),
+        "2250 setores: a referencia leva ~100 ms. Aqui {} ms",
+        ms(t)
+    );
+}
+
+#[test]
+fn avancar_poucos_setores_so_espera_eles_passarem() {
+    let cd = drive();
+    setmode(&cd, 0x80);
+    cd.set_clock(CLOCK);
+    seek(&cd, 0x00, 0x02, 0x00);
+    let t = seek(&cd, 0x00, 0x02, 0x04);
+    assert!(
+        (20..40).contains(&ms(t)),
+        "4 setores adiante em 2x: a cabeca so espera o disco girar (~27 ms na referencia). \
+         Aqui {} ms",
+        ms(t)
+    );
+}

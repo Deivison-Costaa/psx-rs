@@ -8,8 +8,8 @@ fn gpu_4x2(modo_gp1_08: u32) -> Gpu {
     let mut gpu = Gpu::new();
     write_gp1(&mut gpu, 0x03, 0);
     write_gp1(&mut gpu, 0x05, 0);
-    write_gp1(&mut gpu, 0x06, 20 << 12);
-    write_gp1(&mut gpu, 0x07, 2 << 10);
+    write_gp1(&mut gpu, 0x06, 40 << 12);
+    write_gp1(&mut gpu, 0x07, 24 | (26 << 10));
     write_gp1(&mut gpu, 0x08, modo_gp1_08);
     gpu
 }

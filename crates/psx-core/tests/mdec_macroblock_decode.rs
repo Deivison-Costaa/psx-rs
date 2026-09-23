@@ -132,29 +132,14 @@ fn bytes_de(palavras: &[u32]) -> Vec<u8> {
     palavras.iter().flat_map(|w| w.to_le_bytes()).collect()
 }
 
-// § real_idct_core (L241-267) de docs/reference/09-mdec.md admite que "the results aren't
-// perfect": a spec nao define o arredondamento do hardware. O que o gabarito permite afirmar e
-// que nenhuma amostra desvia mais de um passo, e que a grande maioria bate exatamente.
+// O gabarito tem de sair byte a byte. A IDCT da spec (L241-267, "the results aren't
+// perfect") errava 16 dos 64 bytes; com o RLE de 12 bits que leva coeficientes pares ao impar
+// mais proximo do zero e as larguras de bit do chip, nenhum.
 #[test]
 fn mdec_decode_8bit_bloco_heart_bate_com_o_gabarito_de_hardware() {
     let mut bus = bus_com_mdec();
     let saida = bytes_de(&decodificar(&mut bus, 1));
-    assert_eq!(saida.len(), HW_8BIT.len(), "o console entrega 64 bytes");
-    let mut exatos = 0;
-    for (i, (&nosso, &console)) in saida.iter().zip(HW_8BIT.iter()).enumerate() {
-        let delta = nosso as i32 - console as i32;
-        assert!(
-            delta.abs() <= 2,
-            "byte {i}: nosso 0x{nosso:02X}, console 0x{console:02X} (delta {delta:+})"
-        );
-        if delta == 0 {
-            exatos += 1;
-        }
-    }
-    assert!(
-        exatos >= 48,
-        "so {exatos} de 64 bytes batem exatamente com o console; era 48 na iteracao 0184"
-    );
+    assert_eq!(saida, HW_8BIT.to_vec(), "mdec/8bit/psx.log do console");
 }
 
 // O empacotamento de 4 bits reduz cada pixel de 8 para 4 bits arredondando, nao truncando:
@@ -163,23 +148,5 @@ fn mdec_decode_8bit_bloco_heart_bate_com_o_gabarito_de_hardware() {
 fn mdec_decode_4bit_bloco_heart_bate_com_o_gabarito_de_hardware() {
     let mut bus = bus_com_mdec();
     let saida = bytes_de(&decodificar(&mut bus, 0));
-    assert_eq!(saida.len(), HW_4BIT.len(), "o console entrega 32 bytes");
-    let mut divergentes = 0;
-    for (i, (&nosso, &console)) in saida.iter().zip(HW_4BIT.iter()).enumerate() {
-        for desl in [0u8, 4] {
-            let a = ((nosso >> desl) & 0xF) as i32;
-            let b = ((console >> desl) & 0xF) as i32;
-            assert!(
-                (a - b).abs() <= 1,
-                "byte {i} nibble {desl}: nosso {a}, console {b}"
-            );
-            if a != b {
-                divergentes += 1;
-            }
-        }
-    }
-    assert!(
-        divergentes <= 2,
-        "{divergentes} nibbles divergem do console; eram 2 na iteracao 0184"
-    );
+    assert_eq!(saida, HW_4BIT.to_vec(), "mdec/4bit/psx.log do console");
 }

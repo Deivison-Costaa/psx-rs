@@ -193,38 +193,23 @@ fn pixels(palavras: &[u32]) -> Vec<u16> {
 // O console emite quatro macroblocos completos com as 256 palavras deste gabarito, e para: o
 // resto dos dados nao fecha um quinto macrobloco, e um macrobloco incompleto nao sai.
 //
-// § real_idct_core (L241-267) de docs/reference/09-mdec.md diz que o arredondamento exato do
-// hardware nao e conhecido ("the results aren't perfect"). O que o gabarito permite exigir e
-// que nenhum canal de nenhum pixel desvie mais de um passo de 5 bits, e que a esmagadora
-// maioria das palavras bata byte a byte.
+// A spec (real_idct_core, L241-267) admite nao conhecer o arredondamento; o gabarito de
+// hardware, palavra a palavra, e a referencia. Com a IDCT da spec 35 das 512 palavras erravam
+// um passo de 5 bits.
 #[test]
-fn mdec_15bpp_reproduz_o_gabarito_de_hardware_dentro_de_um_passo() {
+fn mdec_15bpp_reproduz_o_gabarito_de_hardware_palavra_a_palavra() {
     let saida = decodificar(3);
     assert_eq!(
         saida.len(),
         SAIDA.len(),
-        "o console entregou {} palavras e nos {}",
-        SAIDA.len(),
-        saida.len()
+        "quatro macroblocos de 128 palavras"
     );
-    for (i, (&nosso, &console)) in pixels(&saida).iter().zip(pixels(&SAIDA).iter()).enumerate() {
-        for (c, (a, b)) in canais(nosso).iter().zip(canais(console).iter()).enumerate() {
-            assert!(
-                (a - b).abs() <= 1,
-                "pixel {i} canal {c}: nosso {a}, console {b} (0x{nosso:04X} vs 0x{console:04X})"
-            );
-        }
+    for (i, (&nosso, &console)) in saida.iter().zip(SAIDA.iter()).enumerate() {
+        assert_eq!(
+            nosso, console,
+            "palavra {i}: nosso 0x{nosso:08X}, console 0x{console:08X}"
+        );
     }
-    let exatas = saida
-        .iter()
-        .zip(SAIDA.iter())
-        .filter(|(a, b)| a == b)
-        .count();
-    assert!(
-        exatas >= 477,
-        "so {exatas} de {} palavras batem exatamente; eram 477 na iteracao 0184",
-        SAIDA.len()
-    );
 }
 
 // O caminho 24bpp nao tem gabarito palavra a palavra no ps1-tests, mas partilha o yuv_to_rgb

@@ -83,6 +83,27 @@ impl MemCtrl {
         self.regs[Self::index(phys)] = val;
     }
 
+    fn device_read_cycles(&self, delay_reg: u32, phys: u32, width: u32) -> u32 {
+        let delay = self.read32(delay_reg);
+        let com = self.read32(0x1F80_1020);
+        let access = (delay >> 4) & 0xF;
+        let recovery = if delay & (1 << 8) != 0 { com & 0xF } else { 0 };
+        let floating = if delay & (1 << 10) != 0 {
+            (com >> 8) & 0xF
+        } else {
+            0
+        };
+        let accesses = if delay & (1 << 12) != 0 {
+            ((phys & 1) + width).div_ceil(2)
+        } else {
+            width
+        }
+        .max(1);
+        let first = access + 4;
+        let sequential = access + 2 + recovery + floating;
+        first + (accesses - 1) * sequential
+    }
+
     fn index(phys: u32) -> usize {
         match phys {
             0x1F80_1060 => 9,
@@ -117,6 +138,9 @@ impl MemoryOp for BusWrite {
     const READ: bool = false;
     const WRITE: bool = true;
 }
+
+const RAM_LOAD_CYCLES: u32 = 5;
+const IO_LOAD_CYCLES: u32 = 3;
 
 const VBLANK_ENTER: u32 = 0;
 const VBLANK_EXIT: u32 = 1;
@@ -1022,13 +1046,23 @@ impl Bus {
         self.write16::<Op>(addr, gpr as u16);
     }
 
-    pub fn load_cycles(addr: u32) -> u32 {
-        match Self::to_physical(addr) {
-            0x1F80_0000..=0x1F80_03FF => 1,
-            0x1F80_1000..=0x1F80_2FFF => 5,
-            0x1FC0_0000..=0x1FC7_FFFF => 27,
-            _ => 7,
-        }
+    pub fn load_timing(&self, addr: u32, width: u32) -> (u32, bool) {
+        let phys = Self::to_physical(addr);
+        let delay_reg = match phys {
+            0x1F80_0000..=0x1F80_03FF | 0xFFFE_0000..=0xFFFE_FFFF => return (1, false),
+            0x1F00_0000..=0x1F7F_FFFF => 0x1F80_1008,
+            0x1FA0_0000..=0x1FBF_FFFF => 0x1F80_100C,
+            0x1FC0_0000..=0x1FFF_FFFF => 0x1F80_1010,
+            0x1F80_1C00..=0x1F80_1FFF => 0x1F80_1014,
+            0x1F80_1800..=0x1F80_180F => 0x1F80_1018,
+            0x1F80_2000..=0x1F80_3FFF => 0x1F80_101C,
+            0x1F80_1000..=0x1F80_1FFF => return (IO_LOAD_CYCLES, true),
+            _ => return (RAM_LOAD_CYCLES, true),
+        };
+        (
+            self.mem_ctrl.device_read_cycles(delay_reg, phys, width),
+            true,
+        )
     }
 
     /// § Scratchpad (L114, L137-140) de docs/reference/01-memory-map.md: "the scratchpad is

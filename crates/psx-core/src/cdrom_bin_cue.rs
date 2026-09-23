@@ -29,6 +29,18 @@ impl TrackInfo {
         self.index01_mm as u32 * 60 * 75 + self.index01_ss as u32 * 75 + self.index01_ff as u32
     }
 
+    /// LBA do INDEX 00 (inicio do pregap no arquivo); sem INDEX 00 e' o proprio INDEX 01.
+    pub fn index00_lba(&self) -> u32 {
+        match (self.index00_mm, self.index00_ss, self.index00_ff) {
+            (Some(mm), Some(ss), Some(ff)) => {
+                let index00 = mm as u32 * 60 * 75 + ss as u32 * 75 + ff as u32;
+                let recuo = self.index01_em_quadros().saturating_sub(index00);
+                self.start_lba.saturating_sub(recuo)
+            }
+            _ => self.start_lba,
+        }
+    }
+
     pub fn bin_offset(&self) -> u32 {
         let total_frames =
             self.index01_mm as u32 * 60 * 75 + self.index01_ss as u32 * 75 + self.index01_ff as u32;

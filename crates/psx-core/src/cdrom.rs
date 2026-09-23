@@ -901,8 +901,7 @@ impl Cdrom {
                 let amm = self.read_pos_mm.get();
                 let ass = self.read_pos_ss.get();
                 let asect = self.read_pos_ff.get();
-                let (track, index, inicio) = self.trilha_em(disc_layout, amm, ass, asect);
-                let (mm, ss, ff) = subtrai_msf((amm, ass, asect), inicio);
+                let (track, index, (mm, ss, ff)) = self.trilha_em(disc_layout, amm, ass, asect);
                 self.result_push(track);
                 self.result_push(index);
                 self.result_push(mm);
@@ -1356,7 +1355,7 @@ impl Cdrom {
         let amm = self.read_pos_mm.get();
         let ass = self.read_pos_ss.get();
         let asect = self.read_pos_ff.get();
-        let (track, index, inicio) = self.trilha_em(disc_layout, amm, ass, asect);
+        let (track, index, relativo) = self.trilha_em(disc_layout, amm, ass, asect);
         if self.play_track.get() == 0 {
             self.play_track.set(track);
         }
@@ -1388,7 +1387,7 @@ impl Cdrom {
             self.result_push(ass);
             self.result_push(asect);
         } else {
-            let (mm, ss, ff) = subtrai_msf((amm, ass, asect), inicio);
+            let (mm, ss, ff) = relativo;
             self.result_push(mm);
             self.result_push(ss | 0x80);
             self.result_push(ff);
@@ -1397,17 +1396,23 @@ impl Cdrom {
         self.result_push(0x00);
     }
 
-    // § Report (L1246-1256) de docs/reference/06-cdrom.md quer trilha, index e o inicio dela
-    // para o tempo relativo. Sem TOC (disco stub dos testes) vale a unica coisa verdadeira de
-    // qualquer disco: a trilha 1 comeca em 00:02:00, pela convencao MSF/LBA.
+    // § Report (L1246-1256) de docs/reference/06-cdrom.md quer trilha, index e tempo relativo,
+    // em BCD como o resto do Subchannel Q (§ GetlocP L1073-1086). No pregap (Index=0, § GetTD
+    // L1098-1104) o Q ja traz a trilha seguinte e o relativo conta para tras ate o Index=1.
+    // Sem TOC vale a trilha 1 em 00:02:00, pela convencao MSF/LBA.
     fn trilha_em(&self, layout: Option<&DiscLayout>, mm: u8, ss: u8, ff: u8) -> (u8, u8, Msf) {
-        let padrao = (1u8, 1u8, (0x00u8, 0x02u8, 0x00u8));
+        let agora = msf_para_quadros((mm, ss, ff));
+        let relativo = |inicio: u32| quadros_para_msf(agora.abs_diff(inicio + 150));
+        let padrao = (0x01u8, 0x01u8, relativo(0));
         let Some(layout) = layout else { return padrao };
-        let agora_lba = msf_para_quadros((mm, ss, ff)).saturating_sub(150);
+        let agora_lba = agora.saturating_sub(150);
         let mut achada = padrao;
         for t in &layout.tracks {
+            let numero = int_to_bcd(t.number as u32);
             if t.start_lba <= agora_lba {
-                achada = (t.number, 1, quadros_para_msf(t.start_lba + 150));
+                achada = (numero, 0x01, relativo(t.start_lba));
+            } else if t.index00_lba() <= agora_lba {
+                achada = (numero, 0x00, relativo(t.start_lba));
             }
         }
         achada
@@ -1431,6 +1436,23 @@ impl Cdrom {
 
     pub fn pending_cmd(&self) -> Option<u8> {
         self.pending_cmd.get()
+    }
+
+    /// Diagnostico: alvo do ultimo Setloc (BCD), modo e posicao de leitura.
+    pub fn debug_state(&self) -> (Msf, u8, Msf) {
+        (
+            (
+                self.seek_min.get(),
+                self.seek_sec.get(),
+                self.seek_sect.get(),
+            ),
+            self.mode.get(),
+            (
+                self.read_pos_mm.get(),
+                self.read_pos_ss.get(),
+                self.read_pos_ff.get(),
+            ),
+        )
     }
 
     pub fn take_irq2_edge(&self) -> bool {
@@ -1460,15 +1482,6 @@ fn quadros_para_msf(q: u32) -> Msf {
         int_to_bcd(q / (60 * 75)),
         int_to_bcd((q / 75) % 60),
         int_to_bcd(q % 75),
-    )
-}
-
-fn subtrai_msf(pos: Msf, inicio: Msf) -> Msf {
-    let d = msf_para_quadros(pos).saturating_sub(msf_para_quadros(inicio));
-    (
-        int_to_bcd(d / (60 * 75)),
-        int_to_bcd((d / 75) % 60),
-        int_to_bcd(d % 75),
     )
 }
 

@@ -42,7 +42,6 @@
     {"b": "start", "t": 85.0, "dur": 0.1},
     {"b": "cross", "t": 88.0, "dur": 0.1},
     {"b": "cross", "t": 91.0, "dur": 0.1},
-    {"b": "cross", "t": 94.0, "dur": 0.1},
     {"b": "cross", "t": 97.0, "dur": 0.1},
     {"b": "cross", "t": 100.0, "dur": 0.1},
     {"b": "cross", "t": 103.0, "dur": 0.1},
@@ -64,7 +63,16 @@
   ],
   "extra_cli": [],
   "checkpoints": [
-    {"t": 5.0, "marco": "provisorio", "checa": ["resolucao"]}
+    {"t": 10.0, "marco": "BIOS: logo Sony Computer Entertainment (640x448)", "checa": ["parecido_ds", "resolucao"]},
+    {"t": 38.0, "marco": "logo Ubi Soft Entertainment (640x448)", "checa": ["parecido_ds", "resolucao"]},
+    {"t": 49.0, "marco": "titulo RAYMAN com fundo rosa (320x224)", "checa": ["parecido_ds", "resolucao"]},
+    {"t": 80.0, "marco": "CHOOSE A GAME com o jogo AAA criado (Rayman x03)", "checa": ["parecido_ds", "resolucao"]},
+    {"t": 90.0, "marco": "menu OPTIONS (Jump X, Fist quadrado, Action circulo)", "checa": ["parecido_ds", "resolucao"]},
+    {"t": 96.0, "marco": "video de abertura: Mr. Dark de oculos, camera em movimento (antes do X de 97 s que pula o video)", "checa": ["muda", "parecido_ds", "resolucao"]},
+    {"t": 109.0, "marco": "mapa THE DREAM FOREST / PINK PLANT WOODS", "checa": ["parecido_ds", "resolucao"]},
+    {"t": 124.0, "marco": "na fase Pink Plant Woods: Rayman parado no inicio, x03 vidas", "checa": ["muda", "parecido_ds", "resolucao"]},
+    {"t": 138.5, "marco": "na fase: Rayman perto da flor vermelha, x02 vidas", "checa": ["muda", "parecido_ds", "resolucao"]},
+    {"t": 143.0, "marco": "na fase: Rayman de volta ao inicio com x01 vida (limiar 0,45: mesma cena e mesmo estado, mas a camera volta uns 20 px deslocada em relacao ao DuckStation depois da morte)", "checa": ["muda", "parecido_ds", "resolucao"], "limiar": 0.45}
   ],
   "audio": {"min_nao_zero": 0.3}
 }

@@ -38,7 +38,16 @@
   ],
   "extra_cli": [],
   "checkpoints": [
-    {"t": 5.0, "marco": "provisorio", "checa": ["resolucao"]}
+    {"t": 10.0, "marco": "BIOS: logo Sony Computer Entertainment (sem resolucao: a largura da BIOS no DuckStation varia de 636 a 640 entre referencias; aqui 638, a nossa 640)", "checa": ["parecido_ds"]},
+    {"t": 16.0, "marco": "BIOS: logo PlayStation / Licensed by SCEA (sem resolucao, mesmo motivo)", "checa": ["parecido_ds"]},
+    {"t": 32.5, "marco": "logo KONAMI em fundo branco", "checa": ["parecido_ds", "resolucao"]},
+    {"t": 34.75, "marco": "tela-titulo Metal Gear Solid com PRESS START BUTTON", "checa": ["parecido_ds", "resolucao"]},
+    {"t": 37.0, "marco": "titulo com o menu NEW GAME / LOAD GAME (depois do START em 35 s)", "checa": ["parecido_ds", "resolucao"]},
+    {"t": 40.0, "marco": "menu SELECT GAME LEVEL com NORMAL selecionado", "checa": ["parecido_ds", "resolucao"]},
+    {"t": 80.0, "marco": "Codec 140.85: Snake e Campbell, legenda do dialogo", "checa": ["muda", "parecido_ds", "resolucao"]},
+    {"t": 118.0, "marco": "na fase: Snake na agua da doca, radar no canto", "checa": ["parecido_ds", "resolucao"]},
+    {"t": 128.0, "marco": "na fase: Snake andando entre os barris, credito CG Artists", "checa": ["muda", "parecido_ds", "resolucao"]},
+    {"t": 146.0, "marco": "na fase: outra sala da doca, aviso CALL / PUSH SELECT", "checa": ["muda", "parecido_ds", "resolucao"]}
   ],
   "audio": {"min_nao_zero": 0.3}
 }

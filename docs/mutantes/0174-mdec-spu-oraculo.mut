@@ -4,10 +4,12 @@ iteracao: 0174
 item: 8.1
 alvo: crates/psx-core/src/mdec.rs
 teste: mdec_macroblock_decode
+arquivada: IDCT, RLE e yuv_to_rgb reescritos com as larguras de bit do hardware (onda6 mdec-residuo)
 
 mutante: m1
 rotulo: nao inverte outputSigned antes de y_to_mono, saida sai com sinal trocado
 teste: mdec_macroblock_decode
+arquivada: IDCT, RLE e yuv_to_rgb reescritos com as larguras de bit do hardware (onda6 mdec-residuo)
 ocorrencias: 1
 @@DE
             Self::push_mono_block(&spatial, self.color_depth, !self.output_signed, &mut out);
@@ -18,6 +20,7 @@ ocorrencias: 1
 mutante: m2
 rotulo: troca a ordem dos nibbles no empacotamento de 4 bits
 teste: mdec_macroblock_decode
+arquivada: IDCT, RLE e yuv_to_rgb reescritos com as larguras de bit do hardware (onda6 mdec-residuo)
 ocorrencias: 1
 @@DE
                 .map(|c| Self::para4(c[0]) | (Self::para4(c[1]) << 4))
@@ -28,6 +31,7 @@ ocorrencias: 1
 mutante: m3
 rotulo: mascara de y_to_mono unsigned vira 0x7F em vez de 0x80
 teste: mdec_macroblock_decode
+arquivada: IDCT, RLE e yuv_to_rgb reescritos com as larguras de bit do hardware (onda6 mdec-residuo)
 ocorrencias: 1
 @@DE
             v ^= 0x80;
@@ -38,6 +42,7 @@ ocorrencias: 1
 mutante: m4
 rotulo: rl_decode_block deixa de pular a propria entrada ao avancar k
 teste: mdec_macroblock_decode
+arquivada: IDCT, RLE e yuv_to_rgb reescritos com as larguras de bit do hardware (onda6 mdec-residuo)
 ocorrencias: 1
 @@DE
             k += skip + 1;

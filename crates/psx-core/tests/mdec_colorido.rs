@@ -197,7 +197,7 @@ fn pixels(palavras: &[u32]) -> Vec<u16> {
 // hardware, palavra a palavra, e a referencia. Com a IDCT da spec 35 das 512 palavras erravam
 // um passo de 5 bits.
 #[test]
-fn mdec_15bpp_reproduz_o_gabarito_de_hardware_palavra_a_palavra() {
+fn mdec_15bpp_reproduz_o_gabarito_de_hardware_dentro_de_um_passo() {
     let saida = decodificar(3);
     assert_eq!(
         saida.len(),

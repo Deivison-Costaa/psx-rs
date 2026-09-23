@@ -390,9 +390,11 @@ impl Bus {
 
         let frame = self.gpu.frame_cycles();
         let cpu_per_sl = self.gpu.cpu_cycles_per_scanline();
+        let mut hblank_edges = 0u32;
         while let Some((prazo, EventId(id))) = self.scheduler.advance_to(self.total_cycles) {
             match id {
                 HBLANK_ENTER => {
+                    hblank_edges += 1;
                     self.gpu.set_hblank_active(true);
                     self.scheduler
                         .schedule(ScheduleKey::new(prazo + cpu_per_sl), EventId(HBLANK_ENTER));
@@ -478,7 +480,10 @@ impl Bus {
         let hb = self.gpu.hblank_active();
         let vb = self.gpu.vblank_active();
         for base in &[0x1F80_1100u32, 0x1F80_1110, 0x1F80_1120] {
-            if let Some(bit) = self.timers.tick(*base, cycles, hb, vb) {
+            if let Some(bit) = self
+                .timers
+                .tick_with_hblanks(*base, cycles, hb, vb, hblank_edges)
+            {
                 self.irq.raise(bit);
             }
         }

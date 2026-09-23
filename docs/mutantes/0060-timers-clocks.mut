@@ -4,6 +4,7 @@ iteracao: 0060
 item: 3.4c
 alvo: crates/psx-core/src/timers.rs
 teste: timers_dotclock_hblank
+arquivada: timers reescritos (reset no alvo, espera apos escrita, hblank por borda); ancoras nao correspondem mais
 
 mutante: m1
 rotulo: dotclock usa numerador errado (1 em vez de 11)

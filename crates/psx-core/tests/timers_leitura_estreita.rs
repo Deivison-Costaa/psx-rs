@@ -25,7 +25,11 @@ fn lhu_no_modo_ve_e_limpa_o_bit_de_alvo() {
 
     let lido = u32::from(bus.read16::<BusRead>(T0_MODE));
 
-    assert_eq!(lido & REACHED_TARGET, REACHED_TARGET, "lhu tem de ver o bit 11");
+    assert_eq!(
+        lido & REACHED_TARGET,
+        REACHED_TARGET,
+        "lhu tem de ver o bit 11"
+    );
     assert_eq!(
         bus.read32::<BusRead>(T0_MODE) & REACHED_TARGET,
         0,

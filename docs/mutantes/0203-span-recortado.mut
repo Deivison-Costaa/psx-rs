@@ -4,6 +4,7 @@ iteracao: 0203
 item: 10.14
 alvo: crates/psx-core/src/gpu.rs
 teste: gpu_span_recortado
+arquivada: rasterizador de poligonos reescrito em sala limpa (onda2/raster-limpo, gpu/triangle.rs); ancoras do rasterizador por scanline sumiram
 
 mutante: m1
 rotulo: cor gouraud volta a interpolar pelo span ja recortado (xl/xr pos-clip)

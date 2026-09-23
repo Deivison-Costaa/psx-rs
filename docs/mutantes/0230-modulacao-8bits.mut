@@ -4,6 +4,7 @@ iteracao: 0230
 item: 0230.1
 alvo: crates/psx-core/src/gpu.rs
 teste: gpu_modulacao_8bits
+arquivada: rasterizador de poligonos reescrito em sala limpa (onda2/raster-limpo, gpu/triangle.rs); ancoras do rasterizador por scanline sumiram
 
 mutante: m1
 rotulo: volta a cortar a cor do vertice para 5 bits antes do produto (GPU v0)

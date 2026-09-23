@@ -153,6 +153,7 @@ const HBLANK_EXIT: u32 = 7;
 const DMA_DONE_BASE: u32 = 8;
 const DMA_DONE_END: u32 = DMA_DONE_BASE + 7;
 const SIO_ACK_END: u32 = DMA_DONE_END;
+const CDROM_DRIVE: u32 = 32;
 
 // Atraso do /ACK depois do ULTIMO pulso de SCK. § Address byte (01h) being sent (L379-386) de
 // docs/reference/10-controllers-memcards.md: o driver do kernel ignora pulsos nos primeiros
@@ -309,6 +310,47 @@ impl Bus {
     pub fn inject_disc(&mut self, layout: DiscLayout, bin: Vec<u8>) {
         self.disc_layout = Some(layout);
         self.disc_bin = Some(bin);
+    }
+
+    pub fn lid_open(&self) -> bool {
+        self.cdrom.lid_open()
+    }
+
+    pub fn open_lid(&mut self) {
+        self.cdrom.open_lid();
+        self.apos_mexer_na_porta();
+    }
+
+    pub fn close_lid(&mut self) {
+        self.cdrom.close_lid();
+        self.apos_mexer_na_porta();
+    }
+
+    /// Troca a midia na bandeja. Com a porta fechada o drive so percebe no proximo
+    /// abre/fecha, como no console: quem troca disco abre a porta antes.
+    pub fn swap_disc(&mut self, layout: DiscLayout, bin: Vec<u8>) {
+        self.inject_disc(layout, bin);
+        self.cdrom.set_media_present(true);
+    }
+
+    pub fn eject_disc(&mut self) {
+        self.disc_layout = None;
+        self.disc_bin = None;
+        self.cdrom.set_media_present(false);
+    }
+
+    fn apos_mexer_na_porta(&mut self) {
+        if self.cdrom.take_second_dirty() {
+            self.scheduler.cancel(EventId(CDROM_SECOND));
+        }
+        if let Some(ciclos) = self.cdrom.take_drive_timer() {
+            self.scheduler.cancel(EventId(CDROM_DRIVE));
+            self.scheduler.schedule(
+                ScheduleKey::new(self.total_cycles + ciclos),
+                EventId(CDROM_DRIVE),
+            );
+        }
+        self.service_cdrom_irq();
     }
 
     pub fn timers_mut(&mut self) -> &mut Timers {
@@ -499,6 +541,9 @@ impl Bus {
                     if self.cdrom.take_irq2_edge() {
                         self.irq.raise(2);
                     }
+                }
+                CDROM_DRIVE => {
+                    self.cdrom.drive_timer_elapsed();
                 }
                 DMA_DONE_BASE..DMA_DONE_END => {
                     self.dma.complete_channel((id - DMA_DONE_BASE) as usize);

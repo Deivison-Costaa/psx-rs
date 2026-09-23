@@ -48,6 +48,7 @@ pub struct Mdec {
     cb: [i32; 64],
     current_block: u8,
     dma_pos: Cell<usize>,
+    idle_since_reset: bool,
 }
 
 impl Mdec {
@@ -74,6 +75,7 @@ impl Mdec {
             cb: [0; 64],
             current_block: 4,
             dma_pos: Cell::new(0),
+            idle_since_reset: true,
         }
     }
 
@@ -175,6 +177,7 @@ impl Mdec {
         self.block_index = 0;
         self.current_block = 4;
         self.dma_pos.set(0);
+        self.idle_since_reset = true;
     }
 
     // § 1F801824h.Read - MDEC1 Status (L80-99) de docs/reference/09-mdec.md.
@@ -209,7 +212,7 @@ impl Mdec {
         };
         if self.busy && remaining_words > 0 {
             s |= (remaining_words as u32 - 1) & 0xFFFF;
-        } else {
+        } else if !self.idle_since_reset {
             s |= 0xFFFF;
         }
         s
@@ -232,6 +235,7 @@ impl Mdec {
     fn dispatch_command(&mut self, word: u32) {
         let cmd = (word >> 29) & 0x7;
         self.param_bytes.clear();
+        self.idle_since_reset = false;
         match cmd {
             1 => {
                 self.color_depth = ((word >> 27) & 0x3) as u8;

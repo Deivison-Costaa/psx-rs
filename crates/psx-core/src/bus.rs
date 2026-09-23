@@ -554,19 +554,21 @@ impl Bus {
             0x1F80_1100..=0x1F80_112F => Some(self.timers.read32(phys)),
             0x1F80_1810 | 0x1F80_1814 => Some(self.gpu.read32(phys - 0x1F80_1810)),
             0x1F80_1800..=0x1F80_1803 => {
-                let b0 = self.cdrom.read8(0) as u32;
-                let b1 = self.cdrom.read8(1) as u32;
-                let b2 = self.cdrom.read8(2) as u32;
-                let b3 = self.cdrom.read8(3) as u32;
-                Some(b0 | (b1 << 8) | (b2 << 16) | (b3 << 24))
+                let reg = phys & 3;
+                Some(u32::from_le_bytes(std::array::from_fn(|_| {
+                    self.cdrom.read8(reg)
+                })))
             }
             0x1F80_1820 | 0x1F80_1824 => Some(self.mdec.read32(phys - 0x1F80_1820)),
             0x1F80_1C00..=0x1F80_1E7F => Some(
                 u32::from(self.spu.read16(phys)) | (u32::from(self.spu.read16(phys + 2)) << 16),
             ),
+            0x1F80_1048..=0x1F80_105F => Some(u32::from_le_bytes(std::array::from_fn(|i| {
+                self.sio.read_byte(phys + i as u32)
+            }))),
             0x1F80_1024..=0x1F80_103F
             | 0x1F80_1041..=0x1F80_1043
-            | 0x1F80_1045..=0x1F80_105F
+            | 0x1F80_1045..=0x1F80_1047
             | 0x1F80_1061..=0x1F80_10FF
             | 0x1F80_1130..=0x1F80_1FFF => Some(0),
             0x1F80_1040 => Some(self.sio.read_data()),
@@ -693,13 +695,9 @@ impl Bus {
             0x1F80_1800..=0x1F80_1803 => {
                 let disc_layout = self.disc_layout.as_ref();
                 let disc_bin = self.disc_bin.as_deref();
-                self.cdrom.write8(0, val as u8, disc_layout, disc_bin);
-                self.cdrom
-                    .write8(1, (val >> 8) as u8, disc_layout, disc_bin);
-                self.cdrom
-                    .write8(2, (val >> 16) as u8, disc_layout, disc_bin);
-                self.cdrom
-                    .write8(3, (val >> 24) as u8, disc_layout, disc_bin);
+                for byte in val.to_le_bytes() {
+                    self.cdrom.write8(phys & 3, byte, disc_layout, disc_bin);
+                }
                 self.schedule_cdrom_response();
                 self.schedule_cdrom_second();
                 if self.cdrom.take_second_dirty() {
@@ -714,12 +712,8 @@ impl Bus {
                 self.service_spu_irq();
                 true
             }
-            0x1F80_1044..=0x1F80_104F => {
-                let bytes = val.to_le_bytes();
-                self.sio.write_byte(phys, bytes[0]);
-                self.sio.write_byte(phys + 1, bytes[1]);
-                self.sio.write_byte(phys + 2, bytes[2]);
-                self.sio.write_byte(phys + 3, bytes[3]);
+            0x1F80_1044..=0x1F80_105F => {
+                self.sio.write_half(phys, val as u16);
                 self.schedule_sio_ack();
                 self.service_sio_irq();
                 true
@@ -793,7 +787,7 @@ impl Bus {
                 Some(0)
             }
             0x1F80_1040 => Some(self.sio.read_byte(phys + offset)),
-            0x1F80_1044..=0x1F80_104F => Some(self.sio.read_byte(phys + offset)),
+            0x1F80_1044..=0x1F80_105F => Some(self.sio.read_byte(phys + offset)),
             0x1F80_2000..=0x1F80_3FFF => Some(0xFF),
             _ => None,
         }
@@ -853,7 +847,7 @@ impl Bus {
             0x1F80_1024..=0x1F80_103F | 0x1F80_1041..=0x1F80_1043 | 0x1F80_1061..=0x1F80_1FFF => {
                 true
             }
-            0x1F80_1040 | 0x1F80_1044..=0x1F80_104F => {
+            0x1F80_1040 | 0x1F80_1044..=0x1F80_105F => {
                 self.sio.write_byte(phys + offset, val);
                 self.schedule_sio_ack();
                 self.service_sio_irq();
@@ -929,6 +923,10 @@ impl Bus {
             0x1F80_1100..=0x1F80_112F => {
                 return (self.timers.read32(phys & !3) >> ((phys & 2) * 8)) as u16;
             }
+            0x1F80_1800..=0x1F80_1803 => {
+                let lo = self.cdrom.read8(phys & 3);
+                return u16::from_le_bytes([lo, self.cdrom.read8(phys & 3)]);
+            }
             _ => {}
         }
         if let (Some(lo), Some(hi)) = (
@@ -985,6 +983,17 @@ impl Bus {
                 self.service_spu_irq();
                 return;
             }
+            0x1F80_1044..=0x1F80_105F => {
+                self.sio.write_half(phys, val);
+                self.schedule_sio_ack();
+                self.service_sio_irq();
+                return;
+            }
+            0x1F80_1800..=0x1F80_1803 => {
+                self.region_write_byte(phys, 0, 0, val as u8);
+                self.region_write_byte(phys, 0, 0, (val >> 8) as u8);
+                return;
+            }
             _ => {}
         }
         if self.region_write_byte(phys, Self::kseg(addr), 0, val as u8)
@@ -1005,6 +1014,23 @@ impl Bus {
     /// carrega os 32 bits inteiros de `rt` como se fosse um `sw` alinhado.
     fn e_registrador_dma_de_32_bits(phys: u32) -> bool {
         matches!(phys, 0x1F80_1080..=0x1F80_10EC | 0x1F80_10F0 | 0x1F80_10F4)
+            || (phys & 3 == 0
+                && matches!(
+                    phys,
+                    0x1F80_1000..=0x1F80_1023
+                        | 0x1F80_1060
+                        | 0x1F80_1070
+                        | 0x1F80_1074
+                        | 0x1F80_1100..=0x1F80_112F
+                        | 0x1F80_1810
+                        | 0x1F80_1814
+                        | 0x1F80_1820
+                        | 0x1F80_1824
+                ))
+    }
+
+    fn e_registrador_de_16_bits(phys: u32) -> bool {
+        phys & 1 == 0 && matches!(phys, 0x1F80_1048..=0x1F80_105F | 0x1F80_1C00..=0x1F80_1FFF)
     }
 
     /// Mesma decodificacao de endereco de `region_read32` para o banco de DMA, reaproveitada
@@ -1032,6 +1058,10 @@ impl Bus {
         let phys = Self::to_physical(addr);
         if Self::e_registrador_dma_de_32_bits(phys) {
             self.write32::<Op>(addr & !0x3, gpr);
+            return;
+        }
+        if Self::e_registrador_de_16_bits(phys) {
+            self.write16::<Op>(addr, gpr as u16);
             return;
         }
         self.write8::<Op>(addr, gpr as u8);

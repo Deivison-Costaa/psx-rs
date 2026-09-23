@@ -16,6 +16,7 @@
 | timers | `crates/psx-core/src/timers.rs` | timers 0/1/2 | (vazio — M3) |
 | cdrom | `crates/psx-core/src/cdrom.rs` | controller, comandos, BIN/CUE | (vazio — M4) |
 | sio | `crates/psx-core/src/sio.rs` | JOY_*, pad digital, roteamento por endereco e /ACK | `Sio`, `send_byte`, `deliver_ack`, `connect_memory_card`, `load_memory_card` |
+| sio1 | `crates/psx-core/src/sio1.rs` | registradores do SIO1 (porta serial): MODE/CTRL com reset, MISC, BAUD | `Sio1`, `read16`, `write16` |
 | memcard | `crates/psx-core/src/memcard.rs` | cartao de 128 KiB, comandos R/W/S e byte FLAG | `MemoryCard`, `exchange`, `begin`, `from_bytes`, `data` |
 | spu | `crates/psx-core/src/spu.rs` | registradores, RAM de 512 KiB, transferencia, mixer de 44,1 kHz | `Spu`, `read16`, `write16`, `tick`, `drain_output`, `set_cd_audio` |
 | spu/voice | `crates/psx-core/src/spu/voice.rs` | estado das 24 vozes, pitch, key on/off, ENDX | `Voice`, `Volume`, `Phase`, `step` |

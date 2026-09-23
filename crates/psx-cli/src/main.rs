@@ -12,6 +12,55 @@ use std::io::Write;
 const RUNNER_MAX_STEPS: usize = 50_000_000;
 const KERNEL_ENTRYPOINT_PC: u32 = 0x8003_0000;
 const BIOS_BOOT_TO_KERNEL_MAX_STEPS: usize = 20_000_000;
+const TROCA_DE_DISCO_PASSOS_PADRAO: usize = 60_000_000;
+
+/// Mao do jogador na porta do drive: abrir, fechar e trocar o disco num passo dado.
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum AcaoNaPorta {
+    Abre,
+    Fecha,
+    Troca(String),
+}
+
+fn passo_de(texto: &str, flag: &str) -> usize {
+    texto.parse::<usize>().unwrap_or_else(|e| {
+        eprintln!("Erro: '{flag}' espera um passo decimal, '{texto}': {e}");
+        std::process::exit(1);
+    })
+}
+
+/// `CUE@PASSO[:DURACAO]`: abre a porta no PASSO, poe o CUE na bandeja e fecha DURACAO
+/// passos depois. O `@` final separa, entao o caminho do CUE pode conter `@`.
+fn roteiro_de_troca(spec: &str) -> Vec<(usize, AcaoNaPorta)> {
+    let Some((cue, quando)) = spec.rsplit_once('@') else {
+        eprintln!("Erro: '--swap-disc' espera CUE@PASSO[:DURACAO], '{spec}'");
+        std::process::exit(1);
+    };
+    let (passo, duracao) = match quando.split_once(':') {
+        Some((p, d)) => (passo_de(p, "--swap-disc"), passo_de(d, "--swap-disc")),
+        None => (
+            passo_de(quando, "--swap-disc"),
+            TROCA_DE_DISCO_PASSOS_PADRAO,
+        ),
+    };
+    vec![
+        (passo, AcaoNaPorta::Abre),
+        (passo, AcaoNaPorta::Troca(cue.to_string())),
+        (passo.saturating_add(duracao), AcaoNaPorta::Fecha),
+    ]
+}
+
+fn executa_na_porta(bus: &mut Bus, acao: &AcaoNaPorta, passo: usize) {
+    match acao {
+        AcaoNaPorta::Abre => bus.open_lid(),
+        AcaoNaPorta::Fecha => bus.close_lid(),
+        AcaoNaPorta::Troca(cue) => {
+            let (layout, bin) = load_disc(cue);
+            bus.swap_disc(layout, bin);
+        }
+    }
+    eprintln!("# porta: {acao:?} no passo {passo}");
+}
 
 fn boot_bios_to_kernel(cpu: &mut Cpu, bus: &mut Bus) -> Result<usize, String> {
     let mut steps = 0usize;
@@ -60,6 +109,7 @@ struct Sondas<'a> {
     watch_mem: &'a [u32],
     vram_timeline: Option<(usize, &'a str)>,
     audio_dump: Option<&'a str>,
+    porta: &'a [(usize, AcaoNaPorta)],
 }
 
 fn run(cpu: &mut Cpu, bus: &mut Bus, max_steps: usize, pad: &PadScript, sondas: &Sondas) -> usize {
@@ -69,8 +119,10 @@ fn run(cpu: &mut Cpu, bus: &mut Bus, max_steps: usize, pad: &PadScript, sondas: 
         watch_mem,
         vram_timeline,
         audio_dump,
+        porta,
     } = *sondas;
     let mut steps = 0;
+    let mut proxima_na_porta = 0;
     // Comparar antes/depois de cada passo atribui a escrita ao PC exato que a fez. Foi assim
     // que a 0182 descobriu quem apagava o IRQ0 do Rayman em minutos, depois de horas de
     // desmontagem a mao.
@@ -90,6 +142,14 @@ fn run(cpu: &mut Cpu, bus: &mut Bus, max_steps: usize, pad: &PadScript, sondas: 
         cpu.step(bus);
         steps += 1;
 
+        while let Some((passo, acao)) = porta.get(proxima_na_porta) {
+            if *passo > steps {
+                break;
+            }
+            executa_na_porta(bus, acao, steps);
+            proxima_na_porta += 1;
+        }
+
         for (idx, &addr) in watch_mem.iter().enumerate() {
             let agora = bus.read32::<BusRead>(addr);
             if agora != watch_valores[idx] {
@@ -106,6 +166,21 @@ fn run(cpu: &mut Cpu, bus: &mut Bus, max_steps: usize, pad: &PadScript, sondas: 
             if desejado != pad_state {
                 pad_state = desejado;
                 bus.sio_mut().set_buttons(pad_state);
+            }
+            let eixos = pad.sticks_at(steps as u64);
+            if eixos != bus.sio().sticks() {
+                bus.sio_mut().set_sticks(eixos);
+            }
+            if pad.analog_press_at(steps as u64) {
+                let trocou = bus.sio_mut().press_analog_button();
+                eprintln!(
+                    "pad: botao Analog no passo {steps}: {}",
+                    match (trocou, bus.sio().analog_mode()) {
+                        (false, _) => "travado pelo jogo, ignorado",
+                        (true, true) => "modo analogico",
+                        (true, false) => "modo digital",
+                    }
+                );
             }
         }
 
@@ -393,6 +468,15 @@ fn vram_para_png(entrada: &str, saida: &str) -> Result<(), String> {
     Ok(())
 }
 
+fn conecta_pad(sio: &psx_core::sio::Sio, dualshock: bool, analog: bool) {
+    if dualshock {
+        sio.connect_dualshock(true);
+        sio.set_analog_mode(analog);
+    } else {
+        sio.connect_digital_pad(true);
+    }
+}
+
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     if args.len() == 1 || (args.len() == 2 && args[1] == "--version") {
@@ -430,6 +514,10 @@ fn main() {
     let mut pad_connected = false;
     let mut memcard_arg: Option<String> = None;
     let mut press_specs: Vec<String> = Vec::new();
+    let mut porta: Vec<(usize, AcaoNaPorta)> = Vec::new();
+    let mut stick_specs: Vec<String> = Vec::new();
+    let mut analog_on_boot = false;
+    let mut dualshock = false;
     let mut i = 1;
     while i < args.len() {
         match args[i].as_str() {
@@ -445,6 +533,11 @@ fn main() {
                 pad_connected = true;
                 i += 1;
             }
+            "--dualshock" => {
+                pad_connected = true;
+                dualshock = true;
+                i += 1;
+            }
             "--dump-audio" if i + 1 < args.len() => {
                 audio_dump = Some(args[i + 1].clone());
                 i += 2;
@@ -458,8 +551,32 @@ fn main() {
                 pad_connected = true;
                 i += 2;
             }
+            "--stick" if i + 1 < args.len() => {
+                stick_specs.push(args[i + 1].clone());
+                dualshock = true;
+                pad_connected = true;
+                i += 2;
+            }
+            "--analog" => {
+                analog_on_boot = true;
+                dualshock = true;
+                pad_connected = true;
+                i += 1;
+            }
             "--disc" if i + 1 < args.len() => {
                 disc_arg = Some(args[i + 1].clone());
+                i += 2;
+            }
+            "--open-lid" if i + 1 < args.len() => {
+                porta.push((passo_de(&args[i + 1], "--open-lid"), AcaoNaPorta::Abre));
+                i += 2;
+            }
+            "--close-lid" if i + 1 < args.len() => {
+                porta.push((passo_de(&args[i + 1], "--close-lid"), AcaoNaPorta::Fecha));
+                i += 2;
+            }
+            "--swap-disc" if i + 1 < args.len() => {
+                porta.extend(roteiro_de_troca(&args[i + 1]));
                 i += 2;
             }
             "--max-steps" if i + 1 < args.len() => match args[i + 1].parse::<usize>() {
@@ -612,8 +729,12 @@ fn main() {
                 eprintln!("Erro: '--press' requer BOTAO@PASSO[:DURACAO]");
                 std::process::exit(1);
             }
+            "--stick" => {
+                eprintln!("Erro: '--stick' requer left|right:X,Y@PASSO[:DURACAO]");
+                std::process::exit(1);
+            }
             "--max-steps" | "--trace-pcs" | "--dump-vram" | "--sample-pcs" | "--watch-mem"
-            | "--dump-vram-every" => {
+            | "--dump-vram-every" | "--open-lid" | "--close-lid" | "--swap-disc" => {
                 eprintln!("Erro: '{}' requer um valor", args[i]);
                 std::process::exit(1);
             }
@@ -624,6 +745,7 @@ fn main() {
         }
     }
     let max_steps = max_steps.unwrap_or(RUNNER_MAX_STEPS);
+    porta.sort_by_key(|(passo, _)| *passo);
     let pad_script = match PadScript::parse(&press_specs) {
         Ok(p) => p,
         Err(e) => {
@@ -631,6 +753,14 @@ fn main() {
             std::process::exit(1);
         }
     };
+    let pad_script = match pad_script.with_sticks(&stick_specs) {
+        Ok(p) => p,
+        Err(e) => {
+            eprintln!("Erro: --stick {}", e);
+            std::process::exit(1);
+        }
+    };
+    let dualshock = dualshock || pad_script.uses_dualshock();
 
     if disc_arg.is_some() && bios_arg.is_none() {
         eprintln!("Erro: --disc requer --bios <caminho_da_BIOS>");
@@ -676,6 +806,7 @@ fn main() {
             if let Some(disc_path) = disc_path {
                 let (layout, bin_data) = load_disc(&disc_path);
                 bus.inject_disc(layout, bin_data);
+                bus.cdrom_mut().insert_disc();
             }
 
             if let Err(e) = boot_bios_to_kernel(&mut cpu, &mut bus) {
@@ -688,7 +819,7 @@ fn main() {
             }
 
             if pad_connected {
-                bus.sio_mut().connect_digital_pad(true);
+                conecta_pad(bus.sio_mut(), dualshock, analog_on_boot);
             }
             monta_memory_card(&mut bus, memcard_arg.as_deref());
             let steps = run(
@@ -702,6 +833,7 @@ fn main() {
                     watch_mem: &watch_mem,
                     vram_timeline: vram_timeline.as_ref().map(|(n, p)| (*n, p.as_str())),
                     audio_dump: audio_dump.as_deref(),
+                    porta: &porta,
                 },
             );
 
@@ -775,7 +907,7 @@ fn main() {
             }
 
             if pad_connected {
-                bus.sio_mut().connect_digital_pad(true);
+                conecta_pad(bus.sio_mut(), dualshock, analog_on_boot);
             }
             monta_memory_card(&mut bus, memcard_arg.as_deref());
             let steps = run(
@@ -789,6 +921,7 @@ fn main() {
                     watch_mem: &watch_mem,
                     vram_timeline: vram_timeline.as_ref().map(|(n, p)| (*n, p.as_str())),
                     audio_dump: audio_dump.as_deref(),
+                    porta: &porta,
                 },
             );
 
@@ -861,6 +994,8 @@ fn main() {
     }
 
     eprintln!("Uso: psx-cli [--version | --bios <caminho> [--exe <caminho>] [--disc <caminho>]]");
-    eprintln!("     [--pad] [--press BOTAO@PASSO[:DURACAO]]");
+    eprintln!("     [--pad] [--press BOTAO@PASSO[:DURACAO]] [--press analog@PASSO]");
+    eprintln!("     [--dualshock] [--analog] [--stick left|right:X,Y@PASSO[:DURACAO]]");
+    eprintln!("     [--open-lid PASSO] [--close-lid PASSO] [--swap-disc CUE@PASSO[:DURACAO]]");
     std::process::exit(1);
 }

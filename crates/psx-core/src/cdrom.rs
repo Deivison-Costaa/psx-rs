@@ -21,6 +21,14 @@ const SEEK_SETTLE_CYCLES: u64 = 0x0007_0000;
 const SEEK_CYCLES_PER_FRAME: u64 = 24;
 const SPINUP_CYCLES: u64 = STOP_MOTOR_CYCLES;
 const SEEK_JITTER_DIVISOR: u64 = 64;
+const SPINDOWN_CYCLES: u64 = STOP_MOTOR_CYCLES;
+const LID_CLOSE_SPINUP_CYCLES: u64 = 33_868_800;
+const DRIVE_IDLE: u8 = 0;
+const DRIVE_SPINNING_DOWN: u8 = 1;
+const DRIVE_SPINNING_UP: u8 = 2;
+const LID_OPEN_STAT: u8 = 0x01;
+const ERR_DOOR_OPENED: u8 = 0x08;
+const ERR_NOT_READY: u8 = 0x80;
 const SEEK_RNG_SEED: u64 = 0x0123_4567_89AB_CDEF;
 
 // § Sector Buffer (06-cdrom.md L2109-2111): "The buffer is apparently divided into 8 slots".
@@ -84,6 +92,10 @@ pub struct Cdrom {
     int1_slot: Cell<u8>,
     sector_ready: Cell<bool>,
     seek_rng: Cell<u64>,
+    lid_open: Cell<bool>,
+    drive_phase: Cell<u8>,
+    drive_timer: Cell<Option<u64>>,
+    lid_int5_pending: Cell<bool>,
 }
 
 /// Quatro setores de CD-DA. Se o jogo le mais rapido do que o SPU consome, o excedente
@@ -143,6 +155,10 @@ impl Cdrom {
             int1_slot: Cell::new(0),
             sector_ready: Cell::new(false),
             seek_rng: Cell::new(SEEK_RNG_SEED),
+            lid_open: Cell::new(false),
+            drive_phase: Cell::new(DRIVE_IDLE),
+            drive_timer: Cell::new(None),
+            lid_int5_pending: Cell::new(false),
         }
     }
 
@@ -229,6 +245,117 @@ impl Cdrom {
     pub fn insert_disc(&self) {
         self.disc_inserted.set(true);
         self.motor_on.set(true);
+    }
+
+    pub fn lid_open(&self) -> bool {
+        self.lid_open.get()
+    }
+
+    pub fn set_media_present(&self, presente: bool) {
+        self.disc_inserted.set(presente);
+        if !presente {
+            self.motor_on.set(false);
+        }
+    }
+
+    /// Porta aberta: o disco para, toda leitura/busca/play em andamento e abandonada e sai
+    /// um INT5(01h,08h) sem comando nenhum (06-cdrom.md, Status code).
+    pub fn open_lid(&self) {
+        if self.lid_open.replace(true) {
+            return;
+        }
+        self.shell_open.set(true);
+        self.abandona_atividade();
+        if self.motor_on.get() {
+            self.drive_phase.set(DRIVE_SPINNING_DOWN);
+            self.drive_timer.set(Some(SPINDOWN_CYCLES));
+        } else {
+            self.drive_phase.set(DRIVE_IDLE);
+        }
+        if self.intsts.get() == 0 {
+            self.levanta_int5_da_porta();
+        } else {
+            self.lid_int5_pending.set(true);
+        }
+    }
+
+    pub fn close_lid(&self) {
+        if !self.lid_open.replace(false) {
+            return;
+        }
+        self.motor_on.set(false);
+        self.last_data_sector.set(None);
+        if self.disc_inserted.get() {
+            self.drive_phase.set(DRIVE_SPINNING_UP);
+            self.drive_timer.set(Some(LID_CLOSE_SPINUP_CYCLES));
+        } else {
+            self.drive_phase.set(DRIVE_IDLE);
+            self.drive_timer.set(None);
+        }
+    }
+
+    pub fn take_drive_timer(&self) -> Option<u64> {
+        self.drive_timer.take()
+    }
+
+    pub fn drive_timer_elapsed(&self) {
+        match self.drive_phase.replace(DRIVE_IDLE) {
+            DRIVE_SPINNING_DOWN => self.motor_on.set(false),
+            DRIVE_SPINNING_UP if !self.lid_open.get() && self.disc_inserted.get() => {
+                self.motor_on.set(true);
+                self.read_pos_mm.set(0x00);
+                self.read_pos_ss.set(0x02);
+                self.read_pos_ff.set(0x00);
+            }
+            _ => {}
+        }
+    }
+
+    fn abandona_atividade(&self) {
+        self.reading.set(false);
+        self.seeking.set(false);
+        self.playing.set(false);
+        self.read_mode.set(0);
+        self.int1_pending.set(false);
+        self.int2_pending.set(false);
+        self.pending_second.set(0);
+        self.sector_ready.set(false);
+        self.busy.set(false);
+        self.audio_fifo.borrow_mut().clear();
+        self.second_dirty.set(true);
+    }
+
+    fn levanta_int5_da_porta(&self) {
+        self.lid_int5_pending.set(false);
+        self.result_clear();
+        self.result_push(LID_OPEN_STAT);
+        self.result_push(ERR_DOOR_OPENED);
+        self.intsts.set(5);
+    }
+
+    fn disco_inacessivel(&self) -> bool {
+        self.lid_open.get() || self.girando_ate_ficar_pronto()
+    }
+
+    fn girando_ate_ficar_pronto(&self) -> bool {
+        self.drive_phase.get() == DRIVE_SPINNING_UP
+    }
+
+    fn recusa_sem_disco(&self, cmd: u8) -> bool {
+        if self.lid_open.get() {
+            matches!(cmd, 0x02..=0x09 | 0x0B..=0x0D | 0x10..=0x16 | 0x1A | 0x1B | 0x1D)
+        } else if self.girando_ate_ficar_pronto() {
+            matches!(cmd, 0x03..=0x06 | 0x10..=0x16 | 0x1A | 0x1B | 0x1D)
+        } else {
+            false
+        }
+    }
+
+    fn termina_spin_up(&self) {
+        if self.girando_ate_ficar_pronto() && !self.lid_open.get() && self.disc_inserted.get() {
+            self.drive_phase.set(DRIVE_IDLE);
+            self.motor_on.set(true);
+        }
     }
 
     fn stat_byte(&self) -> u8 {
@@ -544,7 +671,23 @@ impl Cdrom {
     fn send_command(&self, cmd: u8, disc_layout: Option<&DiscLayout>, disc_bin: Option<&[u8]>) {
         self.busy.set(true);
         self.result_clear();
+        if self.recusa_sem_disco(cmd) {
+            self.param_clear();
+            self.result_push(self.stat_byte() | 0x01);
+            self.result_push(ERR_NOT_READY);
+            self.intsts.set(5);
+            self.busy.set(false);
+            return;
+        }
         match cmd {
+            0x01 => {
+                self.result_push(self.stat_byte());
+                if !self.lid_open.get() {
+                    self.shell_open.set(false);
+                }
+                self.intsts.set(3);
+                self.busy.set(false);
+            }
             0x02 => {
                 let mm = self.param_pop();
                 let ss = self.param_pop();
@@ -671,7 +814,7 @@ impl Cdrom {
                     return;
                 }
                 let busca = self.second_response_cycles_for(0x0A);
-                if self.disc_inserted.get() {
+                if self.disc_inserted.get() && !self.disco_inacessivel() {
                     self.motor_on.set(true);
                 }
                 self.result_push(self.stat_byte());
@@ -983,7 +1126,9 @@ impl Cdrom {
                     self.intsts.set(new_intsts);
                     self.irq_line.set(self.irq_pending());
                     if new_intsts == 0 {
-                        if self.int2_pending.get() {
+                        if self.lid_int5_pending.get() {
+                            self.levanta_int5_da_porta();
+                        } else if self.int2_pending.get() {
                             self.int2_pending.set(false);
                             self.second_request.set(true);
                             self.irq_line.set(false);
@@ -1062,6 +1207,7 @@ impl Cdrom {
     fn deliver_second(&self, disc_layout: Option<&DiscLayout>, disc_bin: Option<&[u8]>) {
         match self.pending_second.get() {
             1 => {
+                self.termina_spin_up();
                 self.busy.set(false);
                 self.result_clear();
                 self.result_push(self.stat_byte());

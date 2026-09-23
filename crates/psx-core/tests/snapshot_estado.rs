@@ -1,5 +1,6 @@
 use psx_core::bus::{Bios, Bus, BusRead, BusWrite, Ram};
 use psx_core::cpu::Cpu;
+use psx_core::dualshock::Sticks;
 use psx_core::snapshot::{self, SnapshotError};
 
 const SERIAL: &str = "SLUS-00005";
@@ -15,7 +16,8 @@ const SCRATCHPAD: u32 = 0x1F80_0000;
 // setores mais write_slot/newest_slot/int1_slot/sector_ready.
 // +16 bytes: at_target/hold nos 3 timers (6), Cpu::load_shadow (1), registradores do
 // SIO1 (8) e Mdec::idle_since_reset (1).
-const TAMANHO_DO_ESTADO: usize = 4_877_702;
+// +4 bytes: porta do CD-ROM; +24 bytes: o pad virou DualShock.
+const TAMANHO_DO_ESTADO: usize = 4_877_730;
 const SPU_VOZ0_VOL: u32 = 0x1F80_1C00;
 const I_MASK: u32 = 0x1F80_1074;
 const DMA6_MADR: u32 = 0x1F80_10E0;
@@ -48,6 +50,11 @@ fn suja(cpu: &mut Cpu, bus: &mut Bus, semente: u32) {
         .write16(SPU_VOZ0_VOL, (semente & 0x3FFF) as u16);
     bus.gte_mut().write_control(5, 0x0BAD_0000 | semente);
     bus.sio().set_buttons(!(semente as u16 & 0x00FF));
+    bus.sio().set_analog_mode(semente & 4 != 0);
+    bus.sio().set_sticks(Sticks {
+        left_x: semente as u8,
+        ..Sticks::CENTERED
+    });
     bus.write32::<BusWrite>(GP0, 0xE100_0000 | (semente & 0x7FF));
     bus.write32::<BusWrite>(SCRATCHPAD, 0xBEEF_0000 | semente);
 }
@@ -68,6 +75,8 @@ fn retrato(cpu: &Cpu, bus: &Bus) -> Vec<u32> {
         bus.total_cycles() as u32,
         bus.read32::<BusRead>(SCRATCHPAD),
         bus.read32::<BusRead>(TIMER1_CONTADOR),
+        u32::from(bus.sio().analog_mode()),
+        u32::from(bus.sio().sticks().left_x),
     ]
 }
 

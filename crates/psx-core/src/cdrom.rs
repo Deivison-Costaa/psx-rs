@@ -78,6 +78,8 @@ pub struct Cdrom {
     playing: Cell<bool>,
     play_track: Cell<u8>,
     audio_fifo: RefCell<VecDeque<(i16, i16)>>,
+    #[serde(skip)]
+    audio_stats: Cell<AudioStats>,
     xa_state: Cell<XaState>,
     filter_file: Cell<u8>,
     filter_channel: Cell<u8>,
@@ -96,6 +98,12 @@ pub struct Cdrom {
     drive_phase: Cell<u8>,
     drive_timer: Cell<Option<u64>>,
     lid_int5_pending: Cell<bool>,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct AudioStats {
+    pub enqueued: u64,
+    pub dropped: u64,
 }
 
 /// Quatro setores de CD-DA. Se o jogo le mais rapido do que o SPU consome, o excedente
@@ -145,6 +153,7 @@ impl Cdrom {
             playing: Cell::new(false),
             play_track: Cell::new(0),
             audio_fifo: RefCell::new(VecDeque::new()),
+            audio_stats: Cell::new(AudioStats::default()),
             xa_state: Cell::new(XaState::default()),
             filter_file: Cell::new(0),
             filter_channel: Cell::new(0),
@@ -534,14 +543,27 @@ impl Cdrom {
         self.audio_fifo.borrow().len()
     }
 
+    /// Diagnostico (fora do snapshot): quadros de audio de CD enfileirados e descartados.
+    pub fn audio_stats(&self) -> AudioStats {
+        self.audio_stats.get()
+    }
+
     fn enfileira_audio(&self, quadros: Vec<(i16, i16)>) {
         let mut fifo = self.audio_fifo.borrow_mut();
+        let total = quadros.len() as u64;
+        let mut descartados = 0u64;
         for q in quadros {
             if fifo.len() >= AUDIO_FIFO_MAX {
-                break;
+                descartados += 1;
+                continue;
             }
             fifo.push_back(q);
         }
+        let s = self.audio_stats.get();
+        self.audio_stats.set(AudioStats {
+            enqueued: s.enqueued + total - descartados,
+            dropped: s.dropped + descartados,
+        });
     }
 
     /// Setor cru do disco na posicao corrente de leitura.

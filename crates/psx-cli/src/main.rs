@@ -252,10 +252,13 @@ fn run(cpu: &mut Cpu, bus: &mut Bus, max_steps: usize, pad: &PadScript, sondas: 
     }
     if let Some(caminho) = audio_dump {
         let nao_silencio = audio_pcm.chunks_exact(2).filter(|q| q != &[0, 0]).count();
+        let cd = bus.cdrom().audio_stats();
         eprintln!(
-            "# AUDIO quadros={} amostras-nao-zero={}",
+            "# AUDIO quadros={} amostras-nao-zero={} cd-enfileirados={} cd-descartados={}",
             audio_pcm.len() / 4,
-            nao_silencio
+            nao_silencio,
+            cd.enqueued,
+            cd.dropped
         );
         if let Err(e) = std::fs::write(caminho, &audio_pcm) {
             eprintln!("Erro: nao consegui gravar o audio '{caminho}': {e}");

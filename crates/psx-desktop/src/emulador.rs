@@ -6,14 +6,25 @@ use psx_core::app::saves::{self, Save};
 use psx_core::app::sessao;
 use psx_core::app::troca::{PortaAberta, apertou_agora};
 use psx_core::bus::{Bios, Bus, Ram};
+use psx_core::cdrom_bin_cue::DiscLayout;
 use psx_core::cpu::Cpu;
+use psx_core::disc_image::DiscImage;
 use psx_core::dualshock::Rumble;
-use psx_core::snapshot;
+use psx_core::snapshot::{self, DiscoGravado, Metadados};
 
 use crate::audio::AudioOut;
 use crate::gamepad::Leitura;
 
 pub const SLOTS: u8 = 10;
+
+type DiscoAberto = (PathBuf, DiscLayout, Box<dyn DiscImage>);
+
+fn serial_do_cue(cue: &Path) -> String {
+    crate::disco::identifica(cue)
+        .ok()
+        .and_then(|i| i.serial)
+        .unwrap_or_default()
+}
 
 const TECLAS: [(egui::Key, u32); 14] = [
     (egui::Key::ArrowUp, 4),
@@ -53,12 +64,13 @@ pub struct Emulador {
     ultimo: std::time::Instant,
     jogado: f64,
     disco: PathBuf,
+    serial_do_disco: String,
     porta: Option<PortaAberta>,
     modo_antes: bool,
 }
 
 impl Emulador {
-    /// Um cartao por jogo: `cartoes/<serial>.mcd`, criado zerado na primeira vez. Cartao
+    /// Um cartao por jogo: `cartoes/<serial>.mcd`, criado formatado na primeira vez. Cartao
     /// unico compartilhado enche com 15 blocos e obriga o usuario a apagar save alheio.
     pub fn novo(bios_bytes: Vec<u8>, serial: &str, config: &Config) -> Result<Self, String> {
         let bios = Bios::from_bytes(bios_bytes).map_err(|e| format!("BIOS invalida: {e:?}"))?;
@@ -67,7 +79,7 @@ impl Emulador {
 
         let memcard = Path::new(&config.pasta_de_cartoes).join(saves::nome_do_cartao(serial));
         let bytes =
-            std::fs::read(&memcard).unwrap_or_else(|_| vec![0u8; psx_core::memcard::CARD_BYTES]);
+            std::fs::read(&memcard).unwrap_or_else(|_| psx_core::memcard::formatted_image());
         bus.sio_mut()
             .load_memory_card(&bytes)
             .map_err(|e| format!("memory card invalido: {e:?}"))?;
@@ -86,6 +98,7 @@ impl Emulador {
             ultimo: std::time::Instant::now(),
             jogado: 0.0,
             disco: PathBuf::new(),
+            serial_do_disco: String::new(),
             porta: None,
             modo_antes: false,
         })
@@ -107,8 +120,13 @@ impl Emulador {
         let (layout, bin) = crate::disco::carrega(cue)?;
         self.bus.inject_disc_image(layout, bin);
         self.bus.cdrom_mut().insert_disc();
-        self.disco = cue.to_path_buf();
+        self.passa_a_ter(cue);
         Ok(())
+    }
+
+    fn passa_a_ter(&mut self, cue: &Path) {
+        self.disco = cue.to_path_buf();
+        self.serial_do_disco = serial_do_cue(cue);
     }
 
     pub fn disco(&self) -> &Path {
@@ -139,7 +157,7 @@ impl Emulador {
         self.bus.open_lid();
         self.bus.swap_disc_image(layout, bin);
         self.porta = Some(PortaAberta::desde(self.bus.total_cycles()));
-        self.disco = cue.to_path_buf();
+        self.passa_a_ter(cue);
         self.aviso = Some(format!("trocando para {}", self.nome_do_disco()));
     }
 
@@ -175,7 +193,7 @@ impl Emulador {
                 return;
             }
         }
-        let bytes = match snapshot::salva(&self.cpu, &self.bus, &self.serial) {
+        let bytes = match snapshot::salva_com(&self.cpu, &self.bus, &self.metadados()) {
             Ok(b) => b,
             Err(e) => {
                 self.aviso = Some(format!("slot {}: {e}", self.slot));
@@ -188,23 +206,73 @@ impl Emulador {
         });
     }
 
+    fn metadados(&self) -> Metadados {
+        let disco = (!self.disco.as_os_str().is_empty()).then(|| DiscoGravado {
+            serial: self.serial_do_disco.clone(),
+            caminho: self.disco.to_string_lossy().to_string(),
+        });
+        Metadados {
+            serial: self.serial.clone(),
+            disco,
+        }
+    }
+
     /// F8. Estado recusado nao mexe na maquina: o `carrega` decodifica tudo antes de
-    /// escrever qualquer campo.
+    /// escrever qualquer campo, e o disco gravado e aberto antes dele.
     pub fn carrega_estado(&mut self) {
         let caminho = self.caminho_do_slot(self.slot);
         let Ok(bytes) = std::fs::read(&caminho) else {
             self.aviso = Some(format!("slot {} vazio", self.slot));
             return;
         };
-        self.aviso = Some(
-            match snapshot::carrega(&mut self.cpu, &mut self.bus, &bytes, &self.serial) {
-                Ok(()) => {
-                    self.bus.sio_mut().connect_dualshock(true);
-                    format!("slot {} carregado", self.slot)
-                }
-                Err(e) => format!("slot {}: {e}", self.slot),
-            },
-        );
+        let troca = match snapshot::metadados_de(&bytes)
+            .map_err(|e| e.to_string())
+            .and_then(|m| self.disco_do_estado(&m))
+        {
+            Ok(t) => t,
+            Err(e) => {
+                self.aviso = Some(format!("slot {}: {e}", self.slot));
+                return;
+            }
+        };
+        if let Err(e) = snapshot::carrega(&mut self.cpu, &mut self.bus, &bytes, &self.serial) {
+            self.aviso = Some(format!("slot {}: {e}", self.slot));
+            return;
+        }
+        self.bus.sio_mut().connect_dualshock(true);
+        self.porta = None;
+        self.aviso = Some(match troca {
+            Some((cue, layout, bin)) => {
+                self.bus.inject_disc_image(layout, bin);
+                self.passa_a_ter(&cue);
+                format!("slot {} carregado com {}", self.slot, self.nome_do_disco())
+            }
+            None => format!("slot {} carregado", self.slot),
+        });
+    }
+
+    /// Estado salvo com outro disco na bandeja (antes ou depois de uma troca): esse disco
+    /// volta junto, e se ele sumiu ou mudou o estado e recusado.
+    fn disco_do_estado(&self, metadados: &Metadados) -> Result<Option<DiscoAberto>, String> {
+        let atual = self.disco.to_string_lossy();
+        let Some(gravado) = metadados.disco_diferente_de(&atual) else {
+            return Ok(None);
+        };
+        let cue = PathBuf::from(&gravado.caminho);
+        let rotulo = format!("'{}' ({})", gravado.caminho, gravado.serial);
+        if !cue.exists() {
+            return Err(format!(
+                "o estado usa o disco {rotulo}, que nao foi encontrado"
+            ));
+        }
+        let achado = serial_do_cue(&cue);
+        if achado != gravado.serial {
+            return Err(format!(
+                "o estado usa o disco {rotulo}, mas o arquivo agora e do {achado}"
+            ));
+        }
+        let (layout, bin) = crate::disco::carrega(&cue)?;
+        Ok(Some((cue, layout, bin)))
     }
 
     pub fn slot_existe(&self, slot: u8) -> bool {

@@ -1,9 +1,12 @@
 mod disasm;
+mod disco;
 
+use disco::DiscoEmArquivo;
 use psx_core::app::library;
 use psx_core::bus::{Bios, Bus, BusRead, Ram};
 use psx_core::cdrom_bin_cue::{DiscLayout, parse_cue};
 use psx_core::cpu::Cpu;
+use psx_core::disc_image::DiscImage;
 use psx_core::pad_script::{PadScript, RELEASED};
 use std::collections::HashSet;
 use std::io::Read;
@@ -55,8 +58,8 @@ fn executa_na_porta(bus: &mut Bus, acao: &AcaoNaPorta, passo: usize) {
         AcaoNaPorta::Abre => bus.open_lid(),
         AcaoNaPorta::Fecha => bus.close_lid(),
         AcaoNaPorta::Troca(cue) => {
-            let (layout, bin) = load_disc(cue);
-            bus.swap_disc(layout, bin);
+            let (layout, imagem) = load_disc(cue);
+            bus.swap_disc_image(layout, imagem);
         }
     }
     eprintln!("# porta: {acao:?} no passo {passo}");
@@ -326,7 +329,7 @@ fn write_framebuffer_png(vram_path: &str, bus: &Bus) {
     );
 }
 
-fn load_disc(disc_path: &str) -> (DiscLayout, Vec<u8>) {
+fn load_disc(disc_path: &str) -> (DiscLayout, Box<dyn DiscImage>) {
     let cue_text = match std::fs::read_to_string(disc_path) {
         Ok(t) => t,
         Err(e) => {
@@ -335,35 +338,18 @@ fn load_disc(disc_path: &str) -> (DiscLayout, Vec<u8>) {
         }
     };
 
-    let layout = parse_cue(&cue_text);
+    let mut layout = parse_cue(&cue_text);
     let cue_dir = std::path::Path::new(disc_path)
         .parent()
         .unwrap_or_else(|| std::path::Path::new("."));
 
-    let mut layout = layout;
-    let mut setores: Vec<u32> = Vec::new();
-    let mut bin_data: Vec<u8> = Vec::new();
-    for arquivo in layout.arquivos_em_ordem() {
-        let bin_path = cue_dir.join(&arquivo);
-        match std::fs::read(&bin_path) {
-            Ok(d) => {
-                setores.push((d.len() / 2352) as u32);
-                bin_data.extend_from_slice(&d);
-            }
-            Err(e) => {
-                eprintln!(
-                    "Erro: nao foi possivel ler BIN '{}': {}",
-                    bin_path.display(),
-                    e
-                );
-                std::process::exit(1);
-            }
+    match DiscoEmArquivo::abre(cue_dir, &mut layout) {
+        Ok(imagem) => (layout, Box::new(imagem)),
+        Err(e) => {
+            eprintln!("Erro: {e}");
+            std::process::exit(1);
         }
     }
-
-    layout.atribui_lbas_absolutos(&setores);
-
-    (layout, bin_data)
 }
 
 /// Carrega a imagem `.mcd` (criando uma zerada de 128 KiB se nao existir) e liga o
@@ -804,8 +790,8 @@ fn main() {
             let mut cpu = Cpu::new();
 
             if let Some(disc_path) = disc_path {
-                let (layout, bin_data) = load_disc(&disc_path);
-                bus.inject_disc(layout, bin_data);
+                let (layout, imagem) = load_disc(&disc_path);
+                bus.inject_disc_image(layout, imagem);
                 bus.cdrom_mut().insert_disc();
             }
 
@@ -901,8 +887,8 @@ fn main() {
             let mut cpu = Cpu::new();
 
             if let Some(disc_path) = disc_path {
-                let (layout, bin_data) = load_disc(&disc_path);
-                bus.inject_disc(layout, bin_data);
+                let (layout, imagem) = load_disc(&disc_path);
+                bus.inject_disc_image(layout, imagem);
                 bus.cdrom_mut().insert_disc();
             }
 

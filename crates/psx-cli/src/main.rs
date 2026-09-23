@@ -114,6 +114,7 @@ struct Sondas<'a> {
     audio_dump: Option<&'a str>,
     porta: &'a [(usize, AcaoNaPorta)],
     log_cd: bool,
+    pad_em_ciclos: bool,
 }
 
 fn run(cpu: &mut Cpu, bus: &mut Bus, max_steps: usize, pad: &PadScript, sondas: &Sondas) -> usize {
@@ -125,6 +126,7 @@ fn run(cpu: &mut Cpu, bus: &mut Bus, max_steps: usize, pad: &PadScript, sondas: 
         audio_dump,
         porta,
         log_cd,
+        pad_em_ciclos,
     } = *sondas;
     let mut cd_cmd_antes: Option<u8> = None;
     let mut cd_int_antes: u8 = 0;
@@ -155,9 +157,10 @@ fn run(cpu: &mut Cpu, bus: &mut Bus, max_steps: usize, pad: &PadScript, sondas: 
             if cmd.is_some() && cmd != cd_cmd_antes {
                 let (alvo, modo, pos) = cd.debug_state();
                 eprintln!(
-                    "cd cmd=0x{:02X} passo={} pc=0x{:08X} alvo={:02X}:{:02X}:{:02X} modo=0x{:02X} pos={:02X}:{:02X}:{:02X}",
+                    "cd cmd=0x{:02X} passo={} ciclo={} pc=0x{:08X} alvo={:02X}:{:02X}:{:02X} modo=0x{:02X} pos={:02X}:{:02X}:{:02X}",
                     cmd.unwrap_or(0),
                     steps,
+                    bus.total_cycles(),
                     pc_antes,
                     alvo.0,
                     alvo.1,
@@ -173,8 +176,13 @@ fn run(cpu: &mut Cpu, bus: &mut Bus, max_steps: usize, pad: &PadScript, sondas: 
             if int != cd_int_antes && int != 0 {
                 let (_, _, pos) = cd.debug_state();
                 eprintln!(
-                    "cd int={} passo={} pos={:02X}:{:02X}:{:02X}",
-                    int, steps, pos.0, pos.1, pos.2
+                    "cd int={} passo={} ciclo={} pos={:02X}:{:02X}:{:02X}",
+                    int,
+                    steps,
+                    bus.total_cycles(),
+                    pos.0,
+                    pos.1,
+                    pos.2
                 );
             }
             cd_int_antes = int;
@@ -200,16 +208,21 @@ fn run(cpu: &mut Cpu, bus: &mut Bus, max_steps: usize, pad: &PadScript, sondas: 
         }
 
         if !pad.is_empty() {
-            let desejado = pad.buttons_at(steps as u64);
+            let agora = if pad_em_ciclos {
+                bus.total_cycles()
+            } else {
+                steps as u64
+            };
+            let desejado = pad.buttons_at(agora);
             if desejado != pad_state {
                 pad_state = desejado;
                 bus.sio_mut().set_buttons(pad_state);
             }
-            let eixos = pad.sticks_at(steps as u64);
+            let eixos = pad.sticks_at(agora);
             if eixos != bus.sio().sticks() {
                 bus.sio_mut().set_sticks(eixos);
             }
-            if pad.analog_press_at(steps as u64) {
+            if pad.analog_press_at(agora) {
                 let trocou = bus.sio_mut().press_analog_button();
                 eprintln!(
                     "pad: botao Analog no passo {steps}: {}",
@@ -551,6 +564,7 @@ fn main() {
     let mut sample_pcs: Option<(usize, usize, usize)> = None;
     let mut pad_connected = false;
     let mut log_cd = false;
+    let mut pad_em_ciclos = false;
     let mut memcard_arg: Option<String> = None;
     let mut press_specs: Vec<String> = Vec::new();
     let mut porta: Vec<(usize, AcaoNaPorta)> = Vec::new();
@@ -570,6 +584,10 @@ fn main() {
             }
             "--log-cd" => {
                 log_cd = true;
+                i += 1;
+            }
+            "--pad-em-ciclos" => {
+                pad_em_ciclos = true;
                 i += 1;
             }
             "--pad" => {
@@ -878,6 +896,7 @@ fn main() {
                     audio_dump: audio_dump.as_deref(),
                     porta: &porta,
                     log_cd,
+                    pad_em_ciclos,
                 },
             );
 
@@ -967,6 +986,7 @@ fn main() {
                     audio_dump: audio_dump.as_deref(),
                     porta: &porta,
                     log_cd,
+                    pad_em_ciclos,
                 },
             );
 
@@ -1040,6 +1060,7 @@ fn main() {
 
     eprintln!("Uso: psx-cli [--version | --bios <caminho> [--exe <caminho>] [--disc <caminho>]]");
     eprintln!("     [--pad] [--press BOTAO@PASSO[:DURACAO]] [--press analog@PASSO]");
+    eprintln!("     [--pad-em-ciclos] (PASSO e DURACAO de --press/--stick em ciclos emulados)");
     eprintln!("     [--dualshock] [--analog] [--stick left|right:X,Y@PASSO[:DURACAO]]");
     eprintln!("     [--open-lid PASSO] [--close-lid PASSO] [--swap-disc CUE@PASSO[:DURACAO]]");
     std::process::exit(1);

@@ -131,6 +131,18 @@ impl Cpu {
         bus.tick_timers(cycles);
     }
 
+    // 02-cpu.md L767-777: o cop2cmd sob a interrupcao roda; a BIOS pula ele no retorno.
+    fn run_gte_command_under_interrupt(&mut self, bus: &mut Bus, sr: u32) {
+        let pc = self.pc;
+        if pc & 3 != 0 || Bus::fetch_causa_bus_error(pc) || sr & (1 << 30) == 0 {
+            return;
+        }
+        let instr = bus.read32::<BusRead>(pc);
+        if instr & 0xFE00_0000 == 0x4A00_0000 {
+            self.cop2_op(instr, bus);
+        }
+    }
+
     fn step_uncounted(&mut self, bus: &mut Bus) -> u32 {
         self.cop0[13] = if bus.irq().pending() {
             self.cop0[13] | (1 << 10)
@@ -143,6 +155,7 @@ impl Cpu {
             if let Some((reg, val)) = self.load_delay.take() {
                 self.set_reg(reg, val);
             }
+            self.run_gte_command_under_interrupt(bus, sr);
             let ie_ku_shifted = ((sr & 0x3) << 2) | ((sr & 0xC) << 2);
             self.cop0[12] = (sr & !0x3F) | ie_ku_shifted;
             self.cop0[13] &= !0xC000_007C;

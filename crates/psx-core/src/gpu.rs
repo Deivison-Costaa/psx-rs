@@ -1,6 +1,8 @@
 use std::cell::Cell;
 use std::fmt;
 
+mod triangle;
+
 fn color24_to_16(color24: u32) -> u16 {
     let r = (color24 & 0xFF) as u8;
     let g = ((color24 >> 8) & 0xFF) as u8;
@@ -30,29 +32,6 @@ fn color24_to_16_dithered(color24: u32, x: i32, y: i32, dither_enabled: bool) ->
     }
 }
 
-fn lerp_color24(a: u32, b: u32, t: i32, t_max: i32) -> u32 {
-    if t_max == 0 {
-        return a;
-    }
-    let ar = (a & 0xFF) as i32;
-    let ag = ((a >> 8) & 0xFF) as i32;
-    let ab = ((a >> 16) & 0xFF) as i32;
-    let br = (b & 0xFF) as i32;
-    let bg = ((b >> 8) & 0xFF) as i32;
-    let bb = ((b >> 16) & 0xFF) as i32;
-    let r = (ar + (br - ar) * t / t_max).clamp(0, 255) as u32;
-    let g = (ag + (bg - ag) * t / t_max).clamp(0, 255) as u32;
-    let b = (ab + (bb - ab) * t / t_max).clamp(0, 255) as u32;
-    r | (g << 8) | (b << 16)
-}
-
-fn lerp_i32(a: i32, b: i32, t: i32, t_max: i32) -> i32 {
-    if t_max == 0 {
-        return a;
-    }
-    a + (b - a) * t / t_max
-}
-
 const LINE_FRAC: u32 = 32;
 const LINE_HALF: i64 = 1 << (LINE_FRAC - 1);
 const LINE_BIAS: i64 = 1024;
@@ -71,32 +50,19 @@ fn line_step(delta: i64, k: i64) -> i64 {
     rounded / k
 }
 
-const ATTRIB_FRAC: u32 = 12;
-
-fn attrib_step(a: i32, b: i32, span: i32) -> i32 {
-    if span <= 0 {
-        return 0;
-    }
-    ((b - a) << ATTRIB_FRAC) / span
-}
-
-fn attrib_at(a: i32, step: i32, t: i32) -> i32 {
-    ((a << ATTRIB_FRAC) + (1 << (ATTRIB_FRAC - 1)) + step * t) >> ATTRIB_FRAC
-}
-
-fn lerp_attrib(a: i32, b: i32, t: i32, t_max: i32) -> i32 {
-    attrib_at(a, attrib_step(a, b, t_max), t)
-}
-
 /// § Modulation (03-gpu.md L1610) e tabela do GPU v2 (03-gpu.md L1080): o produto usa a cor
 /// do vertice com os 8 bits inteiros; cortar para 5 bits antes e o GPU v0 (L1098-1099).
 fn modulate_texel(texel: u16, color24: u32) -> u16 {
-    let canal = |desloca_texel: u32, desloca_cor: u32| -> u16 {
-        let t = ((texel >> desloca_texel) & 0x1F) as u32;
-        let c = (color24 >> desloca_cor) & 0xFF;
-        ((t * c / 16).min(255) >> 3) as u16
+    let color = [0, 8, 16].map(|s| ((color24 >> s) & 0xFF) as i32);
+    modulate_texel_dithered(texel, color, 0)
+}
+
+fn modulate_texel_dithered(texel: u16, color: [i32; 3], offset: i32) -> u16 {
+    let canal = |desloca_texel: u32, c: i32| -> u16 {
+        let t = i32::from((texel >> desloca_texel) & 0x1F);
+        (((t * c) >> 4) + offset).clamp(0, 255) as u16 >> 3
     };
-    canal(0, 0) | (canal(5, 8) << 5) | (canal(10, 16) << 10) | (texel & 0x8000)
+    canal(0, color[0]) | (canal(5, color[1]) << 5) | (canal(10, color[2]) << 10) | (texel & 0x8000)
 }
 
 /// § Semi-transparency (03-gpu.md L1596): so em primitiva TEXTURIZADA o bit15 do texel
@@ -105,16 +71,14 @@ fn blend_texturizado(semi_transparent: bool, texel: u16) -> bool {
     semi_transparent && (texel & 0x8000) != 0
 }
 
-fn lerp_color24_attrib(a: u32, b: u32, t: i32, t_max: i32) -> u32 {
-    let mut out = 0u32;
-    for canal in 0..3 {
-        let desloca = canal * 8;
-        let ca = ((a >> desloca) & 0xFF) as i32;
-        let cb = ((b >> desloca) & 0xFF) as i32;
-        let v = lerp_attrib(ca, cb, t, t_max).clamp(0, 255) as u32;
-        out |= v << desloca;
-    }
-    out
+#[derive(Clone, Copy)]
+struct PolygonMode {
+    gouraud: bool,
+    textured: bool,
+    raw_texture: bool,
+    semi_transparent: bool,
+    dither: bool,
+    flat_color: u32,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -1391,273 +1355,82 @@ impl Gpu {
         colors: &mut [u32; 4],
         uvs: &mut [(u8, u8); 4],
     ) {
-        let n = if quad { 4 } else { 3 };
-        if !gouraud {
-            let flat_color = colors[0];
-            for c in colors.iter_mut().take(n) {
-                *c = flat_color;
-            }
-        }
-        for i in 0..n {
-            for j in (i + 1)..n {
-                let dx = (vertices[i].0 as i32 - vertices[j].0 as i32).abs();
-                let dy = (vertices[i].1 as i32 - vertices[j].1 as i32).abs();
-                if dx > 1023 || dy > 511 {
-                    return;
-                }
-            }
-        }
         if textured {
             self.load_clut_cache();
         }
-        let tex_active = textured && {
-            let tex_colors = (self.stat.get() >> 7) & 3;
-            tex_colors <= 3
+        let modulated = textured && !raw_texture;
+        let mode = PolygonMode {
+            gouraud,
+            textured,
+            raw_texture,
+            semi_transparent,
+            dither: (gouraud || modulated) && !raw_texture && (self.stat.get() & (1 << 9)) != 0,
+            flat_color: colors[0],
         };
-        let dither = gouraud && !tex_active && (self.stat.get() & (1 << 9)) != 0;
+        let vertex = |i: usize| triangle::Vertex {
+            x: i32::from(vertices[i].0),
+            y: i32::from(vertices[i].1),
+            color: colors[i],
+            u: uvs[i].0,
+            v: uvs[i].1,
+        };
+        self.render_triangle(mode, [vertex(0), vertex(1), vertex(2)]);
         if quad {
-            self.render_triangle(
-                gouraud,
-                tex_active,
-                raw_texture,
-                semi_transparent,
-                dither,
-                [vertices[0], vertices[1], vertices[2]],
-                [colors[0], colors[1], colors[2]],
-                [uvs[0], uvs[1], uvs[2]],
-            );
-            self.render_triangle(
-                gouraud,
-                tex_active,
-                raw_texture,
-                semi_transparent,
-                dither,
-                [vertices[1], vertices[2], vertices[3]],
-                [colors[1], colors[2], colors[3]],
-                [uvs[1], uvs[2], uvs[3]],
-            );
+            self.render_triangle(mode, [vertex(1), vertex(2), vertex(3)]);
+        }
+    }
+
+    fn render_triangle(&mut self, mode: PolygonMode, verts: [triangle::Vertex; 3]) {
+        let Some(tri) = triangle::Triangle::setup(verts) else {
+            return;
+        };
+        let clip_left = i32::from(self.drawing_x1.get());
+        let clip_right = (i32::from(self.drawing_x2.get()) + 1).min(1024);
+        let top = tri.top.max(i32::from(self.drawing_y1.get())).max(0);
+        let bottom = tri
+            .bottom
+            .min(i32::from(self.drawing_y2.get()) + 1)
+            .min(512);
+        for y in top..bottom {
+            let Some((start, end)) = tri.span(y) else {
+                continue;
+            };
+            for x in start.max(clip_left).max(0)..end.min(clip_right) {
+                self.shade_polygon_pixel(&tri, mode, x, y);
+            }
+        }
+    }
+
+    fn shade_polygon_pixel(&mut self, tri: &triangle::Triangle, mode: PolygonMode, x: i32, y: i32) {
+        let color = if mode.gouraud {
+            tri.color(x, y)
         } else {
-            self.render_triangle(
-                gouraud,
-                tex_active,
-                raw_texture,
-                semi_transparent,
-                dither,
-                [vertices[0], vertices[1], vertices[2]],
-                [colors[0], colors[1], colors[2]],
-                [uvs[0], uvs[1], uvs[2]],
-            );
-        }
+            [0, 8, 16].map(|s| ((mode.flat_color >> s) & 0xFF) as i32)
+        };
+        let offset = if mode.dither {
+            DITHER_MATRIX[(y & 3) as usize][(x & 3) as usize]
+        } else {
+            0
+        };
+        let (pixel, blend) = if mode.textured {
+            let (u, v) = tri.uv(x, y);
+            let texel = self.sample_texel(u, v);
+            if texel == 0 {
+                return;
+            }
+            let pixel = if mode.raw_texture {
+                texel
+            } else {
+                modulate_texel_dithered(texel, color, offset)
+            };
+            (pixel, blend_texturizado(mode.semi_transparent, texel))
+        } else {
+            let channel = |c: i32| ((c + offset).clamp(0, 255) >> 3) as u16;
+            let pixel = channel(color[0]) | (channel(color[1]) << 5) | (channel(color[2]) << 10);
+            (pixel, mode.semi_transparent)
+        };
+        self.write_pixel(y as usize * 1024 + x as usize, pixel, blend);
     }
-
-    #[allow(clippy::too_many_arguments)]
-    fn render_triangle(
-        &mut self,
-        gouraud: bool,
-        textured: bool,
-        raw_texture: bool,
-        semi_transparent: bool,
-        dither: bool,
-        verts: [(i16, i16); 3],
-        colors: [u32; 3],
-        uvs: [(u8, u8); 3],
-    ) {
-        if dither && gouraud && !textured {
-            self.render_triangle_dithered(verts, colors, semi_transparent);
-            return;
-        }
-        let (v0, v1, v2) = (verts[0], verts[1], verts[2]);
-        let (c0, c1, c2) = (colors[0], colors[1], colors[2]);
-        let (uv0, uv1, uv2) = (uvs[0], uvs[1], uvs[2]);
-        let mut sorted = [
-            (v0.0 as i32, v0.1 as i32, c0, uv0.0 as i32, uv0.1 as i32),
-            (v1.0 as i32, v1.1 as i32, c1, uv1.0 as i32, uv1.1 as i32),
-            (v2.0 as i32, v2.1 as i32, c2, uv2.0 as i32, uv2.1 as i32),
-        ];
-        sorted.sort_by_key(|v| v.1);
-
-        let (xm, ym, pcm, um, vm) = sorted[1];
-        let (xb, yb, pcb, ub, vb) = sorted[2];
-        let (xt, yt, pct, ut, vt) = sorted[0];
-
-        let dy_mt = ym - yt;
-        let dy_bt = yb - yt;
-        let dy_bm = yb - ym;
-
-        if dy_bt <= 0 {
-            return;
-        }
-
-        let area_x1 = self.drawing_x1.get() as i32;
-        let area_y1 = self.drawing_y1.get() as i32;
-        let area_x2 = self.drawing_x2.get() as i32;
-        let area_y2 = self.drawing_y2.get() as i32;
-        let y_start = yt.max(area_y1).max(0);
-        let y_end = yb.min(area_y2 + 1).min(512);
-
-        for y in y_start..y_end {
-            let x_edge_tb = lerp_i32(xt, xb, y - yt, dy_bt);
-            let (x_edge_short, color_short, u_short, v_short) = if y < ym {
-                (
-                    lerp_i32(xt, xm, y - yt, dy_mt),
-                    lerp_color24_attrib(pct, pcm, y - yt, dy_mt),
-                    lerp_attrib(ut, um, y - yt, dy_mt),
-                    lerp_attrib(vt, vm, y - yt, dy_mt),
-                )
-            } else {
-                (
-                    lerp_i32(xm, xb, y - ym, dy_bm),
-                    lerp_color24_attrib(pcm, pcb, y - ym, dy_bm),
-                    lerp_attrib(um, ub, y - ym, dy_bm),
-                    lerp_attrib(vm, vb, y - ym, dy_bm),
-                )
-            };
-
-            let color_tb = lerp_color24_attrib(pct, pcb, y - yt, dy_bt);
-            let u_tb = lerp_attrib(ut, ub, y - yt, dy_bt);
-            let v_tb = lerp_attrib(vt, vb, y - yt, dy_bt);
-
-            let (xl, xr, cl, cr, ul, ur, vl, vr) = if x_edge_tb < x_edge_short {
-                (
-                    x_edge_tb,
-                    x_edge_short,
-                    color_tb,
-                    color_short,
-                    u_tb,
-                    u_short,
-                    v_tb,
-                    v_short,
-                )
-            } else {
-                (
-                    x_edge_short,
-                    x_edge_tb,
-                    color_short,
-                    color_tb,
-                    u_short,
-                    u_tb,
-                    v_short,
-                    v_tb,
-                )
-            };
-
-            let xl_span = xl;
-            let dx_span = xr - xl;
-            let step_u = attrib_step(ul, ur, dx_span);
-            let step_v = attrib_step(vl, vr, dx_span);
-
-            let xl = xl.max(area_x1).max(0);
-            let xr = xr.max(0).min(area_x2 + 1).min(1024);
-            if xl >= xr {
-                continue;
-            }
-
-            for x in xl..xr {
-                let pixel = if textured {
-                    let tex_u = attrib_at(ul, step_u, x - xl_span);
-                    let tex_v = attrib_at(vl, step_v, x - xl_span);
-                    let texel = self.sample_texel(tex_u, tex_v);
-                    if texel == 0 {
-                        continue;
-                    }
-                    if raw_texture {
-                        texel
-                    } else {
-                        let vcolor = lerp_color24_attrib(cl, cr, x - xl_span, dx_span);
-                        modulate_texel(texel, vcolor)
-                    }
-                } else if gouraud {
-                    color24_to_16(lerp_color24_attrib(cl, cr, x - xl_span, dx_span))
-                } else {
-                    color24_to_16(pct)
-                };
-                let blend = if textured {
-                    blend_texturizado(semi_transparent, pixel)
-                } else {
-                    semi_transparent
-                };
-                let idx = y as usize * 1024 + x as usize;
-                self.write_pixel(idx, pixel, blend);
-            }
-        }
-    }
-
-    fn render_triangle_dithered(
-        &mut self,
-        verts: [(i16, i16); 3],
-        colors: [u32; 3],
-        semi_transparent: bool,
-    ) {
-        let (v0, v1, v2) = (verts[0], verts[1], verts[2]);
-        let (c0, c1, c2) = (colors[0], colors[1], colors[2]);
-        let mut sorted = [
-            (v0.0 as i32, v0.1 as i32, c0),
-            (v1.0 as i32, v1.1 as i32, c1),
-            (v2.0 as i32, v2.1 as i32, c2),
-        ];
-        sorted.sort_by_key(|v| v.1);
-
-        let (xm, ym, pcm) = sorted[1];
-        let (xb, yb, pcb) = sorted[2];
-        let (xt, yt, pct) = sorted[0];
-
-        let dy_mt = ym - yt;
-        let dy_bt = yb - yt;
-        let dy_bm = yb - ym;
-
-        if dy_bt <= 0 {
-            return;
-        }
-
-        let area_x1 = self.drawing_x1.get() as i32;
-        let area_y1 = self.drawing_y1.get() as i32;
-        let area_x2 = self.drawing_x2.get() as i32;
-        let area_y2 = self.drawing_y2.get() as i32;
-        let y_start = yt.max(area_y1).max(0);
-        let y_end = yb.min(area_y2 + 1).min(512);
-
-        for y in y_start..y_end {
-            let x_edge_tb = lerp_i32(xt, xb, y - yt, dy_bt);
-            let (x_edge_short, color_short) = if y < ym {
-                (
-                    lerp_i32(xt, xm, y - yt, dy_mt),
-                    lerp_color24(pct, pcm, y - yt, dy_mt),
-                )
-            } else {
-                (
-                    lerp_i32(xm, xb, y - ym, dy_bm),
-                    lerp_color24(pcm, pcb, y - ym, dy_bm),
-                )
-            };
-
-            let color_tb = lerp_color24(pct, pcb, y - yt, dy_bt);
-
-            let (xl, xr, cl, cr) = if x_edge_tb < x_edge_short {
-                (x_edge_tb, x_edge_short, color_tb, color_short)
-            } else {
-                (x_edge_short, x_edge_tb, color_short, color_tb)
-            };
-
-            let xl = xl.max(area_x1).max(0);
-            let xr = xr.max(0).min(area_x2 + 1).min(1024);
-            if xl >= xr {
-                continue;
-            }
-
-            let dx = xr - xl;
-            for x in xl..xr {
-                let color24 = if dx > 0 {
-                    lerp_color24(cl, cr, x - xl, dx)
-                } else {
-                    pct
-                };
-                let pixel = color24_to_16_dithered(color24, x, y, true);
-                let idx = y as usize * 1024 + x as usize;
-                self.write_pixel(idx, pixel, semi_transparent);
-            }
-        }
-    }
-
     #[allow(clippy::too_many_arguments)]
     fn render_single_line(
         &mut self,

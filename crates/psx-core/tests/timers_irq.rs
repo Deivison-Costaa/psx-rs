@@ -14,6 +14,8 @@ const T2_CNT: u32 = 0x1F80_1120;
 const T2_MODE: u32 = 0x1F80_1124;
 const T2_TARGET: u32 = 0x1F80_1128;
 
+// Toda escrita no modo ou no contador segura o contador por 2 ciclos
+// (05-timers.md, Reset and Wrap): o primeiro tick depois dela nao conta.
 fn tick(bus: &mut Bus, base: u32, cycles: u32) -> Option<u32> {
     let hb = bus.gpu().hblank_active();
     let vb = bus.gpu().vblank_active();
@@ -25,7 +27,7 @@ fn target_flag_alcancado_sem_reset_on_target() {
     let mut bus = bus();
     bus.write32::<BusRead>(T0_TARGET, 0x0003);
     bus.write32::<BusRead>(T0_MODE, 0x0000);
-    bus.timers_mut().tick(T0_CNT, 3, false, false);
+    bus.timers_mut().tick(T0_CNT, 4, false, false);
     let mode = bus.read32::<BusRead>(T0_MODE);
     assert_eq!(
         mode & (1 << 11),
@@ -41,7 +43,7 @@ fn target_flag_setado_mesmo_com_irq_desabilitada() {
     let mut bus = bus();
     bus.write32::<BusRead>(T0_TARGET, 0x0002);
     bus.write32::<BusRead>(T0_MODE, 0x0000);
-    bus.timers_mut().tick(T0_CNT, 2, false, false);
+    bus.timers_mut().tick(T0_CNT, 3, false, false);
     let mode = bus.read32::<BusRead>(T0_MODE);
     assert_eq!(
         mode & (1 << 11),
@@ -55,7 +57,7 @@ fn ffff_flag_setado_mesmo_com_irq_desabilitada() {
     let mut bus = bus();
     bus.write32::<BusRead>(T0_MODE, 0x0000);
     bus.write32::<BusRead>(T0_CNT, 0xFFFF);
-    bus.timers_mut().tick(T0_CNT, 1, false, false);
+    bus.timers_mut().tick(T0_CNT, 2, false, false);
     let mode = bus.read32::<BusRead>(T0_MODE);
     assert_eq!(
         mode & (1 << 12),
@@ -69,7 +71,7 @@ fn irq_target_pulse_retorna_irq_bit4() {
     let mut bus = bus();
     bus.write32::<BusRead>(T0_TARGET, 0x0001);
     bus.write32::<BusRead>(T0_MODE, 0x0010);
-    let irq = tick(&mut bus, T0_CNT, 1);
+    let irq = tick(&mut bus, T0_CNT, 2);
     assert_eq!(
         irq,
         Some(4),
@@ -88,7 +90,7 @@ fn irq_target_desabilitado_sem_bit4() {
     let mut bus = bus();
     bus.write32::<BusRead>(T0_TARGET, 0x0001);
     bus.write32::<BusRead>(T0_MODE, 0x0000);
-    let irq = tick(&mut bus, T0_CNT, 1);
+    let irq = tick(&mut bus, T0_CNT, 2);
     assert_eq!(irq, None, "sem IRQ quando bit4=0");
     let mode_after = bus.read32::<BusRead>(T0_MODE);
     assert_eq!(
@@ -103,7 +105,7 @@ fn irq_ffff_pulse_retorna_irq_bit4() {
     let mut bus = bus();
     bus.write32::<BusRead>(T0_MODE, 0x0020);
     bus.write32::<BusRead>(T0_CNT, 0xFFFF);
-    let irq = tick(&mut bus, T0_CNT, 1);
+    let irq = tick(&mut bus, T0_CNT, 2);
     assert_eq!(
         irq,
         Some(4),
@@ -116,7 +118,7 @@ fn irq_ffff_desabilitado_sem_bit5() {
     let mut bus = bus();
     bus.write32::<BusRead>(T0_MODE, 0x0000);
     bus.write32::<BusRead>(T0_CNT, 0xFFFF);
-    let irq = tick(&mut bus, T0_CNT, 1);
+    let irq = tick(&mut bus, T0_CNT, 2);
     assert_eq!(irq, None, "sem IRQ quando bit5=0");
 }
 
@@ -125,10 +127,10 @@ fn irq_oneshot_nao_dispara_segunda_vez() {
     let mut bus = bus();
     bus.write32::<BusRead>(T0_TARGET, 0x0001);
     bus.write32::<BusRead>(T0_MODE, 0x0010);
-    let irq1 = tick(&mut bus, T0_CNT, 1);
+    let irq1 = tick(&mut bus, T0_CNT, 2);
     assert_eq!(irq1, Some(4), "primeiro IRQ dispara");
     bus.write32::<BusRead>(T0_CNT, 0);
-    let irq2 = tick(&mut bus, T0_CNT, 1);
+    let irq2 = tick(&mut bus, T0_CNT, 2);
     assert_eq!(irq2, None, "one-shot suprime segunda IRQ");
 }
 
@@ -137,10 +139,10 @@ fn irq_repeat_dispara_multiplas_vezes() {
     let mut bus = bus();
     bus.write32::<BusRead>(T0_TARGET, 0x0001);
     bus.write32::<BusRead>(T0_MODE, 0x0050);
-    let irq1 = tick(&mut bus, T0_CNT, 1);
+    let irq1 = tick(&mut bus, T0_CNT, 2);
     assert_eq!(irq1, Some(4), "primeiro IRQ em repeat mode");
     bus.write32::<BusRead>(T0_CNT, 0);
-    let irq2 = tick(&mut bus, T0_CNT, 1);
+    let irq2 = tick(&mut bus, T0_CNT, 2);
     assert_eq!(
         irq2,
         Some(4),
@@ -153,12 +155,12 @@ fn irq_toggle_inverte_bit10_e_so_retorna_irq_na_descida() {
     let mut bus = bus();
     bus.write32::<BusRead>(T0_TARGET, 0x0001);
     bus.write32::<BusRead>(T0_MODE, 0x00D0);
-    let irq1 = tick(&mut bus, T0_CNT, 1);
+    let irq1 = tick(&mut bus, T0_CNT, 2);
     assert_eq!(irq1, Some(4), "primeiro IRQ: 1→0 gera IRQ4");
     let bit10_after_first = bus.read32::<BusRead>(T0_MODE) & (1 << 10);
     assert_eq!(bit10_after_first, 0, "bit10 invertido (toggle): ficou 0");
     bus.write32::<BusRead>(T0_CNT, 0);
-    let irq2 = tick(&mut bus, T0_CNT, 1);
+    let irq2 = tick(&mut bus, T0_CNT, 2);
     assert_eq!(irq2, None, "segundo IRQ: 0→1 NAO gera IRQ");
     let bit10_after_second = bus.read32::<BusRead>(T0_MODE) & (1 << 10);
     assert_eq!(
@@ -173,11 +175,11 @@ fn irq_toggle_terceiro_disparo_retorna_irq() {
     let mut bus = bus();
     bus.write32::<BusRead>(T0_TARGET, 0x0001);
     bus.write32::<BusRead>(T0_MODE, 0x00D0);
-    tick(&mut bus, T0_CNT, 1);
+    tick(&mut bus, T0_CNT, 2);
     bus.write32::<BusRead>(T0_CNT, 0);
-    tick(&mut bus, T0_CNT, 1);
+    tick(&mut bus, T0_CNT, 2);
     bus.write32::<BusRead>(T0_CNT, 0);
-    let irq3 = tick(&mut bus, T0_CNT, 1);
+    let irq3 = tick(&mut bus, T0_CNT, 2);
     assert_eq!(irq3, Some(4), "terceiro toggle: 1→0 gera IRQ4 novamente");
 }
 
@@ -186,10 +188,10 @@ fn irq_oneshot_toggle_nao_dispara_segunda_vez() {
     let mut bus = bus();
     bus.write32::<BusRead>(T0_TARGET, 0x0001);
     bus.write32::<BusRead>(T0_MODE, 0x0090);
-    let irq1 = tick(&mut bus, T0_CNT, 1);
+    let irq1 = tick(&mut bus, T0_CNT, 2);
     assert_eq!(irq1, Some(4), "toggle one-shot: primeiro disparo gera IRQ");
     bus.write32::<BusRead>(T0_CNT, 0);
-    let irq2 = tick(&mut bus, T0_CNT, 1);
+    let irq2 = tick(&mut bus, T0_CNT, 2);
     assert_eq!(irq2, None, "toggle one-shot: NAO gera no segundo");
 }
 

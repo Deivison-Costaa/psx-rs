@@ -1,10 +1,12 @@
 use std::cell::{Cell, RefCell};
 
 use crate::memcard::{self, MemoryCard, MemoryCardError};
+use crate::sio1::Sio1;
 
 const ADDRESS_CONTROLLER: u8 = 0x01;
 const PAD_READ: u8 = 0x42;
 const CTRL_PORT_2: u16 = 1 << 13;
+const JOY_MODE_MASK: u16 = 0x013F;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Sio {
@@ -23,6 +25,7 @@ pub struct Sio {
     ack_requested: Cell<bool>,
     memcard: RefCell<MemoryCard>,
     memcard_connected: Cell<bool>,
+    sio1: RefCell<Sio1>,
 }
 
 impl Sio {
@@ -43,6 +46,7 @@ impl Sio {
             ack_requested: Cell::new(false),
             memcard: RefCell::new(MemoryCard::new()),
             memcard_connected: Cell::new(false),
+            sio1: RefCell::new(Sio1::default()),
         }
     }
 
@@ -263,6 +267,9 @@ impl Sio {
             0x1F80_104C | 0x1F80_104D => 0,
             0x1F80_104E => (self.baud.get() & 0xFF) as u8,
             0x1F80_104F => ((self.baud.get() >> 8) & 0xFF) as u8,
+            0x1F80_1050..=0x1F80_105F => {
+                (self.sio1.borrow().read16(phys) >> ((phys & 1) * 8)) as u8
+            }
             _ => 0,
         }
     }
@@ -276,12 +283,14 @@ impl Sio {
             }
             0x1F80_1048 => {
                 let m = self.mode.get();
-                self.mode.set((m & 0xFF00) | (val as u16));
+                self.mode.set(((m & 0xFF00) | (val as u16)) & JOY_MODE_MASK);
             }
             0x1F80_1049 => {
                 let m = self.mode.get();
-                self.mode.set((m & 0x00FF) | ((val as u16) << 8));
+                self.mode
+                    .set(((m & 0x00FF) | ((val as u16) << 8)) & JOY_MODE_MASK);
             }
+            0x1F80_1050..=0x1F80_105F => self.sio1.borrow_mut().write8(phys, val),
             0x1F80_104A => {
                 let new_ctrl = (self.ctrl.get() & 0xFF00) | (val as u16);
                 self.update_ctrl(new_ctrl);
@@ -299,6 +308,19 @@ impl Sio {
                 self.baud.set((b & 0x00FF) | ((val as u16) << 8));
             }
             _ => {}
+        }
+    }
+
+    pub fn write_half(&self, phys: u32, val: u16) {
+        match phys & !1 {
+            0x1F80_1048 => self.mode.set(val & JOY_MODE_MASK),
+            0x1F80_104A => self.update_ctrl(val),
+            0x1F80_104E => self.baud.set(val),
+            0x1F80_1050..=0x1F80_105F => self.sio1.borrow_mut().write16(phys, val),
+            _ => {
+                self.write_byte(phys, val as u8);
+                self.write_byte(phys + 1, (val >> 8) as u8);
+            }
         }
     }
 

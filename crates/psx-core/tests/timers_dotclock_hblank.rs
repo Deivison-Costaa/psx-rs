@@ -53,78 +53,63 @@ fn timer0_dotclock_320px_razao_11_por_56_cpu_cycles() {
     );
 }
 
+// O Timer1 com fonte Hblank conta as bordas de hblank que o GPU de fato gera: 263 por
+// quadro NTSC (timers.exe do ps1-tests mede 263 em hardware), nao uma razao de clock.
 #[test]
-fn timer1_hblank_ntsc_razao_11_por_23891_cpu_cycles() {
+fn timer1_hblank_conta_as_bordas_entregues() {
     let mut bus = bus();
-    bus.timers_mut().update_gpu_timing(10, 3413);
     bus.write32::<BusRead>(T1_MODE, 0x0100);
-    tick_timer(&mut bus, T1_CNT, 5000);
+    bus.timers_mut()
+        .tick_with_hblanks(T1_CNT, 5000, false, false, 2);
+    assert_eq!(bus.read32::<BusRead>(T1_CNT) & 0xFFFF, 2);
+    bus.timers_mut()
+        .tick_with_hblanks(T1_CNT, 10000, false, false, 5);
+    assert_eq!(bus.read32::<BusRead>(T1_CNT) & 0xFFFF, 7);
+}
+
+#[test]
+fn timer1_hblank_sem_borda_nao_anda_por_mais_ciclos_que_passem() {
+    let mut bus = bus();
+    bus.write32::<BusRead>(T1_MODE, 0x0100);
+    tick_timer(&mut bus, T1_CNT, 50_000);
     assert_eq!(
         bus.read32::<BusRead>(T1_CNT) & 0xFFFF,
-        2,
-        "5000 CPU cycles a 11/23891 hblank/pulse = 2 pulsos (55000/23891=2, resto=7218)"
-    );
-    tick_timer(&mut bus, T1_CNT, 10000);
-    assert_eq!(
-        bus.read32::<BusRead>(T1_CNT) & 0xFFFF,
-        6,
-        "acumulado: resto=7218 (fracao pendente) + 10000*11=110000 → 117218/23891=4 → CNT=2+4=6"
+        0,
+        "sem hblank entregue, o contador nao inventa pulsos a partir dos ciclos"
     );
 }
 
-// § Dotclock/Hblank (L79-86) de docs/reference/05-timers.md diz que o hblank pulsa 11 vezes
-// a cada 7 linhas de varredura — denom = 7 * ciclos_por_linha, nao 8. 2172 ciclos*11=23892 e
-// o primeiro multiplo que cruza 23891 (7*3413); cruza so no ciclo 27304 (8*3413) se o fator
-// virasse 8 por engano, entao esse limiar prova qual dos dois o codigo usa de fato.
 #[test]
-fn timer1_hblank_denom_e_sete_vezes_video_cycles_por_scanline_nao_oito() {
+fn timer1_hblank_conta_263_linhas_por_quadro_ntsc() {
     let mut bus = bus();
-    bus.timers_mut().update_gpu_timing(10, 3413);
+    let quadro = bus.gpu().frame_cycles();
+    for _ in 0..quadro {
+        bus.tick_timers(1);
+    }
     bus.write32::<BusRead>(T1_MODE, 0x0100);
-    tick_timer(&mut bus, T1_CNT, 2172);
+    for _ in 0..quadro {
+        bus.tick_timers(1);
+    }
     assert_eq!(
         bus.read32::<BusRead>(T1_CNT) & 0xFFFF,
-        1,
-        "2172*11=23892 cruza 7*3413=23891 por 1 ciclo — com denom=8*3413=27304 isso ainda \
-         nao teria cruzado nenhum pulso"
+        263,
+        "um quadro NTSC tem 263 linhas, logo 263 hblanks"
     );
 }
 
-// § Dotclock/Hblank (L79-86) de docs/reference/05-timers.md: o driver da PsyQ le o contador
-// duas vezes seguidas e so aceita quando as leituras batem. Se o acumulador fracionario
-// vazar o resto inteiro a cada chamada (em vez de reter so a fracao ate cruzar o proximo
-// pulso), duas leituras a poucos ciclos de distancia NUNCA batem — e o laco do jogo trava
-// pra sempre. Bug real medido em Tekken 3 e Resident Evil 2 travando no boot.
 #[test]
 fn duas_leituras_a_poucos_ciclos_de_distancia_batem_como_o_driver_da_psyq_espera() {
     let mut bus = bus();
-    bus.timers_mut().update_gpu_timing(10, 3413);
     bus.write32::<BusRead>(T1_MODE, 0x0100);
-    // Alimenta o acumulador com uma fracao pendente grande antes das duas leituras rapidas,
-    // do mesmo jeito que o driver real chega com resto acumulado de ticks anteriores.
-    tick_timer(&mut bus, T1_CNT, 5000);
+    for _ in 0..5000 {
+        bus.tick_timers(1);
+    }
     let primeira = bus.read32::<BusRead>(T1_CNT) & 0xFFFF;
-
-    tick_timer(&mut bus, T1_CNT, 8); // poucos ciclos: menos de 1/23891 de pulso de hblank
+    bus.tick_timers(8);
     let segunda = bus.read32::<BusRead>(T1_CNT) & 0xFFFF;
-
     assert_eq!(
         segunda, primeira,
-        "8 ciclos de CPU nao completam nem 1/2000 de um pulso de hblank (denom=23891); a \
-         leitura tem de ficar igual, nao saltar centenas de unidades"
-    );
-}
-
-#[test]
-fn timer1_hblank_pal_razao_11_por_23842_cpu_cycles() {
-    let mut bus = bus();
-    bus.timers_mut().update_gpu_timing(10, 3406);
-    bus.write32::<BusRead>(T1_MODE, 0x0100);
-    tick_timer(&mut bus, T1_CNT, 5000);
-    assert_eq!(
-        bus.read32::<BusRead>(T1_CNT) & 0xFFFF,
-        2,
-        "5000 CPU cycles a 11/23842 hblank/pulse = 2 pulsos (55000/23842=2, resto=7316)"
+        "8 ciclos nao chegam a uma linha: as duas leituras do driver tem de bater"
     );
 }
 
@@ -133,7 +118,7 @@ fn timer0_clock_src_0_system_clock_continua_funcionando() {
     let mut bus = bus();
     bus.timers_mut().update_gpu_timing(10, 3413);
     bus.write32::<BusRead>(T0_MODE, 0x0000);
-    tick_timer(&mut bus, T0_CNT, 7);
+    tick_timer(&mut bus, T0_CNT, 8);
     assert_eq!(
         bus.read32::<BusRead>(T0_CNT) & 0xFFFF,
         7,
@@ -167,15 +152,15 @@ fn timer1_hblank_com_sync_mode0_pausa_durante_vblank() {
     let mut bus = bus();
     bus.timers_mut().update_gpu_timing(10, 3413);
     bus.write32::<BusRead>(T1_MODE, 0x0101);
-    bus.gpu_mut().enter_vblank();
-    tick_timer(&mut bus, T1_CNT, 30000);
+    bus.timers_mut()
+        .tick_with_hblanks(T1_CNT, 30000, false, true, 13);
     assert_eq!(
         bus.read32::<BusRead>(T1_CNT) & 0xFFFF,
         0,
         "hblank source + sync mode 0: pausado durante Vblank"
     );
-    bus.gpu_mut().exit_vblank();
-    tick_timer(&mut bus, T1_CNT, 30000);
+    bus.timers_mut()
+        .tick_with_hblanks(T1_CNT, 30000, false, false, 13);
     let cnt = bus.read32::<BusRead>(T1_CNT) & 0xFFFF;
     assert!(
         cnt > 0,

@@ -4,6 +4,7 @@ iteracao: 0208
 item: 0208.1
 alvo: crates/psx-core/src/timers.rs
 teste: timers_dotclock_hblank
+arquivada: timers reescritos (reset no alvo, espera apos escrita, hblank por borda); ancoras nao correspondem mais
 
 mutante: m1
 rotulo: reintroduz o bug original (escala o resto por denom de novo)

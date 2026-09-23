@@ -57,7 +57,7 @@ fn timer0_sync_mode1_reseta_no_hblank() {
     let mut bus = bus();
     bus.write32::<BusRead>(T0_MODE, 0x0003);
     set_hb(&mut bus, false);
-    tick_timer(&mut bus, T0_CNT, 10);
+    tick_timer(&mut bus, T0_CNT, 11);
     assert_eq!(
         bus.read32::<BusRead>(T0_CNT) & 0xFFFF,
         10,
@@ -151,7 +151,7 @@ fn timer1_sync_mode1_reseta_no_vblank() {
     let mut bus = bus();
     bus.write32::<BusRead>(T1_MODE, 0x0003);
     set_vb(&mut bus, false);
-    tick_timer(&mut bus, T1_CNT, 10);
+    tick_timer(&mut bus, T1_CNT, 11);
     assert_eq!(
         bus.read32::<BusRead>(T1_CNT) & 0xFFFF,
         10,
@@ -225,7 +225,7 @@ fn timer2_modo_1_e_2_sao_free_run() {
     let mut bus = bus();
     bus.write32::<BusRead>(T2_MODE, 0x0003);
     bus.write32::<BusRead>(T2_CNT, 0x0005);
-    tick_timer(&mut bus, T2_CNT, 3);
+    tick_timer(&mut bus, T2_CNT, 4);
     assert_eq!(
         bus.read32::<BusRead>(T2_CNT) & 0xFFFF,
         8,
@@ -233,7 +233,7 @@ fn timer2_modo_1_e_2_sao_free_run() {
     );
     bus.write32::<BusRead>(T2_MODE, 0x0005);
     bus.write32::<BusRead>(T2_CNT, 0x0005);
-    tick_timer(&mut bus, T2_CNT, 3);
+    tick_timer(&mut bus, T2_CNT, 4);
     assert_eq!(
         bus.read32::<BusRead>(T2_CNT) & 0xFFFF,
         8,
@@ -274,7 +274,7 @@ fn sync_disabled_free_run_independente_do_modo() {
     let mut bus = bus();
     bus.write32::<BusRead>(T0_MODE, 0x0000);
     set_hb(&mut bus, true);
-    tick_timer(&mut bus, T0_CNT, 3);
+    tick_timer(&mut bus, T0_CNT, 4);
     assert_eq!(
         bus.read32::<BusRead>(T0_CNT) & 0xFFFF,
         3,

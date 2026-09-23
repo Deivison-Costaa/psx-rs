@@ -4,6 +4,7 @@ iteracao: 0055
 item: 3.1
 alvo: crates/psx-core/src/cpu.rs
 teste: cpu_irq
+arquivada: despacho de interrupcao passou a executar o cop2cmd sob o EPC (onda5/crash-flicker)
 
 mutante: m1
 rotulo: SR.IEc ignorado (interrupcao dispara mesmo sem IEc=1)

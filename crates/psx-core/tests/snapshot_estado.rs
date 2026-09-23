@@ -17,7 +17,8 @@ const SCRATCHPAD: u32 = 0x1F80_0000;
 // +16 bytes: at_target/hold nos 3 timers (6), Cpu::load_shadow (1), registradores do
 // SIO1 (8) e Mdec::idle_since_reset (1).
 // +4 bytes: porta do CD-ROM; +24 bytes: o pad virou DualShock.
-const TAMANHO_DO_ESTADO: usize = 4_877_876;
+// +1 byte na versao 4: a tag do `Option` do disco gravado (aqui `None`).
+const TAMANHO_DO_ESTADO: usize = 4_877_877;
 const SPU_VOZ0_VOL: u32 = 0x1F80_1C00;
 const I_MASK: u32 = 0x1F80_1074;
 const DMA6_MADR: u32 = 0x1F80_10E0;

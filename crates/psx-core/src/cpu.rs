@@ -173,6 +173,11 @@ impl Cpu {
             return self.issue_cycles();
         }
         let instr = bus.read32::<BusRead>(instr_pc);
+        let fetch = bus.fetch_cycles(instr_pc);
+        if fetch > 1 {
+            self.extra_cycles += fetch - 1;
+            self.load_shadow = 0;
+        }
 
         let phys = instr_pc & 0x1FFF_FFFF;
         if phys == 0xA0 || phys == 0xB0 {
@@ -252,7 +257,7 @@ impl Cpu {
             };
             let (cost, shadowed) = bus.load_timing(start, width);
             let wait = u32::from(self.load_shadow.div_ceil(2));
-            self.extra_cycles = wait + cost - 1;
+            self.extra_cycles += wait + cost - 1;
             self.load_shadow = if shadowed { LOAD_SHADOW_HALF_CYCLES } else { 0 };
         } else {
             self.load_shadow = self.load_shadow.saturating_sub(1);

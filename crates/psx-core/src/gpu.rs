@@ -53,6 +53,24 @@ fn lerp_i32(a: i32, b: i32, t: i32, t_max: i32) -> i32 {
     a + (b - a) * t / t_max
 }
 
+const LINE_FRAC: u32 = 32;
+const LINE_HALF: i64 = 1 << (LINE_FRAC - 1);
+const LINE_BIAS: i64 = 1024;
+const LINE_COLOR_FRAC: u32 = 12;
+
+fn line_step(delta: i64, k: i64) -> i64 {
+    if k == 0 {
+        return 0;
+    }
+    let scaled = delta << LINE_FRAC;
+    let rounded = match scaled.signum() {
+        1 => scaled + (k - 1),
+        -1 => scaled - (k - 1),
+        _ => 0,
+    };
+    rounded / k
+}
+
 const ATTRIB_FRAC: u32 = 12;
 
 fn attrib_step(a: i32, b: i32, span: i32) -> i32 {
@@ -1619,54 +1637,55 @@ impl Gpu {
         semi_transparent: bool,
         dither: bool,
     ) {
-        let x0 = v0.0 as i32;
-        let y0 = v0.1 as i32;
-        let x1 = v1.0 as i32;
-        let y1 = v1.1 as i32;
-
-        let dx = (x1 - x0).abs();
-        let dy = -(y1 - y0).abs();
-        let sx = if x0 < x1 { 1 } else { -1 };
-        let sy = if y0 < y1 { 1 } else { -1 };
-        let mut err = dx + dy;
-        let mut x = x0;
-        let mut y = y0;
-        let steps = dx.max(-dy);
+        let k = (v1.0 as i64 - v0.0 as i64)
+            .abs()
+            .max((v1.1 as i64 - v0.1 as i64).abs());
+        let ((v0, c0), (v1, c1)) = if k > 0 && v0.0 >= v1.0 {
+            ((v1, c1), (v0, c0))
+        } else {
+            ((v0, c0), (v1, c1))
+        };
+        let step_x = line_step(v1.0 as i64 - v0.0 as i64, k);
+        let step_y = line_step(v1.1 as i64 - v0.1 as i64, k);
+        let mut fx = ((v0.0 as i64) << LINE_FRAC) + LINE_HALF - LINE_BIAS;
+        let mut fy = ((v0.1 as i64) << LINE_FRAC) + LINE_HALF;
+        if step_y < 0 {
+            fy -= LINE_BIAS;
+        }
+        let channel = |c: u32, i: u32| ((c >> (i * 8)) & 0xFF) as i32;
+        let mut color = [0i32; 3];
+        let mut color_step = [0i32; 3];
+        for i in 0..3 {
+            color[i] = (channel(c0, i as u32) << LINE_COLOR_FRAC) | (1 << (LINE_COLOR_FRAC - 1));
+            if gouraud && k > 0 {
+                let delta = channel(c1, i as u32) - channel(c0, i as u32);
+                color_step[i] = (delta << LINE_COLOR_FRAC) / k as i32;
+            }
+        }
 
         let area_x1 = self.drawing_x1.get() as i32;
         let area_y1 = self.drawing_y1.get() as i32;
         let area_x2 = self.drawing_x2.get() as i32;
         let area_y2 = self.drawing_y2.get() as i32;
 
-        let mut step = 0i32;
-        loop {
-            let color24 = if gouraud && steps > 0 {
-                lerp_color24(c0, c1, step, steps)
-            } else {
-                c0
-            };
-            let pixel = color24_to_16_dithered(color24, x, y, dither);
-            if x >= area_x1
-                && x <= area_x2
-                && y >= area_y1
-                && y <= area_y2
-                && (0..1024).contains(&x)
-                && (0..512).contains(&y)
+        for _ in 0..=k {
+            let x = (fx >> LINE_FRAC) as i32;
+            let y = (fy >> LINE_FRAC) as i32;
+            if x >= area_x1.max(0)
+                && x <= area_x2.min(1023)
+                && y >= area_y1.max(0)
+                && y <= area_y2.min(511)
             {
+                let color24 = color.iter().enumerate().fold(0u32, |acc, (i, &c)| {
+                    acc | (((c >> LINE_COLOR_FRAC) as u32 & 0xFF) << (i * 8))
+                });
+                let pixel = color24_to_16_dithered(color24, x, y, dither);
                 self.write_pixel(y as usize * 1024 + x as usize, pixel, semi_transparent);
             }
-            step += 1;
-            if x == x1 && y == y1 {
-                break;
-            }
-            let e2 = 2 * err;
-            if e2 >= dy {
-                err += dy;
-                x += sx;
-            }
-            if e2 <= dx {
-                err += dx;
-                y += sy;
+            fx += step_x;
+            fy += step_y;
+            for (c, s) in color.iter_mut().zip(color_step) {
+                *c += s;
             }
         }
     }

@@ -3,6 +3,8 @@ use std::cell::{Cell, RefCell};
 use crate::memcard::{self, MemoryCard, MemoryCardError};
 
 const ADDRESS_CONTROLLER: u8 = 0x01;
+const PAD_READ: u8 = 0x42;
+const CTRL_PORT_2: u16 = 1 << 13;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Sio {
@@ -119,13 +121,13 @@ impl Sio {
             s &= !0x02;
             self.stat.set(s);
         }
-        let mut s = self.stat.get();
-        s &= !0x80;
-        self.stat.set(s);
         byte
     }
 
     fn addressed_device_present(&self) -> bool {
+        if (self.ctrl.get() & CTRL_PORT_2) != 0 {
+            return false;
+        }
         match self.address.get() {
             ADDRESS_CONTROLLER => self.pad_connected.get(),
             memcard::ADDRESS => self.memcard_connected.get(),
@@ -150,14 +152,7 @@ impl Sio {
         } else if count == 0 || !present {
             (0xFF, present)
         } else {
-            let r = match count {
-                1 => 0x41,
-                2 => 0x5A,
-                3 => (self.button_state.get() & 0xFF) as u8,
-                4 => (self.button_state.get() >> 8) as u8,
-                _ => 0xFF,
-            };
-            (r, true)
+            self.digital_pad_exchange(count, val)
         };
 
         self.rx_fifo.borrow_mut().push(response);
@@ -165,6 +160,20 @@ impl Sio {
         if ack {
             self.ack_requested.set(true);
             self.ack_scheduled.set(true);
+        }
+    }
+
+    fn digital_pad_exchange(&self, count: u8, val: u8) -> (u8, bool) {
+        let buttons = self.button_state.get();
+        match count {
+            1 if val == PAD_READ => (0x41, true),
+            2 => (0x5A, true),
+            3 => (buttons as u8, true),
+            4 => ((buttons >> 8) as u8, false),
+            _ => {
+                self.address.set(0);
+                (0xFF, false)
+            }
         }
     }
 
@@ -192,6 +201,14 @@ impl Sio {
         }
     }
 
+    pub fn end_ack_pulse(&self) {
+        self.stat.set(self.stat.get() & !0x80);
+    }
+
+    fn ack_line_low(&self) -> bool {
+        (self.stat.get() & 0x80) != 0
+    }
+
     fn update_ctrl(&self, val: u16) {
         let prev_cs = self.cs_asserted();
         self.ctrl.set(val);
@@ -210,9 +227,9 @@ impl Sio {
         }
 
         if (self.ctrl.get() & (1 << 4)) != 0 {
-            let mut s = self.stat.get();
-            s &= !(1 << 9);
-            self.stat.set(s);
+            if !self.ack_line_low() {
+                self.stat.set(self.stat.get() & !(1 << 9));
+            }
             self.irq7_pending.set(false);
             self.ctrl.set(self.ctrl.get() & !(1 << 4));
         }

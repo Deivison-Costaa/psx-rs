@@ -128,6 +128,7 @@ const HBLANK_ENTER: u32 = 6;
 const HBLANK_EXIT: u32 = 7;
 const DMA_DONE_BASE: u32 = 8;
 const DMA_DONE_END: u32 = DMA_DONE_BASE + 7;
+const SIO_ACK_END: u32 = DMA_DONE_END;
 
 // Atraso do /ACK depois do ULTIMO pulso de SCK. § Address byte (01h) being sent (L379-386) de
 // docs/reference/10-controllers-memcards.md: o driver do kernel ignora pulsos nos primeiros
@@ -135,6 +136,7 @@ const DMA_DONE_END: u32 = DMA_DONE_BASE + 7;
 // entregar o /ACK antes disso faz o kernel apaga-lo na limpeza de IRQ7 que ele so faz depois de
 // mandar o byte (§ Emulation Note, L316-320).
 const SIO_ACK_DELAY_CYCLES: u64 = 338;
+const SIO_ACK_PULSE_CYCLES: u64 = 100;
 
 #[derive(Debug)]
 pub struct Bus {
@@ -431,7 +433,12 @@ impl Bus {
                     if self.sio.take_irq7() {
                         self.irq.raise(7);
                     }
+                    self.scheduler.schedule(
+                        ScheduleKey::new(prazo + SIO_ACK_PULSE_CYCLES),
+                        EventId(SIO_ACK_END),
+                    );
                 }
+                SIO_ACK_END => self.sio.end_ack_pulse(),
                 CDROM_RESPONSE => {
                     self.cdrom
                         .deliver_first(self.disc_layout.as_ref(), self.disc_bin.as_deref());

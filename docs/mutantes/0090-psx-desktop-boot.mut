@@ -1,4 +1,5 @@
 # Manifesto de mutação da iteração 0090 — psx-desktop-boot
+arquivada: onda4/display-recorte trocou framebuffer/framebuffer_for_display por render_display com recorte da area visivel; ancoras do laco antigo sumiram
 formato: 1
 iteracao: 0090
 item: 9.0

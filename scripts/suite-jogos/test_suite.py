@@ -13,6 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import checagens  # noqa: E402
 import comum  # noqa: E402
+import nosso  # noqa: E402
 import referencia  # noqa: E402
 from referencia import QuadroRef, Referencia  # noqa: E402
 
@@ -143,6 +144,21 @@ class TestJogoJson(unittest.TestCase):
     def test_crash_json_do_repositorio_e_valido(self):
         jogo = comum.carrega_jogo(comum.JOGOS_DIR / "crash.json")
         self.assertGreaterEqual(len(jogo.checkpoints), 5)
+
+    def test_todos_os_json_do_repositorio_sao_validos(self):
+        for arq in sorted(comum.JOGOS_DIR.glob("*.json")):
+            with self.subTest(jogo=arq.stem):
+                jogo = comum.carrega_jogo(arq)
+                self.assertGreaterEqual(len(jogo.checkpoints), 4)
+
+    def test_extra_cli_troca_a_marca_pela_pasta_das_roms(self):
+        with tempfile.TemporaryDirectory() as t:
+            dados = {"id": "x", "nome": "X", "cue": "x.cue", "duracao_s": 20,
+                     "extra_cli": ["--swap-disc", "{PSX_ROMS}/D2/d2.cue@10s:3s"],
+                     "checkpoints": [{"t": 15}]}
+            jogo = comum.carrega_jogo(self._escreve(Path(t), dados))
+            args = nosso.argumentos(jogo, Path("cli"), Path(t), None)
+            self.assertEqual(args[-2:], ["--swap-disc", f"{comum.ROMS}/D2/d2.cue@10s:3s"])
 
 
 if __name__ == "__main__":

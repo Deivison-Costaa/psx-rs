@@ -3,6 +3,7 @@ formato: 1
 iteracao: 0091
 item: 6.1
 alvo: crates/psx-core/src/sio.rs
+arquivada: ancoras do sio.rs reescritas pelo pulso de /ACK (onda 1, FF9)
 teste: sio_digital_pad
 
 mutante: m1

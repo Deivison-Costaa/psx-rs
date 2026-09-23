@@ -19,7 +19,7 @@ fn framebuffer_so_muda_no_proximo_vblank_nao_a_cada_escrita_em_vram() {
     let mut gpu = Gpu::new();
     gpu.write32(4, 0x0300_0000);
 
-    desenha_rect_1x1(&mut gpu, 10, 10, VERMELHO);
+    desenha_rect_1x1(&mut gpu, 10, 18, VERMELHO);
     gpu.enter_vblank();
     let fb1 = gpu
         .framebuffer_for_display()
@@ -30,7 +30,7 @@ fn framebuffer_so_muda_no_proximo_vblank_nao_a_cada_escrita_em_vram() {
         "apos o 1o vblank, o framebuffer de exibicao reflete o quadro ja completo (vermelho)"
     );
 
-    desenha_rect_1x1(&mut gpu, 10, 10, AZUL);
+    desenha_rect_1x1(&mut gpu, 10, 18, AZUL);
     let fb_meio_do_quadro = gpu.framebuffer_for_display().expect("display habilitado");
     assert_eq!(
         pixel_rgb(&fb_meio_do_quadro, 10, 10),

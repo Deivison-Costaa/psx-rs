@@ -41,7 +41,7 @@ fn d3_framebuffer_para_egui_formato_rgba8() {
 
     write_gp1(&mut gpu, 0x03, 0);
     write_gp1(&mut gpu, 0x05, 4 | (2 << 10));
-    write_gp1(&mut gpu, 0x07, 1 << 10);
+    write_gp1(&mut gpu, 0x07, 0x18 | (0x19 << 10));
 
     let vram = gpu.vram_raw_mut();
     vram[(2 & 0x1FF) * 1024 + (4 & 0x3FF)] = 0x7C00;

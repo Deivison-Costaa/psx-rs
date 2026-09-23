@@ -109,6 +109,53 @@ fn contador_que_anda_e_visto_por_lhu() {
     );
 }
 
+fn estoura_o_timer2(bus: &mut Bus) {
+    bus.write32::<BusWrite>(T2_MODE, 0x0000);
+    bus.write16::<BusWrite>(T2_COUNT, 0xFFF0);
+    bus.tick_timers(0x20);
+}
+
+#[test]
+fn lhu_do_modo_zera_o_bit_de_estouro_depois_de_ler() {
+    let mut bus = bus();
+    estoura_o_timer2(&mut bus);
+
+    let primeira = bus.read16::<BusRead>(T2_MODE);
+    let segunda = bus.read16::<BusRead>(T2_MODE);
+
+    assert_ne!(
+        primeira & (1 << 12),
+        0,
+        "o contador passou de FFFFh: o bit 12 do modo acende"
+    );
+    assert_eq!(
+        segunda & (1 << 12),
+        0,
+        "05-timers.md: os bits 11-12 sao 'reset after reading' em qualquer largura de leitura; \
+         o measure() dos ps1-tests le o modo por `lhu` e somava FFFFh em toda medida"
+    );
+}
+
+#[test]
+fn lhu_do_modo_zera_o_bit_de_alvo_atingido() {
+    let mut bus = bus();
+    bus.write32::<BusWrite>(T2_TARGET, 0x0010);
+    bus.write32::<BusWrite>(T2_MODE, 0x0000);
+    bus.tick_timers(0x20);
+
+    assert_ne!(bus.read16::<BusRead>(T2_MODE) & (1 << 11), 0);
+    assert_eq!(bus.read16::<BusRead>(T2_MODE) & (1 << 11), 0);
+}
+
+#[test]
+fn lbu_do_byte_alto_do_modo_ve_e_zera_os_bits() {
+    let mut bus = bus();
+    estoura_o_timer2(&mut bus);
+
+    assert_ne!(bus.read8::<BusRead>(T2_MODE + 1) & 0x10, 0);
+    assert_eq!(bus.read8::<BusRead>(T2_MODE + 1) & 0x10, 0);
+}
+
 #[test]
 fn os_tres_timers_respondem_a_meia_palavra() {
     let mut bus = bus();

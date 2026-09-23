@@ -710,6 +710,14 @@ impl Bus {
         }
     }
 
+    fn le_timer(&self, base: u32, consome: bool) -> u32 {
+        if consome && base & 0xF == 4 {
+            self.timers.read32(base)
+        } else {
+            self.timers.peek32(base)
+        }
+    }
+
     fn region_read_byte(&self, phys: u32, kseg: u8, offset: u32) -> Option<u8> {
         match phys {
             0x1F80_0000..=0x1F80_03FF => {
@@ -744,7 +752,7 @@ impl Bus {
             }
             0x1F80_1100..=0x1F80_112F => {
                 let base = phys & !3;
-                let val = self.timers.peek32(base);
+                let val = self.le_timer(base, offset == 0 && phys & 2 == 0);
                 let byte_index = ((phys & 3) + offset) & 3;
                 Some(((val >> (byte_index * 8)) & 0xFF) as u8)
             }
@@ -896,6 +904,10 @@ impl Bus {
             0x1F80_1072 => return ((self.irq.read_stat() >> 16) & 0xFFFF) as u16,
             0x1F80_1074 => return (self.irq.read_mask() & 0xFFFF) as u16,
             0x1F80_1076 => return ((self.irq.read_mask() >> 16) & 0xFFFF) as u16,
+            0x1F80_1100..=0x1F80_112F => {
+                let val = self.le_timer(phys & !3, phys & 2 == 0);
+                return (val >> ((phys & 2) * 8)) as u16;
+            }
             0x1F80_1C00..=0x1F80_1E7F => return self.spu.read16(phys),
             _ => {}
         }

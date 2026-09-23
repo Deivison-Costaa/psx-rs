@@ -1,14 +1,17 @@
 use std::path::{Path, PathBuf};
 
 use psx_core::app::config::Config;
-use psx_core::app::input_map::{Entrada, Perfil};
+use psx_core::app::input_map::{Eixos, Entrada, Perfil, direcao};
 use psx_core::app::saves::{self, Save};
 use psx_core::app::sessao;
+use psx_core::app::troca::{PortaAberta, apertou_agora};
 use psx_core::bus::{Bios, Bus, Ram};
 use psx_core::cpu::Cpu;
+use psx_core::dualshock::Rumble;
 use psx_core::snapshot;
 
 use crate::audio::AudioOut;
+use crate::gamepad::Leitura;
 
 pub const SLOTS: u8 = 10;
 
@@ -29,6 +32,11 @@ const TECLAS: [(egui::Key, u32); 14] = [
     (egui::Key::R, 9),
 ];
 
+/// Analogico esquerdo no teclado (I/J/K/L): so pesa no modo analogico, porque no digital
+/// o jogo le o direcional das setas.
+const STICK_ESQUERDO: [egui::Key; 4] = [egui::Key::J, egui::Key::L, egui::Key::I, egui::Key::K];
+const TECLA_ANALOG: egui::Key = egui::Key::F3;
+
 const CPU_HZ: f64 = 33_868_800.0;
 
 pub struct Emulador {
@@ -44,6 +52,9 @@ pub struct Emulador {
     pub velocidade: u32,
     ultimo: std::time::Instant,
     jogado: f64,
+    disco: PathBuf,
+    porta: Option<PortaAberta>,
+    modo_antes: bool,
 }
 
 impl Emulador {
@@ -52,7 +63,7 @@ impl Emulador {
     pub fn novo(bios_bytes: Vec<u8>, serial: &str, config: &Config) -> Result<Self, String> {
         let bios = Bios::from_bytes(bios_bytes).map_err(|e| format!("BIOS invalida: {e:?}"))?;
         let mut bus = Bus::new(Ram::new(), bios);
-        bus.sio_mut().connect_digital_pad(true);
+        bus.sio_mut().connect_dualshock(true);
 
         let memcard = Path::new(&config.pasta_de_cartoes).join(saves::nome_do_cartao(serial));
         let bytes =
@@ -74,6 +85,9 @@ impl Emulador {
             velocidade: 1,
             ultimo: std::time::Instant::now(),
             jogado: 0.0,
+            disco: PathBuf::new(),
+            porta: None,
+            modo_antes: false,
         })
     }
 
@@ -93,7 +107,57 @@ impl Emulador {
         let (layout, bin) = crate::disco::carrega(cue)?;
         self.bus.inject_disc(layout, bin);
         self.bus.cdrom_mut().insert_disc();
+        self.disco = cue.to_path_buf();
         Ok(())
+    }
+
+    pub fn disco(&self) -> &Path {
+        &self.disco
+    }
+
+    pub fn nome_do_disco(&self) -> String {
+        self.disco
+            .file_stem()
+            .map(|s| s.to_string_lossy().to_string())
+            .unwrap_or_default()
+    }
+
+    pub fn porta_aberta(&self) -> bool {
+        self.bus.lid_open()
+    }
+
+    /// Abre a porta, poe o disco novo na bandeja e agenda o fechamento para ~1 s emulado
+    /// depois: fechar no mesmo instante o jogo nem percebe que houve troca.
+    pub fn troca_disco(&mut self, cue: &Path) {
+        let (layout, bin) = match crate::disco::carrega(cue) {
+            Ok(d) => d,
+            Err(e) => {
+                self.aviso = Some(e);
+                return;
+            }
+        };
+        self.bus.open_lid();
+        self.bus.swap_disc(layout, bin);
+        self.porta = Some(PortaAberta::desde(self.bus.total_cycles()));
+        self.disco = cue.to_path_buf();
+        self.aviso = Some(format!("trocando para {}", self.nome_do_disco()));
+    }
+
+    /// Estado salvo com a porta aberta volta com ela aberta e sem ninguem para fechar:
+    /// sem agendamento, reagenda a partir de agora.
+    fn cuida_da_porta(&mut self) {
+        let agora = self.bus.total_cycles();
+        match self.porta {
+            Some(p) if p.deve_fechar(agora) => {
+                if self.bus.lid_open() {
+                    self.bus.close_lid();
+                }
+                self.porta = None;
+            }
+            Some(_) => {}
+            None if self.bus.lid_open() => self.porta = Some(PortaAberta::desde(agora)),
+            None => {}
+        }
     }
 
     pub fn caminho_do_slot(&self, slot: u8) -> PathBuf {
@@ -134,7 +198,10 @@ impl Emulador {
         };
         self.aviso = Some(
             match snapshot::carrega(&mut self.cpu, &mut self.bus, &bytes, &self.serial) {
-                Ok(()) => format!("slot {} carregado", self.slot),
+                Ok(()) => {
+                    self.bus.sio_mut().connect_dualshock(true);
+                    format!("slot {} carregado", self.slot)
+                }
                 Err(e) => format!("slot {}: {e}", self.slot),
             },
         );
@@ -146,15 +213,50 @@ impl Emulador {
 
     /// Teclado e controle valem ao mesmo tempo: o pad do PS1 recebe a UNIAO dos dois,
     /// que e o que um jogador que larga o controle e pega o teclado espera.
-    pub fn entrada(&mut self, ctx: &egui::Context, perfil: &Perfil, do_controle: &[Entrada]) {
+    pub fn entrada(&mut self, ctx: &egui::Context, perfil: &Perfil, controle: &Leitura) {
+        let modo_agora = controle.entradas.contains(&Entrada::Modo);
+        let tecla_analog = ctx.input(|i| i.key_pressed(TECLA_ANALOG));
+        if tecla_analog || apertou_agora(self.modo_antes, modo_agora) {
+            self.aperta_analog();
+        }
+        self.modo_antes = modo_agora;
+
+        let analogico = self.bus.sio().analog_mode();
         let mut botoes: u16 = 0xFFFF;
         for (tecla, bit) in TECLAS {
             if ctx.input(|i| i.key_down(tecla)) {
                 botoes &= !(1u16 << bit);
             }
         }
-        botoes &= perfil.palavra(do_controle);
+        botoes &= perfil.palavra_no_modo(&controle.entradas, analogico);
         self.bus.sio_mut().set_buttons(botoes);
+
+        let [esq, dir, cima, baixo] = STICK_ESQUERDO.map(|t| ctx.input(|i| i.key_down(t)));
+        let teclado = Eixos {
+            esquerdo_x: direcao(esq, dir),
+            esquerdo_y: direcao(cima, baixo),
+            ..Eixos::default()
+        };
+        self.bus
+            .sio_mut()
+            .set_sticks(controle.eixos.une(&teclado).sticks());
+    }
+
+    fn aperta_analog(&mut self) {
+        let trocou = self.bus.sio_mut().press_analog_button();
+        self.aviso = Some(match (trocou, self.bus.sio().analog_mode()) {
+            (false, _) => "modo analogico travado pelo jogo".to_string(),
+            (true, true) => "modo analogico (LED aceso)".to_string(),
+            (true, false) => "modo digital".to_string(),
+        });
+    }
+
+    pub fn modo_analogico(&self) -> bool {
+        self.bus.sio().analog_mode()
+    }
+
+    pub fn vibracao(&self) -> Rumble {
+        self.bus.sio().rumble()
     }
 
     pub fn quadro(&mut self, ganho: f32) {
@@ -167,6 +269,7 @@ impl Emulador {
         while self.bus.total_cycles() < alvo {
             self.cpu.step(&mut self.bus);
         }
+        self.cuida_da_porta();
         let quadros = self.bus.drain_audio();
         self.audio.push(&quadros, ganho);
         self.salva_memcard();

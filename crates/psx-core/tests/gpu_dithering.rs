@@ -35,7 +35,7 @@ fn t1_gouraud_triangulo_com_dither_matriz_4x4() {
     let cor: u32 = 0x00000707;
     desenha_gouraud_triangulo(
         &mut gpu,
-        (0, 0), (4, 0), (2, 3),
+        (0, 0), (16, 0), (0, 16),
         cor, cor, cor,
     );
     espera_idle(&mut gpu);

@@ -4,6 +4,7 @@ iteracao: 0202
 item: 10.13
 alvo: crates/psx-core/src/gpu.rs
 teste: gpu_poligono_modulacao
+arquivada: rasterizador de poligonos reescrito em sala limpa (onda2/raster-limpo, gpu/triangle.rs); ancoras do rasterizador por scanline sumiram
 
 mutante: m1
 rotulo: escala errada — divide por 8 em vez de 16

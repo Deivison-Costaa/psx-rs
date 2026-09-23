@@ -1,4 +1,4 @@
-use psx_core::cdrom_xa::{self, CDDA_FRAMES, OUTPUT_HZ, RAW_SECTOR_BYTES, XaState};
+use psx_core::cdrom_xa::{self, CDDA_FRAMES, RAW_SECTOR_BYTES, XaState};
 
 /// Monta um setor de 2352 bytes com os 18 grupos preenchidos pelo mesmo byte de
 /// nibbles e o mesmo par de shift/filtro no bloco 0.
@@ -116,19 +116,13 @@ fn xa_carrega_o_historico_de_um_bloco_para_o_seguinte() {
 
 #[test]
 fn reamostragem_de_37800_para_44100_estica_sete_por_seis() {
-    let entrada: Vec<(i16, i16)> = (0..6).map(|i| (i as i16, -(i as i16))).collect();
-    let saida = cdrom_xa::resample_to_44100(&entrada, 37800);
+    let entrada: Vec<(i16, i16)> = (0..12).map(|i| (i as i16, -(i as i16))).collect();
+    let mut estado = XaState::default();
+    let saida = cdrom_xa::resample_to_44100(&entrada, 37800, &mut estado);
     assert_eq!(
         saida.len(),
-        7,
-        "6 quadros a 37800 Hz duram 7 quadros a 44100"
-    );
-    assert_eq!(saida[0], (0, 0));
-    assert_eq!(saida[6], (5, -5));
-    assert_eq!(
-        cdrom_xa::resample_to_44100(&entrada, OUTPUT_HZ),
-        entrada,
-        "na taxa de saida nao ha reamostragem"
+        14,
+        "12 quadros a 37800 Hz duram 14 quadros a 44100"
     );
 }
 

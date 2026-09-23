@@ -4,6 +4,7 @@ iteracao: 0048
 item: 2.6b
 alvo: crates/psx-core/src/gpu.rs
 teste: gpu_dithering
+arquivada: rasterizador de poligonos reescrito em sala limpa (onda2/raster-limpo, gpu/triangle.rs); ancoras do rasterizador por scanline sumiram
 
 mutante: m1
 rotulo: matriz de dither trocada — linha 0 vira [-4, -4, -4, -4] (todos -4)

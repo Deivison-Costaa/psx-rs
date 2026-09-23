@@ -1,6 +1,7 @@
 use psx_core::app::config::{ESCALA_MAX, ESCALA_MIN, VOLUME_MAX};
 use psx_core::app::input_map::{self, Entrada, Perfil};
 use psx_core::app::sessao::formata_tempo;
+use psx_core::app::troca;
 use psx_core::pad_script;
 
 use crate::emulador::{self, Emulador};
@@ -86,7 +87,7 @@ impl App {
             self.tela = Tela::Biblioteca;
             return;
         }
-        let do_controle = self.gamepads.pressionados();
+        let do_controle = self.gamepads.le();
         let ganho = self.config.ganho();
         let escala = self.config.escala as f32;
         let filtro = if self.config.filtro_linear {
@@ -100,6 +101,7 @@ impl App {
         emu.entrada(ctx, &self.perfil, &do_controle);
         Self::atalhos_de_estado(ctx, emu);
         emu.quadro(ganho);
+        self.gamepads.vibra(emu.vibracao());
 
         match emu.textura() {
             Some(imagem) => {
@@ -115,6 +117,17 @@ impl App {
             if let Some(titulo) = &self.em_execucao {
                 ui.small(titulo);
             }
+            let porta = if emu.porta_aberta() {
+                " (porta aberta)"
+            } else {
+                ""
+            };
+            ui.small(format!("disco: {}{porta}", emu.nome_do_disco()));
+            ui.small(if emu.modo_analogico() {
+                "DualShock analogico"
+            } else {
+                "DualShock digital"
+            });
             if emu.audio_ativo() {
                 ui.small(format!("audio {} Hz", emu.audio_hz()));
             } else {
@@ -128,7 +141,7 @@ impl App {
             ui.small(formata_tempo(emu.segundos_jogados()));
         });
         ui.small(
-            "Esc: sair · F5/F8: salvar/carregar · F6/F7: slot · F9: cartao · F10: controles              · F11: ajustes · F12: velocidade",
+            "Esc: sair · F2: trocar disco · F3/Home do controle: Analog · IJKL: analogico · F5/F8: salvar/carregar · F6/F7: slot · F9: cartao · F10: controles · F11: ajustes · F12: velocidade",
         );
         if let Some(aviso) = &emu.aviso {
             ui.small(aviso.clone());
@@ -137,8 +150,9 @@ impl App {
         if ctx.input(|i| i.key_pressed(egui::Key::F12)) {
             emu.troca_velocidade();
         }
-        let (f9, f10, f11, esc) = ctx.input(|i| {
+        let (f2, f9, f10, f11, esc) = ctx.input(|i| {
             (
+                i.key_pressed(egui::Key::F2),
                 i.key_pressed(egui::Key::F9),
                 i.key_pressed(egui::Key::F10),
                 i.key_pressed(egui::Key::F11),
@@ -147,6 +161,10 @@ impl App {
         });
         if f9 {
             self.tela = Tela::Saves;
+        }
+        if f2 {
+            self.gamepads.vibra(psx_core::dualshock::Rumble::default());
+            self.abre_troca_de_disco();
         }
         if f10 {
             self.tela = Tela::Controles;
@@ -180,6 +198,61 @@ impl App {
         }
         if f8 {
             emu.carrega_estado();
+        }
+    }
+
+    pub(crate) fn tela_discos(&mut self, ui: &mut egui::Ui) {
+        ui.heading("Trocar disco");
+        let Some(emu) = self.emulador.as_ref() else {
+            self.tela = Tela::Biblioteca;
+            return;
+        };
+        let atual = emu.nome_do_disco();
+        ui.label(format!("No drive: {atual}"));
+        ui.small("A porta abre, o disco escolhido entra e ela fecha ~1 s depois.");
+        ui.separator();
+
+        let nomes: Vec<String> = self
+            .discos
+            .iter()
+            .map(|c| {
+                c.file_stem()
+                    .map(|s| s.to_string_lossy().to_string())
+                    .unwrap_or_default()
+            })
+            .collect();
+        let candidatos = troca::ordena_candidatos(&atual, &nomes);
+        if candidatos.is_empty() {
+            ui.label("Nenhum .cue encontrado na pasta de jogos nem ao lado do disco atual.");
+        }
+        let mut escolhido = None;
+        egui::ScrollArea::vertical().show(ui, |ui| {
+            let mut outros_rotulados = false;
+            for c in &candidatos {
+                if !c.mesmo_jogo && !outros_rotulados {
+                    ui.separator();
+                    ui.small("Outros jogos");
+                    outros_rotulados = true;
+                }
+                let nome = nomes.get(c.indice).map(String::as_str).unwrap_or("?");
+                let rotulo = if c.atual {
+                    format!("{nome} (no drive)")
+                } else {
+                    nome.to_string()
+                };
+                if ui.button(rotulo).clicked() {
+                    escolhido = self.discos.get(c.indice).cloned();
+                }
+            }
+        });
+        if let Some(cue) = escolhido {
+            if let Some(emu) = self.emulador.as_mut() {
+                emu.troca_disco(&cue);
+            }
+            self.volta_do_menu();
+        }
+        if ui.button("Voltar").clicked() {
+            self.volta_do_menu();
         }
     }
 

@@ -169,6 +169,16 @@ pub struct Eixos {
 }
 
 impl Eixos {
+    /// Valores crus do gilrs (Y cresce para cima) na convencao do PS1 (Y cresce para baixo).
+    pub fn do_controle(esquerdo: (f32, f32), direito: (f32, f32)) -> Eixos {
+        Eixos {
+            esquerdo_x: esquerdo.0,
+            esquerdo_y: -esquerdo.1,
+            direito_x: direito.0,
+            direito_y: -direito.1,
+        }
+    }
+
     /// Por eixo, vale quem esta mais longe do centro: teclado e controle juntos.
     pub fn une(&self, outro: &Eixos) -> Eixos {
         let maior = |a: f32, b: f32| if b.abs() > a.abs() { b } else { a };

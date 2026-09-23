@@ -5,9 +5,14 @@ use crate::cdrom_bin_cue::DiscLayout;
 use crate::cdrom_xa::{self, XaState};
 use crate::disc_image::DiscImage;
 
-const PAUSE_READING_CYCLES: u64 = 0x021_181C;
+// Pause lendo: ~5 setores da velocidade atual na borda interna (06-cdrom.md L2070-2071,
+// 021181Ch a 1x e 010BD93h a 2x), mais um setor a cada ~23 mil LBAs rumo a borda externa
+// (log de CD do DuckStation: 39 ms no inicio do disco, 79 ms em 24:52, 119 ms em 62:00 a 2x).
+const PAUSE_SECTORS_TENTHS_INNER: u64 = 48;
+const PAUSE_LBA_PER_EXTRA_SECTOR: u64 = 23_000;
 const PAUSE_IDLE_CYCLES: u64 = 0x1DF2;
 const STOP_MOTOR_CYCLES: u64 = 0x0D3_8ACA;
+const STOP_MOTOR_2X_CYCLES: u64 = 0x18A_6076;
 const STOP_STOPPED_CYCLES: u64 = 0x1D7B;
 const GETID_CYCLES: u64 = 0x4A00;
 
@@ -702,6 +707,12 @@ impl Cdrom {
         (y0 * (x1 - x0) + (y1 - y0) * (d - x0)) * CYCLES_PER_MS / (x1 - x0)
     }
 
+    fn pause_reading_cycles(&self) -> u64 {
+        let lba = self.head_frame().saturating_sub(150) as u64;
+        let decimos = PAUSE_SECTORS_TENTHS_INNER * PAUSE_LBA_PER_EXTRA_SECTOR + lba * 10;
+        self.sector_interval_cycles() * decimos / (PAUSE_LBA_PER_EXTRA_SECTOR * 10)
+    }
+
     fn seek_cycles_to(&self, alvo: u32) -> u64 {
         let spinup = if self.motor_on.get() {
             0
@@ -858,10 +869,11 @@ impl Cdrom {
                 self.intsts.set(3);
                 self.int2_pending.set(true);
                 self.pending_second.set(4);
-                let timing = if self.motor_on.get() {
-                    STOP_MOTOR_CYCLES
-                } else {
-                    STOP_STOPPED_CYCLES
+                let dupla = self.mode.get() & MODE_DOUBLE_SPEED != 0;
+                let timing = match (self.motor_on.get(), dupla) {
+                    (false, _) => STOP_STOPPED_CYCLES,
+                    (true, false) => STOP_MOTOR_CYCLES,
+                    (true, true) => STOP_MOTOR_2X_CYCLES,
                 };
                 self.second_cycles.set(timing);
                 self.motor_on.set(false);
@@ -878,7 +890,7 @@ impl Cdrom {
                 self.playing.set(false);
                 self.pending_second.set(4);
                 let timing = if self.reading.get() {
-                    PAUSE_READING_CYCLES
+                    self.pause_reading_cycles()
                 } else {
                     PAUSE_IDLE_CYCLES
                 };

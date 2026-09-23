@@ -183,7 +183,7 @@ impl Mdec {
         if self.output.borrow().is_empty() {
             s |= 1 << 31;
         }
-        if self.busy {
+        if self.busy || !self.output.borrow().is_empty() {
             s |= 1 << 29;
         }
         if self.enable_data_in {

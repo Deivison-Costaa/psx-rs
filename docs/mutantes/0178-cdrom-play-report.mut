@@ -1,4 +1,5 @@
 # Manifesto de mutacao da iteracao 0178 — comando Play e relatorio de posicao
+arquivada: onda3 (fifo de audio do CD) moveu o relatorio do Play para toca_setor_cdda (um setor por intervalo, INT1 a cada 10); ancoras m3-m7/c1/c2 deixaram de existir
 formato: 1
 iteracao: 0178
 item: 10.110

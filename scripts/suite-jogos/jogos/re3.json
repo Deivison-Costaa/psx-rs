@@ -32,7 +32,16 @@
   ],
   "extra_cli": [],
   "checkpoints": [
-    {"t": 5.0, "marco": "provisorio", "checa": ["resolucao"]}
+    {"t": 10.0, "marco": "BIOS: logo Sony Computer Entertainment (sem resolucao: a largura da BIOS no DuckStation varia de 636 a 640 entre referencias; aqui 638, a nossa 640)", "checa": ["parecido_ds"]},
+    {"t": 16.0, "marco": "BIOS: logo PlayStation / Licensed by SCEA (sem resolucao, mesmo motivo)", "checa": ["parecido_ds"]},
+    {"t": 28.5, "marco": "aviso 'This game contains scenes of explicit violence' sobre a rua", "checa": ["parecido_ds", "resolucao"]},
+    {"t": 35.0, "marco": "logo CAPCOM em fundo branco", "checa": ["parecido_ds", "resolucao"]},
+    {"t": 41.5, "marco": "FMV de abertura: logo RESIDENT EVIL 3 sobre a rua com viaturas (o nosso FMV comeca ~1,2 s depois do DS)", "checa": ["parecido_ds", "resolucao"]},
+    {"t": 50.5, "marco": "FMV de abertura: close do Nemesis antes do vermelho", "checa": ["parecido_ds", "resolucao"]},
+    {"t": 62.0, "marco": "titulo Resident Evil 3 Nemesis com NEW GAME / LOAD GAME / GAME CONFIG", "checa": ["parecido_ds", "resolucao"]},
+    {"t": 67.5, "marco": "titulo com a escolha HARD MODE / EASY MODE", "checa": ["parecido_ds", "resolucao"]},
+    {"t": 106.0, "marco": "na fase: Jill no deposito em chamas, primeira sala", "checa": ["muda", "parecido_ds", "resolucao"]},
+    {"t": 118.0, "marco": "na fase: Jill parada mirando no beco com grafite (sem muda: cena estatica tambem no DS; antes do zumbi em chamas, que diverge em ~120 s)", "checa": ["parecido_ds", "resolucao"]}
   ],
   "audio": {"min_nao_zero": 0.3}
 }

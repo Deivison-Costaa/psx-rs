@@ -40,7 +40,16 @@
   ],
   "extra_cli": [],
   "checkpoints": [
-    {"t": 5.0, "marco": "provisorio", "checa": ["resolucao"]}
+    {"t": 10.0, "marco": "BIOS: logo Sony Computer Entertainment (sem resolucao: o DuckStation exibe 639x448 so neste disco, a mesma BIOS da 640x448 no crash e no rayman)", "checa": ["parecido_ds"]},
+    {"t": 16.0, "marco": "BIOS: logo PlayStation / Licensed by SCEA (sem resolucao, ver 10 s)", "checa": ["parecido_ds"]},
+    {"t": 32.0, "marco": "texto Sony Computer Entertainment America Presents (512x216)", "checa": ["parecido_ds", "resolucao"]},
+    {"t": 49.0, "marco": "logo Naughty Dog na caixa de madeira", "checa": ["parecido_ds", "resolucao"]},
+    {"t": 74.0, "marco": "menu principal: ARCADE / RACE TYPE / SINGLE / CUP", "checa": ["parecido_ds", "resolucao"]},
+    {"t": 82.0, "marco": "SELECT CHARACTER com Crash Bandicoot no kart", "checa": ["parecido_ds", "resolucao"]},
+    {"t": 86.0, "marco": "SELECT TRACK com Crash Cove e o video de previa da pista rodando no quadro a direita", "checa": ["parecido_ds", "resolucao"]},
+    {"t": 103.0, "marco": "apresentacao ARCADE Crash Cove: karts na largada", "checa": ["muda", "parecido_ds", "resolucao"]},
+    {"t": 115.0, "marco": "corrida em Crash Cove: Crash acelerando, HUD 8th (limiar 0,5: mesma pista e HUD, mas a posicao do kart e a camera variam com a sincronia)", "checa": ["muda", "parecido_ds", "resolucao"], "limiar": 0.5},
+    {"t": 127.0, "marco": "corrida em Crash Cove: fim do roteiro, rochedos e HUD 8th (limiar 0,5: posicao do kart e camera variam com a sincronia)", "checa": ["muda", "parecido_ds", "resolucao"], "limiar": 0.5}
   ],
   "audio": {"min_nao_zero": 0.3}
 }

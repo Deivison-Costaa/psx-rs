@@ -35,7 +35,16 @@
   ],
   "extra_cli": [],
   "checkpoints": [
-    {"t": 5.0, "marco": "provisorio", "checa": ["resolucao"]}
+    {"t": 10.0, "marco": "BIOS: logo Sony Computer Entertainment (sem resolucao: o DuckStation exibe 636x448 na BIOS deste disco e 640x448 no crash/tekken3; a BIOS e a mesma, e a diferenca vem da config por jogo do DuckStation)", "checa": ["parecido_ds"]},
+    {"t": 16.0, "marco": "BIOS: logo PlayStation / Licensed by SCEA (sem resolucao, mesmo motivo do checkpoint de 10 s)", "checa": ["parecido_ds"]},
+    {"t": 26.0, "marco": "aviso legal 'Cars included in this game...' (640x448)", "checa": ["parecido_ds", "resolucao"]},
+    {"t": 36.5, "marco": "titulo Gran Turismo 2 com Start Game (352x448)", "checa": ["parecido_ds", "resolucao"]},
+    {"t": 50.0, "marco": "mapa da cidade (menu principal do Simulation Mode, 512x448)", "checa": ["parecido_ds", "resolucao"]},
+    {"t": 58.5, "marco": "License Test: lista de testes da B-License", "checa": ["parecido_ds", "resolucao"]},
+    {"t": 69.5, "marco": "tela do teste B-1 Start, Acceleration & Braking (352x448)", "checa": ["parecido_ds", "resolucao"]},
+    {"t": 79.0, "marco": "em jogo: largada do teste B-1, 'START' na pista (320x224)", "checa": ["muda", "parecido_ds", "resolucao"]},
+    {"t": 90.0, "marco": "em jogo: Toyota Vitz acelerando na reta, HUD de velocidade", "checa": ["muda", "parecido_ds", "resolucao"]},
+    {"t": 112.0, "marco": "em jogo: segunda tentativa, placa de 500 m na reta", "checa": ["muda", "parecido_ds", "resolucao"]}
   ],
   "audio": {"min_nao_zero": 0.3}
 }

@@ -43,7 +43,16 @@
   ],
   "extra_cli": [],
   "checkpoints": [
-    {"t": 5.0, "marco": "provisorio", "checa": ["resolucao"]}
+    {"t": 10.0, "marco": "BIOS: logo Sony Computer Entertainment (640x448)", "checa": ["parecido_ds", "resolucao"]},
+    {"t": 16.0, "marco": "BIOS: logo PlayStation / Licensed by SCEA", "checa": ["parecido_ds", "resolucao"]},
+    {"t": 27.5, "marco": "aviso 'This game contains scenes of explicit violence' sobre a fachada da R.P.D.", "checa": ["parecido_ds", "resolucao"]},
+    {"t": 38.0, "marco": "titulo Resident Evil 2 com LOAD GAME / NEW GAME / OPTION", "checa": ["parecido_ds", "resolucao"]},
+    {"t": 62.5, "marco": "FMV de abertura: close do zumbi", "checa": ["parecido_ds", "resolucao"]},
+    {"t": 74.0, "marco": "texto 'They were parted by an unescapable destiny.'", "checa": ["parecido_ds", "resolucao"]},
+    {"t": 83.0, "marco": "na fase: Leon na rua em chamas, inicio do controle", "checa": ["parecido_ds", "resolucao"]},
+    {"t": 94.0, "marco": "na fase: Leon cercado de zumbis na rua em chamas", "checa": ["muda", "parecido_ds", "resolucao"]},
+    {"t": 96.0, "marco": "na fase: Leon cercado de zumbis na rua em chamas, antes do desvio de camera (no nosso Leon cruza para a camera da loja Brukas em ~97-100 s e volta; o DS nao)", "checa": ["muda", "parecido_ds", "resolucao"]},
+    {"t": 110.0, "marco": "na fase: Leon agarrado pelos zumbis na rua em chamas, antes da morte (a morte/YOU DIED vem ~3 s depois no nosso: luta caotica, sem checkpoint)", "checa": ["muda", "parecido_ds", "resolucao"]}
   ],
   "audio": {"min_nao_zero": 0.3}
 }

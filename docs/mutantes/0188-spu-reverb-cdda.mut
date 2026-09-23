@@ -4,6 +4,7 @@ iteracao: 0188
 item: 7.4
 alvo: crates/psx-core/src/spu/reverb.rs
 teste: spu_reverb_ruido
+arquivada: reamostragem XA trocada pelo zigzag de 25 pontos; ancora do vizinho mais proximo sumiu
 
 mutante: m1
 teste: spu_reverb_ruido

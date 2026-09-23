@@ -9,7 +9,7 @@ from pathlib import Path
 import numpy as np
 
 from comum import (
-    AMOSTRA_PC_S, BIOS, CICLOS_POR_SEGUNDO, INTERVALO_NOSSO_S, Jogo, cartao_formatado,
+    AMOSTRA_PC_S, BIOS, CICLOS_POR_SEGUNDO, INTERVALO_NOSSO_S, ROMS, Jogo, cartao_formatado,
 )
 
 FATOR_TIMEOUT = 8
@@ -21,6 +21,7 @@ AMOSTRA_RE = re.compile(r"^sample pc=0x([0-9A-Fa-f]{8}) step=\d+ cyc=(\d+)")
 FRAME_RE = re.compile(r"^o-(\d+)-fb\.png$")
 CICLOS_RE = re.compile(r"^# ciclos emulados: (\d+)")
 SABOTAGENS = ("sem-botoes", "atrasa-botoes")
+MARCA_ROMS = "{PSX_ROMS}"
 
 
 @dataclass
@@ -52,7 +53,7 @@ def argumentos(jogo: Jogo, cli: Path, pasta: Path, sabotagem: str | None) -> lis
     if sabotagem != "sem-botoes":
         for b in jogo.botoes:
             args += ["--press", f"{b.b}@{b.t + atraso}s:{b.dur}s"]
-    return args + list(jogo.extra_cli)
+    return args + [a.replace(MARCA_ROMS, str(ROMS)) for a in jogo.extra_cli]
 
 
 def _le_stderr(caminho: Path, ex: Execucao) -> None:

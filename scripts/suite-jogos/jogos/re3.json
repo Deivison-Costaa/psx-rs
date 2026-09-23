@@ -1,0 +1,38 @@
+{
+  "id": "re3",
+  "nome": "Resident Evil 3 - Nemesis (USA)",
+  "cue": "Resident Evil 3 - Nemesis (USA)/Resident Evil 3 - Nemesis (USA).cue",
+  "duracao_s": 145.0,
+  "memcard": true,
+  "botoes": [
+    {"b": "left", "t": 64.0, "dur": 0.15},
+    {"b": "start", "t": 65.0, "dur": 0.15},
+    {"b": "cross", "t": 69.0, "dur": 0.15},
+    {"b": "start", "t": 72.0, "dur": 0.15},
+    {"b": "start", "t": 75.0, "dur": 0.15},
+    {"b": "start", "t": 78.0, "dur": 0.15},
+    {"b": "start", "t": 81.0, "dur": 0.15},
+    {"b": "start", "t": 84.0, "dur": 0.15},
+    {"b": "start", "t": 87.0, "dur": 0.15},
+    {"b": "start", "t": 90.0, "dur": 0.15},
+    {"b": "start", "t": 93.0, "dur": 0.15},
+    {"b": "start", "t": 96.0, "dur": 0.15},
+    {"b": "up", "t": 106.0, "dur": 8.0},
+    {"b": "r1", "t": 115.0, "dur": 4.0},
+    {"b": "cross", "t": 116.0, "dur": 0.15},
+    {"b": "cross", "t": 117.5, "dur": 0.15},
+    {"b": "right", "t": 120.0, "dur": 1.0},
+    {"b": "up", "t": 121.0, "dur": 5.0},
+    {"b": "r1", "t": 127.0, "dur": 4.0},
+    {"b": "cross", "t": 128.0, "dur": 0.15},
+    {"b": "cross", "t": 129.5, "dur": 0.15},
+    {"b": "down", "t": 132.0, "dur": 2.0},
+    {"b": "left", "t": 135.0, "dur": 1.0},
+    {"b": "up", "t": 136.0, "dur": 8.0}
+  ],
+  "extra_cli": [],
+  "checkpoints": [
+    {"t": 5.0, "marco": "provisorio", "checa": ["resolucao"]}
+  ],
+  "audio": {"min_nao_zero": 0.3}
+}

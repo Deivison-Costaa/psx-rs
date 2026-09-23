@@ -1,0 +1,41 @@
+{
+  "id": "gt2s",
+  "nome": "Gran Turismo 2 (USA) (Simulation Mode)",
+  "cue": "Gran Turismo 2 (USA) (Simulation Mode)/Gran Turismo 2 (USA) (Simulation Mode).cue",
+  "duracao_s": 116.0,
+  "memcard": true,
+  "botoes": [
+    {"b": "start", "t": 15.0, "dur": 0.1},
+    {"b": "cross", "t": 17.5, "dur": 0.1},
+    {"b": "start", "t": 20.0, "dur": 0.1},
+    {"b": "cross", "t": 22.5, "dur": 0.1},
+    {"b": "start", "t": 25.0, "dur": 0.1},
+    {"b": "cross", "t": 27.5, "dur": 0.1},
+    {"b": "start", "t": 30.0, "dur": 0.1},
+    {"b": "cross", "t": 32.5, "dur": 0.1},
+    {"b": "start", "t": 35.0, "dur": 0.1},
+    {"b": "cross", "t": 37.5, "dur": 0.1},
+    {"b": "start", "t": 40.0, "dur": 0.1},
+    {"b": "cross", "t": 42.5, "dur": 0.1},
+    {"b": "start", "t": 45.0, "dur": 0.1},
+    {"b": "cross", "t": 47.5, "dur": 0.1},
+    {"b": "right", "t": 51.0, "dur": 0.1},
+    {"b": "cross", "t": 53.0, "dur": 0.1},
+    {"b": "cross", "t": 56.0, "dur": 0.1},
+    {"b": "cross", "t": 59.0, "dur": 0.1},
+    {"b": "cross", "t": 62.0, "dur": 0.1},
+    {"b": "cross", "t": 65.0, "dur": 0.1},
+    {"b": "cross", "t": 68.0, "dur": 0.1},
+    {"b": "cross", "t": 71.0, "dur": 0.1},
+    {"b": "cross", "t": 74.0, "dur": 0.1},
+    {"b": "cross", "t": 77.0, "dur": 0.1},
+    {"b": "cross", "t": 80.0, "dur": 20.0},
+    {"b": "square", "t": 100.0, "dur": 4.0},
+    {"b": "cross", "t": 105.0, "dur": 10.0}
+  ],
+  "extra_cli": [],
+  "checkpoints": [
+    {"t": 5.0, "marco": "provisorio", "checa": ["resolucao"]}
+  ],
+  "audio": {"min_nao_zero": 0.3}
+}

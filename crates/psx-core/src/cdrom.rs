@@ -1351,7 +1351,7 @@ impl Cdrom {
     // § Play (06-cdrom.md L1201-1245): um setor por intervalo, tocado inteiro; em dobro o
     // drive anda dois setores no tempo de um, entao sai um quadro a cada dois. § Report
     // (L1246-1256): INT1 so nos setores com asect multiplo de 10h.
-    fn toca_setor_cdda(&self, disc_layout: Option<&DiscLayout>, disc_bin: Option<&[u8]>) {
+    fn toca_setor_cdda(&self, disc_layout: Option<&DiscLayout>, disc_bin: Option<&dyn DiscImage>) {
         self.busy.set(false);
         let amm = self.read_pos_mm.get();
         let ass = self.read_pos_ss.get();

@@ -1,78 +1,40 @@
 # Estado dos jogos — o que funciona, o que trava, o que já foi descartado
 
-Resultado da sessão de 2026-08-07 (branch `iter/fix-jogos-loop`, 21 commits). Este doc
-existe para **outros membros testarem sem repetir caminho já andado**. Se você for
-investigar um travamento, leia a seção "Hipóteses já refutadas" antes — várias delas
-custaram horas e foram fechadas com medição.
+Atualizado em 2026-09-23 (main depois do PR #256). Fonte: a suíte automática
+(`scripts/suite-jogos/`, 12/12 aprovados contra o DuckStation) e uma sessão de jogo por
+roteiro, de 2 a 5 min além da suíte em cada jogo (evidências em `logs/jogar/`, fora do git).
 
 ## Como testar
 
 ```
 cargo build --release -p psx-cli
-./target/release/psx-cli.exe --bios bios/SCPH1001.BIN \
-  --disc "../roms/extraido/<jogo>.cue" --max-steps 600000000 --pad \
-  --dump-vram-every 25000000 pref
+python3 scripts/suite-jogos/suite.py --jogos crash,ff9 --jobs 2
 ```
-Depois `md5sum pref-*.vram`. Hash que para de mudar = travado.
+Cada jogo tem um roteiro em segundos emulados (`scripts/suite-jogos/jogos/<id>.json`) e sai
+APROVADO/REPROVADO com folha de contato (o nosso quadro ao lado do DuckStation). Para um
+roteiro exploratório, copie a pasta e escreva outro JSON; o README explica o formato.
 
-**Duas armadilhas de medição que já fizeram relatório mentir:**
+## Situação por jogo
 
-1. **Ordene os dumps NUMERICAMENTE, não como texto.** `pref-1, pref-10, pref-11, ..., pref-2`
-   embaralha a linha do tempo e inverte a conclusão.
-2. **Meça além do horizonte onde o fenômeno aparece.** O FF9 foi declarado "não travado"
-   porque a medição parou em 400M — que é exatamente onde ele congela. Com 1.5B o hash é
-   idêntico do dump 4 ao 15.
+| Jogo | Até onde foi jogado | Save/load | Observação |
+|---|---|---|---|
+| Crash Bandicoot | ~3 min em N. Sanity Beach, mortes, GAME OVER, volta ao mapa | não testado (só salva após bônus) | ok |
+| CTR | corrida Arcade em Crash Cove, 2 voltas | Arcade não grava | clipping do áudio é do próprio mix (igual no DuckStation) |
+| Rayman | 1ª fase: Tings, morte, vidas | ok (grava e recarrega) | vídeo do Mr. Dark ~0,75 s adiantado (achado 0240.5) |
+| Tekken 3 | luta Arcade completa, KO, continue, game over | — | palco vazio ~1 s após replay (achado 0240.3, não confirmado) |
+| Tomb Raider II | ~2,5 min em The Great Wall, pistolas, inventário | ok | cargas ~0,5-0,8 s adiantadas (0240.1) |
+| Tomb Raider III | selva, morte, inventário | ok | giro igual ao DuckStation (1 vblank de atraso) |
+| Final Fantasy IX | disco 1 até Alexandria, 1ª batalha; disco 4 no título; troca 1→4 | não testado (sem Moogle) | FMVs após NEW GAME sem som (0240.2) |
+| Metal Gear Solid | doca: Codec, radar, primeira pessoa, alerta, game over | não testado | ok |
+| Resident Evil 2 | combate com o Leon até a morte, menus | não testado | ok |
+| Resident Evil 3 | depósito, beco, combate, menus | não testado | FMV de abertura ~1,2 s atrasada (0240.5) |
+| Gran Turismo 2 (Arcade) | largada e início da corrida | — | carga ~0,7 s adiantada (0240.1) |
+| Gran Turismo 2 (Simulation) | licença B-1 completa e replay | não testado | ok |
 
-Hash mudando ainda pode ser ruído de textura na VRAM. Confirme com
-`--vram-to-png entrada.vram saida.png` antes de comemorar.
+Sem ROM nesta máquina: FF7, FF8, Silent Hill, Tomb Raider 1 (achados 0201.1, 0208.2,
+0208.3, 0208.5). O resto deste documento é o histórico da investigação de 2026-08-07.
 
-## Classificação honesta
-
-Estão em três níveis, porque "não trava" **não** é a mesma coisa que "joga".
-
-### Jogável confirmado (2) — testado por humano
-
-**Crash Bandicoot** e **Rayman**. Renderizam a gameplay e respondem a input.
-
-### Navegação por menu confirmada (2) — exigiu input real
-
-- **Tekken 3** — chega em `STAGE 1 — EDDY VS LAW`, ou seja, passou por menu, seleção de
-  personagem e entrou numa luta.
-- **Tomb Raider II** — chega no seletor de fase `Lara's Home` com `Select / Go Back`.
-
-Não é o mesmo que jogar até o fim, mas exigiu navegar, então o caminho de input funciona.
-
-### Renderizando corretamente, progressão não confirmada (8)
-
-Validado por inspeção visual do framebuffer (2B passos, com presses sintéticos):
-
-| Jogo | O que aparece na tela |
-|---|---|
-| Resident Evil 2 | prompt `Use memory card` (passou do título) |
-| Resident Evil 3 | menu `NEW GAME / LOAD GAME / GAME CONFIG` |
-| Final Fantasy VII | menu de título com a Buster Sword |
-| Final Fantasy VIII | cutscene de abertura em 640x480, preto-e-branco |
-| Tomb Raider I | tela de título com o rosto da Lara |
-| Tomb Raider III | cena 3D dentro do veículo |
-| Silent Hill | FMV de abertura (veículo na estrada) |
-| Metal Gear Solid | cena escura de abertura, coerente |
-| Crash Team Racing | personagem 3D no cenário |
-| Gran Turismo 2 (Arcade) | FMV de corrida em 24bpp |
-
-Alguns pararam em tela de título. **Isso não prova que não respondem a input** — os presses
-sintéticos podem simplesmente não ter acertado a sequência de botões daquele jogo. Precisa
-de teste humano para separar as duas coisas.
-
-### Quebrado (1)
-
-**Final Fantasy IX.** Morre logo depois da tela `Published by Square Electronic Arts L.L.C.`
-Framebuffer **byte-idêntico** (PNG de 782 bytes, preto sólido) do passo 600M ao 2B — oito
-amostras iguais ao longo de 1,4 bilhão de passos, então não é fade nem transição.
-
-Mecanismo já rastreado: gira em `0x800A9A6C` esperando o bit1 do byte em `0x80076B14`
-zerar. Esse byte **não é o stat do CD-ROM** (verificado) — é campo do próprio jogo,
-sobrescrito por um `memcpy` em `pc=0x800226CC` cuja origem passou a conter `0x80015509` no
-passo 408.411.249.
+# Histórico (2026-08-07)
 
 ## A armadilha da métrica — leia antes de confiar em qualquer número aqui
 

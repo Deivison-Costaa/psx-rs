@@ -322,13 +322,17 @@ fn write_framebuffer_png(vram_path: &str, bus: &Bus) {
         return;
     }
     eprintln!(
-        "dump-fb: {saida} {}x{} {}bpp stat={:08X} start=({},{})",
+        "dump-fb: {saida} {}x{} {}bpp stat={:08X} start=({},{}) x={}..{} y={}..{}",
         fb.width,
         fb.height,
         if stat & (1 << 21) != 0 { 24 } else { 15 },
         stat,
         gpu.display_start_x(),
         gpu.display_start_y(),
+        gpu.display_range_x1(),
+        gpu.display_range_x2(),
+        gpu.display_range_y1(),
+        gpu.display_range_y2(),
     );
 }
 

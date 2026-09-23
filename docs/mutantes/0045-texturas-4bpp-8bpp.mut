@@ -4,6 +4,7 @@ iteracao: 0045
 item: 2.5b
 alvo: crates/psx-core/src/gpu.rs
 teste: gpu_texturas_4bpp_8bpp
+arquivada: lookup_clut passou a ler o cache de CLUT (onda1/gpu-misc); ancoras da leitura direta da VRAM sumiram
 
 mutante: m1
 rotulo: 4bpp nibble shift errado (×8 em vez de ×4) — amostra nibble errado

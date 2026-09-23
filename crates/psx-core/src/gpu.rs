@@ -218,6 +218,9 @@ pub struct Gpu {
     drawing_offset_x: Cell<i16>,
     drawing_offset_y: Cell<i16>,
     clut_attribute: Cell<u16>,
+    clut_cache: Vec<u16>,
+    clut_cache_attr: Cell<u16>,
+    clut_cache_depth: Cell<u8>,
     tex_window_mask_x: Cell<u8>,
     tex_window_mask_y: Cell<u8>,
     tex_window_offset_x: Cell<u8>,
@@ -266,6 +269,9 @@ impl Gpu {
             drawing_offset_x: Cell::new(0),
             drawing_offset_y: Cell::new(0),
             clut_attribute: Cell::new(0),
+            clut_cache: vec![0u16; 256],
+            clut_cache_attr: Cell::new(0),
+            clut_cache_depth: Cell::new(0),
             tex_window_mask_x: Cell::new(0),
             tex_window_mask_y: Cell::new(0),
             tex_window_offset_x: Cell::new(0),
@@ -574,6 +580,10 @@ impl Gpu {
                                 words: [val, 0, 0, 0],
                                 count: 1,
                             }
+                        }
+                        0x01 => {
+                            self.clut_cache_depth.set(0);
+                            VramState::Idle
                         }
                         0x00 | 0x04..=0x1E | 0xE0 | 0xE7..=0xEF => VramState::Idle,
                         0xE3 => {
@@ -1140,6 +1150,7 @@ impl Gpu {
                 self.vram_state.set(VramState::Idle);
             }
             VramCmd::CpuToVram => {
+                self.clut_cache_depth.set(0);
                 let pos = words[1];
                 let size = words[2];
                 let xpos = (pos & 0xFFFF) as u16 & 0x3FF;
@@ -1156,6 +1167,7 @@ impl Gpu {
                 });
             }
             VramCmd::VramToVram => {
+                self.clut_cache_depth.set(0);
                 self.execute_vram_to_vram(words[1], words[2], words[3]);
                 self.stat.set(self.stat.get() | (1 << 26));
                 self.vram_state.set(VramState::Idle);
@@ -1343,11 +1355,28 @@ impl Gpu {
     }
 
     fn lookup_clut(&self, index: u16) -> u16 {
+        self.clut_cache[index as usize & 0xFF]
+    }
+
+    fn load_clut_cache(&mut self) {
+        let depth = match (self.stat.get() >> 7) & 3 {
+            0 => 4,
+            1 => 8,
+            _ => return,
+        };
         let attr = self.clut_attribute.get();
-        let clut_x = (attr & 0x3F) * 16;
-        let clut_y = (attr >> 6) & 0x1FF;
-        let addr = (clut_y as usize & 0x1FF) * 1024 + (clut_x.wrapping_add(index) as usize & 0x3FF);
-        self.vram[addr]
+        let cached = self.clut_cache_depth.get();
+        if cached >= depth && self.clut_cache_attr.get() == attr {
+            return;
+        }
+        let row = ((attr >> 6) & 0x1FF) as usize * 1024;
+        let base = (attr & 0x3F) as usize * 16;
+        let entries = 1usize << depth;
+        for (i, entry) in self.clut_cache.iter_mut().take(entries).enumerate() {
+            *entry = self.vram[row + ((base + i) & 0x3FF)];
+        }
+        self.clut_cache_attr.set(attr);
+        self.clut_cache_depth.set(depth);
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -1377,6 +1406,9 @@ impl Gpu {
                     return;
                 }
             }
+        }
+        if textured {
+            self.load_clut_cache();
         }
         let tex_active = textured && {
             let tex_colors = (self.stat.get() >> 7) & 3;
@@ -1775,6 +1807,7 @@ impl Gpu {
         }
 
         self.clut_attribute.set(((uv >> 16) & 0xFFFF) as u16);
+        self.load_clut_cache();
         let u_base = (uv & 0xFF) as i32;
         let v_base = ((uv >> 8) & 0xFF) as i32;
         let x_start = vertex.0 as i32;
@@ -1933,6 +1966,7 @@ impl Gpu {
                 self.drawing_offset_x.set(0);
                 self.drawing_offset_y.set(0);
                 self.clut_attribute.set(0);
+                self.clut_cache_depth.set(0);
                 self.tex_window_mask_x.set(0);
                 self.tex_window_mask_y.set(0);
                 self.tex_window_offset_x.set(0);

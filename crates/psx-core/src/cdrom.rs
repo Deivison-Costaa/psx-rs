@@ -572,11 +572,10 @@ impl Cdrom {
         let coding = cru[0x13];
         let mut estado = self.xa_state.get();
         let quadros = cdrom_xa::decode_sector(cru, cdrom_xa::xa_is_stereo(coding), &mut estado);
+        let saida =
+            cdrom_xa::resample_to_44100(&quadros, cdrom_xa::xa_sample_rate(coding), &mut estado);
         self.xa_state.set(estado);
-        self.enfileira_audio(cdrom_xa::resample_to_44100(
-            &quadros,
-            cdrom_xa::xa_sample_rate(coding),
-        ));
+        self.enfileira_audio(saida);
     }
 
     pub fn take_issued_command(&self) -> Option<u8> {

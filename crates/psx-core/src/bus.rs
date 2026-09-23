@@ -744,7 +744,7 @@ impl Bus {
             }
             0x1F80_1100..=0x1F80_112F => {
                 let base = phys & !3;
-                let val = self.timers.peek32(base);
+                let val = self.timers.read32(base);
                 let byte_index = ((phys & 3) + offset) & 3;
                 Some(((val >> (byte_index * 8)) & 0xFF) as u8)
             }
@@ -897,6 +897,9 @@ impl Bus {
             0x1F80_1074 => return (self.irq.read_mask() & 0xFFFF) as u16,
             0x1F80_1076 => return ((self.irq.read_mask() >> 16) & 0xFFFF) as u16,
             0x1F80_1C00..=0x1F80_1E7F => return self.spu.read16(phys),
+            0x1F80_1100..=0x1F80_112F => {
+                return (self.timers.read32(phys & !3) >> ((phys & 2) * 8)) as u16;
+            }
             _ => {}
         }
         if let (Some(lo), Some(hi)) = (

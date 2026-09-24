@@ -8,10 +8,6 @@ pub const ESCALA_MAX: u32 = 6;
 pub const VOLUME_MAX: u8 = 100;
 pub const SLOT_MAX: u8 = 9;
 
-const PASTA_JOGOS: &str = ".";
-const PASTA_CARTOES: &str = "cartoes";
-const PASTA_SAVES: &str = "saves";
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Config {
@@ -33,9 +29,9 @@ impl Default for Config {
     fn default() -> Self {
         Config {
             bios: String::new(),
-            pasta_de_jogos: PASTA_JOGOS.to_string(),
-            pasta_de_cartoes: PASTA_CARTOES.to_string(),
-            pasta_de_saves: PASTA_SAVES.to_string(),
+            pasta_de_jogos: String::new(),
+            pasta_de_cartoes: String::new(),
+            pasta_de_saves: String::new(),
             escala: 2,
             filtro_linear: false,
             modo_de_imagem: ModoDeImagem::AjustarAJanela,
@@ -46,6 +42,9 @@ impl Default for Config {
         }
     }
 }
+
+/// Pasta vazia quer dizer "a padrao", que so `app::pastas` sabe resolver.
+const PASTA_PADRAO: &str = "";
 
 fn ou_padrao(valor: &str, padrao: &str) -> String {
     if valor.trim().is_empty() {
@@ -61,9 +60,9 @@ impl Config {
     pub fn ajustada(&self) -> Config {
         Config {
             bios: self.bios.clone(),
-            pasta_de_jogos: ou_padrao(&self.pasta_de_jogos, PASTA_JOGOS),
-            pasta_de_cartoes: ou_padrao(&self.pasta_de_cartoes, PASTA_CARTOES),
-            pasta_de_saves: ou_padrao(&self.pasta_de_saves, PASTA_SAVES),
+            pasta_de_jogos: ou_padrao(&self.pasta_de_jogos, PASTA_PADRAO),
+            pasta_de_cartoes: ou_padrao(&self.pasta_de_cartoes, PASTA_PADRAO),
+            pasta_de_saves: ou_padrao(&self.pasta_de_saves, PASTA_PADRAO),
             escala: self.escala.clamp(ESCALA_MIN, ESCALA_MAX),
             filtro_linear: self.filtro_linear,
             modo_de_imagem: self.modo_de_imagem,

@@ -161,6 +161,9 @@ impl App {
         if f9 {
             self.tela = Tela::Saves;
         }
+        if ctx.input(|i| i.key_pressed(egui::Key::F4)) {
+            self.tela = Tela::Estados;
+        }
         if f2 {
             self.gamepads.vibra(psx_core::dualshock::Rumble::default());
             self.abre_troca_de_disco();

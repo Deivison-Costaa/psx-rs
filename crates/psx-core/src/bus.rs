@@ -26,6 +26,13 @@ pub struct Ram {
 }
 
 impl Ram {
+    #[inline]
+    fn read32(&self, idx: usize) -> u32 {
+        let mut word = [0u8; 4];
+        word.copy_from_slice(&self.data[idx..idx + 4]);
+        u32::from_le_bytes(word)
+    }
+
     pub fn new() -> Self {
         Ram {
             data: vec![0u8; 0x200_000],
@@ -53,12 +60,9 @@ impl Scratchpad {
     }
 
     fn read32(&self, offset: usize) -> u32 {
-        u32::from_le_bytes([
-            self.data[offset],
-            self.data[offset + 1],
-            self.data[offset + 2],
-            self.data[offset + 3],
-        ])
+        let mut word = [0u8; 4];
+        word.copy_from_slice(&self.data[offset..offset + 4]);
+        u32::from_le_bytes(word)
     }
 
     fn write32(&mut self, offset: usize, val: u32) {
@@ -456,6 +460,7 @@ impl Bus {
         self.total_cycles
     }
 
+    #[inline]
     pub fn tick_timers(&mut self, cycles: u32) {
         let cycles = cycles + std::mem::take(&mut self.dma_extra_cycles);
         self.total_cycles += cycles as u64;
@@ -465,6 +470,20 @@ impl Bus {
             self.gpu.cycles_per_pix(),
             self.gpu.video_cycles_per_scanline(),
         );
+        if !self.scheduler.is_due(self.total_cycles)
+            && self
+                .timers
+                .defer(cycles, self.gpu.hblank_active(), self.gpu.vblank_active())
+        {
+            self.scheduler.advance_to(self.total_cycles);
+            return;
+        }
+        self.run_due_events(cycles);
+    }
+
+    #[inline(never)]
+    fn run_due_events(&mut self, cycles: u32) {
+        self.timers.flush();
 
         let frame = self.gpu.frame_cycles();
         let cpu_per_sl = self.gpu.cpu_cycles_per_scanline();
@@ -573,6 +592,7 @@ impl Bus {
                 self.irq.raise(bit);
             }
         }
+        self.timers.plan(hb, vb);
     }
 
     pub fn scheduler_pending_count(&self) -> usize {
@@ -920,8 +940,18 @@ impl Bus {
         }
     }
 
+    #[inline]
     pub fn read32<Op: MemoryOp>(&self, addr: u32) -> u32 {
         let phys = Self::to_physical(addr);
+        if phys < RAM_MIRROR_END {
+            let idx = (phys & 0x1F_FF_FF) as usize;
+            return self.ram.read32(idx);
+        }
+        self.read32_fora_da_ram(addr, phys)
+    }
+
+    #[inline(never)]
+    fn read32_fora_da_ram(&self, addr: u32, phys: u32) -> u32 {
         if (0x1FC0_0000..0x1FC0_0000 + 0x80000).contains(&phys) {
             return self.bios.read32((phys - 0x1FC0_0000) as usize);
         }
@@ -941,6 +971,11 @@ impl Bus {
 
     pub fn write32<Op: MemoryOp>(&mut self, addr: u32, val: u32) {
         let phys = Self::to_physical(addr);
+        if phys < RAM_MIRROR_END {
+            let idx = (phys & 0x1F_FF_FF) as usize;
+            self.ram.data[idx..idx + 4].copy_from_slice(&val.to_le_bytes());
+            return;
+        }
         if self.region_write32(phys, Self::kseg(addr), val) {
             return;
         }
@@ -956,6 +991,9 @@ impl Bus {
 
     pub fn read8<Op: MemoryOp>(&self, addr: u32) -> u8 {
         let phys = Self::to_physical(addr);
+        if phys < RAM_MIRROR_END {
+            return self.ram.data[(phys & 0x1F_FF_FF) as usize];
+        }
         if (0x1FC0_0000..0x1FC0_0000 + 0x80000).contains(&phys) {
             return self.bios.raw()[(phys - 0x1FC0_0000) as usize];
         }
@@ -972,6 +1010,12 @@ impl Bus {
 
     pub fn read16<Op: MemoryOp>(&self, addr: u32) -> u16 {
         let phys = Self::to_physical(addr);
+        if phys < RAM_MIRROR_END - 1 {
+            return u16::from_le_bytes([
+                self.ram.data[(phys & 0x1F_FF_FF) as usize],
+                self.ram.data[((phys + 1) & 0x1F_FF_FF) as usize],
+            ]);
+        }
         if (0x1FC0_0000..0x1FC0_0000 + 0x80000).contains(&phys) {
             let offset = (phys - 0x1FC0_0000) as usize;
             return u16::from_le_bytes([self.bios.raw()[offset], self.bios.raw()[offset + 1]]);
@@ -1006,6 +1050,10 @@ impl Bus {
 
     pub fn write8<Op: MemoryOp>(&mut self, addr: u32, val: u8) {
         let phys = Self::to_physical(addr);
+        if phys < RAM_MIRROR_END {
+            self.ram.data[(phys & 0x1F_FF_FF) as usize] = val;
+            return;
+        }
         match phys {
             0x1F80_1070..=0x1F80_1073 => {
                 self.irq.write_stat_byte(phys - 0x1F80_1070, val);
@@ -1028,6 +1076,11 @@ impl Bus {
 
     pub fn write16<Op: MemoryOp>(&mut self, addr: u32, val: u16) {
         let phys = Self::to_physical(addr);
+        if phys < RAM_MIRROR_END {
+            let idx = (phys & 0x1F_FF_FF) as usize;
+            self.ram.data[idx..idx + 2].copy_from_slice(&val.to_le_bytes());
+            return;
+        }
         match phys {
             0x1F80_1070 | 0x1F80_1072 => {
                 self.irq.write_stat_half(phys - 0x1F80_1070, val);
@@ -1138,8 +1191,16 @@ impl Bus {
         self.write16::<Op>(addr, gpr as u16);
     }
 
+    #[inline]
     pub fn load_timing(&self, addr: u32, width: u32) -> (u32, bool) {
         let phys = Self::to_physical(addr);
+        if phys < RAM_MIRROR_END {
+            return (RAM_LOAD_CYCLES, true);
+        }
+        self.device_load_timing(phys, width)
+    }
+
+    fn device_load_timing(&self, phys: u32, width: u32) -> (u32, bool) {
         let delay_reg = match phys {
             0x1F80_0000..=0x1F80_03FF | 0xFFFE_0000..=0xFFFE_FFFF => return (1, false),
             0x1F00_0000..=0x1F7F_FFFF => 0x1F80_1008,
@@ -1181,6 +1242,7 @@ impl Bus {
         )
     }
 
+    #[inline]
     fn to_physical(addr: u32) -> u32 {
         match addr >> 29 {
             0b010 => addr & 0x1FFF_FFFF, // 0x4000_0000..0x5FFF_FFFF
@@ -1233,11 +1295,8 @@ impl Bios {
     }
 
     pub fn read32(&self, offset: usize) -> u32 {
-        u32::from_le_bytes([
-            self.data[offset],
-            self.data[offset + 1],
-            self.data[offset + 2],
-            self.data[offset + 3],
-        ])
+        let mut word = [0u8; 4];
+        word.copy_from_slice(&self.data[offset..offset + 4]);
+        u32::from_le_bytes(word)
     }
 }

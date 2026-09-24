@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=psx-rs
+GenericName=Emulador de PlayStation
+Comment=Emulador de PlayStation 1 escrito em Rust
+Exec=psx-desktop %f
+Icon=psx-rs
+Terminal=false
+Categories=Game;Emulator;
+Keywords=PlayStation;PS1;PSX;emulador;emulator;

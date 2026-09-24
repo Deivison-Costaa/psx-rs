@@ -83,6 +83,79 @@ impl Amostragem {
             }
         }
     }
+
+    fn proximo(self, passo: usize, ciclo: u64) -> (usize, u64) {
+        match self {
+            Self::Passos(s, e, st) => {
+                let p = if passo < s {
+                    s
+                } else {
+                    s.saturating_add((passo + 1 - s).div_ceil(st).saturating_mul(st))
+                };
+                (if p <= e { p } else { usize::MAX }, u64::MAX)
+            }
+            Self::Ciclos(s, e, st) => {
+                let p = if ciclo < s {
+                    s
+                } else {
+                    s.saturating_add(((ciclo - s) / st + 1).saturating_mul(st))
+                };
+                (usize::MAX, if p <= e { p } else { u64::MAX })
+            }
+        }
+    }
+}
+
+fn proximo_multiplo(atual: u64, n: u64) -> u64 {
+    (atual / n).saturating_add(1).saturating_mul(n)
+}
+
+fn proximos_marcos(
+    sondas: &Sondas,
+    pad: &Roteiro,
+    (steps, ciclo): (usize, u64),
+    (na_porta, na_porta_ciclos): (usize, usize),
+    procura_deliver: bool,
+) -> (usize, u64) {
+    let em_passo = |n: u64| usize::try_from(n).unwrap_or(usize::MAX);
+    let mut passo = sondas.porta.get(na_porta).map_or(usize::MAX, |p| p.0);
+    let mut lim = sondas
+        .porta_ciclos
+        .get(na_porta_ciclos)
+        .map_or(u64::MAX, |p| p.0);
+    if !pad.is_empty() {
+        let agora = if sondas.pad_em_ciclos {
+            ciclo
+        } else {
+            steps as u64
+        };
+        let (a, c) = pad.proxima_mudanca(agora, ciclo);
+        lim = lim.min(c);
+        if sondas.pad_em_ciclos {
+            lim = lim.min(a);
+        } else {
+            passo = passo.min(em_passo(a));
+        }
+    }
+    match sondas.vram_timeline {
+        Some((Cadencia::Passos(n), _)) => {
+            passo = passo.min(em_passo(proximo_multiplo(steps as u64, n)))
+        }
+        Some((Cadencia::Ciclos(n), _)) => lim = lim.min(proximo_multiplo(ciclo, n)),
+        None => {}
+    }
+    if sondas.audio_dump.is_some() {
+        passo = passo.min(em_passo(proximo_multiplo(steps as u64, 4096)));
+    }
+    if procura_deliver {
+        passo = passo.min(em_passo(proximo_multiplo(steps as u64, 100_000)));
+    }
+    if let Some(amostragem) = sondas.sample_pcs {
+        let (p, c) = amostragem.proximo(steps, ciclo);
+        passo = passo.min(p);
+        lim = lim.min(c);
+    }
+    (passo, lim)
 }
 
 /// `CUE@PASSO[:DURACAO]`: abre a porta no PASSO, poe o CUE na bandeja e fecha DURACAO
@@ -231,12 +304,17 @@ fn run(cpu: &mut Cpu, bus: &mut Bus, limite: Limite, pad: &Roteiro, sondas: &Son
     let mut deliver_event_pc: Option<u32> = None;
     // Quadros PCM crus (i16 L/R little-endian, 44100 Hz) para provar que o jogo soa.
     let mut audio_pcm: Vec<u8> = Vec::new();
+    let por_passo = log_cd || !watch_mem.is_empty() || !trace_pcs.is_empty();
+    let (mut lim_passo, mut lim_ciclo) = (0usize, 0u64);
     while steps < max_steps && bus.total_cycles() < max_ciclos {
         let pc_antes = cpu.pc;
         let ciclo_antes = bus.total_cycles();
         cpu.step(bus);
         steps += 1;
         let ciclo = bus.total_cycles();
+        if steps < lim_passo && ciclo < lim_ciclo && deliver_event_pc != Some(cpu.pc) {
+            continue;
+        }
 
         if log_cd {
             let cd = bus.cdrom();
@@ -394,6 +472,15 @@ fn run(cpu: &mut Cpu, bus: &mut Bus, limite: Limite, pad: &Roteiro, sondas: &Son
                 bus.read32::<BusRead>(cpu.regs[17].wrapping_mul(4)),
             );
             let _ = std::io::stderr().flush();
+        }
+        if !por_passo {
+            (lim_passo, lim_ciclo) = proximos_marcos(
+                sondas,
+                pad,
+                (steps, ciclo),
+                (proxima_na_porta, proxima_na_porta_ciclos),
+                deliver_event_pc.is_none(),
+            );
         }
     }
     if let Some(caminho) = audio_dump {

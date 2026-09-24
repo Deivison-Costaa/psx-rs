@@ -1,0 +1,88 @@
+name: release
+
+# Tag v* gera os pacotes e cria a release como RASCUNHO (publicar e manual).
+# Em PR que mexe no empacotamento, so compila e empacota, sem release.
+# A versao do compilador vem do rust-toolchain.toml (toolchain_pin.rs).
+on:
+  push:
+    tags: ["v*"]
+  pull_request:
+    paths:
+      - ".github/workflows/release.yml"
+      - "packaging/**"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  linux:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: instala o compilador pinado no rust-toolchain.toml
+        run: rustup toolchain install --no-self-update && cargo --version
+      - uses: Swatinem/rust-cache@v2
+      - run: sudo apt-get update && sudo apt-get install -y libasound2-dev libudev-dev libxkbcommon-dev libgl1-mesa-dev libfuse2 file
+      - run: cargo build --release --locked -p psx-desktop -p psx-cli
+      - name: versao
+        run: echo "V=${GITHUB_REF_NAME//\//-}" >> "$GITHUB_ENV"
+      - name: tar.gz
+        run: |
+          d="psx-rs-$V-linux-x86_64"
+          mkdir -p "$d"
+          cp target/release/psx-desktop target/release/psx-cli LICENSE packaging/LEIA-ME.txt "$d/"
+          tar czf "$d.tar.gz" "$d"
+      - name: AppImage
+        run: |
+          wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          chmod +x linuxdeploy-x86_64.AppImage
+          mkdir -p AppDir/usr/bin
+          cp target/release/psx-desktop target/release/psx-cli AppDir/usr/bin/
+          LINUXDEPLOY_OUTPUT_VERSION="$V" ./linuxdeploy-x86_64.AppImage --appimage-extract-and-run \
+            --appdir AppDir --executable AppDir/usr/bin/psx-desktop \
+            --desktop-file packaging/psx-rs.desktop --icon-file packaging/psx-rs.png --output appimage
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: |
+            psx-rs-*.tar.gz
+            psx-rs-*.AppImage
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: instala o compilador pinado no rust-toolchain.toml
+        run: rustup toolchain install --no-self-update; cargo --version
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build --release --locked -p psx-desktop -p psx-cli
+      - name: zip
+        shell: pwsh
+        run: |
+          $v = $env:GITHUB_REF_NAME -replace '/', '-'
+          $d = "psx-rs-$v-windows-x86_64"
+          New-Item -ItemType Directory $d | Out-Null
+          Copy-Item target/release/psx-desktop.exe, target/release/psx-cli.exe, LICENSE, packaging/LEIA-ME.txt $d
+          Compress-Archive -Path $d -DestinationPath "$d.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: psx-rs-*.zip
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [linux, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: pacotes
+          merge-multiple: true
+      - name: cria a release como rascunho
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" pacotes/* --draft \
+            --title "psx-rs $GITHUB_REF_NAME" --notes-file packaging/NOTAS-DA-RELEASE.md

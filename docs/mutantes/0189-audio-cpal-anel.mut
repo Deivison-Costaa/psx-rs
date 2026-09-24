@@ -1,4 +1,5 @@
 # Manifesto de mutacao da iteracao 0189 — anel de saida de audio e stream cpal
+arquivada: onda9/audio reescreveu o Ring (reamostragem Hermite no consumo, taxa dinamica, descarte com crossfade); as ancoras de push_frames/capacity e os testes creditados deixaram de existir
 formato: 1
 iteracao: 0189
 item: 7.3

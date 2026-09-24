@@ -99,6 +99,16 @@ impl PadScript {
         self.analog_presses.contains(&step)
     }
 
+    pub fn next_change_after(&self, step: u64) -> Option<u64> {
+        let presses = self.presses.iter().flat_map(|p| [p.start, p.end]);
+        let tilts = self.tilts.iter().flat_map(|t| [t.start, t.end]);
+        presses
+            .chain(tilts)
+            .chain(self.analog_presses.iter().copied())
+            .filter(|&v| v > step)
+            .min()
+    }
+
     pub fn buttons_at(&self, step: u64) -> u16 {
         let mut state = RELEASED;
         for press in &self.presses {

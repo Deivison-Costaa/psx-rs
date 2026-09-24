@@ -37,8 +37,8 @@ ocorrencias: 1
 @@DE
         ligacoes.push((entrada, bit));
         Ok(Perfil {
-            nome: self.nome.clone(),
             ligacoes,
+            ..self.clone()
         })
 @@PARA
         ligacoes.push((entrada, bit));
@@ -97,9 +97,9 @@ teste: input_perfil
 rotulo: perfil gravado com o numero do bit em vez do nome do botao
 ocorrencias: 1
 @@DE
-                crate::pad_script::button_name(*bit).map(|b| format!("{} = {b}", e.nome()))
+            crate::pad_script::button_name(*bit).map(|b| format!("{} = {b}", e.nome()))
 @@PARA
-                crate::pad_script::button_name(*bit).map(|_| format!("{} = {bit}", e.nome()))
+            crate::pad_script::button_name(*bit).map(|_| format!("{} = {bit}", e.nome()))
 @@FIM
 
 mutante: m9
@@ -107,9 +107,9 @@ teste: input_perfil
 rotulo: comentario deixa de ser cortado antes de ler a linha
 ocorrencias: 1
 @@DE
-            let sem_comentario = linha.split('#').next().unwrap_or("");
+            .map(|l| l.split('#').next().unwrap_or("").trim())
 @@PARA
-            let sem_comentario = linha;
+            .map(|l| l.trim())
 @@FIM
 
 mutante: m10
@@ -117,9 +117,9 @@ teste: input_perfil
 rotulo: nome da entrada lido com o espaco em volta
 ocorrencias: 1
 @@DE
-            let Some(entrada) = Entrada::de_nome(esquerda.trim()) else {
+            perfil.le_linha(esquerda.trim(), direita.trim())
 @@PARA
-            let Some(entrada) = Entrada::de_nome(esquerda) else {
+            perfil.le_linha(esquerda, direita.trim())
 @@FIM
 
 mutante: m11

@@ -932,6 +932,15 @@ impl Bus {
 
     pub fn read32<Op: MemoryOp>(&self, addr: u32) -> u32 {
         let phys = Self::to_physical(addr);
+        if phys < RAM_MIRROR_END {
+            let idx = (phys & 0x1F_FF_FF) as usize;
+            return u32::from_le_bytes([
+                self.ram.data[idx],
+                self.ram.data[idx + 1],
+                self.ram.data[idx + 2],
+                self.ram.data[idx + 3],
+            ]);
+        }
         if (0x1FC0_0000..0x1FC0_0000 + 0x80000).contains(&phys) {
             return self.bios.read32((phys - 0x1FC0_0000) as usize);
         }
@@ -951,6 +960,11 @@ impl Bus {
 
     pub fn write32<Op: MemoryOp>(&mut self, addr: u32, val: u32) {
         let phys = Self::to_physical(addr);
+        if phys < RAM_MIRROR_END {
+            let idx = (phys & 0x1F_FF_FF) as usize;
+            self.ram.data[idx..idx + 4].copy_from_slice(&val.to_le_bytes());
+            return;
+        }
         if self.region_write32(phys, Self::kseg(addr), val) {
             return;
         }
@@ -966,6 +980,9 @@ impl Bus {
 
     pub fn read8<Op: MemoryOp>(&self, addr: u32) -> u8 {
         let phys = Self::to_physical(addr);
+        if phys < RAM_MIRROR_END {
+            return self.ram.data[(phys & 0x1F_FF_FF) as usize];
+        }
         if (0x1FC0_0000..0x1FC0_0000 + 0x80000).contains(&phys) {
             return self.bios.raw()[(phys - 0x1FC0_0000) as usize];
         }
@@ -982,6 +999,12 @@ impl Bus {
 
     pub fn read16<Op: MemoryOp>(&self, addr: u32) -> u16 {
         let phys = Self::to_physical(addr);
+        if phys < RAM_MIRROR_END - 1 {
+            return u16::from_le_bytes([
+                self.ram.data[(phys & 0x1F_FF_FF) as usize],
+                self.ram.data[((phys + 1) & 0x1F_FF_FF) as usize],
+            ]);
+        }
         if (0x1FC0_0000..0x1FC0_0000 + 0x80000).contains(&phys) {
             let offset = (phys - 0x1FC0_0000) as usize;
             return u16::from_le_bytes([self.bios.raw()[offset], self.bios.raw()[offset + 1]]);
@@ -1016,6 +1039,10 @@ impl Bus {
 
     pub fn write8<Op: MemoryOp>(&mut self, addr: u32, val: u8) {
         let phys = Self::to_physical(addr);
+        if phys < RAM_MIRROR_END {
+            self.ram.data[(phys & 0x1F_FF_FF) as usize] = val;
+            return;
+        }
         match phys {
             0x1F80_1070..=0x1F80_1073 => {
                 self.irq.write_stat_byte(phys - 0x1F80_1070, val);
@@ -1038,6 +1065,11 @@ impl Bus {
 
     pub fn write16<Op: MemoryOp>(&mut self, addr: u32, val: u16) {
         let phys = Self::to_physical(addr);
+        if phys < RAM_MIRROR_END {
+            let idx = (phys & 0x1F_FF_FF) as usize;
+            self.ram.data[idx..idx + 2].copy_from_slice(&val.to_le_bytes());
+            return;
+        }
         match phys {
             0x1F80_1070 | 0x1F80_1072 => {
                 self.irq.write_stat_half(phys - 0x1F80_1070, val);

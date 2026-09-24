@@ -1191,8 +1191,16 @@ impl Bus {
         self.write16::<Op>(addr, gpr as u16);
     }
 
+    #[inline]
     pub fn load_timing(&self, addr: u32, width: u32) -> (u32, bool) {
         let phys = Self::to_physical(addr);
+        if phys < RAM_MIRROR_END {
+            return (RAM_LOAD_CYCLES, true);
+        }
+        self.device_load_timing(phys, width)
+    }
+
+    fn device_load_timing(&self, phys: u32, width: u32) -> (u32, bool) {
         let delay_reg = match phys {
             0x1F80_0000..=0x1F80_03FF | 0xFFFE_0000..=0xFFFE_FFFF => return (1, false),
             0x1F00_0000..=0x1F7F_FFFF => 0x1F80_1008,

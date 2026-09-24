@@ -119,7 +119,7 @@ fn linhas_da_tela_cobrem_todos_os_botoes_do_pad() {
             .count(),
         8
     );
-    assert_eq!(LINHAS[0], botao("cross"), "a tela comeca pelo ✕");
+    assert_eq!(LINHAS[0], botao("cross"), "a tela comeca pelo ✖");
 }
 
 #[test]
@@ -132,7 +132,7 @@ fn alvo_vai_e_volta_pela_chave_de_texto() {
 
 #[test]
 fn rotulos_tem_simbolo_e_acento() {
-    assert!(botao("cross").rotulo().contains('✕'));
+    assert!(botao("cross").rotulo().contains('✖'));
     assert!(botao("triangle").rotulo().contains("Triângulo"));
     assert!(ESQ_CIMA.rotulo().contains("Analógico esquerdo"));
     assert!(Alvo::Analog.rotulo().contains("Analog"));
@@ -143,7 +143,10 @@ fn teclado_vai_para_o_texto_junto_com_o_controle() {
     let p = Perfil::padrao().com_teclado(Teclado::padrao().associa(botao("cross"), "X"));
     let texto = p.para_texto();
     assert!(texto.contains("teclado.X = cross"), "texto foi:\n{texto}");
-    assert!(texto.contains("sul = cross"), "controle continua no arquivo");
+    assert!(
+        texto.contains("sul = cross"),
+        "controle continua no arquivo"
+    );
     let volta = Perfil::de_texto("Do arquivo", &texto);
     assert_eq!(volta.teclado(), p.teclado());
     assert_eq!(volta.ligacoes().len(), p.ligacoes().len());

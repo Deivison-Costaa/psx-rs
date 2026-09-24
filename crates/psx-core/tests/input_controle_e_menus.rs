@@ -53,7 +53,11 @@ fn analog_pode_ir_para_outro_botao_e_sai_do_botao_antigo() {
     assert!(p.entradas_de(botao("select")).is_empty());
     assert_eq!(p.palavra(&[Entrada::Select]), SOLTO);
     let de_volta = p.associa_controle(botao("select"), Entrada::Select);
-    assert_eq!(de_volta.analog(), None, "Select nao pode ser Analog e Select ao mesmo tempo");
+    assert_eq!(
+        de_volta.analog(),
+        None,
+        "Select nao pode ser Analog e Select ao mesmo tempo"
+    );
 }
 
 #[test]
@@ -65,11 +69,7 @@ fn limpar_controle_tira_todas_as_entradas_do_alvo() {
 
 #[test]
 fn perfil_pronto_troca_o_controle_e_mantem_o_teclado() {
-    let meu = Perfil::padrao().com_teclado(
-        Perfil::padrao()
-            .teclado()
-            .associa(botao("cross"), "X"),
-    );
+    let meu = Perfil::padrao().com_teclado(Perfil::padrao().teclado().associa(botao("cross"), "X"));
     let trocado = meu.controle_de(&Perfil::faces_trocadas());
     assert_eq!(trocado.teclado(), meu.teclado());
     assert!(apertado(trocado.palavra(&[Entrada::Sul]), "circle"));
@@ -104,9 +104,18 @@ fn estilo_do_controle_vem_do_nome_ou_do_fabricante() {
         Estilo::detecta("Sony Interactive Entertainment Wireless Controller", None),
         Estilo::PlayStation
     );
-    assert_eq!(Estilo::detecta("qualquer", Some(0x054c)), Estilo::PlayStation);
-    assert_eq!(Estilo::detecta("Nintendo Switch Pro Controller", None), Estilo::Nintendo);
-    assert_eq!(Estilo::detecta("Xbox Wireless Controller", None), Estilo::Xbox);
+    assert_eq!(
+        Estilo::detecta("qualquer", Some(0x054c)),
+        Estilo::PlayStation
+    );
+    assert_eq!(
+        Estilo::detecta("Nintendo Switch Pro Controller", None),
+        Estilo::Nintendo
+    );
+    assert_eq!(
+        Estilo::detecta("Xbox Wireless Controller", None),
+        Estilo::Xbox
+    );
     assert_eq!(Estilo::detecta("Generic USB Joystick", None), Estilo::Xbox);
 }
 
@@ -116,20 +125,24 @@ fn nomes_amigaveis_das_entradas_fisicas() {
     assert_eq!(Entrada::Leste.rotulo(Estilo::Xbox), "B");
     assert_eq!(Entrada::Leste.rotulo(Estilo::Nintendo), "A");
     assert!(Entrada::Sul.rotulo(Estilo::PlayStation).contains("Cruz"));
-    assert!(Entrada::Leste.rotulo(Estilo::PlayStation).contains("Círculo"));
+    assert!(
+        Entrada::Leste
+            .rotulo(Estilo::PlayStation)
+            .contains("Círculo")
+    );
     assert_eq!(
         Entrada::EixoNegativo(0).rotulo(Estilo::Xbox),
-        "Analógico esquerdo ←"
+        "Analógico esquerdo ⬅"
     );
     assert_eq!(
         Entrada::EixoPositivo(1).rotulo(Estilo::Xbox),
-        "Analógico esquerdo ↑"
+        "Analógico esquerdo ⬆"
     );
     assert_eq!(
         Entrada::EixoPositivo(2).rotulo(Estilo::Xbox),
-        "Analógico direito →"
+        "Analógico direito ➡"
     );
-    assert_eq!(Entrada::DpadCima.rotulo(Estilo::Xbox), "Direcional ↑");
+    assert_eq!(Entrada::DpadCima.rotulo(Estilo::Xbox), "Direcional ⬆");
     assert!(!Entrada::Modo.rotulo(Estilo::Xbox).contains("modo"));
 }
 
@@ -170,7 +183,11 @@ fn direcional_move_o_foco_e_repete_se_segurado() {
     let (n, c) = passo(&n, &[], 5.0);
     assert!(c.is_empty());
     let (_, c) = passo(&n, &[Entrada::DpadBaixo], 5.01);
-    assert_eq!(c, vec![Comando::Mover(Sentido::Baixo)], "soltou e apertou de novo");
+    assert_eq!(
+        c,
+        vec![Comando::Mover(Sentido::Baixo)],
+        "soltou e apertou de novo"
+    );
 }
 
 #[test]
@@ -183,5 +200,8 @@ fn analogico_esquerdo_tambem_navega() {
 fn estado_antigo_nao_gera_borda_falsa() {
     let n = Navegador::default().com_antes(&[Entrada::Leste]);
     let (_, c) = passo(&n, &[Entrada::Leste], 0.0);
-    assert!(c.is_empty(), "entrou no menu com ○ segurado: nao volta sozinho");
+    assert!(
+        c.is_empty(),
+        "entrou no menu com ○ segurado: nao volta sozinho"
+    );
 }

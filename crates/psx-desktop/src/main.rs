@@ -57,6 +57,7 @@ pub(crate) struct App {
     pub(crate) medidor: MedidorDeQuadros,
     pub(crate) medida: Option<(std::time::Instant, u64)>,
     titulo: String,
+    tela_do_recado: Tela,
     pub(crate) pastas: Pastas,
     pub(crate) paineis: telas::Paineis,
 }
@@ -102,6 +103,7 @@ impl App {
             medidor: MedidorDeQuadros::default(),
             medida: None,
             titulo: TITULO.to_string(),
+            tela_do_recado: Tela::Biblioteca,
             pastas,
             paineis: telas::Paineis::default(),
         }
@@ -215,6 +217,16 @@ impl App {
         &self.config.recentes
     }
 
+    /// Recado vale para a tela em que apareceu: trocar de tela o descarta.
+    fn esquece_recado_de_outra_tela(&mut self) {
+        if self.recado.is_some() && self.tela != self.tela_do_recado {
+            self.recado = None;
+        }
+        if self.recado.is_none() {
+            self.tela_do_recado = self.tela;
+        }
+    }
+
     pub(crate) fn volta_do_menu(&mut self) {
         self.tela = if self.emulador.is_none() {
             Tela::Biblioteca
@@ -268,6 +280,7 @@ impl eframe::App for App {
         self.alterna_tela_cheia(ctx);
         self.atualiza_titulo(ctx);
         self.recolhe_aviso(ctx);
+        self.esquece_recado_de_outra_tela();
         let de_jogo = matches!(self.tela, Tela::Jogando | Tela::Pausa);
         let painel = if de_jogo {
             egui::CentralPanel::default().frame(egui::Frame::NONE.fill(egui::Color32::BLACK))

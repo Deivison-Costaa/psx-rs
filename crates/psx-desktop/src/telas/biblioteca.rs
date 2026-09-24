@@ -186,7 +186,7 @@ impl App {
             ui.selectable_value(&mut painel.ordem, Ordem::Nome, "Nome");
             ui.selectable_value(&mut painel.ordem, Ordem::Recentes, "Recentes");
             ui.label(format!(
-                "{} de {} jogo(s)",
+                "{} jogo(s) na lista · {} disco(s) na pasta",
                 entradas.len(),
                 self.jogos.len()
             ));

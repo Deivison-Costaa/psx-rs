@@ -88,7 +88,6 @@ impl Voice {
 
     pub fn key_on(&mut self, ram: &[u8], irq_address: u32) -> bool {
         self.current_address = (u32::from(self.start_address) * 8) & ram_mask(ram);
-        self.repeat_address = self.start_address;
         self.counter = 0;
         self.prev1 = 0;
         self.prev2 = 0;
@@ -117,7 +116,7 @@ impl Voice {
         self.block = bloco;
         self.prev1 = p1;
         self.prev2 = p2;
-        irq_address == self.current_address
+        (irq_address.wrapping_sub(self.current_address) & ram_mask(ram)) < BLOCK_BYTES as u32
     }
 
     fn sample_at(&self, index: i32) -> i16 {

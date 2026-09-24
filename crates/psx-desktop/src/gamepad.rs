@@ -1,6 +1,6 @@
 use gilrs::ff::{BaseEffect, BaseEffectType, Effect, EffectBuilder};
 use gilrs::{Axis, Button, GamepadId, Gilrs};
-use psx_core::app::input_map::{Eixos, Entrada};
+use psx_core::app::input_map::{Eixos, Entrada, Estilo};
 use psx_core::app::troca::forca_de_vibracao;
 use psx_core::dualshock::Rumble;
 
@@ -28,7 +28,12 @@ const BOTOES: [(Button, Entrada); 17] = [
     (Button::DPadRight, Entrada::DpadDireita),
 ];
 
-const EIXOS: [(Axis, u8); 2] = [(Axis::LeftStickX, 0), (Axis::LeftStickY, 1)];
+const EIXOS: [(Axis, u8); 4] = [
+    (Axis::LeftStickX, 0),
+    (Axis::LeftStickY, 1),
+    (Axis::RightStickX, 2),
+    (Axis::RightStickY, 3),
+];
 
 /// O que os controles fisicos dizem num quadro: botoes (e eixos como direcional, para o
 /// modo digital) e os dois analogicos crus, para o modo analogico do DualShock.
@@ -72,6 +77,23 @@ impl Gamepads {
             .gamepads()
             .map(|(_, pad)| pad.name().to_string())
             .collect()
+    }
+
+    pub fn conectado(&self) -> bool {
+        self.gilrs
+            .as_ref()
+            .is_some_and(|g| g.gamepads().next().is_some())
+    }
+
+    pub fn estilo(&self) -> Estilo {
+        let Some(gilrs) = &self.gilrs else {
+            return Estilo::default();
+        };
+        gilrs
+            .gamepads()
+            .next()
+            .map(|(_, pad)| Estilo::detecta(pad.name(), pad.vendor_id()))
+            .unwrap_or_default()
     }
 
     /// Le o estado de TODOS os controles conectados de uma vez: dois controles no mesmo

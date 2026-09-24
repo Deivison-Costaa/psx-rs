@@ -3,6 +3,7 @@ mod biblioteca;
 mod controles;
 mod discos;
 mod jogando;
+mod navegacao;
 mod pausa;
 mod saves;
 

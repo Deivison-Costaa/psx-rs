@@ -381,3 +381,6 @@ da escada valer so para o que FALTA. Narrativa de cada item continua em
 - [x] 0198.4 Teste com BIOS+disco reais do snapshot nunca roda na CI; so a maquina sintetica (de NOPs) cobre o save state la (0198) — abandonado: processo/ferramenta fora do foco
 - [x] 0198.6 Maquina sintetica dos testes de snapshot executa so NOPs: scheduler/IRQ/DMA nunca exercitados no roundtrip (0198) — abandonado: processo/ferramenta fora do foco
 - [x] 0203.2 PR #214 (10.30, retrigger de DMA no DPCR): so o canal OTC e exercitado; mutantes m3/m4/m5 do manifesto "matam" por efeito colateral (return precoce tambem pula o OTC, que vem depois no codigo), nao porque testam os canais 0/1/2 de fato — CDROM (dma3) e SPU (dma4) nunca sao exercitados nem pela bateria nem pelo teste (revisao do orquestrador no PR #214) — abandonado: processo/ferramenta fora do foco
+
+## Fechado na iteração 0241
+- [x] 0240.2 FF9 disco 1: FMVs depois de NEW GAME sem som (~94-210 s e 420-490 s emulados); a FMV antes do titulo e o som do jogo funcionam (0240) — fechado: o FF9 toca o audio das FMVs pelas vozes 22/23 num anel na RAM do SPU reabastecido por DMA na IRQ9; o key on apagava o repeat e a IRQ9 so valia no inicio do bloco (9741c1f)

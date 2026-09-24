@@ -16,8 +16,8 @@ integração passa por ela antes do merge. Estado de cada jogo: `docs/estado-dos
 Os 12 jogos disponíveis rodam, jogam e batem com o DuckStation na imagem; save/load no
 cartão confirmado em TR2, TR3 e Rayman. O que falta é timing fino e áudio:
 
-1. **Achado 0240.2** — FMVs do FF9 depois de NEW GAME sem som (em andamento na onda8).
-2. **Achado 0240.1** — CD-ROM rápido demais (seek médio, releitura, Pause em 2x).
+1. **Achado 0241.1** — suíte converte quadro do DuckStation a 59,94 Hz (o PS1 roda ~59,82).
+2. **Achado 0240.1** — CD-ROM rápido demais; antes, achar a deriva de ~0,5 s do Crash aos 17-21 s.
 3. **Achado 0240.6** — integrar `onda6/dma-custo` sem quebrar `gpu/texture-overflow`.
 4. **Achado 10.116** — GPU desenha em 0 ciclos (candidato às diferenças de ±1 quadro).
 5. Teste de uso real do app desktop (biblioteca, saves, F2, áudio: achados 0193.6 e 0189.1).
@@ -45,7 +45,7 @@ extras é estado de pipeline).
 
 ## Placar de testes
 
-Workspace: **1660** testes.
+Workspace: **1666** testes.
 - **NUNCA rodar `nextest` nem a bateria de mutação junto com o oráculo**: a disputa de CPU
   faz o `Start-Process` ler stdout antes do flush e reportar `sem-saida` falso (0170).
 - **GTE: 1100/1100 no `gte_valid_0xc0ffee_50.log`** (gitignored, em

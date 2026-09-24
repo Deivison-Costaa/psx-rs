@@ -414,9 +414,8 @@ impl Emulador {
         self.jogado as u64
     }
 
-    pub fn pausa(&mut self) {
-        self.audio.silencia();
-    }
+    /// Parado, o anel de audio esvazia sozinho com fade: nao ha o que cortar aqui.
+    pub fn pausa(&mut self) {}
 
     /// Sem isto o primeiro quadro depois da pausa contaria o tempo parado como jogado.
     pub fn retoma(&mut self) {

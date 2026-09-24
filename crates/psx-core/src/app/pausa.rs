@@ -6,6 +6,7 @@ pub enum ItemDePausa {
     SalvarEstado,
     CarregarEstado,
     Slot,
+    EstadosSalvos,
     MemoryCard,
     TrocarDisco,
     Controles,
@@ -14,11 +15,12 @@ pub enum ItemDePausa {
     SairDoJogo,
 }
 
-pub const ITENS_DE_PAUSA: [ItemDePausa; 10] = [
+pub const ITENS_DE_PAUSA: [ItemDePausa; 11] = [
     ItemDePausa::Continuar,
     ItemDePausa::SalvarEstado,
     ItemDePausa::CarregarEstado,
     ItemDePausa::Slot,
+    ItemDePausa::EstadosSalvos,
     ItemDePausa::MemoryCard,
     ItemDePausa::TrocarDisco,
     ItemDePausa::Controles,
@@ -34,6 +36,7 @@ impl ItemDePausa {
             ItemDePausa::SalvarEstado => "Salvar estado",
             ItemDePausa::CarregarEstado => "Carregar estado",
             ItemDePausa::Slot => "Slot",
+            ItemDePausa::EstadosSalvos => "Estados salvos",
             ItemDePausa::MemoryCard => "Memory card",
             ItemDePausa::TrocarDisco => "Trocar disco",
             ItemDePausa::Controles => "Controles",

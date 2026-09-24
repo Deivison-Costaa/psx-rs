@@ -16,23 +16,11 @@ struct Captura {
     celula: egui::Id,
 }
 
-pub(crate) const ATALHOS: [(&str, &str); 10] = [
-    ("Esc", "Sair do jogo / voltar nos menus"),
-    ("F2", "Trocar disco"),
-    ("F5", "Salvar estado no slot"),
-    ("F6 / F7", "Slot anterior / próximo"),
-    ("F8", "Carregar estado do slot"),
-    ("F9", "Cartão de memória"),
-    ("F10", "Controles"),
-    ("F11", "Ajustes"),
-    ("F12", "Velocidade (acelerar)"),
-    ("○ / B do controle", "Voltar nos menus (✖ / A confirma)"),
-];
-
-const RESERVADAS: [egui::Key; 12] = [
+const RESERVADAS: [egui::Key; 13] = [
     egui::Key::Escape,
     egui::Key::F1,
     egui::Key::F2,
+    egui::Key::F3,
     egui::Key::F4,
     egui::Key::F5,
     egui::Key::F6,
@@ -156,7 +144,7 @@ impl App {
                 ui.add_space(12.0);
                 ui.strong("Atalhos do emulador (fixos)");
                 egui::Grid::new("atalhos").striped(true).show(ui, |ui| {
-                    for (tecla, acao) in ATALHOS {
+                    for (tecla, acao) in super::jogando::ATALHOS {
                         ui.monospace(tecla);
                         ui.label(acao);
                         ui.end_row();

@@ -12,23 +12,19 @@ const BORDA_DE_PAINEL: egui::Color32 = egui::Color32::from_gray(70);
 const MARGEM_DE_SOBREPOSICAO: f32 = 16.0;
 const TEXTO_DE_SOBREPOSICAO: f32 = 15.0;
 
-pub(crate) const ATALHOS: [(&str, &str); 16] = [
-    ("Esc / Start+Select", "menu de pausa"),
+pub(crate) const ATALHOS: [(&str, &str); 12] = [
+    ("Esc / Start+Select", "menu de pausa (nos menus: voltar)"),
     ("F1", "status; de novo, esta ajuda"),
     ("F11 / Alt+Enter", "tela cheia"),
     ("F2", "trocar disco"),
     ("F3 / Home do controle", "botão Analog"),
+    ("F4", "estados salvos"),
     ("F5 / F8", "salvar / carregar estado"),
     ("F6 / F7", "slot anterior / próximo"),
     ("F9", "memory card"),
-    ("F10", "controles"),
+    ("F10", "controles (botões do jogo)"),
     ("F12", "velocidade (1x, 2x, 4x, 8x)"),
-    ("Setas", "direcional"),
-    ("Z / Espaço / A / S", "X / Bola / Quadrado / Triângulo"),
-    ("Enter / Tab", "Start / Select"),
-    ("D / F", "L1 / R1"),
-    ("E / R", "L2 / R2"),
-    ("I J K L", "analógico esquerdo"),
+    ("○ / B do controle", "voltar nos menus (✖ / A confirma)"),
 ];
 
 impl App {

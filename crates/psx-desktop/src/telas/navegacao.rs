@@ -63,7 +63,7 @@ impl App {
     /// Roda antes do egui ler a entrada do quadro: o foco direcional do egui so anda com
     /// eventos de seta, entao o controle vira Tab/setas/Enter aqui.
     pub(crate) fn navega_nos_menus(&mut self, ctx: &egui::Context, raw: &mut egui::RawInput) {
-        if self.tela == Tela::Jogando {
+        if matches!(self.tela, Tela::Jogando | Tela::Pausa) {
             return;
         }
         let capturando = controles::capturando(ctx);

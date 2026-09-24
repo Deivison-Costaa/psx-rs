@@ -20,6 +20,7 @@ fn menu_abre_em_continuar_com_todos_os_itens() {
         ItemDePausa::SalvarEstado,
         ItemDePausa::CarregarEstado,
         ItemDePausa::Slot,
+        ItemDePausa::EstadosSalvos,
         ItemDePausa::MemoryCard,
         ItemDePausa::TrocarDisco,
         ItemDePausa::Controles,

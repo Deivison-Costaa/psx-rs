@@ -228,6 +228,7 @@ impl App {
                     self.continua();
                 }
             }
+            ItemDePausa::EstadosSalvos => self.tela = Tela::Estados,
             ItemDePausa::MemoryCard => self.tela = Tela::Saves,
             ItemDePausa::TrocarDisco => self.abre_troca_de_disco(),
             ItemDePausa::Controles => self.tela = Tela::Controles,

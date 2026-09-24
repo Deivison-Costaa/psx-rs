@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use psx_core::app::config::Config;
-use psx_core::app::input_map::{Eixos, Entrada, Perfil, direcao};
+use psx_core::app::input_map::{Alvo, Perfil, Teclado};
 use psx_core::app::saves::{self, Save};
 use psx_core::app::sessao;
 use psx_core::app::troca::{PortaAberta, apertou_agora};
@@ -26,27 +26,16 @@ fn serial_do_cue(cue: &Path) -> String {
         .unwrap_or_default()
 }
 
-const TECLAS: [(egui::Key, u32); 14] = [
-    (egui::Key::ArrowUp, 4),
-    (egui::Key::ArrowDown, 6),
-    (egui::Key::ArrowLeft, 7),
-    (egui::Key::ArrowRight, 5),
-    (egui::Key::Z, 14),
-    (egui::Key::Space, 13),
-    (egui::Key::A, 15),
-    (egui::Key::S, 12),
-    (egui::Key::Enter, 3),
-    (egui::Key::Tab, 0),
-    (egui::Key::D, 10),
-    (egui::Key::F, 11),
-    (egui::Key::E, 8),
-    (egui::Key::R, 9),
-];
-
-/// Analogico esquerdo no teclado (I/J/K/L): so pesa no modo analogico, porque no digital
-/// o jogo le o direcional das setas.
-const STICK_ESQUERDO: [egui::Key; 4] = [egui::Key::J, egui::Key::L, egui::Key::I, egui::Key::K];
-const TECLA_ANALOG: egui::Key = egui::Key::F3;
+fn teclas_apertadas<'a>(ctx: &egui::Context, teclado: &'a Teclado) -> Vec<&'a str> {
+    ctx.input(|i| {
+        teclado
+            .ligacoes()
+            .iter()
+            .map(|(_, nome)| nome.as_str())
+            .filter(|nome| egui::Key::from_name(nome).is_some_and(|k| i.key_down(k)))
+            .collect()
+    })
+}
 
 const CPU_HZ: f64 = 33_868_800.0;
 
@@ -282,32 +271,26 @@ impl Emulador {
     /// Teclado e controle valem ao mesmo tempo: o pad do PS1 recebe a UNIAO dos dois,
     /// que e o que um jogador que larga o controle e pega o teclado espera.
     pub fn entrada(&mut self, ctx: &egui::Context, perfil: &Perfil, controle: &Leitura) {
-        let modo_agora = controle.entradas.contains(&Entrada::Modo);
-        let tecla_analog = ctx.input(|i| i.key_pressed(TECLA_ANALOG));
+        let teclado = perfil.teclado();
+        let modo_agora = perfil
+            .analog()
+            .is_some_and(|e| controle.entradas.contains(&e));
+        let tecla_analog = teclado
+            .tecla_de(Alvo::Analog)
+            .and_then(egui::Key::from_name)
+            .is_some_and(|k| ctx.input(|i| i.key_pressed(k)));
         if tecla_analog || apertou_agora(self.modo_antes, modo_agora) {
             self.aperta_analog();
         }
         self.modo_antes = modo_agora;
 
+        let apertadas = teclas_apertadas(ctx, teclado);
         let analogico = self.bus.sio().analog_mode();
-        let mut botoes: u16 = 0xFFFF;
-        for (tecla, bit) in TECLAS {
-            if ctx.input(|i| i.key_down(tecla)) {
-                botoes &= !(1u16 << bit);
-            }
-        }
-        botoes &= perfil.palavra_no_modo(&controle.entradas, analogico);
+        let botoes =
+            teclado.palavra(&apertadas) & perfil.palavra_no_modo(&controle.entradas, analogico);
         self.bus.sio_mut().set_buttons(botoes);
-
-        let [esq, dir, cima, baixo] = STICK_ESQUERDO.map(|t| ctx.input(|i| i.key_down(t)));
-        let teclado = Eixos {
-            esquerdo_x: direcao(esq, dir),
-            esquerdo_y: direcao(cima, baixo),
-            ..Eixos::default()
-        };
-        self.bus
-            .sio_mut()
-            .set_sticks(controle.eixos.une(&teclado).sticks());
+        let eixos = controle.eixos.une(&teclado.eixos(&apertadas));
+        self.bus.sio_mut().set_sticks(eixos.sticks());
     }
 
     fn aperta_analog(&mut self) {

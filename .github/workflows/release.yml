@@ -42,7 +42,6 @@ jobs:
           LINUXDEPLOY_OUTPUT_VERSION="$V" ./linuxdeploy-x86_64.AppImage --appimage-extract-and-run \
             --appdir AppDir --executable AppDir/usr/bin/psx-desktop \
             --desktop-file packaging/psx-rs.desktop --icon-file packaging/psx-rs.png --output appimage
-          mv psx-rs-*.AppImage "psx-rs-$V-x86_64.AppImage"
       - uses: actions/upload-artifact@v4
         with:
           name: linux

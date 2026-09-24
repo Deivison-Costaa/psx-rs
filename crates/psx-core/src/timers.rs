@@ -35,6 +35,12 @@ pub struct Timers {
     timers: [Timer; TIMER_COUNT],
     gpu_cycles_per_pix: Cell<u16>,
     gpu_video_cycles_per_scanline: Cell<u16>,
+    #[serde(skip)]
+    pending: Cell<u32>,
+    #[serde(skip)]
+    budget: Cell<u32>,
+    #[serde(skip)]
+    pending_sync: Cell<(bool, bool)>,
 }
 
 impl Timer {
@@ -187,6 +193,9 @@ impl Timers {
             timers: [Timer::new(), Timer::new(), Timer::new()],
             gpu_cycles_per_pix: Cell::new(10),
             gpu_video_cycles_per_scanline: Cell::new(3413),
+            pending: Cell::new(0),
+            budget: Cell::new(0),
+            pending_sync: Cell::new((false, false)),
         }
     }
 
@@ -195,6 +204,7 @@ impl Timers {
     }
 
     pub fn read32(&self, offset: u32) -> u32 {
+        self.flush();
         let t = &self.timers[Self::timer_index(offset & !0xF)];
         match offset & 0xF {
             0x0 => t.counter.get() as u32,
@@ -209,6 +219,7 @@ impl Timers {
     }
 
     pub fn peek32(&self, offset: u32) -> u32 {
+        self.flush();
         let t = &self.timers[Self::timer_index(offset & !0xF)];
         match offset & 0xF {
             0x0 => t.counter.get() as u32,
@@ -219,6 +230,8 @@ impl Timers {
     }
 
     pub fn write32(&mut self, offset: u32, val: u32) {
+        self.flush();
+        self.budget.set(0);
         let idx = Self::timer_index(offset & !0xF);
         let t = &mut self.timers[idx];
         match offset & 0xF {
@@ -244,6 +257,10 @@ impl Timers {
     }
 
     pub fn update_gpu_timing(&mut self, cycles_per_pix: u16, video_cycles_per_scanline: u16) {
+        if self.gpu_cycles_per_pix.get() != cycles_per_pix {
+            self.flush();
+            self.budget.set(0);
+        }
         self.gpu_cycles_per_pix.set(cycles_per_pix);
         self.gpu_video_cycles_per_scanline
             .set(video_cycles_per_scanline);
@@ -268,12 +285,80 @@ impl Timers {
         hblank_edges: u32,
     ) -> Option<u32> {
         let idx = Self::timer_index(base_addr);
+        self.tick_one(idx, cycles, (hblank_active, vblank_active), hblank_edges)
+    }
+
+    pub fn defer(&self, cycles: u32, hblank_active: bool, vblank_active: bool) -> bool {
+        let total = self.pending.get().saturating_add(cycles);
+        if total > self.budget.get() || self.pending_sync.get() != (hblank_active, vblank_active) {
+            return false;
+        }
+        self.pending.set(total);
+        true
+    }
+
+    pub fn flush(&self) {
+        let cycles = self.pending.replace(0);
+        if cycles == 0 {
+            return;
+        }
+        self.budget.set(self.budget.get().saturating_sub(cycles));
+        for idx in 0..TIMER_COUNT {
+            let irq = self.tick_one(idx, cycles, self.pending_sync.get(), 0);
+            debug_assert!(irq.is_none());
+        }
+    }
+
+    pub fn plan(&self, hblank_active: bool, vblank_active: bool) {
+        let sync = (hblank_active, vblank_active);
+        self.pending_sync.set(sync);
+        let budget = (0..TIMER_COUNT)
+            .map(|idx| self.safe_cycles(idx, sync))
+            .min()
+            .unwrap_or(0);
+        self.budget.set(u32::try_from(budget).unwrap_or(u32::MAX));
+    }
+
+    fn safe_cycles(&self, idx: usize, (hb, vb): (bool, bool)) -> u64 {
+        let t = &self.timers[idx];
+        let sync_signal = match idx {
+            0 => hb,
+            1 => vb,
+            _ => false,
+        };
+        if t.at_target.get() || sync_signal != t.prev_sync_signal.get() {
+            return 0;
+        }
+        if !t.counting(idx, sync_signal) {
+            return u64::MAX;
+        }
+        let current = u64::from(t.counter.get());
+        let target = u64::from(t.target);
+        let to_target = if target > current {
+            target - current
+        } else {
+            u64::MAX
+        };
+        let ticks = (0x1_0000 - current).min(to_target);
+        let acc = u64::from(t.cycle_acc.get());
+        match t.source(idx) {
+            Source::System => u64::from(t.hold.get()) + ticks - 1,
+            Source::SystemDiv8 => (8 * ticks - 1).saturating_sub(acc),
+            Source::Dot => {
+                let denom = 7 * u64::from(self.gpu_cycles_per_pix.get());
+                (denom * ticks - 1).saturating_sub(acc) / 11
+            }
+            Source::Hblank => u64::MAX,
+        }
+    }
+
+    fn tick_one(&self, idx: usize, cycles: u32, sync: (bool, bool), edges: u32) -> Option<u32> {
         let cycles_per_pix = u64::from(self.gpu_cycles_per_pix.get());
         let t = &self.timers[idx];
         let source = t.source(idx);
         let sync_signal = match idx {
-            0 => hblank_active,
-            1 => vblank_active,
+            0 => sync.0,
+            1 => sync.1,
             _ => false,
         };
         t.apply_sync_edge(idx, sync_signal);
@@ -290,7 +375,7 @@ impl Timers {
             Source::System => free_cycles,
             Source::SystemDiv8 => Self::scaled_ticks(t, cycles, 1, 8),
             Source::Dot => Self::scaled_ticks(t, cycles, 11, 7 * cycles_per_pix),
-            Source::Hblank => hblank_edges,
+            Source::Hblank => edges,
         };
         let irq = t.advance(ticks, source);
         if t.mode.get() & (1 << 7) == 0 {

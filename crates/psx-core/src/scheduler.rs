@@ -60,6 +60,12 @@ impl Scheduler {
         Some((key.tick, id))
     }
 
+    pub fn is_due(&self, ticks: u64) -> bool {
+        self.events
+            .first()
+            .is_some_and(|(key, _)| key.tick <= ticks)
+    }
+
     pub fn pending_events(&self) -> &[(ScheduleKey, EventId)] {
         &self.events
     }

@@ -465,6 +465,15 @@ impl Bus {
             self.gpu.cycles_per_pix(),
             self.gpu.video_cycles_per_scanline(),
         );
+        if !self.scheduler.is_due(self.total_cycles)
+            && self
+                .timers
+                .defer(cycles, self.gpu.hblank_active(), self.gpu.vblank_active())
+        {
+            self.scheduler.advance_to(self.total_cycles);
+            return;
+        }
+        self.timers.flush();
 
         let frame = self.gpu.frame_cycles();
         let cpu_per_sl = self.gpu.cpu_cycles_per_scanline();
@@ -573,6 +582,7 @@ impl Bus {
                 self.irq.raise(bit);
             }
         }
+        self.timers.plan(hb, vb);
     }
 
     pub fn scheduler_pending_count(&self) -> usize {

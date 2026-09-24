@@ -1,0 +1,32 @@
+psx-rs — emulador de PlayStation 1 escrito em Rust
+https://github.com/Deivison-Costaa/psx-rs
+
+CONTEÚDO
+  psx-desktop   o aplicativo (biblioteca de jogos, saves, controles)
+  psx-cli       o emulador de linha de comando (testes, roteiros, dumps)
+
+ANTES DE JOGAR
+  1. BIOS: o psx-rs NÃO inclui a BIOS do PlayStation (ela tem direitos autorais).
+     Use uma cópia da BIOS do SEU console. Testado com a SCPH-1001 (NTSC-U).
+  2. Jogos: imagens .cue/.bin dos SEUS discos, numa pasta.
+  3. Abra o psx-desktop, vá em Ajustes e aponte o caminho da BIOS e a pasta de jogos.
+     (ou: psx-desktop --bios /caminho/SCPH1001.BIN)
+
+ONDE FICAM CONFIGURAÇÃO E SAVES
+  Linux:   ~/.config/psx-rs/ (configuração e controles) e ~/.local/share/psx-rs/ (memory cards e estados)
+  Windows: %APPDATA%\psx-rs\
+
+ATALHOS NO JOGO
+  Esc ........ menu de pausa (salvar/carregar estado, memory card, trocar disco, ajustes)
+  F1 ......... status; de novo, lista de atalhos
+  F11 ........ tela cheia (também Alt+Enter)
+  F4 ......... estados salvos        F5 / F8 .... salvar / carregar estado no slot
+  F6 / F7 .... slot anterior/próximo F9 ......... memory card
+  F2 ......... trocar disco          F10 ........ controles (remapear teclado e controle)
+  F12 ........ velocidade (1x, 2x, 4x, 8x)
+
+TECLADO PADRÃO (remapeável em Controles)
+  Setas = direcional   Z = X   Espaço = Bola   A = Quadrado   S = Triângulo
+  Enter = Start   Tab = Select   D/F = L1/R1   E/R = L2/R2   I J K L = analógico esquerdo
+
+Licença MIT (arquivo LICENSE).

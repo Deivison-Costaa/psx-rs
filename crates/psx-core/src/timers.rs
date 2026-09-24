@@ -256,6 +256,7 @@ impl Timers {
         }
     }
 
+    #[inline]
     pub fn update_gpu_timing(&mut self, cycles_per_pix: u16, video_cycles_per_scanline: u16) {
         if self.gpu_cycles_per_pix.get() != cycles_per_pix {
             self.flush();
@@ -288,6 +289,7 @@ impl Timers {
         self.tick_one(idx, cycles, (hblank_active, vblank_active), hblank_edges)
     }
 
+    #[inline]
     pub fn defer(&self, cycles: u32, hblank_active: bool, vblank_active: bool) -> bool {
         let total = self.pending.get().saturating_add(cycles);
         if total > self.budget.get() || self.pending_sync.get() != (hblank_active, vblank_active) {

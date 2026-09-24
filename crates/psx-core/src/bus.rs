@@ -26,6 +26,13 @@ pub struct Ram {
 }
 
 impl Ram {
+    #[inline]
+    fn read32(&self, idx: usize) -> u32 {
+        let mut word = [0u8; 4];
+        word.copy_from_slice(&self.data[idx..idx + 4]);
+        u32::from_le_bytes(word)
+    }
+
     pub fn new() -> Self {
         Ram {
             data: vec![0u8; 0x200_000],
@@ -53,12 +60,9 @@ impl Scratchpad {
     }
 
     fn read32(&self, offset: usize) -> u32 {
-        u32::from_le_bytes([
-            self.data[offset],
-            self.data[offset + 1],
-            self.data[offset + 2],
-            self.data[offset + 3],
-        ])
+        let mut word = [0u8; 4];
+        word.copy_from_slice(&self.data[offset..offset + 4]);
+        u32::from_le_bytes(word)
     }
 
     fn write32(&mut self, offset: usize, val: u32) {
@@ -456,6 +460,7 @@ impl Bus {
         self.total_cycles
     }
 
+    #[inline]
     pub fn tick_timers(&mut self, cycles: u32) {
         let cycles = cycles + std::mem::take(&mut self.dma_extra_cycles);
         self.total_cycles += cycles as u64;
@@ -473,6 +478,11 @@ impl Bus {
             self.scheduler.advance_to(self.total_cycles);
             return;
         }
+        self.run_due_events(cycles);
+    }
+
+    #[inline(never)]
+    fn run_due_events(&mut self, cycles: u32) {
         self.timers.flush();
 
         let frame = self.gpu.frame_cycles();
@@ -930,17 +940,18 @@ impl Bus {
         }
     }
 
+    #[inline]
     pub fn read32<Op: MemoryOp>(&self, addr: u32) -> u32 {
         let phys = Self::to_physical(addr);
         if phys < RAM_MIRROR_END {
             let idx = (phys & 0x1F_FF_FF) as usize;
-            return u32::from_le_bytes([
-                self.ram.data[idx],
-                self.ram.data[idx + 1],
-                self.ram.data[idx + 2],
-                self.ram.data[idx + 3],
-            ]);
+            return self.ram.read32(idx);
         }
+        self.read32_fora_da_ram(addr, phys)
+    }
+
+    #[inline(never)]
+    fn read32_fora_da_ram(&self, addr: u32, phys: u32) -> u32 {
         if (0x1FC0_0000..0x1FC0_0000 + 0x80000).contains(&phys) {
             return self.bios.read32((phys - 0x1FC0_0000) as usize);
         }
@@ -1223,6 +1234,7 @@ impl Bus {
         )
     }
 
+    #[inline]
     fn to_physical(addr: u32) -> u32 {
         match addr >> 29 {
             0b010 => addr & 0x1FFF_FFFF, // 0x4000_0000..0x5FFF_FFFF
@@ -1275,11 +1287,8 @@ impl Bios {
     }
 
     pub fn read32(&self, offset: usize) -> u32 {
-        u32::from_le_bytes([
-            self.data[offset],
-            self.data[offset + 1],
-            self.data[offset + 2],
-            self.data[offset + 3],
-        ])
+        let mut word = [0u8; 4];
+        word.copy_from_slice(&self.data[offset..offset + 4]);
+        u32::from_le_bytes(word)
     }
 }

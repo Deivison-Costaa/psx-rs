@@ -111,6 +111,20 @@ impl Roteiro {
             || !self.analog_ciclos.is_empty()
     }
 
+    pub fn proxima_mudanca(&self, agora: u64, ciclo: u64) -> (u64, u64) {
+        let analog = self.analog_ciclos.iter().copied().find(|&c| c > ciclo);
+        let ciclos = self
+            .ciclos
+            .next_change_after(ciclo)
+            .into_iter()
+            .chain(analog)
+            .min();
+        (
+            self.passos.next_change_after(agora).unwrap_or(u64::MAX),
+            ciclos.unwrap_or(u64::MAX),
+        )
+    }
+
     pub fn buttons_at(&self, passo: u64, ciclo: u64) -> u16 {
         self.passos.buttons_at(passo) & self.ciclos.buttons_at(ciclo)
     }

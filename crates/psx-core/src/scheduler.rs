@@ -47,6 +47,7 @@ impl Scheduler {
     // periodico precisa contar o proximo prazo a partir de QUANDO ELE VENCEU, nao de
     // `ticks` (o instante em que o chamador percebeu) -- senao um tick grande que cobre
     // varios periodos reagenda o unico evento restante la na frente e perde os demais.
+    #[inline]
     pub fn advance_to(&mut self, ticks: u64) -> Option<(u64, EventId)> {
         self.current_tick = ticks;
         if self.events.is_empty() {
@@ -58,6 +59,13 @@ impl Scheduler {
         }
         let (key, id) = self.events.remove(0);
         Some((key.tick, id))
+    }
+
+    #[inline]
+    pub fn is_due(&self, ticks: u64) -> bool {
+        self.events
+            .first()
+            .is_some_and(|(key, _)| key.tick <= ticks)
     }
 
     pub fn pending_events(&self) -> &[(ScheduleKey, EventId)] {

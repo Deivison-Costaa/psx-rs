@@ -128,7 +128,11 @@ pub fn salva_com(cpu: &Cpu, bus: &Bus, metadados: &Metadados) -> Result<Vec<u8>,
         irq: bus.irq.clone(),
         dma: bus.dma.clone(),
         cdrom: bus.cdrom.clone(),
-        timers: bus.timers.clone(),
+        timers: {
+            let timers = bus.timers.clone();
+            timers.flush();
+            timers
+        },
         sio: bus.sio.clone(),
         mdec: bus.mdec.clone(),
         spu: bus.spu.clone(),

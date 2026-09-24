@@ -81,7 +81,7 @@ fn ajustar_devolve_copia_sem_mexer_na_original() {
 }
 
 #[test]
-fn pasta_em_branco_vira_vazio_que_e_o_padrao() {
+fn pasta_vazia_cai_no_padrao_em_vez_de_virar_raiz() {
     let c = Config {
         pasta_de_jogos: String::new(),
         pasta_de_cartoes: "  ".to_string(),

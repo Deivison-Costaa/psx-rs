@@ -34,12 +34,9 @@
 
 ## Iteração 0181 em diante (`NNNN.k`)
 
-- [ ] 0189.1 Anel de audio nao tem controle de fluxo: se o emulador roda fora do tempo real o anel enche ou esvazia (0189)
 - [ ] 0193.1 Fila interna do SPU (`output`, teto 8192) descarta o quadro mais novo sem contador (0193)
 - [ ] 0193.3 Toggle de SPUCNT bits 14/15 zera a saida sem rampa: pop audivel (0193)
 - [ ] 0193.5 Mixer do SPU: hard clip duplo sem headroom nem saturacao por voz (0193)
-- [ ] 0193.6 Saida de audio: underrun em degrau a 0.0 e resampler vizinho-mais-proximo duplica quadros a 48 kHz (0193)
-- [ ] 0198.5 `saves::lista` nao confere o magico `MC` da imagem de cartao; imagem lixo lista saves fantasmas (0198)
 - [ ] 0201.1 Silent Hill (SLUS-00707) trava ~150-200M passos apos a tela de abertura: VRAM para, so sobra vblank; ultimo evento de CDROM e um INT2 sem sequencia (0201)
 - [ ] 0203.1 render_triangle_dithered tem o mesmo bug de 10.14 (reinterpola gouraud sobre o span ja recortado pela drawing area), caminho dither+gouraud+nao-texturizado; sem teste dedicado ainda (0203)
 - [ ] 0203.3 "System Clock" diverge ~13-70x do gabarito do oraculo `timers` (ex-10.117); a iteracao 0176 ja tentou achar a causa raiz (inclusive corrigindo a propagacao de timing da GPU pros timers) e nao moveu esse numero — hblank agora e agendado de verdade (0203, ex-10.117 parcial) mas isso tambem nao deve mudar o "System Clock" (nao depende de GPU/hblank per a nota da 0176); causa raiz ainda desconhecida (0203)

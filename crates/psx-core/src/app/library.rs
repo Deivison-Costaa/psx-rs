@@ -1,3 +1,6 @@
+use crate::app::sessao::formata_tempo;
+use crate::app::troca::titulo_base;
+
 pub const SETOR_LICENCA: u32 = 4;
 pub const SETOR_PVD: u32 = 16;
 pub const ARQUIVO_DE_BOOT: &str = "SYSTEM.CNF;1";
@@ -220,4 +223,112 @@ where
     id.boot = caminho_de_boot(&texto);
     id.serial = serial_do_boot(&texto);
     id
+}
+
+const MARCAS_DE_NUMERO: [&str; 4] = ["(disc ", "(disk ", "(cd ", "[disc "];
+
+fn numero_do_disco(nome: &str) -> Option<u32> {
+    let minusculo = nome.to_lowercase();
+    MARCAS_DE_NUMERO.iter().find_map(|marca| {
+        let resto = &minusculo[minusculo.find(marca)? + marca.len()..];
+        let digitos: String = resto.chars().take_while(char::is_ascii_digit).collect();
+        digitos.parse().ok()
+    })
+}
+
+pub fn rotulo_do_disco(nome: &str) -> Option<String> {
+    numero_do_disco(nome).map(|n| format!("Disco {n}"))
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Grupo {
+    pub titulo: String,
+    pub membros: Vec<usize>,
+}
+
+/// Discos do mesmo jogo ("(Disc 1)".."(Disc 4)") numa entrada so, em ordem numerica de
+/// disco; os grupos saem na ordem da primeira aparicao.
+pub fn agrupa(nomes: &[String]) -> Vec<Grupo> {
+    let mut grupos: Vec<Grupo> = Vec::new();
+    for (i, nome) in nomes.iter().enumerate() {
+        let base = titulo_base(nome);
+        let chave = base.to_lowercase();
+        match grupos.iter_mut().find(|g| g.titulo.to_lowercase() == chave) {
+            Some(g) => g.membros.push(i),
+            None => grupos.push(Grupo {
+                titulo: if base.is_empty() { nome.clone() } else { base },
+                membros: vec![i],
+            }),
+        }
+    }
+    for g in &mut grupos {
+        g.membros.sort_by_key(|i| {
+            (
+                numero_do_disco(&nomes[*i]).unwrap_or(0),
+                nomes[*i].to_lowercase(),
+            )
+        });
+    }
+    grupos
+}
+
+fn sem_acento(c: char) -> char {
+    match c {
+        'á' | 'à' | 'â' | 'ã' | 'ä' => 'a',
+        'é' | 'è' | 'ê' | 'ë' => 'e',
+        'í' | 'ì' | 'î' | 'ï' => 'i',
+        'ó' | 'ò' | 'ô' | 'õ' | 'ö' => 'o',
+        'ú' | 'ù' | 'û' | 'ü' => 'u',
+        'ç' => 'c',
+        'ñ' => 'n',
+        outro => outro,
+    }
+}
+
+fn dobra(texto: &str) -> String {
+    texto.to_lowercase().chars().map(sem_acento).collect()
+}
+
+/// Todo termo da busca tem de aparecer em algum campo; busca em branco casa com tudo.
+pub fn casa_busca(busca: &str, campos: &[&str]) -> bool {
+    let campos: Vec<String> = campos.iter().map(|c| dobra(c)).collect();
+    dobra(busca)
+        .split_whitespace()
+        .all(|termo| campos.iter().any(|c| c.contains(termo)))
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum Ordem {
+    #[default]
+    Nome,
+    Recentes,
+}
+
+/// Indices em ordem de exibicao. Em `Recentes`, quem nunca foi jogado vai para o fim, por nome.
+pub fn ordena(itens: &[(String, Option<u64>)], ordem: Ordem) -> Vec<usize> {
+    let mut indices: Vec<usize> = (0..itens.len()).collect();
+    indices.sort_by_key(|i| {
+        let (nome, quando) = &itens[*i];
+        let recencia = match ordem {
+            Ordem::Nome => 0,
+            Ordem::Recentes => quando.map_or(u64::MAX, |q| u64::MAX - 1 - q.min(u64::MAX - 1)),
+        };
+        (recencia, nome.to_lowercase())
+    });
+    indices
+}
+
+pub fn detalhe(regiao: Regiao, serial: Option<&str>, segundos: u64) -> String {
+    let mut partes: Vec<String> = Vec::new();
+    if regiao != Regiao::Desconhecida {
+        partes.push(regiao.nome().to_string());
+    }
+    partes.extend(serial.map(str::to_string));
+    if partes.is_empty() {
+        partes.push("disco sem identificação".to_string());
+    }
+    if segundos > 0 {
+        partes.push(format!("jogado {}", formata_tempo(segundos)));
+    }
+    partes.join(" · ")
 }

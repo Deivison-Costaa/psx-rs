@@ -20,7 +20,7 @@ cartão confirmado em TR2, TR3 e Rayman. O que falta é timing fino e áudio:
 2. **Achado 0240.1** — CD-ROM rápido demais; antes, achar a deriva de ~0,5 s do Crash aos 17-21 s.
 3. **Achado 0240.6** — integrar `onda6/dma-custo` sem quebrar `gpu/texture-overflow`.
 4. **Achado 10.116** — GPU desenha em 0 ciclos (candidato às diferenças de ±1 quadro).
-5. Teste de uso real do app desktop (biblioteca, saves, F2, áudio: achados 0193.6 e 0189.1).
+5. App desktop: teste com controle físico (só coberto por testes unitários) e o 0193.3.
 6. **ROADMAP 11.3** — roteiro de demo e relatório final.
 
 Oráculos: DuckStation regtest grava quadros e, com `REGTEST_AUDIO=<wav>`, áudio (guia em
@@ -45,7 +45,7 @@ extras é estado de pipeline).
 
 ## Placar de testes
 
-Workspace: **1666** testes.
+Workspace: **1763** testes.
 - **NUNCA rodar `nextest` nem a bateria de mutação junto com o oráculo**: a disputa de CPU
   faz o `Start-Process` ler stdout antes do flush e reportar `sem-saida` falso (0170).
 - **GTE: 1100/1100 no `gte_valid_0xc0ffee_50.log`** (gitignored, em

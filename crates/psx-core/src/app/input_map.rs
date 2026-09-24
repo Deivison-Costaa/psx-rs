@@ -3,6 +3,16 @@ use serde::{Deserialize, Serialize};
 use crate::dualshock::{STICK_CENTER, Sticks};
 use crate::pad_script::{RELEASED, button_bit};
 
+mod alvo;
+mod estilo;
+mod navegacao;
+mod teclado;
+
+pub use alvo::{Alvo, LINHAS, Sentido};
+pub use estilo::Estilo;
+pub use navegacao::{Comando, Navegador, REPETE_APOS, REPETE_CADA, primeira_nova};
+pub use teclado::Teclado;
+
 pub const SOLTO: u16 = RELEASED;
 pub const ZONA_MORTA_ANALOGICA: f32 = 0.08;
 
@@ -35,7 +45,12 @@ pub enum Entrada {
 pub struct Perfil {
     pub nome: String,
     ligacoes: Vec<(Entrada, u8)>,
+    analog: Option<Entrada>,
+    teclado: Teclado,
 }
+
+const FORMATO_ATUAL: &str = "formato = 2";
+const PREFIXO_TECLADO: &str = "teclado.";
 
 const COMUNS: [(Entrada, &str); 14] = [
     (Entrada::Norte, "triangle"),
@@ -66,6 +81,8 @@ impl Perfil {
         Perfil {
             nome: nome.to_string(),
             ligacoes: Vec::new(),
+            analog: None,
+            teclado: Teclado::vazio(),
         }
     }
 
@@ -79,11 +96,13 @@ impl Perfil {
                 .into_iter()
                 .filter_map(|(e, b)| button_bit(b).map(|bit| (e, bit)))
                 .collect(),
+            analog: Some(Entrada::Modo),
+            teclado: Teclado::padrao(),
         }
     }
 
     pub fn padrao() -> Self {
-        Self::com_faces("Padrao (PlayStation/Xbox)", "cross", "circle")
+        Self::com_faces("Padrão (PlayStation/Xbox)", "cross", "circle")
     }
 
     /// Controle cujo A/B fisico e invertido em relacao ao PlayStation (estilo Nintendo):
@@ -121,20 +140,20 @@ impl Perfil {
             .collect();
         ligacoes.push((entrada, bit));
         Ok(Perfil {
-            nome: self.nome.clone(),
             ligacoes,
+            ..self.clone()
         })
     }
 
     pub fn desliga(&self, entrada: Entrada) -> Perfil {
         Perfil {
-            nome: self.nome.clone(),
             ligacoes: self
                 .ligacoes
                 .iter()
                 .copied()
                 .filter(|(e, _)| *e != entrada)
                 .collect(),
+            ..self.clone()
         }
     }
 
@@ -293,31 +312,148 @@ impl Perfil {
     /// numero, e enum com payload vira tabela aninhada em TOML — ilegivel de editar a mao,
     /// que e justamente o motivo de um perfil de controle virar arquivo de texto.
     pub fn para_texto(&self) -> String {
-        let mut linhas: Vec<String> = self
-            .ligacoes
+        let controle = self.ligacoes.iter().filter_map(|(e, bit)| {
+            crate::pad_script::button_name(*bit).map(|b| format!("{} = {b}", e.nome()))
+        });
+        let analog = self
+            .analog
+            .map(|e| format!("{} = {}", e.nome(), Alvo::Analog.chave()));
+        let teclado = self
+            .teclado
+            .ligacoes()
             .iter()
-            .filter_map(|(e, bit)| {
-                crate::pad_script::button_name(*bit).map(|b| format!("{} = {b}", e.nome()))
-            })
-            .collect();
+            .map(|(a, t)| format!("{PREFIXO_TECLADO}{t} = {}", a.chave()));
+        let mut linhas: Vec<String> = controle.chain(analog).chain(teclado).collect();
         linhas.sort();
+        linhas.insert(0, FORMATO_ATUAL.to_string());
         linhas.join("\n") + "\n"
     }
 
+    /// Arquivo sem a linha de formato e do tempo em que o teclado era fixo e o Home
+    /// sempre era o Analog: le com esses padroes em vez de deixar o usuario sem teclado.
     pub fn de_texto(nome: &str, texto: &str) -> Perfil {
-        let mut perfil = Perfil::vazio(nome);
-        for linha in texto.lines() {
-            let sem_comentario = linha.split('#').next().unwrap_or("");
-            let Some((esquerda, direita)) = sem_comentario.split_once('=') else {
-                continue;
+        let limpas: Vec<&str> = texto
+            .lines()
+            .map(|l| l.split('#').next().unwrap_or("").trim())
+            .collect();
+        let atual = limpas
+            .iter()
+            .any(|l| l.split_whitespace().collect::<String>() == FORMATO_ATUAL.replace(' ', ""));
+        let inicial = Perfil {
+            analog: (!atual).then_some(Entrada::Modo),
+            teclado: if atual {
+                Teclado::vazio()
+            } else {
+                Teclado::padrao()
+            },
+            ..Perfil::vazio(nome)
+        };
+        limpas.iter().fold(inicial, |perfil, linha| {
+            let Some((esquerda, direita)) = linha.split_once('=') else {
+                return perfil;
             };
-            let Some(entrada) = Entrada::de_nome(esquerda.trim()) else {
-                continue;
+            perfil.le_linha(esquerda.trim(), direita.trim())
+        })
+    }
+
+    fn le_linha(self, esquerda: &str, direita: &str) -> Perfil {
+        if let Some(tecla) = esquerda.strip_prefix(PREFIXO_TECLADO) {
+            return match Alvo::de_chave(direita) {
+                Some(alvo) if !tecla.is_empty() => Perfil {
+                    teclado: self.teclado.associa(alvo, tecla),
+                    ..self
+                },
+                _ => self,
             };
-            if let Ok(novo) = perfil.liga(entrada, direita.trim()) {
-                perfil = novo;
-            }
         }
-        perfil
+        let Some(entrada) = Entrada::de_nome(esquerda) else {
+            return self;
+        };
+        if Alvo::de_chave(direita) == Some(Alvo::Analog) {
+            return self.associa_controle(Alvo::Analog, entrada);
+        }
+        self.liga(entrada, direita).unwrap_or(self)
+    }
+
+    pub fn teclado(&self) -> &Teclado {
+        &self.teclado
+    }
+
+    pub fn com_teclado(&self, teclado: Teclado) -> Perfil {
+        Perfil {
+            teclado,
+            ..self.clone()
+        }
+    }
+
+    /// Perfil pronto so troca a coluna do controle: quem ajustou o teclado nao perde.
+    pub fn controle_de(&self, outro: &Perfil) -> Perfil {
+        Perfil {
+            teclado: self.teclado.clone(),
+            ..outro.clone()
+        }
+    }
+
+    pub fn analog(&self) -> Option<Entrada> {
+        self.analog
+    }
+
+    pub fn entradas_de(&self, alvo: Alvo) -> Vec<Entrada> {
+        match alvo {
+            Alvo::Botao(bit) => self
+                .ligacoes
+                .iter()
+                .filter(|(_, b)| *b == bit)
+                .map(|(e, _)| *e)
+                .collect(),
+            Alvo::Analog => self.analog.into_iter().collect(),
+            Alvo::Analogico { .. } => Vec::new(),
+        }
+    }
+
+    /// Associar pela tela substitui so a entrada do mesmo tipo: trocar o botao do ↑ nao
+    /// tira o analogico que tambem aponta para ele.
+    pub fn associa_controle(&self, alvo: Alvo, entrada: Entrada) -> Perfil {
+        let sem = self.desliga(entrada);
+        let sem = Perfil {
+            analog: sem.analog.filter(|e| *e != entrada),
+            ..sem
+        };
+        match alvo {
+            Alvo::Botao(bit) => {
+                let mut ligacoes: Vec<(Entrada, u8)> = sem
+                    .ligacoes
+                    .iter()
+                    .copied()
+                    .filter(|(e, b)| *b != bit || e.e_eixo() != entrada.e_eixo())
+                    .collect();
+                ligacoes.push((entrada, bit));
+                Perfil { ligacoes, ..sem }
+            }
+            Alvo::Analog => Perfil {
+                analog: Some(entrada),
+                ..sem
+            },
+            Alvo::Analogico { .. } => self.clone(),
+        }
+    }
+
+    pub fn limpa_controle(&self, alvo: Alvo) -> Perfil {
+        match alvo {
+            Alvo::Botao(bit) => Perfil {
+                ligacoes: self
+                    .ligacoes
+                    .iter()
+                    .copied()
+                    .filter(|(_, b)| *b != bit)
+                    .collect(),
+                ..self.clone()
+            },
+            Alvo::Analog => Perfil {
+                analog: None,
+                ..self.clone()
+            },
+            Alvo::Analogico { .. } => self.clone(),
+        }
     }
 }

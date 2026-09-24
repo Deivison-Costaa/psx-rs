@@ -384,3 +384,8 @@ da escada valer so para o que FALTA. Narrativa de cada item continua em
 
 ## Fechado na iteração 0241
 - [x] 0240.2 FF9 disco 1: FMVs depois de NEW GAME sem som (~94-210 s e 420-490 s emulados); a FMV antes do titulo e o som do jogo funcionam (0240) — fechado: o FF9 toca o audio das FMVs pelas vozes 22/23 num anel na RAM do SPU reabastecido por DMA na IRQ9; o key on apagava o repeat e a IRQ9 so valia no inicio do bloco (9741c1f)
+
+## Fechado na iteração 0242
+- [x] 0189.1 Anel de audio nao tem controle de fluxo: se o emulador roda fora do tempo real o anel enche ou esvazia (0189) — fechado: taxa dinamica de +-0,5% mirando ~93 ms de anel; underrun de 125 callbacks para 1 no Crash (onda9/audio)
+- [x] 0193.6 Saida de audio: underrun em degrau a 0.0 e resampler vizinho-mais-proximo duplica quadros a 48 kHz (0193) — fechado: reamostragem Catmull-Rom com fase fracionaria e fade de 5 ms no underrun (onda9/audio)
+- [x] 0198.5 `saves::lista` nao confere o magico `MC` da imagem de cartao; imagem lixo lista saves fantasmas (0198) — fechado: saves::lista confere o magico MC (onda9/saves-biblioteca)

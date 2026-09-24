@@ -29,9 +29,12 @@ fn padrao_e_utilizavel_sem_editar_nada() {
     assert_eq!(c.volume, 100);
     assert!(c.audio_ligado);
     assert_eq!(c.slot_inicial, 0);
-    assert_eq!(c.pasta_de_jogos, ".");
-    assert_eq!(c.pasta_de_cartoes, "cartoes");
-    assert_eq!(c.pasta_de_saves, "saves");
+    assert_eq!(
+        c.pasta_de_jogos, "",
+        "vazio = pasta padrao, resolvida em app::pastas"
+    );
+    assert_eq!(c.pasta_de_cartoes, "");
+    assert_eq!(c.pasta_de_saves, "");
     assert!(c.bios.is_empty(), "BIOS nao tem palpite razoavel");
 }
 
@@ -86,9 +89,12 @@ fn pasta_vazia_cai_no_padrao_em_vez_de_virar_raiz() {
         ..Config::default()
     };
     let a = c.ajustada();
-    assert_eq!(a.pasta_de_jogos, ".");
-    assert_eq!(a.pasta_de_cartoes, "cartoes");
-    assert_eq!(a.pasta_de_saves, "saves");
+    assert_eq!(a.pasta_de_jogos, "");
+    assert_eq!(
+        a.pasta_de_cartoes, "",
+        "so espaco nao pode virar pasta chamada '  '"
+    );
+    assert_eq!(a.pasta_de_saves, "");
 }
 
 #[test]

@@ -33,6 +33,13 @@ impl Recentes {
             .unwrap_or(0)
     }
 
+    pub fn ultima_vez_de(&self, serial: &str) -> Option<u64> {
+        self.itens
+            .iter()
+            .find(|i| i.serial == serial)
+            .map(|i| i.ultima_vez)
+    }
+
     /// Devolve uma lista NOVA com o jogo no topo. `agora` vem de fora: o `psx-core` nao
     /// le relogio (R3). Sem serial nao ha como acumular tempo, entao o jogo nao entra.
     pub fn registra(&self, serial: &str, titulo: &str, segundos: u64, agora: u64) -> Recentes {

@@ -1,8 +1,9 @@
 use std::path::{Path, PathBuf};
 
 use psx_core::app::config::Config;
+use psx_core::app::estados;
 use psx_core::app::input_map::{Eixos, Entrada, Perfil, direcao};
-use psx_core::app::saves::{self, Save};
+use psx_core::app::saves;
 use psx_core::app::sessao;
 use psx_core::app::troca::{PortaAberta, apertou_agora};
 use psx_core::bus::{Bios, Bus, Ram};
@@ -15,7 +16,7 @@ use psx_core::snapshot::{self, DiscoGravado, Metadados};
 use crate::audio::AudioOut;
 use crate::gamepad::Leitura;
 
-pub const SLOTS: u8 = 10;
+pub const SLOTS: u8 = estados::SLOTS;
 
 type DiscoAberto = (PathBuf, DiscLayout, Box<dyn DiscImage>);
 
@@ -112,8 +113,18 @@ impl Emulador {
         &self.memcard
     }
 
-    pub fn saves_do_cartao(&self) -> Vec<Save> {
-        saves::lista(&self.bus.sio().memory_card_image())
+    pub fn imagem_do_cartao(&self) -> Vec<u8> {
+        self.bus.sio().memory_card_image()
+    }
+
+    /// Gerenciador de cartao com o jogo aberto: a imagem nova vai para o SIO (que volta a
+    /// sinalizar "diretorio nao lido", como numa troca de cartao) e para o arquivo.
+    pub fn troca_imagem_do_cartao(&mut self, imagem: &[u8]) -> Result<(), String> {
+        self.bus
+            .sio_mut()
+            .load_memory_card(imagem)
+            .map_err(|e| format!("memory card inválido: {e:?}"))?;
+        grava_arquivo(&self.memcard, imagem)
     }
 
     pub fn insere_disco(&mut self, cue: &Path) -> Result<(), String> {
@@ -179,20 +190,27 @@ impl Emulador {
     }
 
     pub fn caminho_do_slot(&self, slot: u8) -> PathBuf {
-        self.pasta_de_saves
-            .join(format!("{}-{slot}.state", self.serial))
+        caminho_do_estado(&self.pasta_de_saves, &self.serial, slot)
+    }
+
+    pub fn pasta_de_saves(&self) -> &Path {
+        &self.pasta_de_saves
+    }
+
+    pub fn salva_no_slot(&mut self, slot: u8) {
+        self.slot = slot.min(SLOTS - 1);
+        self.salva_estado();
+    }
+
+    pub fn carrega_do_slot(&mut self, slot: u8) {
+        self.slot = slot.min(SLOTS - 1);
+        self.carrega_estado();
     }
 
     /// F5. Um slot por arquivo: sobrescrever o anterior e o comportamento esperado, mas
     /// perder o save por falta da pasta nao e — por isso a pasta e criada aqui.
     pub fn salva_estado(&mut self) {
         let caminho = self.caminho_do_slot(self.slot);
-        if let Some(pai) = caminho.parent() {
-            if let Err(e) = std::fs::create_dir_all(pai) {
-                self.aviso = Some(format!("nao consegui criar '{}': {e}", pai.display()));
-                return;
-            }
-        }
         let bytes = match snapshot::salva_com(&self.cpu, &self.bus, &self.metadados()) {
             Ok(b) => b,
             Err(e) => {
@@ -200,10 +218,32 @@ impl Emulador {
                 return;
             }
         };
-        self.aviso = Some(match std::fs::write(&caminho, &bytes) {
-            Ok(()) => format!("slot {} salvo ({} KiB)", self.slot, bytes.len() / 1024),
-            Err(e) => format!("nao consegui gravar o slot {}: {e}", self.slot),
-        });
+        if let Err(e) = grava_arquivo(&caminho, &bytes) {
+            self.aviso = Some(format!("não consegui gravar o slot {}: {e}", self.slot));
+            return;
+        }
+        let miniatura = caminho_da_miniatura(&self.pasta_de_saves, &self.serial, self.slot);
+        let _ = std::fs::remove_file(&miniatura);
+        let extra = match self.grava_miniatura(&miniatura) {
+            Ok(()) => String::new(),
+            Err(e) => format!(" (sem miniatura: {e})"),
+        };
+        self.aviso = Some(format!(
+            "slot {} salvo ({} KiB){extra}",
+            self.slot,
+            bytes.len() / 1024
+        ));
+    }
+
+    fn grava_miniatura(&self, caminho: &Path) -> Result<(), String> {
+        let fb = self
+            .bus
+            .gpu()
+            .framebuffer_for_display()
+            .ok_or("display desligado")?;
+        let rgba = estados::miniatura(&fb.data, fb.width as usize, fb.height as usize)
+            .ok_or("quadro vazio")?;
+        grava_png(caminho, &rgba)
     }
 
     fn metadados(&self) -> Metadados {
@@ -262,13 +302,13 @@ impl Emulador {
         let rotulo = format!("'{}' ({})", gravado.caminho, gravado.serial);
         if !cue.exists() {
             return Err(format!(
-                "o estado usa o disco {rotulo}, que nao foi encontrado"
+                "o estado usa o disco {rotulo}, que não foi encontrado"
             ));
         }
         let achado = serial_do_cue(&cue);
         if achado != gravado.serial {
             return Err(format!(
-                "o estado usa o disco {rotulo}, mas o arquivo agora e do {achado}"
+                "o estado usa o disco {rotulo}, mas o arquivo agora é do {achado}"
             ));
         }
         let (layout, bin) = crate::disco::carrega(&cue)?;
@@ -387,5 +427,79 @@ impl Emulador {
 
     pub fn troca_velocidade(&mut self) {
         self.velocidade = sessao::proxima_velocidade(self.velocidade);
+    }
+}
+
+pub fn caminho_do_estado(pasta: &Path, serial: &str, slot: u8) -> PathBuf {
+    pasta.join(estados::nome_do_estado(serial, slot))
+}
+
+pub fn caminho_da_miniatura(pasta: &Path, serial: &str, slot: u8) -> PathBuf {
+    pasta.join(estados::nome_da_miniatura(serial, slot))
+}
+
+pub fn apaga_estado(pasta: &Path, serial: &str, slot: u8) -> Result<(), String> {
+    let _ = std::fs::remove_file(caminho_da_miniatura(pasta, serial, slot));
+    let estado = caminho_do_estado(pasta, serial, slot);
+    std::fs::remove_file(&estado).map_err(|e| format!("apagando '{}': {e}", estado.display()))
+}
+
+pub fn grava_arquivo(caminho: &Path, bytes: &[u8]) -> Result<(), String> {
+    if let Some(pai) = caminho.parent() {
+        std::fs::create_dir_all(pai).map_err(|e| format!("criando '{}': {e}", pai.display()))?;
+    }
+    std::fs::write(caminho, bytes).map_err(|e| format!("gravando '{}': {e}", caminho.display()))
+}
+
+fn grava_png(caminho: &Path, rgba: &[u8]) -> Result<(), String> {
+    let mut bytes = Vec::new();
+    let mut encoder = png::Encoder::new(
+        &mut bytes,
+        estados::MINIATURA_LARGURA as u32,
+        estados::MINIATURA_ALTURA as u32,
+    );
+    encoder.set_color(png::ColorType::Rgba);
+    encoder.set_depth(png::BitDepth::Eight);
+    encoder
+        .write_header()
+        .and_then(|mut w| w.write_image_data(rgba))
+        .map_err(|e| e.to_string())?;
+    grava_arquivo(caminho, &bytes)
+}
+
+pub fn le_png(caminho: &Path) -> Option<egui::ColorImage> {
+    let bytes = std::fs::read(caminho).ok()?;
+    let mut leitor = png::Decoder::new(std::io::Cursor::new(bytes))
+        .read_info()
+        .ok()?;
+    let mut buffer = vec![0u8; leitor.output_buffer_size()?];
+    let info = leitor.next_frame(&mut buffer).ok()?;
+    if info.color_type != png::ColorType::Rgba || info.bit_depth != png::BitDepth::Eight {
+        return None;
+    }
+    let tamanho = [info.width as usize, info.height as usize];
+    let dados = buffer.get(..info.buffer_size())?;
+    Some(egui::ColorImage::from_rgba_unmultiplied(tamanho, dados))
+}
+
+#[cfg(test)]
+mod testes {
+    use super::*;
+
+    #[test]
+    fn miniatura_png_vai_e_volta() {
+        let dir = std::env::temp_dir().join(format!("psx-rs-png-{}", std::process::id()));
+        let caminho = caminho_da_miniatura(&dir, "SCUS-94900", 2);
+        let rgba: Vec<u8> = (0..estados::MINIATURA_LARGURA * estados::MINIATURA_ALTURA)
+            .flat_map(|i| [(i % 256) as u8, 7, 9, 255])
+            .collect();
+        grava_png(&caminho, &rgba).expect("grava png");
+        let volta = le_png(&caminho).expect("le png");
+        assert_eq!(
+            volta.size,
+            [estados::MINIATURA_LARGURA, estados::MINIATURA_ALTURA]
+        );
+        assert_eq!(volta.pixels[3], egui::Color32::from_rgb(3, 7, 9));
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

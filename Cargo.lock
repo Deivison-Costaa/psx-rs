@@ -2687,6 +2687,7 @@ dependencies = [
  "eframe",
  "egui",
  "gilrs",
+ "png",
  "psx-core",
  "toml",
 ]

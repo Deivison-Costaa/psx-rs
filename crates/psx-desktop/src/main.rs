@@ -13,15 +13,15 @@ use emulador::Emulador;
 use gamepad::Gamepads;
 use psx_core::app::config::Config;
 use psx_core::app::input_map::Perfil;
+use psx_core::app::pastas::Pastas;
 use psx_core::app::sessao::Recentes;
-
-const PERFIL_DE_CONTROLE: &str = "controles.txt";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Tela {
     Biblioteca,
     Jogando,
     Saves,
+    Estados,
     Controles,
     Ajustes,
     Discos,
@@ -40,20 +40,28 @@ pub(crate) struct App {
     pub(crate) perfil: Perfil,
     pub(crate) perfil_arquivo: PathBuf,
     pub(crate) discos: Vec<PathBuf>,
+    pub(crate) pastas: Pastas,
+    pub(crate) paineis: telas::Paineis,
 }
 
 impl App {
-    fn novo(config_caminho: PathBuf, sobrepoe_bios: Option<String>) -> Self {
+    fn novo(pastas: Pastas, sobrepoe_bios: Option<String>, recado: Option<String>) -> Self {
+        let config_caminho = pastas.arquivo_de_config();
         let (mut config, erro) = ajustes::carrega(&config_caminho);
         if let Some(bios) = sobrepoe_bios {
-            config.bios = bios;
+            config.bios = ajustes::pasta_atual()
+                .join(bios)
+                .to_string_lossy()
+                .to_string();
         }
-        let perfil_arquivo = PathBuf::from(PERFIL_DE_CONTROLE);
+        let perfil_arquivo = pastas.perfil_de_controle();
         let perfil = match std::fs::read_to_string(&perfil_arquivo) {
             Ok(texto) => Perfil::de_texto("Do arquivo", &texto),
             Err(_) => Perfil::padrao(),
         };
-        let jogos = biblioteca::varre(std::path::Path::new(&config.pasta_de_jogos));
+        let jogos = biblioteca::varre(std::path::Path::new(
+            &pastas.efetiva(&config).pasta_de_jogos,
+        ));
         App {
             tela: Tela::Biblioteca,
             config,
@@ -61,17 +69,24 @@ impl App {
             jogos,
             emulador: None,
             erro,
-            recado: None,
+            recado,
             em_execucao: None,
             gamepads: Gamepads::novo(),
             perfil,
             perfil_arquivo,
             discos: Vec::new(),
+            pastas,
+            paineis: telas::Paineis::default(),
         }
     }
 
+    /// A config com todos os caminhos absolutos, resolvidos contra a pasta da config.
+    pub(crate) fn efetiva(&self) -> Config {
+        self.pastas.efetiva(&self.config)
+    }
+
     pub(crate) fn revarre(&mut self) {
-        self.jogos = biblioteca::varre(std::path::Path::new(&self.config.pasta_de_jogos));
+        self.jogos = biblioteca::varre(std::path::Path::new(&self.efetiva().pasta_de_jogos));
     }
 
     pub(crate) fn grava_perfil(&mut self) {
@@ -95,14 +110,15 @@ impl App {
         let Some(jogo) = self.jogos.get(indice).cloned() else {
             return;
         };
-        let bios = match std::fs::read(&self.config.bios) {
+        let efetiva = self.efetiva();
+        let bios = match std::fs::read(&efetiva.bios) {
             Ok(b) => b,
             Err(e) => {
-                self.erro = Some(format!("lendo BIOS '{}': {e}", self.config.bios));
+                self.erro = Some(format!("lendo BIOS '{}': {e}", efetiva.bios));
                 return;
             }
         };
-        let mut emu = match Emulador::novo(bios, jogo.serial(), &self.config) {
+        let mut emu = match Emulador::novo(bios, jogo.serial(), &efetiva) {
             Ok(e) => e,
             Err(e) => {
                 self.erro = Some(e);
@@ -154,7 +170,8 @@ impl App {
         };
         let atual = emu.disco();
         let pasta = atual.parent();
-        let mut raizes = vec![std::path::Path::new(&self.config.pasta_de_jogos)];
+        let jogos = self.efetiva().pasta_de_jogos;
+        let mut raizes = vec![std::path::Path::new(&jogos)];
         raizes.extend(pasta);
         raizes.extend(pasta.and_then(std::path::Path::parent));
         self.discos = disco::lista_cues(&raizes);
@@ -180,6 +197,7 @@ impl eframe::App for App {
             Tela::Biblioteca => self.tela_biblioteca(ui),
             Tela::Jogando => self.tela_jogando(ctx, ui),
             Tela::Saves => self.tela_saves(ui),
+            Tela::Estados => self.tela_estados(ui),
             Tela::Controles => self.tela_controles(ui),
             Tela::Ajustes => self.tela_ajustes(ui),
             Tela::Discos => self.tela_discos(ui),
@@ -190,7 +208,7 @@ impl eframe::App for App {
     }
 }
 
-fn argumentos() -> (PathBuf, Option<String>) {
+fn argumentos() -> (Option<PathBuf>, Option<String>) {
     let brutos: Vec<String> = std::env::args().skip(1).collect();
     let mut config = None;
     let mut bios = None;
@@ -213,12 +231,18 @@ fn argumentos() -> (PathBuf, Option<String>) {
             }
         }
     }
-    (config.unwrap_or_else(ajustes::caminho_padrao), bios)
+    (config, bios)
 }
 
 fn main() -> Result<(), eframe::Error> {
     let (config_caminho, bios) = argumentos();
-    let app = App::novo(config_caminho, bios);
+    let atual = ajustes::pasta_atual();
+    let pastas = ajustes::pastas(config_caminho.clone(), &atual);
+    let recado = config_caminho
+        .is_none()
+        .then(|| ajustes::migra(&pastas, &atual))
+        .flatten();
+    let app = App::novo(pastas, bios, recado);
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default().with_inner_size([840.0, 640.0]),
         ..Default::default()

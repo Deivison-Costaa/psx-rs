@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use psx_core::app::library::Identidade;
+use psx_core::app::library::{self, Identidade};
 
 use crate::disco;
 
@@ -16,13 +16,11 @@ impl Jogo {
         self.identidade.serial.as_deref().unwrap_or("sem serial")
     }
 
-    pub fn detalhe(&self) -> String {
-        let rotulo = self.identidade.rotulo.as_deref().unwrap_or("-");
-        format!(
-            "{} · {} · {}",
-            self.serial(),
-            self.identidade.regiao.nome(),
-            rotulo
+    pub fn detalhe(&self, segundos: u64) -> String {
+        library::detalhe(
+            self.identidade.regiao,
+            self.identidade.serial.as_deref(),
+            segundos,
         )
     }
 }
@@ -33,9 +31,8 @@ fn titulo_do_arquivo(cue: &Path) -> String {
         .unwrap_or_else(|| cue.display().to_string())
 }
 
-/// Varre a pasta (um nivel) atras de `.cue`. Disco ilegivel entra na lista mesmo assim,
-/// com identidade vazia: esconder o jogo faria o usuario procurar um bug onde ha um CUE
-/// quebrado.
+/// Disco ilegivel entra na lista com identidade vazia: esconder o jogo faria o usuario
+/// procurar um bug onde ha um CUE quebrado.
 pub fn varre(pasta: &Path) -> Vec<Jogo> {
     let Ok(entradas) = std::fs::read_dir(pasta) else {
         return Vec::new();

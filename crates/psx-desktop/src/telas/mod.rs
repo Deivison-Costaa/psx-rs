@@ -2,8 +2,17 @@ mod ajustes;
 mod biblioteca;
 mod controles;
 mod discos;
+mod estados;
 mod jogando;
 mod saves;
+
+/// Estado de interface que sobrevive entre quadros (busca, slot escolhido, confirmações).
+#[derive(Default)]
+pub(crate) struct Paineis {
+    pub(crate) biblioteca: biblioteca::Painel,
+    pub(crate) estados: estados::Painel,
+    pub(crate) cartoes: saves::Painel,
+}
 
 use crate::App;
 

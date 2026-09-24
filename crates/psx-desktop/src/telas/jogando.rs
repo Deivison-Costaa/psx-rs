@@ -63,7 +63,7 @@ impl App {
             ui.small(formata_tempo(emu.segundos_jogados()));
         });
         ui.small(
-            "Esc: sair · F2: trocar disco · F3/Home do controle: Analog · IJKL: analogico · F5/F8: salvar/carregar · F6/F7: slot · F9: cartao · F10: controles · F11: ajustes · F12: velocidade",
+            "Esc: sair · F2: trocar disco · F4: estados salvos · F3/Home do controle: Analog · IJKL: analogico · F5/F8: salvar/carregar · F6/F7: slot · F9: cartao · F10: controles · F11: ajustes · F12: velocidade",
         );
         if let Some(aviso) = &emu.aviso {
             ui.small(aviso.clone());
@@ -83,6 +83,9 @@ impl App {
         });
         if f9 {
             self.tela = Tela::Saves;
+        }
+        if ctx.input(|i| i.key_pressed(egui::Key::F4)) {
+            self.tela = Tela::Estados;
         }
         if f2 {
             self.gamepads.vibra(psx_core::dualshock::Rumble::default());

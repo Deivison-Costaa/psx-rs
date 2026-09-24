@@ -49,6 +49,9 @@ const STICK_ESQUERDO: [egui::Key; 4] = [egui::Key::J, egui::Key::L, egui::Key::I
 const TECLA_ANALOG: egui::Key = egui::Key::F3;
 
 const CPU_HZ: f64 = 33_868_800.0;
+/// Drena o SPU antes de a fila interna dele (8192 quadros) encher: em 8x um único
+/// `quadro()` de 50 ms produz 17.640 quadros.
+const CICLOS_POR_FATIA_DE_AUDIO: u64 = 4096 * 768;
 
 pub struct Emulador {
     cpu: Cpu,
@@ -335,11 +338,14 @@ impl Emulador {
         let alvo =
             self.bus.total_cycles() + (dt * CPU_HZ * f64::from(self.velocidade.max(1))) as u64;
         while self.bus.total_cycles() < alvo {
-            self.cpu.step(&mut self.bus);
+            let fim_da_fatia = (self.bus.total_cycles() + CICLOS_POR_FATIA_DE_AUDIO).min(alvo);
+            while self.bus.total_cycles() < fim_da_fatia {
+                self.cpu.step(&mut self.bus);
+            }
+            let quadros = self.bus.drain_audio();
+            self.audio.push(&quadros, ganho);
         }
         self.cuida_da_porta();
-        let quadros = self.bus.drain_audio();
-        self.audio.push(&quadros, ganho);
         self.salva_memcard();
         self.atualiza_textura();
     }

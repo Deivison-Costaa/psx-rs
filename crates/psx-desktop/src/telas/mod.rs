@@ -3,6 +3,7 @@ mod biblioteca;
 mod controles;
 mod discos;
 mod jogando;
+mod pausa;
 mod saves;
 
 use crate::App;

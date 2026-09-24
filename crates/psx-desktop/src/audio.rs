@@ -108,6 +108,17 @@ impl AudioOut {
         anel.push_frames(&escalados);
     }
 
+    /// Pausa: joga fora o que ja estava no anel para o som parar na hora.
+    pub fn silencia(&self) {
+        let mut anel = match self.ring.lock() {
+            Ok(a) => a,
+            Err(envenenado) => envenenado.into_inner(),
+        };
+        let hz = anel.output_rate();
+        *anel = Ring::new(RING_FRAMES);
+        anel.set_output_rate(hz);
+    }
+
     pub fn device_hz(&self) -> u32 {
         self.device_hz
     }

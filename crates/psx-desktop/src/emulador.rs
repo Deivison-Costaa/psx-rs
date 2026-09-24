@@ -385,6 +385,28 @@ impl Emulador {
         self.jogado as u64
     }
 
+    pub fn pausa(&mut self) {
+        self.audio.silencia();
+    }
+
+    /// Sem isto o primeiro quadro depois da pausa contaria o tempo parado como jogado.
+    pub fn retoma(&mut self) {
+        self.ultimo = std::time::Instant::now();
+    }
+
+    pub fn solta_tudo(&mut self) {
+        self.bus.sio_mut().set_buttons(0xFFFF);
+        self.bus.sio_mut().set_sticks(Eixos::default().sticks());
+    }
+
+    pub fn ciclos(&self) -> u64 {
+        self.bus.total_cycles()
+    }
+
+    pub fn ciclos_por_quadro(&self) -> u64 {
+        self.bus.gpu().frame_cycles()
+    }
+
     pub fn troca_velocidade(&mut self) {
         self.velocidade = sessao::proxima_velocidade(self.velocidade);
     }

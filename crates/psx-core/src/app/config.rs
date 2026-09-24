@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+use crate::app::exibicao::ModoDeImagem;
 use crate::app::sessao::Recentes;
 
 pub const ESCALA_MIN: u32 = 1;
@@ -20,6 +21,7 @@ pub struct Config {
     pub pasta_de_saves: String,
     pub escala: u32,
     pub filtro_linear: bool,
+    pub modo_de_imagem: ModoDeImagem,
     pub volume: u8,
     pub audio_ligado: bool,
     pub slot_inicial: u8,
@@ -36,6 +38,7 @@ impl Default for Config {
             pasta_de_saves: PASTA_SAVES.to_string(),
             escala: 2,
             filtro_linear: false,
+            modo_de_imagem: ModoDeImagem::AjustarAJanela,
             volume: VOLUME_MAX,
             audio_ligado: true,
             slot_inicial: 0,
@@ -63,6 +66,7 @@ impl Config {
             pasta_de_saves: ou_padrao(&self.pasta_de_saves, PASTA_SAVES),
             escala: self.escala.clamp(ESCALA_MIN, ESCALA_MAX),
             filtro_linear: self.filtro_linear,
+            modo_de_imagem: self.modo_de_imagem,
             volume: self.volume.min(VOLUME_MAX),
             audio_ligado: self.audio_ligado,
             slot_inicial: self.slot_inicial.min(SLOT_MAX),

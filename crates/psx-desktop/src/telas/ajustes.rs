@@ -1,4 +1,5 @@
-use psx_core::app::config::{ESCALA_MAX, ESCALA_MIN, VOLUME_MAX};
+use psx_core::app::config::VOLUME_MAX;
+use psx_core::app::exibicao::ModoDeImagem;
 
 use crate::App;
 
@@ -19,22 +20,23 @@ impl App {
             ui.label("Pasta de jogos");
             ui.text_edit_singleline(&mut self.config.pasta_de_jogos);
             ui.end_row();
-            ui.label("Pasta de cartoes");
+            ui.label("Pasta de cartões");
             ui.text_edit_singleline(&mut self.config.pasta_de_cartoes);
             ui.end_row();
             ui.label("Pasta de save states");
             ui.text_edit_singleline(&mut self.config.pasta_de_saves);
             ui.end_row();
-            ui.label("Escala da imagem");
-            ui.add(egui::Slider::new(
-                &mut self.config.escala,
-                ESCALA_MIN..=ESCALA_MAX,
-            ));
+            ui.label("Imagem");
+            ui.horizontal(|ui| {
+                for modo in ModoDeImagem::TODOS {
+                    ui.radio_value(&mut self.config.modo_de_imagem, modo, modo.rotulo());
+                }
+            });
             ui.end_row();
             ui.label("Filtro linear");
             ui.checkbox(&mut self.config.filtro_linear, "suavizar a imagem");
             ui.end_row();
-            ui.label("Audio");
+            ui.label("Áudio");
             ui.checkbox(&mut self.config.audio_ligado, "ligado");
             ui.end_row();
             ui.label("Volume");
@@ -52,6 +54,6 @@ impl App {
                 self.volta_do_menu();
             }
         });
-        ui.small("Ajuste de escala e de filtro vale no proximo quadro; o resto, no proximo jogo.");
+        ui.small("Imagem e filtro valem no próximo quadro; o resto, no próximo jogo.");
     }
 }

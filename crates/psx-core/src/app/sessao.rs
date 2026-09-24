@@ -36,8 +36,9 @@ impl Recentes {
     pub fn ultima_vez_de(&self, serial: &str) -> Option<u64> {
         self.itens
             .iter()
-            .find(|i| i.serial == serial)
+            .filter(|i| i.serial == serial)
             .map(|i| i.ultima_vez)
+            .next()
     }
 
     /// Devolve uma lista NOVA com o jogo no topo. `agora` vem de fora: o `psx-core` nao

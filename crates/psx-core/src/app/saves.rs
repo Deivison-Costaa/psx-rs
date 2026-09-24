@@ -116,7 +116,10 @@ fn titulo_do_bloco(imagem: &[u8], bloco: usize) -> String {
 /// Diretorio: bloco 0, frames 1..15. Estado 51h e o primeiro (ou unico) bloco de um
 /// arquivo; 52h/53h sao continuacoes do MESMO arquivo e nao viram entrada propria.
 pub fn lista(imagem: &[u8]) -> Vec<Save> {
-    if !e_cartao(imagem) {
+    if imagem.len() != CARD_BYTES {
+        return Vec::new();
+    }
+    if !imagem.starts_with(MAGICO) {
         return Vec::new();
     }
     let mut fora = Vec::new();

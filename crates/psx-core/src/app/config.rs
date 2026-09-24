@@ -41,9 +41,11 @@ impl Default for Config {
 }
 
 /// Pasta vazia quer dizer "a padrao", que so `app::pastas` sabe resolver.
-fn pasta(valor: &str) -> String {
+const PASTA_PADRAO: &str = "";
+
+fn ou_padrao(valor: &str, padrao: &str) -> String {
     if valor.trim().is_empty() {
-        String::new()
+        padrao.to_string()
     } else {
         valor.to_string()
     }
@@ -55,9 +57,9 @@ impl Config {
     pub fn ajustada(&self) -> Config {
         Config {
             bios: self.bios.clone(),
-            pasta_de_jogos: pasta(&self.pasta_de_jogos),
-            pasta_de_cartoes: pasta(&self.pasta_de_cartoes),
-            pasta_de_saves: pasta(&self.pasta_de_saves),
+            pasta_de_jogos: ou_padrao(&self.pasta_de_jogos, PASTA_PADRAO),
+            pasta_de_cartoes: ou_padrao(&self.pasta_de_cartoes, PASTA_PADRAO),
+            pasta_de_saves: ou_padrao(&self.pasta_de_saves, PASTA_PADRAO),
             escala: self.escala.clamp(ESCALA_MIN, ESCALA_MAX),
             filtro_linear: self.filtro_linear,
             volume: self.volume.min(VOLUME_MAX),

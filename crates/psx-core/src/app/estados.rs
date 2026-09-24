@@ -50,7 +50,6 @@ fn data_civil(dias: i64) -> (i64, i64, i64) {
     (ano, mes, dia)
 }
 
-/// `segundos` ja no fuso local (epoch + deslocamento): o `psx-core` nao le relogio.
 pub fn data_hora(segundos: i64) -> String {
     let dias = segundos.div_euclid(SEGUNDOS_POR_DIA);
     let resto = segundos.rem_euclid(SEGUNDOS_POR_DIA);
@@ -62,7 +61,6 @@ pub fn data_hora(segundos: i64) -> String {
     )
 }
 
-/// Saida de `date +%z` ("-0300") em segundos.
 pub fn deslocamento_de(texto: &str) -> Option<i64> {
     let t = texto.trim();
     let (sinal, digitos) = match t.as_bytes().first()? {

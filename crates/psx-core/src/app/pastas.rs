@@ -62,7 +62,6 @@ impl Pastas {
         }
     }
 
-    /// `--config`: troca o arquivo e a ancora dos caminhos relativos, nao a pasta de dados.
     pub fn com_config_em(&self, arquivo: &Path, atual: &Path) -> Pastas {
         let arquivo = atual.join(arquivo);
         let config = arquivo
@@ -100,7 +99,6 @@ impl Pastas {
         self.casa.as_deref()
     }
 
-    /// Relativo a pasta da config, com `~/` expandido para a home.
     pub fn resolve(&self, valor: &str) -> PathBuf {
         if let (Some(resto), Some(casa)) = (valor.strip_prefix("~/"), &self.casa) {
             return casa.join(resto);
@@ -116,7 +114,6 @@ impl Pastas {
         }
     }
 
-    /// Copia com todos os caminhos absolutos, que e o que o resto do app consome.
     pub fn efetiva(&self, config: &Config) -> Config {
         let jogos_padrao = self.casa.clone().unwrap_or_else(|| self.config.clone());
         Config {
@@ -163,9 +160,8 @@ fn ancorado(valor: &str, origem: &Path) -> String {
     }
 }
 
-/// A config antiga tinha caminhos relativos a pasta de onde o app abria; na pasta nova
-/// eles apontariam para outro lugar. `cartoes`/`saves` padrao viram vazio porque o
-/// conteudo deles foi copiado para a pasta de dados.
+/// Relativos da config antiga eram da pasta atual; `cartoes`/`saves` padrao viram vazio
+/// porque o conteudo deles foi copiado para a pasta de dados.
 pub fn config_migrada(config: &Config, origem: &Path) -> Config {
     let dado = |valor: &str, legado: &str| {
         if valor == legado {

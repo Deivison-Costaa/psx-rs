@@ -37,13 +37,28 @@ pub fn pasta_atual() -> PathBuf {
     std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."))
 }
 
-/// Pastas XDG (`~/.config/psx-rs`, `~/.local/share/psx-rs`); `--config` troca so o arquivo.
-pub fn pastas(config: Option<PathBuf>, atual: &Path) -> Pastas {
-    let ambiente = Ambiente {
+#[cfg(not(windows))]
+fn ambiente() -> Ambiente {
+    Ambiente {
         home: variavel("HOME"),
         xdg_config_home: variavel("XDG_CONFIG_HOME"),
         xdg_data_home: variavel("XDG_DATA_HOME"),
-    };
+    }
+}
+
+/// No Windows config e dados ficam juntos em `%APPDATA%\psx-rs`.
+#[cfg(windows)]
+fn ambiente() -> Ambiente {
+    Ambiente {
+        home: variavel("USERPROFILE"),
+        xdg_config_home: variavel("APPDATA"),
+        xdg_data_home: variavel("APPDATA"),
+    }
+}
+
+/// Pastas XDG (`~/.config/psx-rs`, `~/.local/share/psx-rs`); `--config` troca so o arquivo.
+pub fn pastas(config: Option<PathBuf>, atual: &Path) -> Pastas {
+    let ambiente = ambiente();
     let padrao = Pastas::padrao(&ambiente, atual);
     match config {
         Some(arquivo) => padrao.com_config_em(&arquivo, atual),

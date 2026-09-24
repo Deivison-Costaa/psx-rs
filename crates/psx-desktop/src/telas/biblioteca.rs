@@ -167,6 +167,9 @@ impl App {
             }
         }
         let entradas = self.entradas();
+        if let Some(a) = self.teclado_da_biblioteca(ui, &entradas) {
+            acao = Some(a);
+        }
         let painel = &mut self.paineis.biblioteca;
         painel.selecionado = painel.selecionado.min(entradas.len().saturating_sub(1));
         ui.horizontal(|ui| {
@@ -195,9 +198,6 @@ impl App {
             "Setas para cima/baixo: escolher · Enter ou duplo clique: jogar · setas laterais: disco · Esc: limpar a busca",
         );
         ui.separator();
-        if let Some(a) = self.teclado_da_biblioteca(ui, &entradas) {
-            acao = Some(a);
-        }
         if entradas.is_empty() {
             ui.label("Nenhum jogo casa com a busca.");
         }

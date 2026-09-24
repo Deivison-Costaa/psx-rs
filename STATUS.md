@@ -7,46 +7,29 @@
 
 ## Última iteração concluída
 
-**0230 — modulação de textura com a cor do vértice em 8 bits** (GPU v2, `03-gpu.md` L1080).
-Oráculo `gpu/rectangles` zera (2.954 → 0 px). Anterior: 0221 destravou TR1/TR3/Silent Hill.
-Estado de cada jogo em `docs/estado-dos-jogos.md` (leia antes de investigar travamento).
+**0240 — suíte automática de 12 jogos contra o DuckStation** (PR #256): 12/12 aprovados.
+Rodar: `python3 scripts/suite-jogos/suite.py --jobs 2` (~15 min; README ao lado). Toda
+integração passa por ela antes do merge. Estado de cada jogo: `docs/estado-dos-jogos.md`.
 
 ## Próxima tarefa
 
-**13 de 15 títulos rodam.** Faltam Tomb Raider II e Final Fantasy IX. Leia
-`docs/estado-dos-jogos.md` ANTES de investigar qualquer travamento: ele traz o ponto exato
-de congelamento de cada jogo, as hipóteses **já refutadas por medição** e duas armadilhas de
-medição que já fizeram relatório mentir.
+Os 12 jogos disponíveis rodam, jogam e batem com o DuckStation na imagem; save/load no
+cartão confirmado em TR2, TR3 e Rayman. O que falta é timing fino e áudio:
 
-1. **FMV sai granulada** (defeito exposto ao destravar: antes nenhuma FMV decodificava).
-   Logos legíveis sobre fundo ruidoso. Suspeito: MDEC (IDCT/zigzag/quantização). Ataque
-   pelos oráculos de hardware em `tests/exes/` antes de olhar pixel.
-2. **Custo de DMA conta a lentidão do drive duas vezes.** `Dma::word_cost_per_256` cobra a
-   tabela "DMA Transfer Rates" (`04-dma.md` L217-226) como stall da CPU, mas aquela tabela é
-   a vazão do DISPOSITIVO. O stall deve ser o da seção "DRAM Hyper Page mode" (~17 ciclos
-   por 16 palavras). Para o CD-ROM já modelamos a lentidão do drive na cadência de setor.
-3. **Final Fantasy IX**: gira em `0x800A9A6C` esperando o bit1 do byte em `0x80076B14`. Esse
-   byte é campo do próprio jogo (não é stat do CD-ROM — já verifiquei), sobrescrito por um
-   memcpy em `pc=0x800226CC` cuja origem passou a conter `0x80015509` no passo 408.411.249.
-4. **Tomb Raider II**: mudou com o fix do DICR, não confirmado visualmente.
+1. **Achado 0241.1** — suíte converte quadro do DuckStation a 59,94 Hz (o PS1 roda ~59,82).
+2. **Achado 0240.1** — CD-ROM rápido demais; antes, achar a deriva de ~0,5 s do Crash aos 17-21 s.
+3. **Achado 0240.6** — integrar `onda6/dma-custo` sem quebrar `gpu/texture-overflow`.
+4. **Achado 10.116** — GPU desenha em 0 ciclos (candidato às diferenças de ±1 quadro).
+5. App desktop: teste com controle físico (só coberto por testes unitários) e o 0193.3.
+6. **ROADMAP 11.3** — roteiro de demo e relatório final.
 
-Achado 0193.4 pode ser **fechado**: o custo por instrução da CPU foi medido contra o modelo
-da spec no laço do decoder do TR1 e bate com 0,04% de erro (49,019 contra 49,0). A suspeita
-de "CPU rápida demais" está refutada por medição.
+Oráculos: DuckStation regtest grava quadros e, com `REGTEST_AUDIO=<wav>`, áudio (guia em
+`logs/onda/oraculos/COMO-USAR.md`, fora do git). **Medir travamento: histograma de PC
+(`--sample-pcs`) decide melhor que hash de VRAM.** Tempo em segundos emulados (sufixo `s`
+nas flags do `psx-cli`), nunca em passos.
 
-Flags do runner e como rodar cada jogo: `docs/como-rodar.md` e
-`docs/estado-dos-jogos.md`. **Medir travamento: histograma de PC (`--sample-pcs`, passo
-PRIMO) decide melhor que hash de VRAM** — hash congelado não separa "travou" de "menu
-parado". Ordene os `.vram` NUMERICAMENTE e compile sempre um binário baseline pra A/B.
-
-Achados abertos em `docs/achados.md`. Lotes do oráculo: tarefa-modelo em
-`logs/orquestrador/task-lote-oraculo.txt`.
-
-`K/M` no CSV é **K linhas divergentes de M**. `timers` tem jitter real e nunca dará
-`identico`. **Antes de medir CD-ROM, monte disco** (10.108).
-
-Invariantes relevantes: 17 (espera da BIOS cobre um frame — reconferir a cada degrau da
-escada de timing), 34 (acumulador de ciclos extras é estado de pipeline).
+Invariantes relevantes: 17 (espera da BIOS cobre um frame), 34 (acumulador de ciclos
+extras é estado de pipeline).
 
 ## Repositório
 
@@ -62,7 +45,7 @@ escada de timing), 34 (acumulador de ciclos extras é estado de pipeline).
 
 ## Placar de testes
 
-Workspace: **1757** testes.
+Workspace: **1763** testes.
 - **NUNCA rodar `nextest` nem a bateria de mutação junto com o oráculo**: a disputa de CPU
   faz o `Start-Process` ler stdout antes do flush e reportar `sem-saida` falso (0170).
 - **GTE: 1100/1100 no `gte_valid_0xc0ffee_50.log`** (gitignored, em

@@ -141,18 +141,19 @@ fn key_on_copia_o_start_address_e_zera_a_envoltoria() {
 fn flag_loop_start_copia_o_endereco_corrente_para_o_repeat() {
     let mut spu = Spu::new();
     // O loop-start mora no SEGUNDO bloco (0202h), nao no de partida: e a unica forma de
-    // separar "copiou o endereco corrente" de "key on ja tinha posto o start address".
+    // separar "copiou o endereco corrente" do valor que o repeat ja tinha.
     carrega(&mut spu, 0x200, &bloco(0x00, 0, repetido(7)));
     carrega(&mut spu, 0x202, &bloco(0x00, 0b100, repetido(7)));
     spu.write16(V0 + 6, 0x0200);
+    spu.write16(V0 + 0x0E, 0x0300);
     spu.write16(V0 + 4, 0x1000);
     spu.write16(V0 + 8, 0x00FF);
     spu.write16(KON_LO, 1);
     spu.tick();
     assert_eq!(
         spu.read16(V0 + 0x0E),
-        0x0200,
-        "ainda no bloco sem loop-start"
+        0x0300,
+        "ainda no bloco sem loop-start: o key on copia so o start para o endereco corrente"
     );
     for _ in 0..28 {
         spu.tick();
